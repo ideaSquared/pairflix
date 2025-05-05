@@ -5,6 +5,7 @@ import { initDatabase } from './db/connection';
 import { seedDatabase } from './db/seeders';
 import { authenticateToken } from './middlewares/auth';
 import authRoutes from './routes/auth.routes';
+import searchRoutes from './routes/search.routes';
 import watchlistRoutes from './routes/watchlist.routes';
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 
 async function initializeApp() {

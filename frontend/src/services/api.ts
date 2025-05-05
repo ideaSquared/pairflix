@@ -25,6 +25,15 @@ export interface WatchlistEntry {
 	title?: string;
 }
 
+export interface SearchResult {
+	id: number;
+	title?: string;
+	name?: string;
+	media_type: 'movie' | 'tv';
+	poster_path: string | null;
+	overview: string;
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 	const token = localStorage.getItem('token');
 	const headers = new Headers({
@@ -69,6 +78,12 @@ export const auth = {
 		}
 		return response;
 	},
+};
+
+export const search = {
+	media: async (query: string): Promise<SearchResult[]> => {
+		return fetchWithAuth(`/api/search/media?query=${encodeURIComponent(query)}`);
+	}
 };
 
 export const watchlist = {

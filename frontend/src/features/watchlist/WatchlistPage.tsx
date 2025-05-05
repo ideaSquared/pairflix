@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import Layout from '../../components/layout/Layout';
 import { watchlist, WatchlistEntry } from '../../services/api';
+import SearchMedia from './SearchMedia';
 
 const Grid = styled.div`
 	display: grid;
@@ -45,9 +46,27 @@ const Select = styled.select`
 	border-radius: 4px;
 `;
 
+const TabContainer = styled.div`
+	margin-bottom: 2rem;
+`;
+
+const TabButton = styled.button<{ active: boolean }>`
+	background: ${({ active }) => (active ? '#646cff' : '#2a2a2a')};
+	color: white;
+	border: none;
+	border-radius: 4px;
+	padding: 0.5rem 1rem;
+	margin-right: 1rem;
+	cursor: pointer;
+	&:hover {
+		background: ${({ active }) => (active ? '#747bff' : '#3a3a3a')};
+	}
+`;
+
 const WatchlistPage: React.FC = () => {
 	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState('');
+	const [activeTab, setActiveTab] = useState<'list' | 'search'>('list');
 
 	const { data: entries = [], isLoading } = useQuery(
 		['watchlist'],
@@ -76,42 +95,63 @@ const WatchlistPage: React.FC = () => {
 	return (
 		<Layout>
 			<h1>My Watchlist</h1>
-			<input
-				type='text'
-				placeholder='Search your watchlist...'
-				value={searchQuery}
-				onChange={(e) => setSearchQuery(e.target.value)}
-			/>
-			<Grid>
-				{entries
-					.filter((entry: WatchlistEntry) =>
-						entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
-					)
-					.map((entry: WatchlistEntry) => (
-						<Card key={entry.entry_id} status={entry.status}>
-							<h3>{entry.title}</h3>
-							<p>Type: {entry.media_type}</p>
-							<Select
-								value={entry.status}
-								onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-									handleStatusChange(
-										entry.entry_id,
-										e.target.value as WatchlistEntry['status']
-									)
-								}
-							>
-								<option value='to_watch'>To Watch</option>
-								<option value='to_watch_together'>To Watch Together</option>
-								<option value='would_like_to_watch_together'>
-									Would Like To Watch Together
-								</option>
-								<option value='watching'>Watching</option>
-								<option value='finished'>Finished</option>
-							</Select>
-							{entry.notes && <p>Notes: {entry.notes}</p>}
-						</Card>
-					))}
-			</Grid>
+			<TabContainer>
+				<TabButton
+					active={activeTab === 'list'}
+					onClick={() => setActiveTab('list')}
+				>
+					My List
+				</TabButton>
+				<TabButton
+					active={activeTab === 'search'}
+					onClick={() => setActiveTab('search')}
+				>
+					Add New
+				</TabButton>
+			</TabContainer>
+
+			{activeTab === 'list' ? (
+				<>
+					<input
+						type='text'
+						placeholder='Search your watchlist...'
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
+					<Grid>
+						{entries
+							.filter((entry: WatchlistEntry) =>
+								entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
+							)
+							.map((entry: WatchlistEntry) => (
+								<Card key={entry.entry_id} status={entry.status}>
+									<h3>{entry.title}</h3>
+									<p>Type: {entry.media_type}</p>
+									<Select
+										value={entry.status}
+										onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+											handleStatusChange(
+												entry.entry_id,
+												e.target.value as WatchlistEntry['status']
+											)
+										}
+									>
+										<option value='to_watch'>To Watch</option>
+										<option value='to_watch_together'>To Watch Together</option>
+										<option value='would_like_to_watch_together'>
+											Would Like To Watch Together
+										</option>
+										<option value='watching'>Watching</option>
+										<option value='finished'>Finished</option>
+									</Select>
+									{entry.notes && <p>Notes: {entry.notes}</p>}
+								</Card>
+							))}
+					</Grid>
+				</>
+			) : (
+				<SearchMedia />
+			)}
 		</Layout>
 	);
 };
