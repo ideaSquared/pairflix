@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { Sequelize } from 'sequelize';
+import { initializeModels } from '../models';
 
 dotenv.config();
 
@@ -33,6 +34,9 @@ export async function initDatabase() {
 				await new Promise((resolve) => setTimeout(resolve, 5000));
 			}
 		}
+
+		// Initialize models and their associations
+		const models = initializeModels();
 
 		// Sync models
 		await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
