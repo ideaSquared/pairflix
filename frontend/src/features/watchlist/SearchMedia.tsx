@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import Badge from '../../components/layout/Badge';
 import { search, SearchResult, watchlist } from '../../services/api';
 
 const SearchContainer = styled.div`
@@ -121,7 +122,7 @@ const SearchMedia: React.FC = () => {
 							/>
 						)}
 						<h3>{result.title || result.name}</h3>
-						<p>Type: {result.media_type}</p>
+						<Badge variant={result.media_type}>{result.media_type}</Badge>
 						<Overview>{result.overview}</Overview>
 						<Button
 							onClick={() => handleAdd(result)}

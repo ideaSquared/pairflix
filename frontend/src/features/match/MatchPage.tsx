@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import styled from 'styled-components';
+import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { watchlist } from '../../services/api';
 
@@ -76,7 +77,7 @@ const MatchPage: React.FC = () => {
 				{matches.map((match: Match) => (
 					<MatchCard key={match.tmdb_id}>
 						<h3>{match.title}</h3>
-						<p>Type: {match.media_type}</p>
+						<Badge variant={match.media_type}>{match.media_type}</Badge>
 						<div>
 							<p>
 								You:{' '}

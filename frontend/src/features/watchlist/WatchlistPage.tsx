@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { watchlist, WatchlistEntry } from '../../services/api';
 import SearchMedia from './SearchMedia';
@@ -125,8 +126,11 @@ const WatchlistPage: React.FC = () => {
 							)
 							.map((entry: WatchlistEntry) => (
 								<Card key={entry.entry_id} status={entry.status}>
-									<h3>{entry.title}</h3>
-									<p>Type: {entry.media_type}</p>
+									<h3>
+										<Badge variant={entry.media_type}>{entry.media_type}</Badge>{' '}
+										{entry.title}
+									</h3>
+
 									<Select
 										value={entry.status}
 										onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
