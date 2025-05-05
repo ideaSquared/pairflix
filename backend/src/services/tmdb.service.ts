@@ -10,6 +10,22 @@ interface TMDbResponse<T> {
 	status_message?: string;
 }
 
+export interface TMDbMovie {
+	id: number;
+	title: string;
+	poster_path: string | null;
+	overview: string;
+}
+
+export interface TMDbTV {
+	id: number;
+	name: string;
+	poster_path: string | null;
+	overview: string;
+}
+
+export type TMDbDetails = TMDbMovie | TMDbTV;
+
 async function tmdbFetch<T>(
 	endpoint: string,
 	params: Record<string, string> = {}
@@ -31,22 +47,22 @@ async function tmdbFetch<T>(
 }
 
 export async function searchMedia(query: string, page: number = 1) {
-	return tmdbFetch<TMDbResponse<any>>('/search/multi', {
+	return tmdbFetch<TMDbResponse<TMDbMovie | TMDbTV>>('/search/multi', {
 		query,
 		page: page.toString(),
 	});
 }
 
-export async function getMovieDetails(movieId: number) {
-	return tmdbFetch(`/movie/${movieId}`);
+export async function getMovieDetails(movieId: number): Promise<TMDbMovie> {
+	return tmdbFetch<TMDbMovie>(`/movie/${movieId}`);
 }
 
-export async function getTVDetails(tvId: number) {
-	return tmdbFetch(`/tv/${tvId}`);
+export async function getTVDetails(tvId: number): Promise<TMDbTV> {
+	return tmdbFetch<TMDbTV>(`/tv/${tvId}`);
 }
 
 export async function getPopular(mediaType: 'movie' | 'tv', page: number = 1) {
-	return tmdbFetch<TMDbResponse<any>>(`/${mediaType}/popular`, {
+	return tmdbFetch<TMDbResponse<TMDbMovie | TMDbTV>>(`/${mediaType}/popular`, {
 		page: page.toString(),
 	});
 }

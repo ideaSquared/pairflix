@@ -30,9 +30,9 @@ app.options('*', cors());
 
 // Debug middleware to log incoming requests
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    console.log('Headers:', req.headers);
-    next();
+	console.log(`${req.method} ${req.url}`);
+	console.log('Headers:', req.headers);
+	next();
 });
 
 // Routes

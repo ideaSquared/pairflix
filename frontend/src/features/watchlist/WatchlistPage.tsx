@@ -96,6 +96,10 @@ const WatchlistPage: React.FC = () => {
 								}
 							>
 								<option value='to_watch'>To Watch</option>
+								<option value='to_watch_together'>To Watch Together</option>
+								<option value='would_like_to_watch_together'>
+									Would Like To Watch Together
+								</option>
 								<option value='watching'>Watching</option>
 								<option value='finished'>Finished</option>
 							</Select>

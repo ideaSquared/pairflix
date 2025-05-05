@@ -9,7 +9,12 @@ export interface WatchlistEntry {
 	user_id: string;
 	tmdb_id: number;
 	media_type: 'movie' | 'tv';
-	status: 'to_watch' | 'watching' | 'finished';
+	status:
+		| 'to_watch'
+		| 'to_watch_together'
+		| 'would_like_to_watch_together'
+		| 'watching'
+		| 'finished';
 	rating?: number;
 	notes?: string;
 	created_at: Date;

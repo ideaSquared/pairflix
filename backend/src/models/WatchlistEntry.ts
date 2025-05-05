@@ -7,7 +7,12 @@ class WatchlistEntry extends Model {
 	declare user_id: string;
 	declare tmdb_id: number;
 	declare media_type: 'movie' | 'tv';
-	declare status: 'to_watch' | 'watching' | 'finished';
+	declare status:
+		| 'to_watch'
+		| 'to_watch_together'
+		| 'would_like_to_watch_together'
+		| 'watching'
+		| 'finished';
 	declare rating: number | null;
 	declare notes: string | null;
 	declare created_at: Date;
@@ -38,7 +43,13 @@ WatchlistEntry.init(
 			allowNull: false,
 		},
 		status: {
-			type: DataTypes.ENUM('to_watch', 'watching', 'finished'),
+			type: DataTypes.ENUM(
+				'to_watch',
+				'to_watch_together',
+				'would_like_to_watch_together',
+				'watching',
+				'finished'
+			),
 			allowNull: false,
 		},
 		rating: {

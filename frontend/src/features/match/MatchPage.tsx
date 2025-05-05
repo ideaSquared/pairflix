@@ -42,8 +42,18 @@ interface Match {
 	tmdb_id: number;
 	media_type: 'movie' | 'tv';
 	title?: string;
-	user1_status: 'to_watch' | 'watching' | 'finished';
-	user2_status: 'to_watch' | 'watching' | 'finished';
+	user1_status:
+		| 'to_watch'
+		| 'to_watch_together'
+		| 'would_like_to_watch_together'
+		| 'watching'
+		| 'finished';
+	user2_status:
+		| 'to_watch'
+		| 'to_watch_together'
+		| 'would_like_to_watch_together'
+		| 'watching'
+		| 'finished';
 }
 
 const MatchPage: React.FC = () => {

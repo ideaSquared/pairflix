@@ -171,7 +171,7 @@ CREATE TABLE watchlist_entries (
     user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
     tmdb_id INTEGER NOT NULL,
     media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
-    status TEXT CHECK (status IN ('to_watch', 'watching', 'finished')) NOT NULL,
+    status TEXT CHECK (status IN ('to_watch', 'to_watch_together', 'would_like_to_watch_together', 'watching', 'finished')) NOT NULL,
     rating INTEGER CHECK (rating >= 0 AND rating <= 10),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
