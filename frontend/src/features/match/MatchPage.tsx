@@ -28,6 +28,10 @@ const StatusBadge = styled.span<{ status: string }>`
 		switch (status) {
 			case 'to_watch':
 				return '#646cff';
+			case 'to_watch_together':
+				return '#9370db';
+			case 'would_like_to_watch_together':
+				return '#ff69b4';
 			case 'watching':
 				return '#ffd700';
 			case 'finished':

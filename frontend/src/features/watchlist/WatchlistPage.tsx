@@ -18,6 +18,23 @@ const Card = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	border-left: 4px solid
+		${({ status }: { status: string }) => {
+			switch (status) {
+				case 'to_watch':
+					return '#646cff';
+				case 'to_watch_together':
+					return '#9370db';
+				case 'would_like_to_watch_together':
+					return '#ff69b4';
+				case 'watching':
+					return '#ffd700';
+				case 'finished':
+					return '#00ff00';
+				default:
+					return '#646cff';
+			}
+		}};
 `;
 
 const Select = styled.select`
@@ -83,7 +100,7 @@ const WatchlistPage: React.FC = () => {
 						entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
 					)
 					.map((entry: WatchlistEntry) => (
-						<Card key={entry.entry_id}>
+						<Card key={entry.entry_id} status={entry.status}>
 							<h3>{entry.title}</h3>
 							<p>Type: {entry.media_type}</p>
 							<Select
