@@ -34,6 +34,16 @@ export interface SearchResult {
 	overview: string;
 }
 
+interface PasswordUpdate {
+	currentPassword: string;
+	newPassword: string;
+}
+
+interface EmailUpdate {
+	email: string;
+	password: string;
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 	const token = localStorage.getItem('token');
 	const headers = new Headers({
@@ -80,10 +90,27 @@ export const auth = {
 	},
 };
 
+export const user = {
+	updatePassword: async (data: PasswordUpdate) => {
+		return fetchWithAuth('/api/user/password', {
+			method: 'PUT',
+			body: JSON.stringify(data),
+		});
+	},
+	updateEmail: async (data: EmailUpdate) => {
+		return fetchWithAuth('/api/user/email', {
+			method: 'PUT',
+			body: JSON.stringify(data),
+		});
+	},
+};
+
 export const search = {
 	media: async (query: string): Promise<SearchResult[]> => {
-		return fetchWithAuth(`/api/search/media?query=${encodeURIComponent(query)}`);
-	}
+		return fetchWithAuth(
+			`/api/search/media?query=${encodeURIComponent(query)}`
+		);
+	},
 };
 
 export const watchlist = {

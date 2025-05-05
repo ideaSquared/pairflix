@@ -26,6 +26,10 @@ A private web application for two users (you and your partner) to:
 
 - Authentication for just two users (email + password or magic link).
 - No registration—manually set up in database or via config.
+- User management:
+  - Change password functionality
+  - Update email/username
+  - Basic profile settings
 
 #### 2. **Watchlist**
 
@@ -375,8 +379,11 @@ watch-together/
    - ✅ Basic authentication
    - ✅ Watchlist management
    - ✅ Basic match view
-   - ⏳ Add user registration system
-   - ⏳ Implement TMDb search
+   - ✅ Implement TMDb search
+   - ⏳ Add user profile management
+     - Change password
+     - Update email
+     - Basic profile settings
 
 2. **Phase 2**
 

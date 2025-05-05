@@ -6,6 +6,7 @@ import { seedDatabase } from './db/seeders';
 import { authenticateToken } from './middlewares/auth';
 import authRoutes from './routes/auth.routes';
 import searchRoutes from './routes/search.routes';
+import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
 
 dotenv.config();
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 

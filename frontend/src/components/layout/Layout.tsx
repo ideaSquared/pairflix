@@ -58,6 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 							My Watchlist
 						</NavLink>
 						<NavLink onClick={() => navigate('/matches')}>Matches</NavLink>
+						<NavLink onClick={() => navigate('/profile')}>Profile</NavLink>
 						<NavLink onClick={handleLogout}>Logout</NavLink>
 					</Nav>
 				)}

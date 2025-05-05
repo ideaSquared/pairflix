@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '../../features/auth/LoginPage';
+import ProfilePage from '../../features/auth/ProfilePage';
 import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
@@ -28,6 +29,10 @@ const AppRoutes: React.FC = () => {
 			<Route
 				path='/matches'
 				element={<ProtectedRoute element={<MatchPage />} />}
+			/>
+			<Route
+				path='/profile'
+				element={<ProtectedRoute element={<ProfilePage />} />}
 			/>
 			<Route path='/' element={<Navigate to='/watchlist' />} />
 		</Routes>
