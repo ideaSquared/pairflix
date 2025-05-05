@@ -41,18 +41,32 @@ export const createMatch = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        // Check if match already exists
+        // Check if either user already has an active match
         const existingMatch = await Match.findOne({
             where: {
                 [Op.or]: [
-                    { user1_id, user2_id },
-                    { user1_id: user2_id, user2_id: user1_id }
+                    { user1_id: [user1_id, user2_id], status: 'accepted' },
+                    { user2_id: [user1_id, user2_id], status: 'accepted' }
                 ]
             }
         });
 
         if (existingMatch) {
-            return res.status(400).json({ error: 'Match already exists' });
+            return res.status(400).json({ error: 'One of the users already has an active match' });
+        }
+
+        // Check if these users already have a pending match
+        const pendingMatch = await Match.findOne({
+            where: {
+                [Op.or]: [
+                    { user1_id, user2_id, status: 'pending' },
+                    { user1_id: user2_id, user2_id: user1_id, status: 'pending' }
+                ]
+            }
+        });
+
+        if (pendingMatch) {
+            return res.status(400).json({ error: 'Match request already exists' });
         }
 
         const match = await Match.create({
@@ -91,6 +105,27 @@ export const updateMatchStatus = async (req: AuthenticatedRequest, res: Response
 
         if (!['accepted', 'rejected'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        // If accepting, check if either user already has an active match
+        if (status === 'accepted') {
+            const existingMatch = await Match.findOne({
+                where: {
+                    [Op.and]: [
+                        { match_id: { [Op.ne]: match_id } },
+                        {
+                            [Op.or]: [
+                                { user1_id: [match.user1_id, match.user2_id], status: 'accepted' },
+                                { user2_id: [match.user1_id, match.user2_id], status: 'accepted' }
+                            ]
+                        }
+                    ]
+                }
+            });
+
+            if (existingMatch) {
+                return res.status(400).json({ error: 'One of the users already has an active match' });
+            }
         }
 
         await match.update({ status });
