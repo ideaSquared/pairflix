@@ -34,6 +34,27 @@ export interface SearchResult {
 	overview: string;
 }
 
+export interface Match {
+	match_id: string;
+	user1_id: string;
+	user2_id: string;
+	status: 'pending' | 'accepted' | 'rejected';
+	created_at: Date;
+	updated_at: Date;
+	user1?: { email: string };
+	user2?: { email: string };
+}
+
+export interface ContentMatch {
+    tmdb_id: number;
+    media_type: 'movie' | 'tv';
+    title: string;
+    poster_path?: string;
+    overview?: string;
+    user1_status: WatchlistEntry['status'];
+    user2_status: WatchlistEntry['status'];
+}
+
 interface PasswordUpdate {
 	currentPassword: string;
 	newPassword: string;
@@ -103,6 +124,9 @@ export const user = {
 			body: JSON.stringify(data),
 		});
 	},
+	findByEmail: async (email: string) => {
+		return fetchWithAuth(`/api/user/search?email=${encodeURIComponent(email)}`);
+	},
 };
 
 export const search = {
@@ -134,5 +158,25 @@ export const watchlist = {
 
 	getMatches: async () => {
 		return fetchWithAuth('/api/watchlist/matches');
+	},
+};
+
+export const matches = {
+	getAll: async () => {
+		return fetchWithAuth('/api/matches');
+	},
+
+	create: async (user2_id: string) => {
+		return fetchWithAuth('/api/matches', {
+			method: 'POST',
+			body: JSON.stringify({ user2_id }),
+		});
+	},
+
+	updateStatus: async (match_id: string, status: 'accepted' | 'rejected') => {
+		return fetchWithAuth(`/api/matches/${match_id}/status`, {
+			method: 'PUT',
+			body: JSON.stringify({ status }),
+		});
 	},
 };

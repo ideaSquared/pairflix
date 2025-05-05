@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 import sequelize from './connection';
@@ -13,11 +14,12 @@ export async function seedDatabase() {
 
 		// Clear existing data
 		await WatchlistEntry.destroy({ where: {} });
+		await Match.destroy({ where: {} });
 		await User.destroy({ where: {} });
 
 		// Create test users
 		const password = await bcrypt.hash('testpass123', 10);
-		const [user1, user2] = await Promise.all([
+		const [user1, user2, user3] = await Promise.all([
 			User.create({
 				email: 'user1@example.com',
 				password_hash: password,
@@ -26,6 +28,24 @@ export async function seedDatabase() {
 				email: 'user2@example.com',
 				password_hash: password,
 			}),
+			User.create({
+				email: 'user3@example.com',
+				password_hash: password,
+			}),
+		]);
+
+		// Create sample matches
+		await Promise.all([
+			Match.create({
+				user1_id: user1.user_id,
+				user2_id: user2.user_id,
+				status: 'accepted',
+			}),
+			// Match.create({
+			// 	user1_id: user1.user_id,
+			// 	user2_id: user3.user_id,
+			// 	status: 'pending',
+			// }),
 		]);
 
 		// Sample TMDb IDs for popular movies/shows
@@ -66,6 +86,14 @@ export async function seedDatabase() {
 				tmdb_id: sampleContent[2].tmdb_id,
 				media_type: sampleContent[2].media_type,
 				status: 'to_watch',
+			}),
+
+			// User 3's entries
+			WatchlistEntry.create({
+				user_id: user3.user_id,
+				tmdb_id: sampleContent[1].tmdb_id,
+				media_type: sampleContent[1].media_type,
+				status: 'to_watch_together',
 			}),
 		]);
 
