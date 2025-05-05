@@ -95,7 +95,4 @@ class WatchlistEntry extends Model<
 	}
 }
 
-// Removed direct initialization
-// WatchlistEntry.initialize(sequelize);
-
 export default WatchlistEntry;

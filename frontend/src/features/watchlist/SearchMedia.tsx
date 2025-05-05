@@ -69,11 +69,23 @@ const Overview = styled.p`
 	text-overflow: ellipsis;
 `;
 
+const ErrorMessage = styled.div`
+	color: #ff4444;
+	margin-bottom: 1rem;
+	padding: 0.5rem;
+	background: rgba(255, 68, 68, 0.1);
+	border-radius: 4px;
+`;
+
 const SearchMedia: React.FC = () => {
 	const [searchQuery, setSearchQuery] = useState('');
 	const queryClient = useQueryClient();
 
-	const { data: results = [], isLoading } = useQuery(
+	const {
+		data: searchResults = [],
+		isLoading,
+		error,
+	} = useQuery<SearchResult[]>(
 		['search', searchQuery],
 		() => search.media(searchQuery),
 		{
@@ -111,27 +123,38 @@ const SearchMedia: React.FC = () => {
 				value={searchQuery}
 				onChange={handleSearch}
 			/>
-			{isLoading && <div>Loading...</div>}
+			{error instanceof Error && (
+				<ErrorMessage>
+					{error.message || 'An error occurred while searching'}
+				</ErrorMessage>
+			)}
+			{isLoading && searchQuery.length > 2 && <div>Loading...</div>}
 			<SearchGrid>
-				{results.map((result) => (
-					<SearchCard key={result.id}>
-						{result.poster_path && (
-							<PosterImage
-								src={`https://image.tmdb.org/t/p/w500${result.poster_path}`}
-								alt={result.title || result.name}
-							/>
-						)}
-						<h3>{result.title || result.name}</h3>
-						<Badge variant={result.media_type}>{result.media_type}</Badge>
-						<Overview>{result.overview}</Overview>
-						<Button
-							onClick={() => handleAdd(result)}
-							disabled={addMutation.isLoading}
-						>
-							Add to Watchlist
-						</Button>
-					</SearchCard>
-				))}
+				{Array.isArray(searchResults) &&
+					searchResults.map((result: SearchResult) => (
+						<SearchCard key={result.id}>
+							{result.poster_path && (
+								<PosterImage
+									src={`https://image.tmdb.org/t/p/w500${result.poster_path}`}
+									alt={result.title || result.name}
+								/>
+							)}
+							<h3>{result.title || result.name}</h3>
+							<Badge variant={result.media_type}>{result.media_type}</Badge>
+							<Overview>{result.overview}</Overview>
+							<Button
+								onClick={() => handleAdd(result)}
+								disabled={addMutation.isLoading}
+							>
+								Add to Watchlist
+							</Button>
+						</SearchCard>
+					))}
+				{searchQuery.length > 2 &&
+					!isLoading &&
+					(!searchResults || searchResults.length === 0) && (
+						<div>No results found</div>
+					)}
 			</SearchGrid>
 		</SearchContainer>
 	);

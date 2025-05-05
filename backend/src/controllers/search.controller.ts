@@ -9,8 +9,8 @@ export const searchTMDb = async (req: Request, res: Response) => {
 	}
 	try {
 		console.log('[Search Controller] Searching media:', { query });
-		const results = await searchMediaService(query);
-		res.json(results);
+		const tmdbResponse = await searchMediaService(query);
+		res.json(tmdbResponse);
 	} catch (error) {
 		console.error('[Search Controller] Error searching media:', {
 			query,

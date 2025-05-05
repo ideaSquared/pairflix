@@ -34,6 +34,13 @@ export interface SearchResult {
 	overview: string;
 }
 
+export interface SearchResponse {
+	page: number;
+	results: SearchResult[];
+	total_pages: number;
+	total_results: number;
+}
+
 export interface Match {
 	match_id: string;
 	user1_id: string;
@@ -73,29 +80,45 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 		...options.headers,
 	});
 
-	console.log('Request headers:', Object.fromEntries(headers.entries()));
+	try {
+		console.log('Request headers:', Object.fromEntries(headers.entries()));
 
-	const response = await fetch(`${BASE_URL}${endpoint}`, {
-		...options,
-		headers,
-		credentials: 'include',
-	});
+		const response = await fetch(`${BASE_URL}${endpoint}`, {
+			...options,
+			headers,
+			credentials: 'include',
+		});
 
-	if (response.status === 401 || response.status === 403) {
-		// Token is invalid or expired
-		localStorage.removeItem('token');
-		window.location.href = '/login';
-		throw new Error('Authentication required');
+		if (response.status === 401 || response.status === 403) {
+			// Token is invalid or expired
+			localStorage.removeItem('token');
+			window.location.href = '/login';
+			throw new Error('Authentication required');
+		}
+
+		if (!response.ok) {
+			const contentType = response.headers.get('content-type');
+			let error = { error: 'An error occurred' };
+
+			if (contentType && contentType.includes('application/json')) {
+				error = await response
+					.json()
+					.catch(() => ({ error: 'An error occurred' }));
+			}
+
+			throw new Error(error.error || 'An error occurred');
+		}
+
+		const contentType = response.headers.get('content-type');
+		if (!contentType || !contentType.includes('application/json')) {
+			throw new Error('Invalid response format');
+		}
+
+		return response.json();
+	} catch (error) {
+		console.error('API request failed:', error);
+		throw error instanceof Error ? error : new Error('Network request failed');
 	}
-
-	if (!response.ok) {
-		const error: ApiError = await response
-			.json()
-			.catch(() => ({ error: 'An error occurred' }));
-		throw new Error(error.error || 'An error occurred');
-	}
-
-	return response.json();
 }
 
 export const auth = {
@@ -131,9 +154,10 @@ export const user = {
 
 export const search = {
 	media: async (query: string): Promise<SearchResult[]> => {
-		return fetchWithAuth(
+		const response = (await fetchWithAuth(
 			`/api/search/media?query=${encodeURIComponent(query)}`
-		);
+		)) as SearchResponse;
+		return response.results || [];
 	},
 };
 

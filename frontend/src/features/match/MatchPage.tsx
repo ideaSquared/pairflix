@@ -76,8 +76,8 @@ const Button = styled.button<{ variant?: 'accept' | 'reject' }>`
 		variant === 'accept'
 			? '#00cc00'
 			: variant === 'reject'
-			? '#cc0000'
-			: '#646cff'};
+				? '#cc0000'
+				: '#646cff'};
 	color: white;
 	border: none;
 	border-radius: 4px;
@@ -100,8 +100,8 @@ const Status = styled.span<{ status: string }>`
 		status === 'accepted'
 			? '#00cc00'
 			: status === 'rejected'
-			? '#cc0000'
-			: '#646cff'};
+				? '#cc0000'
+				: '#646cff'};
 	color: white;
 `;
 
@@ -202,13 +202,43 @@ const MatchPage: React.FC = () => {
 		'all' | 'to_watch' | 'watching'
 	>('all');
 
-	const { data: contentMatches = [], isLoading: isContentLoading } = useQuery<
-		ContentMatch[]
-	>(['watchlist-matches'], watchlist.getMatches);
+	const {
+		data: contentMatches = [],
+		isLoading: isContentLoading,
+		error: contentError,
+	} = useQuery<ContentMatch[]>(
+		['watchlist-matches'],
+		() =>
+			watchlist.getMatches().catch((err) => {
+				console.error('Failed to fetch content matches:', err);
+				return [];
+			}),
+		{
+			retry: 1,
+			staleTime: 30000, // Consider data fresh for 30 seconds
+			cacheTime: 300000, // Keep in cache for 5 minutes
+			refetchOnWindowFocus: false,
+		}
+	);
 
-	const { data: userMatches = [], isLoading: isUserLoading } = useQuery<
-		Match[]
-	>(['matches'], matchesApi.getAll);
+	const {
+		data: userMatches = [],
+		isLoading: isUserLoading,
+		error: userError,
+	} = useQuery<Match[]>(
+		['matches'],
+		() =>
+			matchesApi.getAll().catch((err) => {
+				console.error('Failed to fetch user matches:', err);
+				return [];
+			}),
+		{
+			retry: 1,
+			staleTime: 30000,
+			cacheTime: 300000,
+			refetchOnWindowFocus: false,
+		}
+	);
 
 	const updateMatchMutation = useMutation(
 		({
@@ -240,8 +270,18 @@ const MatchPage: React.FC = () => {
 		return Math.round((user1Weight + user2Weight) * 50); // Convert to percentage
 	};
 
+	const isValidContentMatch = (match: any): match is ContentMatch => {
+		return (
+			typeof match === 'object' &&
+			match !== null &&
+			typeof match.user1_status === 'string' &&
+			typeof match.user2_status === 'string' &&
+			typeof match.tmdb_id === 'number'
+		);
+	};
+
 	const filteredAndSortedMatches = useMemo(() => {
-		let filtered = [...(contentMatches || [])];
+		let filtered = (contentMatches || []).filter(isValidContentMatch);
 
 		// Apply media type filter
 		if (mediaTypeFilter !== 'all') {
@@ -264,7 +304,6 @@ const MatchPage: React.FC = () => {
 			if (sortBy === 'match') {
 				return calculateMatchPercentage(b) - calculateMatchPercentage(a);
 			}
-			// Sort by most recently added (assuming tmdb_id is sequential)
 			return b.tmdb_id - a.tmdb_id;
 		});
 	}, [contentMatches, mediaTypeFilter, sortBy, statusFilter]);
@@ -342,7 +381,12 @@ const MatchPage: React.FC = () => {
 					) : (
 						activeMatches.map((match: Match) => (
 							<MatchCard key={match.match_id}>
-								<p>Matched with: {match.user1?.email}</p>
+								<p>
+									Matched with:{' '}
+									{match.user1_id === match.user2?.user_id
+										? match.user1?.email
+										: match.user2?.email}
+								</p>
 								<Status status={match.status}>{match.status}</Status>
 							</MatchCard>
 						))
