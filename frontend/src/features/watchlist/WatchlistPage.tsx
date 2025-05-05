@@ -45,18 +45,6 @@ const Select = styled.select`
 	border-radius: 4px;
 `;
 
-const Button = styled.button`
-	background: #646cff;
-	color: white;
-	border: none;
-	border-radius: 4px;
-	padding: 0.5rem;
-	cursor: pointer;
-	&:hover {
-		background: #747bff;
-	}
-`;
-
 const WatchlistPage: React.FC = () => {
 	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState('');
