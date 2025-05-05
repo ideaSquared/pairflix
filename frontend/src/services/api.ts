@@ -46,13 +46,13 @@ export interface Match {
 }
 
 export interface ContentMatch {
-    tmdb_id: number;
-    media_type: 'movie' | 'tv';
-    title: string;
-    poster_path?: string;
-    overview?: string;
-    user1_status: WatchlistEntry['status'];
-    user2_status: WatchlistEntry['status'];
+	tmdb_id: number;
+	media_type: 'movie' | 'tv';
+	title: string;
+	poster_path?: string;
+	overview?: string;
+	user1_status: WatchlistEntry['status'];
+	user2_status: WatchlistEntry['status'];
 }
 
 interface PasswordUpdate {

@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { createMatch, getMatches, updateMatchStatus } from '../controllers/match.controller';
+import {
+	createMatch,
+	getMatches,
+	updateMatchStatus,
+} from '../controllers/match.controller';
 import { authenticateToken } from '../middlewares/auth';
 
 const router = Router();

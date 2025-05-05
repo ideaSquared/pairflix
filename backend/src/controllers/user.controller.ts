@@ -72,30 +72,30 @@ export const updateEmail = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 export const findByEmail = async (req: AuthenticatedRequest, res: Response) => {
-    const { email } = req.query;
-    const requestingUserId = req.user?.user_id;
+	const { email } = req.query;
+	const requestingUserId = req.user?.user_id;
 
-    if (!requestingUserId) {
-        return res.status(401).json({ error: 'Authentication required' });
-    }
+	if (!requestingUserId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
 
-    if (!email || typeof email !== 'string') {
-        return res.status(400).json({ error: 'Email query parameter is required' });
-    }
+	if (!email || typeof email !== 'string') {
+		return res.status(400).json({ error: 'Email query parameter is required' });
+	}
 
-    try {
-        const user = await User.findOne({ 
-            where: { email },
-            attributes: ['user_id', 'email']  // Only return safe fields
-        });
+	try {
+		const user = await User.findOne({
+			where: { email },
+			attributes: ['user_id', 'email'], // Only return safe fields
+		});
 
-        if (!user || user.user_id === requestingUserId) {
-            return res.status(404).json({ error: 'User not found' });
-        }
+		if (!user || user.user_id === requestingUserId) {
+			return res.status(404).json({ error: 'User not found' });
+		}
 
-        res.json(user);
-    } catch (error) {
-        console.error('Find user by email error:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+		res.json(user);
+	} catch (error) {
+		console.error('Find user by email error:', error);
+		res.status(500).json({ error: 'Internal server error' });
+	}
 };

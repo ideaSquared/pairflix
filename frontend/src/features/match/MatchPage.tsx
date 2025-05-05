@@ -12,7 +12,7 @@ import {
 import InviteUser from './InviteUser';
 
 interface SectionProps {
-    flex?: string;
+	flex?: string;
 }
 
 const Container = styled.div`
@@ -25,7 +25,7 @@ const Container = styled.div`
 `;
 
 const Section = styled.div<SectionProps>`
-	flex: ${props => props.flex || 1};
+	flex: ${(props) => props.flex || 1};
 	min-width: 0; // Prevent content from overflowing
 
 	@media (max-width: 768px) {
@@ -288,7 +288,7 @@ const MatchPage: React.FC = () => {
 		<Layout>
 			<h1>Matches</h1>
 			<Container>
-				<Section flex="0.3">
+				<Section flex='0.3'>
 					<InviteUser
 						onSuccess={() => queryClient.invalidateQueries(['matches'])}
 					/>
@@ -349,7 +349,7 @@ const MatchPage: React.FC = () => {
 					)}
 				</Section>
 
-				<Section flex="0.7">
+				<Section flex='0.7'>
 					<h2>
 						Content Matches{' '}
 						{filteredAndSortedMatches.length > 0 &&
