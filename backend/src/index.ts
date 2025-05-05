@@ -1,33 +1,61 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import { initDatabase } from './db/connection';
+import { seedDatabase } from './db/seeders';
 import { authenticateToken } from './middlewares/auth';
 import authRoutes from './routes/auth.routes';
 import watchlistRoutes from './routes/watchlist.routes';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Configure CORS
+app.use(
+	cors({
+		origin: true,
+		credentials: true,
+		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization'],
+		exposedHeaders: ['Authorization'],
+	})
+);
+
 app.use(express.json());
 
-// Health check route (public)
-app.get('/health', (req, res) => {
-	res.json({ status: 'ok' });
+// Pre-flight OPTIONS request handler
+app.options('*', cors());
+
+// Debug middleware to log incoming requests
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    next();
 });
 
-// Auth routes (public)
+// Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 
-// Protected routes
-app.use('/api', authenticateToken);
-app.use('/api/watchlist', watchlistRoutes);
+async function initializeApp() {
+	try {
+		await initDatabase();
+		console.log('Database connection established successfully.');
 
-// Start server
-app.listen(port, () => {
-	console.log(`Server running on port ${port}`);
-});
+		if (process.env.NODE_ENV === 'development') {
+			await seedDatabase();
+			console.log('Development database seeded successfully.');
+		}
+
+		app.listen(port, () => {
+			console.log(`Server running on port ${port}`);
+		});
+	} catch (error) {
+		console.error('Unable to start server:', error);
+		process.exit(1);
+	}
+}
+
+initializeApp();

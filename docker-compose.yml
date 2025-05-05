@@ -8,7 +8,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - TMDB_API_KEY=${TMDB_API_KEY}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -33,7 +34,11 @@ services:
       - POSTGRES_DB=pairflix
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/src/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

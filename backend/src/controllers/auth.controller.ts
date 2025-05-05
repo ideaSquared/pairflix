@@ -1,18 +1,14 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { query } from '../db/connection';
+import User from '../models/User';
 
 export const login = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
 
 	try {
-		const result = await query(
-			'SELECT user_id, email, password_hash FROM users WHERE email = $1',
-			[email]
-		);
+		const user = await User.findOne({ where: { email } });
 
-		const user = result.rows[0];
 		if (!user) {
 			return res.status(401).json({ error: 'Invalid credentials' });
 		}

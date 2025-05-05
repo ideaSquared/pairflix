@@ -1,25 +1,48 @@
 import dotenv from 'dotenv';
-import { Pool } from 'pg';
+import { Sequelize } from 'sequelize';
 
 dotenv.config();
 
-const pool = new Pool({
-	connectionString: process.env.DATABASE_URL,
+const sequelize = new Sequelize(process.env.DATABASE_URL || '', {
+	dialect: 'postgres',
+	logging: process.env.NODE_ENV === 'development' ? console.log : false,
+	dialectOptions: {
+		...(process.env.NODE_ENV === 'production' && {
+			ssl: {
+				require: true,
+				rejectUnauthorized: false,
+			},
+		}),
+	},
 });
 
-pool.on('error', (err) => {
-	console.error('Unexpected error on idle client', err);
-	process.exit(-1);
-});
-
-export const query = async (text: string, params?: any[]) => {
+// Function to initialize database
+export async function initDatabase() {
 	try {
-		const result = await pool.query(text, params);
-		return result;
+		// Add retry mechanism for database connection
+		let retries = 5;
+		while (retries > 0) {
+			try {
+				await sequelize.authenticate();
+				console.log('Database connection established successfully.');
+				break;
+			} catch (error) {
+				retries -= 1;
+				console.log(`Failed to connect to database. ${retries} retries left.`);
+				if (retries === 0) throw error;
+				await new Promise((resolve) => setTimeout(resolve, 5000));
+			}
+		}
+
+		// Sync models
+		await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+		console.log('Database models synchronized.');
+
+		return sequelize;
 	} catch (error) {
-		console.error('Database query error:', error);
+		console.error('Unable to connect to the database:', error);
 		throw error;
 	}
-};
+}
 
-export default pool;
+export default sequelize;

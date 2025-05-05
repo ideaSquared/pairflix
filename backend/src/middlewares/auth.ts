@@ -20,7 +20,13 @@ export const authenticateToken = (
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
+	console.log('Auth middleware:', { 
+		hasAuthHeader: !!authHeader,
+		token: token ? 'present' : 'missing'
+	});
+
 	if (!token) {
+		console.log('Auth failed: No token provided');
 		return res.status(401).json({ error: 'Authentication required' });
 	}
 
@@ -29,9 +35,11 @@ export const authenticateToken = (
 			user_id: string;
 			email: string;
 		};
+		console.log('Auth successful:', { user_id: user.user_id });
 		req.user = user;
 		next();
 	} catch (error) {
+		console.error('Auth failed:', error);
 		return res.status(403).json({ error: 'Invalid or expired token' });
 	}
 };

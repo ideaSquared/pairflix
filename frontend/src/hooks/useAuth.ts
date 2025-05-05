@@ -7,10 +7,31 @@ export const useAuth = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		const token = localStorage.getItem('token');
-		setIsAuthenticated(!!token);
-		setIsLoading(false);
+		checkAuth();
 	}, []);
+
+	const checkAuth = () => {
+		const token = localStorage.getItem('token');
+		if (token) {
+			try {
+				// Basic token validation (ensure it's not expired)
+				const payload = JSON.parse(atob(token.split('.')[1]));
+				const isValid = payload.exp * 1000 > Date.now();
+				setIsAuthenticated(isValid);
+				if (!isValid) {
+					localStorage.removeItem('token');
+					navigate('/login');
+				}
+			} catch (e) {
+				setIsAuthenticated(false);
+				localStorage.removeItem('token');
+				navigate('/login');
+			}
+		} else {
+			setIsAuthenticated(false);
+		}
+		setIsLoading(false);
+	};
 
 	const login = (token: string) => {
 		localStorage.setItem('token', token);
@@ -29,6 +50,7 @@ export const useAuth = () => {
 		isLoading,
 		login,
 		logout,
+		checkAuth,
 	};
 };
 

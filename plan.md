@@ -98,9 +98,9 @@ A private web application for two users (you and your partner) to:
 
 - **Frontend**: React (with TypeScript), Styled Components or Tailwind
 - **Backend**: Node.js + Express + TypeScript
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL with Sequelize ORM
 - **Auth**: Simple JWT-based login (private, no registration)
-- **API Integration**: TMDb REST API
+- **API Integration**: TMDb REST API (using native fetch)
 - **Deployment**: Render or Railway (free tier), optional Vercel for frontend
 
 ---
@@ -281,25 +281,28 @@ watch-together/
 
 ### Completed Infrastructure
 
-#### Docker Setup
+#### Database Architecture
 
-- Containerized development environment with hot-reloading
-- Three-service architecture: frontend, backend, and PostgreSQL
-- Development-optimized with docker-compose.override.yml
-- Volume mounts for live code updates
-- Environment variable management
+- PostgreSQL with Sequelize ORM integration
+- Proper model definitions with TypeScript
+- Database initialization and auto-creation
+- Development environment seeding with test data
+- Automated model synchronization
 
 #### Backend Implementation
 
 - Express.js with TypeScript setup
 - JWT-based authentication system
-- PostgreSQL connection with connection pooling
-- Database schema initialization
+- Sequelize ORM models and relationships:
+  - User model with UUID, email, and password hash
+  - WatchlistEntry model with comprehensive media tracking
+- Development environment database seeding
 - RESTful API endpoints for:
   - Authentication (login)
   - Watchlist management (CRUD operations)
   - Match finding between users
-- TMDb service integration for movie/TV show data
+- TMDb service integration using native fetch API (removed axios dependency)
+- Type-safe request handling with custom types
 
 #### Frontend Implementation
 

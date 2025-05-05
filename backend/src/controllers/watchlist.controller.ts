@@ -1,83 +1,141 @@
-import { Request, Response } from 'express';
-import { query } from '../db/connection';
+import { Response } from 'express';
+import { Op } from 'sequelize';
+import WatchlistEntry from '../models/WatchlistEntry';
+import { AuthenticatedRequest } from '../types';
 
-export const addToWatchlist = async (req: Request, res: Response) => {
+export const addToWatchlist = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	const { tmdb_id, media_type, status, notes } = req.body;
 	const user_id = req.user?.user_id;
 
-	try {
-		const result = await query(
-			`INSERT INTO watchlist_entries 
-       (user_id, tmdb_id, media_type, status, notes) 
-       VALUES ($1, $2, $3, $4, $5) 
-       RETURNING *`,
-			[user_id, tmdb_id, media_type, status, notes]
-		);
+	if (!user_id) {
+		console.error('Add to watchlist error: No user_id in request');
+		return res.status(401).json({ error: 'Authentication required' });
+	}
 
-		res.status(201).json(result.rows[0]);
+	try {
+		const entry = await WatchlistEntry.create({
+			user_id,
+			tmdb_id,
+			media_type,
+			status,
+			notes,
+		});
+
+		res.status(201).json(entry);
 	} catch (error) {
 		console.error('Add to watchlist error:', error);
 		res.status(500).json({ error: 'Internal server error' });
 	}
 };
 
-export const getWatchlist = async (req: Request, res: Response) => {
+export const getWatchlist = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	const user_id = req.user?.user_id;
 
-	try {
-		const result = await query(
-			'SELECT * FROM watchlist_entries WHERE user_id = $1 ORDER BY created_at DESC',
-			[user_id]
-		);
+	if (!user_id) {
+		console.error('Get watchlist error: No user_id in request');
+		return res.status(401).json({ error: 'Authentication required' });
+	}
 
-		res.json(result.rows);
+	try {
+		console.log('Fetching watchlist for user:', user_id);
+		const entries = await WatchlistEntry.findAll({
+			where: { user_id },
+			order: [['created_at', 'DESC']],
+		});
+
+		res.json(entries);
 	} catch (error) {
 		console.error('Get watchlist error:', error);
 		res.status(500).json({ error: 'Internal server error' });
 	}
 };
 
-export const updateWatchlistEntry = async (req: Request, res: Response) => {
+export const updateWatchlistEntry = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	const { entry_id } = req.params;
 	const { status, rating, notes } = req.body;
 	const user_id = req.user?.user_id;
 
+	if (!user_id) {
+		console.error('Update watchlist error: No user_id in request');
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+
 	try {
-		const result = await query(
-			`UPDATE watchlist_entries 
-       SET status = COALESCE($1, status),
-           rating = COALESCE($2, rating),
-           notes = COALESCE($3, notes),
-           updated_at = NOW()
-       WHERE entry_id = $4 AND user_id = $5
-       RETURNING *`,
-			[status, rating, notes, entry_id, user_id]
+		const [updated] = await WatchlistEntry.update(
+			{
+				...(status && { status }),
+				...(rating !== undefined && { rating }),
+				...(notes !== undefined && { notes }),
+			},
+			{
+				where: {
+					entry_id,
+					user_id,
+				},
+				returning: true,
+			}
 		);
 
-		if (result.rows.length === 0) {
+		if (!updated) {
 			return res.status(404).json({ error: 'Entry not found' });
 		}
 
-		res.json(result.rows[0]);
+		const entry = await WatchlistEntry.findByPk(entry_id);
+		res.json(entry);
 	} catch (error) {
 		console.error('Update watchlist entry error:', error);
 		res.status(500).json({ error: 'Internal server error' });
 	}
 };
 
-export const getMatches = async (req: Request, res: Response) => {
+export const getMatches = async (req: AuthenticatedRequest, res: Response) => {
 	const user_id = req.user?.user_id;
 
-	try {
-		const result = await query(
-			`SELECT w1.tmdb_id, w1.media_type, w1.status as user1_status, w2.status as user2_status
-       FROM watchlist_entries w1
-       JOIN watchlist_entries w2 ON w1.tmdb_id = w2.tmdb_id
-       WHERE w1.user_id = $1 AND w2.user_id != $1`,
-			[user_id]
-		);
+	if (!user_id) {
+		console.error('Get matches error: No user_id in request');
+		return res.status(401).json({ error: 'Authentication required' });
+	}
 
-		res.json(result.rows);
+	try {
+		const userEntries = await WatchlistEntry.findAll({
+			where: { user_id },
+		});
+
+		const tmdbIds = userEntries.map((entry) => entry.tmdb_id);
+
+		const matches = await WatchlistEntry.findAll({
+			where: {
+				tmdb_id: { [Op.in]: tmdbIds },
+				user_id: { [Op.ne]: user_id },
+			},
+		});
+
+		const matchedResults = userEntries
+			.map((userEntry) => {
+				const matchEntry = matches.find(
+					(m) => m.tmdb_id === userEntry.tmdb_id
+				);
+				return matchEntry
+					? {
+							tmdb_id: userEntry.tmdb_id,
+							media_type: userEntry.media_type,
+							user1_status: userEntry.status,
+							user2_status: matchEntry.status,
+					  }
+					: null;
+			})
+			.filter(Boolean);
+
+		res.json(matchedResults);
 	} catch (error) {
 		console.error('Get matches error:', error);
 		res.status(500).json({ error: 'Internal server error' });

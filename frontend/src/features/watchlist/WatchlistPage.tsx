@@ -79,7 +79,7 @@ const WatchlistPage: React.FC = () => {
 			/>
 			<Grid>
 				{entries
-					.filter((entry) =>
+					.filter((entry: WatchlistEntry) =>
 						entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
 					)
 					.map((entry: WatchlistEntry) => (
@@ -88,7 +88,7 @@ const WatchlistPage: React.FC = () => {
 							<p>Type: {entry.media_type}</p>
 							<Select
 								value={entry.status}
-								onChange={(e) =>
+								onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
 									handleStatusChange(
 										entry.entry_id,
 										e.target.value as WatchlistEntry['status']

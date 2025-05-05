@@ -1,42 +1,52 @@
-import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-const tmdbApi = axios.create({
-	baseURL: BASE_URL,
-	params: {
-		api_key: TMDB_API_KEY,
-	},
-});
+interface TMDbResponse<T> {
+	results?: T[];
+	status_message?: string;
+}
 
-export const searchContent = async (query: string, page = 1) => {
-	const response = await tmdbApi.get('/search/multi', {
-		params: {
-			query,
-			page,
-		},
+async function tmdbFetch<T>(
+	endpoint: string,
+	params: Record<string, string> = {}
+): Promise<T> {
+	const searchParams = new URLSearchParams({
+		api_key: TMDB_API_KEY || '',
+		...params,
 	});
-	return response.data;
-};
 
-export const getMovieDetails = async (movieId: number) => {
-	const response = await tmdbApi.get(`/movie/${movieId}`);
-	return response.data;
-};
+	const response = await fetch(`${TMDB_BASE_URL}${endpoint}?${searchParams}`);
 
-export const getTvShowDetails = async (tvId: number) => {
-	const response = await tmdbApi.get(`/tv/${tvId}`);
-	return response.data;
-};
+	if (!response.ok) {
+		throw new Error(
+			`TMDb API error: ${response.status} ${response.statusText}`
+		);
+	}
 
-export const getRecommendations = async (
-	mediaType: 'movie' | 'tv',
-	id: number
-) => {
-	const response = await tmdbApi.get(`/${mediaType}/${id}/recommendations`);
-	return response.data;
-};
+	return response.json();
+}
+
+export async function searchMedia(query: string, page: number = 1) {
+	return tmdbFetch<TMDbResponse<any>>('/search/multi', {
+		query,
+		page: page.toString(),
+	});
+}
+
+export async function getMovieDetails(movieId: number) {
+	return tmdbFetch(`/movie/${movieId}`);
+}
+
+export async function getTVDetails(tvId: number) {
+	return tmdbFetch(`/tv/${tvId}`);
+}
+
+export async function getPopular(mediaType: 'movie' | 'tv', page: number = 1) {
+	return tmdbFetch<TMDbResponse<any>>(`/${mediaType}/popular`, {
+		page: page.toString(),
+	});
+}

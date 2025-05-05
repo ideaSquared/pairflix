@@ -28,3 +28,14 @@ export interface ActivityLog {
 	metadata: Record<string, any>;
 	created_at: Date;
 }
+
+import { Request } from 'express';
+
+export interface AuthenticatedUser {
+	user_id: string;
+	email: string;
+}
+
+export interface AuthenticatedRequest extends Request {
+	user?: AuthenticatedUser;
+}

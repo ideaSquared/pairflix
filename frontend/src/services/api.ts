@@ -1,23 +1,11 @@
-import axios from 'axios';
+const BASE_URL =
+	(import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+interface ApiError {
+	error: string;
+}
 
-const api = axios.create({
-	baseURL: BASE_URL,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-});
-
-api.interceptors.request.use((config) => {
-	const token = localStorage.getItem('token');
-	if (token) {
-		config.headers.Authorization = `Bearer ${token}`;
-	}
-	return config;
-});
-
-export interface LoginCredentials {
+interface LoginCredentials {
 	email: string;
 	password: string;
 }
@@ -29,35 +17,75 @@ export interface WatchlistEntry {
 	status: 'to_watch' | 'watching' | 'finished';
 	rating?: number;
 	notes?: string;
+	title?: string;
+}
+
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+	const token = localStorage.getItem('token');
+	const headers = new Headers({
+		'Content-Type': 'application/json',
+		...(token && { Authorization: `Bearer ${token}` }),
+		...options.headers,
+	});
+
+	console.log('Request headers:', Object.fromEntries(headers.entries()));
+
+	const response = await fetch(`${BASE_URL}${endpoint}`, {
+		...options,
+		headers,
+		credentials: 'include',
+	});
+
+	if (response.status === 401 || response.status === 403) {
+		// Token is invalid or expired
+		localStorage.removeItem('token');
+		window.location.href = '/login';
+		throw new Error('Authentication required');
+	}
+
+	if (!response.ok) {
+		const error: ApiError = await response
+			.json()
+			.catch(() => ({ error: 'An error occurred' }));
+		throw new Error(error.error || 'An error occurred');
+	}
+
+	return response.json();
 }
 
 export const auth = {
 	login: async (credentials: LoginCredentials) => {
-		const { data } = await api.post('/api/auth/login', credentials);
-		return data;
+		const response = await fetchWithAuth('/api/auth/login', {
+			method: 'POST',
+			body: JSON.stringify(credentials),
+		});
+		if (response.token) {
+			localStorage.setItem('token', response.token);
+		}
+		return response;
 	},
 };
 
 export const watchlist = {
 	getAll: async () => {
-		const { data } = await api.get('/api/watchlist');
-		return data;
+		return fetchWithAuth('/api/watchlist');
 	},
 
 	add: async (entry: Omit<WatchlistEntry, 'entry_id'>) => {
-		const { data } = await api.post('/api/watchlist', entry);
-		return data;
+		return fetchWithAuth('/api/watchlist', {
+			method: 'POST',
+			body: JSON.stringify(entry),
+		});
 	},
 
 	update: async (entry_id: string, updates: Partial<WatchlistEntry>) => {
-		const { data } = await api.put(`/api/watchlist/${entry_id}`, updates);
-		return data;
+		return fetchWithAuth(`/api/watchlist/${entry_id}`, {
+			method: 'PUT',
+			body: JSON.stringify(updates),
+		});
 	},
 
 	getMatches: async () => {
-		const { data } = await api.get('/api/watchlist/matches');
-		return data;
+		return fetchWithAuth('/api/watchlist/matches');
 	},
 };
-
-export default api;
