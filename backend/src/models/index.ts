@@ -1,9 +1,15 @@
+import { Sequelize } from 'sequelize';
 import Match from './Match';
 import User from './User';
 import WatchlistEntry from './WatchlistEntry';
 
-export function initializeModels() {
-	// Initialize models with their associations
+export function initializeModels(sequelize: Sequelize) {
+	// First initialize all models
+	User.initialize(sequelize);
+	Match.initialize(sequelize);
+	WatchlistEntry.initialize(sequelize);
+
+	// Then set up associations
 	Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
 	Match.belongsTo(User, { as: 'user2', foreignKey: 'user2_id' });
 	User.hasMany(Match, { as: 'initiatedMatches', foreignKey: 'user1_id' });

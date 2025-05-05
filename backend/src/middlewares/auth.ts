@@ -20,10 +20,10 @@ export const authenticateToken = (
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
-	console.log('Auth middleware:', {
-		hasAuthHeader: !!authHeader,
-		token: token ? 'present' : 'missing',
-	});
+	// console.log('Auth middleware:', {
+	// 	hasAuthHeader: !!authHeader,
+	// 	token: token ? 'present' : 'missing',
+	// });
 
 	if (!token) {
 		console.log('Auth failed: No token provided');
@@ -35,7 +35,7 @@ export const authenticateToken = (
 			user_id: string;
 			email: string;
 		};
-		console.log('Auth successful:', { user_id: user.user_id });
+		// console.log('Auth successful:', { user_id: user.user_id });
 		req.user = user;
 		next();
 	} catch (error) {

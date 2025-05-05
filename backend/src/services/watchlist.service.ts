@@ -1,5 +1,5 @@
 import WatchlistEntry from '../models/WatchlistEntry';
-import { getMovieDetails } from './tmdb.service';
+import { getMovieDetails, getTVDetails } from './tmdb.service';
 
 export const addToWatchlistService = async (user: any, body: any) => {
 	const { tmdb_id, media_type, status, notes } = body;
@@ -19,7 +19,10 @@ export const getWatchlistService = async (user: any) => {
 	});
 	return Promise.all(
 		entries.map(async entry => {
-			const details = await getMovieDetails(entry.tmdb_id);
+			const details =
+				entry.media_type === 'tv'
+					? await getTVDetails(entry.tmdb_id)
+					: await getMovieDetails(entry.tmdb_id);
 			return { ...entry.toJSON(), ...details };
 		})
 	);

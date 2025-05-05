@@ -41,19 +41,17 @@ export async function seedDatabase() {
 				user2_id: user2.user_id,
 				status: 'accepted',
 			}),
-			// Match.create({
-			// 	user1_id: user1.user_id,
-			// 	user2_id: user3.user_id,
-			// 	status: 'pending',
-			// }),
 		]);
 
-		// Sample TMDb IDs for popular movies/shows
-		const sampleContent = [
-			{ tmdb_id: 299536, media_type: 'movie' }, // Avengers: Infinity War
-			{ tmdb_id: 1399, media_type: 'tv' }, // Game of Thrones
-			{ tmdb_id: 299534, media_type: 'movie' }, // Avengers: Endgame
-			{ tmdb_id: 66732, media_type: 'tv' }, // Stranger Things
+		// Sample TMDb IDs for popular movies/shows (all verified to exist)
+		const sampleContent: Array<{
+			tmdb_id: number;
+			media_type: 'movie' | 'tv';
+		}> = [
+			{ tmdb_id: 1233069, media_type: 'movie' }, // Exterritorial
+			{ tmdb_id: 2734, media_type: 'tv' }, // Law & Order: SVU
+			{ tmdb_id: 986056, media_type: 'movie' }, // Thunderbolts
+			{ tmdb_id: 1124620, media_type: 'movie' }, // The Monkey
 		];
 
 		// Create watchlist entries for both users
@@ -64,7 +62,7 @@ export async function seedDatabase() {
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
 				status: 'finished',
-				rating: 9,
+				rating: 5,
 			}),
 			WatchlistEntry.create({
 				user_id: user1.user_id,
@@ -79,7 +77,7 @@ export async function seedDatabase() {
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
 				status: 'finished',
-				rating: 8,
+				rating: 4,
 			}),
 			WatchlistEntry.create({
 				user_id: user2.user_id,
@@ -91,8 +89,8 @@ export async function seedDatabase() {
 			// User 3's entries
 			WatchlistEntry.create({
 				user_id: user3.user_id,
-				tmdb_id: sampleContent[1].tmdb_id,
-				media_type: sampleContent[1].media_type,
+				tmdb_id: sampleContent[3].tmdb_id,
+				media_type: sampleContent[3].media_type,
 				status: 'to_watch_together',
 			}),
 		]);

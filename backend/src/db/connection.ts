@@ -31,12 +31,12 @@ export async function initDatabase() {
 				retries -= 1;
 				console.log(`Failed to connect to database. ${retries} retries left.`);
 				if (retries === 0) throw error;
-				await new Promise((resolve) => setTimeout(resolve, 5000));
+				await new Promise(resolve => setTimeout(resolve, 5000));
 			}
 		}
 
 		// Initialize models and their associations
-		const models = initializeModels();
+		const models = initializeModels(sequelize);
 
 		// Sync models
 		await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
