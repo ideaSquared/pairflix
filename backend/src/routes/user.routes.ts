@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import {
-  findByEmail,
-  updateEmail,
-  updatePassword,
-  updateUsername
+	findByEmail,
+	updateEmail,
+	updatePassword,
+	updateUsername,
 } from '../controllers/user.controller';
 import { authenticateToken } from '../middlewares/auth';
 

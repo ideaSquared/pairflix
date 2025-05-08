@@ -54,18 +54,23 @@ export const updateUsernameService = async (
 	newUsername: string,
 	password: string
 ) => {
+	// Validate username format first
+	if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
+		throw new Error(
+			'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen'
+		);
+	}
+
+	// Check if username is already taken
 	const existingUser = await User.findOne({ where: { username: newUsername } });
 	if (existingUser) {
 		throw new Error('Username is already in use');
 	}
 
+	// Validate password
 	const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 	if (!isPasswordValid) {
 		throw new Error('Invalid password');
-	}
-
-	if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
-		throw new Error('Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen');
 	}
 
 	user.username = newUsername;

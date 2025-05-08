@@ -37,9 +37,9 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 						len: [3, 30],
 						is: /^[a-zA-Z0-9_-]+$/,
 						notNull: {
-							msg: 'Username is required'
-						}
-					}
+							msg: 'Username is required',
+						},
+					},
 				},
 				email: {
 					type: DataTypes.STRING,

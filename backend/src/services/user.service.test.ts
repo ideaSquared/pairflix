@@ -4,6 +4,7 @@ import {
 	findUserByEmailService,
 	updateEmailService,
 	updatePasswordService,
+	updateUsernameService,
 } from './user.service';
 
 jest.mock('../models/User');
@@ -74,6 +75,55 @@ describe('User Service', () => {
 			await expect(
 				updatePasswordService({}, 'oldPassword', 'newPassword')
 			).rejects.toThrow('Invalid current password');
+		});
+	});
+
+	describe('updateUsernameService', () => {
+		it('should update username successfully', async () => {
+			const mockUser = { save: jest.fn(), password_hash: 'hashedPassword' };
+			(User.findOne as jest.Mock).mockResolvedValueOnce(null);
+			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+			const updatedUser = await updateUsernameService(
+				mockUser,
+				'newusername',
+				'password123'
+			);
+			expect(mockUser.save).toHaveBeenCalled();
+			expect(updatedUser.username).toBe('newusername');
+		});
+
+		it('should throw an error if username is already in use', async () => {
+			(User.findOne as jest.Mock).mockResolvedValueOnce({ user_id: 'user-2' });
+
+			await expect(
+				updateUsernameService({}, 'existingname', 'password123')
+			).rejects.toThrow('Username is already in use');
+		});
+
+		it('should throw an error if password is invalid', async () => {
+			(User.findOne as jest.Mock).mockResolvedValue(null);
+			(bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+			await expect(
+				updateUsernameService({}, 'newusername', 'wrongpassword')
+			).rejects.toThrow('Invalid password');
+		});
+
+		it('should throw an error if username format is invalid', async () => {
+			(User.findOne as jest.Mock).mockResolvedValue(null);
+
+			await expect(
+				updateUsernameService({}, 'inv@lid!', 'password123')
+			).rejects.toThrow(
+				'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen'
+			);
+
+			await expect(
+				updateUsernameService({}, 'ab', 'password123')
+			).rejects.toThrow(
+				'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen'
+			);
 		});
 	});
 });
