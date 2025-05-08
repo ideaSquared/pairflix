@@ -1,50 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { Button } from '../../components/common/Button';
+import { Card, CardContent } from '../../components/common/Card';
+import { Input, InputGroup } from '../../components/common/Input';
+import { Container } from '../../components/common/Layout';
+import { ErrorText, H2 } from '../../components/common/Typography';
 import { auth } from '../../services/api';
+import { theme } from '../../styles/theme';
 
-const LoginContainer = styled.div`
+const LoginContainer = styled(Container)`
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	min-height: 100vh;
-	background: #121212;
+	background: ${theme.colors.background.primary};
 `;
 
-const LoginForm = styled.form`
-	background: #1a1a1a;
-	padding: 2rem;
-	border-radius: 8px;
+const LoginCard = styled(Card)`
 	width: 100%;
 	max-width: 400px;
-`;
-
-const Input = styled.input`
-	width: 100%;
-	padding: 0.5rem;
-	margin-bottom: 1rem;
-	background: #2a2a2a;
-	border: 1px solid #3a3a3a;
-	border-radius: 4px;
-	color: white;
-`;
-
-const Button = styled.button`
-	width: 100%;
-	padding: 0.5rem;
-	background: #646cff;
-	color: white;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-	&:hover {
-		background: #747bff;
-	}
-`;
-
-const ErrorMessage = styled.div`
-	color: #ff4444;
-	margin-bottom: 1rem;
 `;
 
 const LoginPage: React.FC = () => {
@@ -65,26 +40,41 @@ const LoginPage: React.FC = () => {
 	};
 
 	return (
-		<LoginContainer>
-			<LoginForm onSubmit={handleSubmit}>
-				<h2>Login to PairFlix</h2>
-				{error && <ErrorMessage>{error}</ErrorMessage>}
-				<Input
-					type='email'
-					placeholder='Email'
-					value={email}
-					onChange={(e) => setEmail(e.target.value)}
-					required
-				/>
-				<Input
-					type='password'
-					placeholder='Password'
-					value={password}
-					onChange={(e) => setPassword(e.target.value)}
-					required
-				/>
-				<Button type='submit'>Login</Button>
-			</LoginForm>
+		<LoginContainer maxWidth='sm'>
+			<LoginCard>
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<H2 gutterBottom>Login to PairFlix</H2>
+						{error && <ErrorText gutterBottom>{error}</ErrorText>}
+
+						<InputGroup fullWidth>
+							<Input
+								type='email'
+								placeholder='Email'
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								required
+								fullWidth
+							/>
+						</InputGroup>
+
+						<InputGroup fullWidth>
+							<Input
+								type='password'
+								placeholder='Password'
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+						</InputGroup>
+
+						<Button type='submit' variant='primary' fullWidth>
+							Login
+						</Button>
+					</form>
+				</CardContent>
+			</LoginCard>
 		</LoginContainer>
 	);
 };

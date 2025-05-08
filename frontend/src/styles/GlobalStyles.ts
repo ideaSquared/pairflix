@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
+import { theme } from './theme';
 
 export const GlobalStyles = createGlobalStyle`
   *, *::before, *::after {
@@ -8,25 +9,24 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background-color: #121212;
-    color: white;
+    font-family: ${theme.typography.fontFamily};
+    background-color: ${theme.colors.background.primary};
+    color: ${theme.colors.text.primary};
     line-height: 1.5;
   }
 
   input, select, textarea {
     font-family: inherit;
     font-size: inherit;
-    color: white;
-    background: #2a2a2a;
-    border: 1px solid #3a3a3a;
-    border-radius: 4px;
-    padding: 0.5rem;
+    color: ${theme.colors.text.primary};
+    background: ${theme.colors.background.input};
+    border: 1px solid ${theme.colors.border};
+    border-radius: ${theme.borderRadius.sm};
+    padding: ${theme.spacing.sm};
     width: 100%;
     &:focus {
       outline: none;
-      border-color: #646cff;
+      border-color: ${theme.colors.primary};
     }
   }
 
@@ -37,10 +37,25 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   a {
-    color: #646cff;
+    color: ${theme.colors.primary};
     text-decoration: none;
     &:hover {
       text-decoration: underline;
     }
   }
+
+  /* Accessibility */
+  :focus-visible {
+    outline: 2px solid ${theme.colors.primary};
+    outline-offset: 2px;
+  }
+
+  /* Remove default focus outline for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 `;

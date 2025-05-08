@@ -1,66 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { Button } from '../../components/common/Button';
+import { Card, CardContent, CardGrid } from '../../components/common/Card';
+import { Input, InputGroup } from '../../components/common/Input';
+import { Container, Flex } from '../../components/common/Layout';
+import { Select, SelectGroup } from '../../components/common/Select';
+import { H1, H3 } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { watchlist, WatchlistEntry } from '../../services/api';
+import { theme } from '../../styles/theme';
 import SearchMedia from './SearchMedia';
 
-const Grid = styled.div`
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-	gap: 1rem;
-	padding: 1rem;
-`;
-
-const Card = styled.div`
-	background: #1a1a1a;
-	border-radius: 8px;
-	padding: 1rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+const WatchlistCard = styled(Card)<{ status: string }>`
 	border-left: 4px solid
-		${({ status }: { status: string }) => {
+		${({ status }) => {
 			switch (status) {
 				case 'to_watch':
-					return '#646cff';
+					return theme.colors.status.toWatch;
 				case 'to_watch_together':
-					return '#9370db';
+					return theme.colors.status.toWatchTogether;
 				case 'would_like_to_watch_together':
-					return '#ff69b4';
+					return theme.colors.status.wouldLikeToWatchTogether;
 				case 'watching':
-					return '#ffd700';
+					return theme.colors.status.watching;
 				case 'finished':
-					return '#00ff00';
+					return theme.colors.status.finished;
 				default:
-					return '#646cff';
+					return theme.colors.status.toWatch;
 			}
 		}};
 `;
 
-const Select = styled.select`
-	background: #2a2a2a;
-	color: white;
-	padding: 0.5rem;
-	border: 1px solid #3a3a3a;
-	border-radius: 4px;
-`;
-
-const TabContainer = styled.div`
-	margin-bottom: 2rem;
-`;
-
-const TabButton = styled.button<{ active: boolean }>`
-	background: ${({ active }) => (active ? '#646cff' : '#2a2a2a')};
-	color: white;
-	border: none;
-	border-radius: 4px;
-	padding: 0.5rem 1rem;
-	margin-right: 1rem;
-	cursor: pointer;
+const TabButton = styled(Button)<{ $active: boolean }>`
+	background: ${({ $active }) =>
+		$active ? theme.colors.primary : theme.colors.background.secondary};
 	&:hover {
-		background: ${({ active }) => (active ? '#747bff' : '#3a3a3a')};
+		background: ${({ $active }) =>
+			$active ? theme.colors.primaryHover : theme.colors.border};
 	}
 `;
 
@@ -95,67 +73,84 @@ const WatchlistPage: React.FC = () => {
 
 	return (
 		<Layout>
-			<h1>My Watchlist</h1>
-			<TabContainer>
-				<TabButton
-					active={activeTab === 'list'}
-					onClick={() => setActiveTab('list')}
-				>
-					My List
-				</TabButton>
-				<TabButton
-					active={activeTab === 'search'}
-					onClick={() => setActiveTab('search')}
-				>
-					Add New
-				</TabButton>
-			</TabContainer>
+			<Container>
+				<H1 gutterBottom>My Watchlist</H1>
 
-			{activeTab === 'list' ? (
-				<>
-					<input
-						type='text'
-						placeholder='Search your watchlist...'
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-					<Grid>
-						{entries
-							.filter((entry: WatchlistEntry) =>
-								entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
-							)
-							.map((entry: WatchlistEntry) => (
-								<Card key={entry.entry_id} status={entry.status}>
-									<h3>
-										<Badge variant={entry.media_type}>{entry.media_type}</Badge>{' '}
-										{entry.title}
-									</h3>
+				<Flex gap='md' wrap='wrap'>
+					<TabButton
+						$active={activeTab === 'list'}
+						onClick={() => setActiveTab('list')}
+					>
+						My List
+					</TabButton>
+					<TabButton
+						$active={activeTab === 'search'}
+						onClick={() => setActiveTab('search')}
+					>
+						Add New
+					</TabButton>
+				</Flex>
 
-									<Select
-										value={entry.status}
-										onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-											handleStatusChange(
-												entry.entry_id,
-												e.target.value as WatchlistEntry['status']
-											)
-										}
-									>
-										<option value='to_watch'>To Watch</option>
-										<option value='to_watch_together'>To Watch Together</option>
-										<option value='would_like_to_watch_together'>
-											Would Like To Watch Together
-										</option>
-										<option value='watching'>Watching</option>
-										<option value='finished'>Finished</option>
-									</Select>
-									{entry.notes && <p>Notes: {entry.notes}</p>}
-								</Card>
-							))}
-					</Grid>
-				</>
-			) : (
-				<SearchMedia />
-			)}
+				{activeTab === 'list' ? (
+					<>
+						<InputGroup fullWidth>
+							<Input
+								type='text'
+								placeholder='Search your watchlist...'
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								fullWidth
+							/>
+						</InputGroup>
+
+						<CardGrid>
+							{entries
+								.filter((entry: WatchlistEntry) =>
+									entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
+								)
+								.map((entry: WatchlistEntry) => (
+									<WatchlistCard key={entry.entry_id} status={entry.status}>
+										<CardContent>
+											<H3 gutterBottom>
+												<Badge variant={entry.media_type}>
+													{entry.media_type}
+												</Badge>{' '}
+												{entry.title}
+											</H3>
+
+											<SelectGroup fullWidth>
+												<Select
+													value={entry.status}
+													onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+														handleStatusChange(
+															entry.entry_id,
+															e.target.value as WatchlistEntry['status']
+														)
+													}
+													fullWidth
+												>
+													<option value='to_watch'>To Watch</option>
+													<option value='to_watch_together'>
+														To Watch Together
+													</option>
+													<option value='would_like_to_watch_together'>
+														Would Like To Watch Together
+													</option>
+													<option value='watching'>Watching</option>
+													<option value='finished'>Finished</option>
+												</Select>
+											</SelectGroup>
+
+											{entry.notes && <p>Notes: {entry.notes}</p>}
+										</CardContent>
+									</WatchlistCard>
+								))}
+						</CardGrid>
+					</>
+				) : (
+					<SearchMedia />
+				)}
+			</Container>
 		</Layout>
 	);
 };
