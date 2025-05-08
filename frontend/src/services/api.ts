@@ -12,6 +12,7 @@ interface LoginCredentials {
 
 export interface WatchlistEntry {
 	entry_id: string;
+	user_id: string;
 	tmdb_id: number;
 	media_type: 'movie' | 'tv';
 	status:
@@ -22,7 +23,12 @@ export interface WatchlistEntry {
 		| 'finished';
 	rating?: number;
 	notes?: string;
+	created_at: Date;
+	updated_at: Date;
+	tmdb_status?: string;
 	title?: string;
+	overview?: string;
+	poster_path?: string;
 }
 
 export interface SearchResult {

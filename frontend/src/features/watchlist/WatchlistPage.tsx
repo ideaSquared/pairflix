@@ -6,7 +6,7 @@ import { Card, CardContent, CardGrid } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
 import { Container, Flex } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
-import { H1, H3 } from '../../components/common/Typography';
+import { H1, H3, Typography } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { watchlist, WatchlistEntry } from '../../services/api';
@@ -33,6 +33,12 @@ const WatchlistCard = styled(Card)<{ status: string }>`
 		}};
 `;
 
+const MediaStatus = styled(Typography)`
+	color: ${theme.colors.text.secondary};
+	margin-top: ${theme.spacing.xs};
+	font-style: italic;
+`;
+
 const TabButton = styled(Button)<{ $active: boolean }>`
 	background: ${({ $active }) =>
 		$active ? theme.colors.primary : theme.colors.background.secondary};
@@ -42,21 +48,49 @@ const TabButton = styled(Button)<{ $active: boolean }>`
 	}
 `;
 
+const RelativeCard = styled(CardContent)`
+	position: relative;
+`;
+
 const WatchlistPage: React.FC = () => {
 	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [activeTab, setActiveTab] = useState<'list' | 'search'>('list');
 
-	const { data: entries = [], isLoading } = useQuery(
-		['watchlist'],
-		watchlist.getAll
-	);
+	const {
+		data: entries = [],
+		isLoading,
+		error,
+	} = useQuery(['watchlist'], watchlist.getAll, {
+		retry: 3,
+		staleTime: 30000,
+	});
 
 	const updateMutation = useMutation(
 		({ id, updates }: { id: string; updates: Partial<WatchlistEntry> }) =>
 			watchlist.update(id, updates),
 		{
-			onSuccess: () => {
+			onMutate: async ({ id, updates }) => {
+				await queryClient.cancelQueries(['watchlist']);
+				const previousEntries = queryClient.getQueryData<WatchlistEntry[]>([
+					'watchlist',
+				]);
+
+				queryClient.setQueryData<WatchlistEntry[]>(['watchlist'], (old) => {
+					if (!old) return [];
+					return old.map((entry) =>
+						entry.entry_id === id ? { ...entry, ...updates } : entry
+					);
+				});
+
+				return { previousEntries };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previousEntries) {
+					queryClient.setQueryData(['watchlist'], context.previousEntries);
+				}
+			},
+			onSettled: () => {
 				queryClient.invalidateQueries(['watchlist']);
 			},
 		}
@@ -69,7 +103,40 @@ const WatchlistPage: React.FC = () => {
 		updateMutation.mutate({ id: entryId, updates: { status } });
 	};
 
-	if (isLoading) return <div>Loading...</div>;
+	if (isLoading) {
+		return (
+			<Layout>
+				<Container>
+					<Typography>Loading your watchlist...</Typography>
+				</Container>
+			</Layout>
+		);
+	}
+
+	if (error) {
+		return (
+			<Layout>
+				<Container>
+					<Typography color='error'>
+						Error loading watchlist:{' '}
+						{error instanceof Error ? error.message : 'Unknown error'}
+					</Typography>
+				</Container>
+			</Layout>
+		);
+	}
+
+	const filteredEntries = entries.filter(
+		(entry: unknown): entry is WatchlistEntry => {
+			if (!entry || typeof entry !== 'object') return false;
+			const castEntry = entry as Partial<WatchlistEntry>;
+			if (!castEntry.entry_id || !castEntry.title) {
+				console.warn('Invalid entry found:', entry);
+				return false;
+			}
+			return castEntry.title.toLowerCase().includes(searchQuery.toLowerCase());
+		}
+	);
 
 	return (
 		<Layout>
@@ -81,7 +148,8 @@ const WatchlistPage: React.FC = () => {
 						$active={activeTab === 'list'}
 						onClick={() => setActiveTab('list')}
 					>
-						My List
+						My List{' '}
+						{filteredEntries.length > 0 && `(${filteredEntries.length})`}
 					</TabButton>
 					<TabButton
 						$active={activeTab === 'search'}
@@ -104,47 +172,62 @@ const WatchlistPage: React.FC = () => {
 						</InputGroup>
 
 						<CardGrid>
-							{entries
-								.filter((entry: WatchlistEntry) =>
-									entry.title?.toLowerCase().includes(searchQuery.toLowerCase())
-								)
-								.map((entry: WatchlistEntry) => (
-									<WatchlistCard key={entry.entry_id} status={entry.status}>
-										<CardContent>
-											<H3 gutterBottom>
-												<Badge variant={entry.media_type}>
-													{entry.media_type}
-												</Badge>{' '}
-												{entry.title}
-											</H3>
+							{filteredEntries.map((entry: WatchlistEntry) => (
+								<WatchlistCard key={entry.entry_id} status={entry.status}>
+									<RelativeCard>
+										<H3 gutterBottom>
+											<Badge variant={entry.media_type}>
+												{entry.media_type}
+											</Badge>{' '}
+											{entry.title}
+										</H3>
 
-											<SelectGroup fullWidth>
-												<Select
-													value={entry.status}
-													onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-														handleStatusChange(
-															entry.entry_id,
-															e.target.value as WatchlistEntry['status']
-														)
-													}
-													fullWidth
-												>
-													<option value='to_watch'>To Watch</option>
-													<option value='to_watch_together'>
-														To Watch Together
-													</option>
-													<option value='would_like_to_watch_together'>
-														Would Like To Watch Together
-													</option>
-													<option value='watching'>Watching</option>
-													<option value='finished'>Finished</option>
-												</Select>
-											</SelectGroup>
+										{entry.tmdb_status && (
+											<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
+										)}
 
-											{entry.notes && <p>Notes: {entry.notes}</p>}
-										</CardContent>
-									</WatchlistCard>
-								))}
+										<SelectGroup fullWidth>
+											<Select
+												value={entry.status}
+												onChange={(e) =>
+													handleStatusChange(
+														entry.entry_id,
+														e.target.value as WatchlistEntry['status']
+													)
+												}
+												fullWidth
+											>
+												<option value='to_watch'>To Watch</option>
+												<option value='to_watch_together'>
+													To Watch Together
+												</option>
+												<option value='would_like_to_watch_together'>
+													Would Like To Watch Together
+												</option>
+												<option value='watching'>Watching</option>
+												<option value='finished'>Finished</option>
+											</Select>
+										</SelectGroup>
+
+										{entry.notes && (
+											<Typography
+												variant='body2'
+												style={{ marginTop: theme.spacing.sm }}
+											>
+												Notes: {entry.notes}
+											</Typography>
+										)}
+									</RelativeCard>
+								</WatchlistCard>
+							))}
+							{filteredEntries.length === 0 && searchQuery && (
+								<Typography>No matches found for "{searchQuery}"</Typography>
+							)}
+							{filteredEntries.length === 0 && !searchQuery && (
+								<Typography>
+									Your watchlist is empty. Add some titles to get started!
+								</Typography>
+							)}
 						</CardGrid>
 					</>
 				) : (

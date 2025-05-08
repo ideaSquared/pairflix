@@ -15,6 +15,7 @@ export interface TMDbMovie {
 	title: string;
 	poster_path: string | null;
 	overview: string;
+	status: string;
 }
 
 export interface TMDbTV {
@@ -22,6 +23,7 @@ export interface TMDbTV {
 	name: string;
 	poster_path: string | null;
 	overview: string;
+	status: string;
 }
 
 export type TMDbDetails = TMDbMovie | TMDbTV;

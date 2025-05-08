@@ -20,6 +20,10 @@ export interface WatchlistEntry {
 	notes?: string;
 	created_at: Date;
 	updated_at: Date;
+	tmdb_status?: string;
+	title?: string;
+	overview?: string;
+	poster_path?: string;
 }
 
 export interface Tag {

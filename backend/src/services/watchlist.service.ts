@@ -30,7 +30,16 @@ export const getWatchlistService = async (user: any) => {
 				entry.media_type === 'tv'
 					? await getTVDetails(entry.tmdb_id)
 					: await getMovieDetails(entry.tmdb_id);
-			return { ...entry.toJSON(), ...details };
+
+			// Exclude TMDb status and create a clean details object
+			const { status: tmdbStatus, ...cleanDetails } = details;
+			const entryJson = entry.toJSON();
+
+			return {
+				...entryJson,
+				...cleanDetails,
+				tmdb_status: tmdbStatus, // Add TMDb status under a different name
+			};
 		})
 	);
 };
@@ -46,7 +55,26 @@ export const updateWatchlistEntryService = async (
 	if (!updated) {
 		throw new Error('Entry not found');
 	}
-	return WatchlistEntry.findByPk(entry_id);
+
+	const entry = await WatchlistEntry.findByPk(entry_id);
+	if (!entry) {
+		throw new Error('Entry not found after update');
+	}
+
+	const details =
+		entry.media_type === 'tv'
+			? await getTVDetails(entry.tmdb_id)
+			: await getMovieDetails(entry.tmdb_id);
+
+	// Exclude TMDb status and create a clean details object
+	const { status: tmdbStatus, ...cleanDetails } = details;
+	const entryJson = entry.toJSON();
+
+	return {
+		...entryJson,
+		...cleanDetails,
+		tmdb_status: tmdbStatus, // Add TMDb status under a different name
+	};
 };
 
 export const getMatchesService = async (user: any) => {
