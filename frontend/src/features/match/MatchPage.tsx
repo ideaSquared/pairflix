@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
+import { useAuth } from '../../hooks/useAuth';
 import {
 	ContentMatch,
 	Match,
@@ -194,6 +195,7 @@ const NoMatches = styled.div`
 
 const MatchPage: React.FC = () => {
 	const queryClient = useQueryClient();
+	const { user } = useAuth();
 	const [mediaTypeFilter, setMediaTypeFilter] = useState<
 		'all' | 'movie' | 'tv'
 	>('all');
@@ -202,11 +204,9 @@ const MatchPage: React.FC = () => {
 		'all' | 'to_watch' | 'watching'
 	>('all');
 
-	const {
-		data: contentMatches = [],
-		isLoading: isContentLoading,
-		error: contentError,
-	} = useQuery<ContentMatch[]>(
+	const { data: contentMatches = [], isLoading: isContentLoading } = useQuery<
+		ContentMatch[]
+	>(
 		['watchlist-matches'],
 		() =>
 			watchlist.getMatches().catch((err) => {
@@ -221,11 +221,9 @@ const MatchPage: React.FC = () => {
 		}
 	);
 
-	const {
-		data: userMatches = [],
-		isLoading: isUserLoading,
-		error: userError,
-	} = useQuery<Match[]>(
+	const { data: userMatches = [], isLoading: isUserLoading } = useQuery<
+		Match[]
+	>(
 		['matches'],
 		() =>
 			matchesApi.getAll().catch((err) => {
@@ -383,9 +381,9 @@ const MatchPage: React.FC = () => {
 							<MatchCard key={match.match_id}>
 								<p>
 									Matched with:{' '}
-									{match.user1_id === match.user2?.user_id
-										? match.user1?.email
-										: match.user2?.email}
+									{match.user1_id === user?.user_id
+										? match.user2?.email
+										: match.user1?.email}
 								</p>
 								<Status status={match.status}>{match.status}</Status>
 							</MatchCard>
