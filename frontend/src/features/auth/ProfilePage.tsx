@@ -67,6 +67,12 @@ const ProfilePage: React.FC = () => {
 	const [emailError, setEmailError] = useState('');
 	const [emailSuccess, setEmailSuccess] = useState('');
 
+	// Username update state
+	const [newUsername, setNewUsername] = useState('');
+	const [usernamePassword, setUsernamePassword] = useState('');
+	const [usernameError, setUsernameError] = useState('');
+	const [usernameSuccess, setUsernameSuccess] = useState('');
+
 	const passwordMutation = useMutation(user.updatePassword, {
 		onSuccess: () => {
 			setPasswordSuccess('Password updated successfully');
@@ -91,6 +97,19 @@ const ProfilePage: React.FC = () => {
 		onError: (error: Error) => {
 			setEmailError(error.message);
 			setEmailSuccess('');
+		},
+	});
+
+	const usernameMutation = useMutation(user.updateUsername, {
+		onSuccess: () => {
+			setUsernameSuccess('Username updated successfully');
+			setNewUsername('');
+			setUsernamePassword('');
+			setUsernameError('');
+		},
+		onError: (error: Error) => {
+			setUsernameError(error.message);
+			setUsernameSuccess('');
 		},
 	});
 
@@ -131,40 +150,47 @@ const ProfilePage: React.FC = () => {
 		});
 	};
 
+	const handleUsernameUpdate = (e: React.FormEvent) => {
+		e.preventDefault();
+		setUsernameError('');
+		setUsernameSuccess('');
+
+		if (!/^[a-zA-Z0-9_-]{3,30}$/.test(newUsername)) {
+			setUsernameError('Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen');
+			return;
+		}
+
+		usernameMutation.mutate({
+			username: newUsername,
+			password: usernamePassword,
+		});
+	};
+
 	return (
 		<Layout>
 			<ProfileContainer>
 				<h1>Profile Settings</h1>
 
-				<Form onSubmit={handlePasswordUpdate}>
-					<h2>Change Password</h2>
-					{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
-					{passwordSuccess && (
-						<SuccessMessage>{passwordSuccess}</SuccessMessage>
-					)}
+				<Form onSubmit={handleUsernameUpdate}>
+					<h2>Change Username</h2>
+					{usernameError && <ErrorMessage>{usernameError}</ErrorMessage>}
+					{usernameSuccess && <SuccessMessage>{usernameSuccess}</SuccessMessage>}
 					<Input
-						type='password'
-						placeholder='Current Password'
-						value={currentPassword}
-						onChange={(e) => setCurrentPassword(e.target.value)}
+						type="text"
+						placeholder="New Username"
+						value={newUsername}
+						onChange={(e) => setNewUsername(e.target.value)}
 						required
 					/>
 					<Input
-						type='password'
-						placeholder='New Password'
-						value={newPassword}
-						onChange={(e) => setNewPassword(e.target.value)}
+						type="password"
+						placeholder="Current Password"
+						value={usernamePassword}
+						onChange={(e) => setUsernamePassword(e.target.value)}
 						required
 					/>
-					<Input
-						type='password'
-						placeholder='Confirm New Password'
-						value={confirmPassword}
-						onChange={(e) => setConfirmPassword(e.target.value)}
-						required
-					/>
-					<Button type='submit' disabled={passwordMutation.isLoading}>
-						Update Password
+					<Button type="submit" disabled={usernameMutation.isLoading}>
+						Update Username
 					</Button>
 				</Form>
 
@@ -173,21 +199,51 @@ const ProfilePage: React.FC = () => {
 					{emailError && <ErrorMessage>{emailError}</ErrorMessage>}
 					{emailSuccess && <SuccessMessage>{emailSuccess}</SuccessMessage>}
 					<Input
-						type='email'
-						placeholder='New Email'
+						type="email"
+						placeholder="New Email"
 						value={newEmail}
 						onChange={(e) => setNewEmail(e.target.value)}
 						required
 					/>
 					<Input
-						type='password'
-						placeholder='Current Password'
+						type="password"
+						placeholder="Current Password"
 						value={emailPassword}
 						onChange={(e) => setEmailPassword(e.target.value)}
 						required
 					/>
-					<Button type='submit' disabled={emailMutation.isLoading}>
+					<Button type="submit" disabled={emailMutation.isLoading}>
 						Update Email
+					</Button>
+				</Form>
+
+				<Form onSubmit={handlePasswordUpdate}>
+					<h2>Change Password</h2>
+					{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
+					{passwordSuccess && <SuccessMessage>{passwordSuccess}</SuccessMessage>}
+					<Input
+						type="password"
+						placeholder="Current Password"
+						value={currentPassword}
+						onChange={(e) => setCurrentPassword(e.target.value)}
+						required
+					/>
+					<Input
+						type="password"
+						placeholder="New Password"
+						value={newPassword}
+						onChange={(e) => setNewPassword(e.target.value)}
+						required
+					/>
+					<Input
+						type="password"
+						placeholder="Confirm New Password"
+						value={confirmPassword}
+						onChange={(e) => setConfirmPassword(e.target.value)}
+						required
+					/>
+					<Button type="submit" disabled={passwordMutation.isLoading}>
+						Update Password
 					</Button>
 				</Form>
 			</ProfileContainer>

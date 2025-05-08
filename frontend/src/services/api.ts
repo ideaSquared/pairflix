@@ -72,6 +72,11 @@ interface EmailUpdate {
 	password: string;
 }
 
+interface UpdateUsernameData {
+	username: string;
+	password: string;
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 	const token = localStorage.getItem('token');
 	const headers = new Headers({
@@ -143,6 +148,12 @@ export const user = {
 	},
 	updateEmail: async (data: EmailUpdate) => {
 		return fetchWithAuth('/api/user/email', {
+			method: 'PUT',
+			body: JSON.stringify(data),
+		});
+	},
+	updateUsername: async (data: UpdateUsernameData) => {
+		return fetchWithAuth('/api/user/username', {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});

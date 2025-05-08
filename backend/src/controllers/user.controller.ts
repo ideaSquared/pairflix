@@ -3,6 +3,7 @@ import {
 	findUserByEmailService,
 	updateEmailService,
 	updatePasswordService,
+	updateUsernameService,
 } from '../services/user.service';
 
 export const findByEmail = async (req: Request, res: Response) => {
@@ -44,6 +45,24 @@ export const updatePassword = async (req: Request, res: Response) => {
 	try {
 		await updatePasswordService(req.user, currentPassword, newPassword);
 		res.json({ message: 'Password updated successfully' });
+	} catch (error) {
+		if (error instanceof Error) {
+			res.status(400).json({ error: error.message });
+		} else {
+			res.status(500).json({ error: 'Unknown error occurred' });
+		}
+	}
+};
+
+export const updateUsername = async (req: Request, res: Response) => {
+	const { username, password } = req.body;
+	try {
+		const updatedUser = await updateUsernameService(
+			req.user,
+			username,
+			password
+		);
+		res.json({ message: 'Username updated successfully', user: updatedUser });
 	} catch (error) {
 		if (error instanceof Error) {
 			res.status(400).json({ error: error.message });

@@ -17,19 +17,22 @@ export async function seedDatabase() {
 		await Match.destroy({ where: {} });
 		await User.destroy({ where: {} });
 
-		// Create test users
+		// Create test users with usernames
 		const password = await bcrypt.hash('testpass123', 10);
 		const [user1, user2, user3] = await Promise.all([
 			User.create({
 				email: 'user1@example.com',
+				username: 'user1',
 				password_hash: password,
 			}),
 			User.create({
 				email: 'user2@example.com',
+				username: 'user2',
 				password_hash: password,
 			}),
 			User.create({
 				email: 'user3@example.com',
+				username: 'user3',
 				password_hash: password,
 			}),
 		]);

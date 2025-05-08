@@ -1,6 +1,7 @@
 export interface User {
 	user_id: string;
 	email: string;
+	username: string;
 	created_at: Date;
 }
 
@@ -39,6 +40,7 @@ import { Request } from 'express';
 export interface AuthenticatedUser {
 	user_id: string;
 	email: string;
+	username: string;
 }
 
 export interface AuthenticatedRequest extends Request {

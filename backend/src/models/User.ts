@@ -4,16 +4,19 @@ import { User as UserInterface } from '../types';
 interface UserAttributes extends UserInterface {
 	password_hash: string;
 	updated_at: Date;
+	username: string;
 }
 
 interface UserCreationAttributes {
 	email: string;
 	password_hash: string;
+	username: string;
 }
 
 class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare user_id: string;
 	declare email: string;
+	declare username: string;
 	declare password_hash: string;
 	declare created_at: Date;
 	declare updated_at: Date;
@@ -25,6 +28,18 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					type: DataTypes.UUID,
 					defaultValue: DataTypes.UUIDV4,
 					primaryKey: true,
+				},
+				username: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					unique: true,
+					validate: {
+						len: [3, 30],
+						is: /^[a-zA-Z0-9_-]+$/,
+						notNull: {
+							msg: 'Username is required'
+						}
+					}
 				},
 				email: {
 					type: DataTypes.STRING,
@@ -55,8 +70,5 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 		);
 	}
 }
-
-// Removed direct initialization
-// User.initialize(sequelize);
 
 export default User;
