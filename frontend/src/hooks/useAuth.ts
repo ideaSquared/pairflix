@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 interface User {
 	user_id: string;
 	email: string;
+	username: string;
 }
 
 export const useAuth = () => {
@@ -29,6 +30,7 @@ export const useAuth = () => {
 					setUser({
 						user_id: payload.user_id,
 						email: payload.email,
+						username: payload.username,
 					});
 				} else {
 					localStorage.removeItem('token');
@@ -56,6 +58,7 @@ export const useAuth = () => {
 		setUser({
 			user_id: payload.user_id,
 			email: payload.email,
+			username: payload.username,
 		});
 		navigate('/watchlist');
 	};
