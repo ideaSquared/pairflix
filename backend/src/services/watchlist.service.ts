@@ -30,15 +30,21 @@ export const getWatchlistService = async (user: any) => {
 				entry.media_type === 'tv'
 					? await getTVDetails(entry.tmdb_id)
 					: await getMovieDetails(entry.tmdb_id);
-
+			
 			// Exclude TMDb status and create a clean details object
 			const { status: tmdbStatus, ...cleanDetails } = details;
 			const entryJson = entry.toJSON();
-
-			return {
+			
+			// Use correct title field based on media type
+			const title = entry.media_type === 'tv' ? 
+				(details as TMDbTV).name : 
+				(details as TMDbMovie).title;
+			
+			return { 
 				...entryJson,
 				...cleanDetails,
-				tmdb_status: tmdbStatus, // Add TMDb status under a different name
+				title, // Override with correct title
+				tmdb_status: tmdbStatus,
 			};
 		})
 	);
@@ -70,10 +76,16 @@ export const updateWatchlistEntryService = async (
 	const { status: tmdbStatus, ...cleanDetails } = details;
 	const entryJson = entry.toJSON();
 
+	// Use correct title field based on media type
+	const title = entry.media_type === 'tv' ? 
+		(details as TMDbTV).name : 
+		(details as TMDbMovie).title;
+
 	return {
 		...entryJson,
 		...cleanDetails,
-		tmdb_status: tmdbStatus, // Add TMDb status under a different name
+		title, // Override with correct title
+		tmdb_status: tmdbStatus,
 	};
 };
 
