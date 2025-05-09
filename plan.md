@@ -347,35 +347,104 @@ watch-together/
 
 1. **Enhancing Match System**
 
-   - Improve recommendation algorithm
-   - Add collaborative filtering
-   - Implement match notifications
+   - Recommendation Algorithm Improvements:
+
+     - Consider user ratings (1-10) and genres for better matches
+     - Weight recent watches more heavily than older entries
+     - Factor in completion status (finished vs dropped)
+     - Target: 80% match accuracy based on user feedback
+
+   - Collaborative Filtering Implementation:
+
+     - Use both users' watch history to suggest new content
+     - Identify patterns in genre preferences and ratings
+     - Generate top 5 recommendations weekly
+
+   - Match Notifications:
+     - Send notifications when both users add same title to watchlist
+     - Alert when partner rates a shared watch
+     - Allow toggling notification preferences
 
 2. **User Experience**
 
-   - Add more interactive features to watchlist
-   - Implement real-time updates
-   - Enhanced error handling
+   - Interactive Watchlist Features:
+
+     - Drag-and-drop reordering of watchlist items
+     - Bulk actions (delete, status update, tag application)
+     - Quick rating update without modal
+     - Filter by status, genre, and rating range
+
+   - Error Handling:
+     - Implement retry logic for failed API calls
+     - Offline mode with local storage backup
+     - Clear error messages with recovery actions
+     - Automated error reporting system
 
 3. **Testing & Quality**
-   - Increase test coverage
-   - Add end-to-end tests
-   - Performance optimization
+
+   - Test Coverage Goals:
+
+     - Unit tests: 90% coverage
+     - Integration tests: 80% coverage
+     - E2E tests for critical flows:
+       - Authentication
+       - Watchlist management
+       - Match system
+       - Search functionality
+
+   - Performance Metrics:
+     - Page load time < 2 seconds
+     - Time to interactive < 3 seconds
+     - API response time < 200ms
+     - Lighthouse score > 90
 
 ### Future Enhancements
 
 1. **Phase 1 (Refinement)**
 
-   - Add user preference settings
-   - Enhance profile management
-   - Implement advanced search filters
+   - User Preference Settings:
+
+     - Theme customization (light/dark + color schemes)
+     - Default view preferences (list/grid)
+     - Email notification frequency
+     - Automatic archiving rules for finished content
+
+   - Profile Management:
+
+     - Custom avatar upload (max 2MB, jpg/png)
+     - Watching habits statistics
+     - Favorite genres selection
+     - Privacy controls for activity sharing
+
+   - Advanced Search Filters:
+     - Filter by release year range
+     - Multiple genre selection
+     - Runtime/episode count filters
+     - Streaming service availability
+     - Rating range (TMDb rating)
 
 2. **Phase 2 (Features)**
 
-   - Activity feed
-   - Tag system
-   - Watch history
-   - Rating insights
+   - Activity Feed:
+
+     - Chronological list of partner's actions
+     - Filterable by action type
+     - Interactive (react/comment on activities)
+     - 30-day activity history
+
+   - Tag System:
+
+     - Custom tag creation
+     - Tag categories (mood, occasion, genre)
+     - Tag-based filtering
+     - Tag suggestions based on content
+
+   - Watch History:
+     - Timeline view of watched content
+     - Watch dates tracking
+     - Rewatch counter
+     - Watch time statistics
+     - Export functionality (CSV/JSON)
 
 3. **Phase 3 (Scale)**
    - Mobile responsiveness improvements
