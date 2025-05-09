@@ -28,6 +28,9 @@ export const findByEmail = async (req: Request, res: Response) => {
 
 export const updateEmail = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
+	if (!email || !password) {
+		return res.status(400).json({ error: 'Email and password are required' });
+	}
 	try {
 		const updatedUser = await updateEmailService(req.user, email, password);
 		res.json({ message: 'Email updated successfully', user: updatedUser });
@@ -42,6 +45,9 @@ export const updateEmail = async (req: Request, res: Response) => {
 
 export const updatePassword = async (req: Request, res: Response) => {
 	const { currentPassword, newPassword } = req.body;
+	if (!currentPassword || !newPassword) {
+		return res.status(400).json({ error: 'Current password and new password are required' });
+	}
 	try {
 		await updatePasswordService(req.user, currentPassword, newPassword);
 		res.json({ message: 'Password updated successfully' });
@@ -56,12 +62,11 @@ export const updatePassword = async (req: Request, res: Response) => {
 
 export const updateUsername = async (req: Request, res: Response) => {
 	const { username, password } = req.body;
+	if (!username || !password) {
+		return res.status(400).json({ error: 'Username and password are required' });
+	}
 	try {
-		const updatedUser = await updateUsernameService(
-			req.user,
-			username,
-			password
-		);
+		const updatedUser = await updateUsernameService(req.user, username, password);
 		res.json({ message: 'Username updated successfully', user: updatedUser });
 	} catch (error) {
 		if (error instanceof Error) {
