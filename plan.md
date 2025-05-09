@@ -24,12 +24,18 @@ A private web application for two users (you and your partner) to:
 
 #### 1. **User Accounts**
 
-- Authentication for just two users (email + password or magic link).
-- No registration—manually set up in database or via config.
-- User management:
-  - Change password functionality
-  - Update email/username
-  - Basic profile settings
+- Authentication using JWT tokens with username, email, and user_id
+- No public registration—manually set up in database
+- Comprehensive user management:
+  - Username (3-30 characters, alphanumeric with underscore/hyphen)
+  - Email address (with validation)
+  - Password (with secure hashing)
+  - Profile settings and updates
+- Profile features:
+  - Change username with uniqueness validation
+  - Update email with password verification
+  - Change password with current password verification
+  - View profile information
 
 #### 2. **Watchlist**
 
@@ -100,12 +106,28 @@ A private web application for two users (you and your partner) to:
 
 ### Tech Stack
 
-- **Frontend**: React (with TypeScript), Styled Components or Tailwind
-- **Backend**: Node.js + Express + TypeScript
-- **Database**: PostgreSQL with Sequelize ORM
-- **Auth**: Simple JWT-based login (private, no registration)
-- **API Integration**: TMDb REST API (using native fetch)
-- **Deployment**: Render or Railway (free tier), optional Vercel for frontend
+- **Frontend**:
+  - React with TypeScript
+  - Styled Components for styling
+  - React Query for data fetching
+  - JWT handling with local storage
+  - Vite for build tooling
+- **Backend**:
+  - Node.js + Express + TypeScript
+  - Sequelize ORM with PostgreSQL
+  - JWT-based authentication
+  - bcryptjs for password hashing
+  - Jest for testing
+- **Database**:
+  - PostgreSQL with UUID, JSONB support
+  - Sequelize migrations and seeding
+- **API Integration**:
+  - TMDb REST API
+  - Native fetch API
+- **DevOps**:
+  - Docker with multi-stage builds
+  - docker-compose for development
+  - Hot reloading for both frontend and backend
 
 ---
 
@@ -165,9 +187,11 @@ Great — below is a full **PostgreSQL schema** followed by a clean, modular **f
 ```sql
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT UNIQUE NOT NULL CHECK (LENGTH(username) BETWEEN 3 AND 30 AND username ~ '^[a-zA-Z0-9_-]+$'),
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE watchlist_entries (
@@ -287,113 +311,74 @@ watch-together/
 
 #### Database Architecture
 
-- PostgreSQL with Sequelize ORM integration
-- Proper model definitions with TypeScript
-- Database initialization and auto-creation
-- Development environment seeding with test data
-- Automated model synchronization
+- ✅ PostgreSQL with Sequelize ORM integration
+- ✅ Models: User, WatchlistEntry, Match
+- ✅ Database initialization and migrations
+- ✅ Development environment setup
 
 #### Backend Implementation
 
-- Express.js with TypeScript setup
-- JWT-based authentication system
-- Sequelize ORM models and relationships:
-  - User model with UUID, email, and password hash
-  - WatchlistEntry model with comprehensive media tracking
-- Development environment database seeding
-- RESTful API endpoints for:
-  - Authentication (login)
-  - Watchlist management (CRUD operations)
-  - Match finding between users
-- TMDb service integration using native fetch API (removed axios dependency)
-- Type-safe request handling with custom types
+- ✅ Express.js with TypeScript
+- ✅ JWT authentication system
+- ✅ Controllers for auth, match, search, user, and watchlist
+- ✅ Service layer with comprehensive test coverage
+- ✅ TMDb integration
+- ✅ Middleware for authentication
+- ✅ Type-safe request handling
 
 #### Frontend Implementation
 
-- React with TypeScript and Vite
-- Styled-components for styling
-- React Query for API state management
-- Protected routing system
-- Global styling with dark theme
-- Responsive layout components
-- Feature-based directory structure
-- Implemented pages:
-  - Login
-  - Watchlist
-  - Matches
+- ✅ React + TypeScript + Vite setup
+- ✅ Component library with common UI elements
+- ✅ Feature-based architecture
+- ✅ Layout system with responsive design
+- ✅ Authentication flow
+- ✅ Watchlist management
+- ✅ Search functionality
+- ✅ Match system
 
-### Components Created
+#### DevOps
 
-1. **Layout**
+- ✅ Docker containerization
+- ✅ Development environment with docker-compose
+- ✅ Hot reloading for development
 
-   - Base layout with navigation
-   - Protected route wrapper
-   - Global styling system
+### Current Focus Areas
 
-2. **Authentication**
+1. **Enhancing Match System**
 
-   - Login page
-   - Authentication hook (useAuth)
-   - JWT token management
+   - Improve recommendation algorithm
+   - Add collaborative filtering
+   - Implement match notifications
 
-3. **Watchlist**
+2. **User Experience**
 
-   - Watchlist display grid
-   - Status management
-   - Search functionality
-   - Entry cards with status badges
+   - Add more interactive features to watchlist
+   - Implement real-time updates
+   - Enhanced error handling
 
-4. **Matches**
-   - Match display grid
-   - Status comparison view
-   - Match cards with dual status display
+3. **Testing & Quality**
+   - Increase test coverage
+   - Add end-to-end tests
+   - Performance optimization
 
-### API Services
+### Future Enhancements
 
-1. **Backend Endpoints**
+1. **Phase 1 (Refinement)**
 
-   - POST /api/auth/login
-   - GET /api/watchlist
-   - POST /api/watchlist
-   - PUT /api/watchlist/:entry_id
-   - GET /api/watchlist/matches
+   - Add user preference settings
+   - Enhance profile management
+   - Implement advanced search filters
 
-2. **Frontend Services**
-   - Authentication service
-   - Watchlist service
-   - TMDb integration service
-   - API client with interceptors
+2. **Phase 2 (Features)**
 
-### Development Environment
+   - Activity feed
+   - Tag system
+   - Watch history
+   - Rating insights
 
-- Hot reloading for both frontend and backend
-- TypeScript compilation
-- Development database with sample data
-- Environment variable management
-- Docker volume persistence
-
-### Next Steps
-
-1. **Phase 1 (Current)**
-
-   - ✅ Basic authentication
-   - ✅ Watchlist management
-   - ✅ Basic match view
-   - ✅ Implement TMDb search
-   - ⏳ Add user profile management
-     - Change password
-     - Update email
-     - Basic profile settings
-
-2. **Phase 2**
-
-   - ⏳ Activity feed implementation
-   - ⏳ Tag system
-   - ⏳ Enhanced recommendations
-   - ⏳ User preferences
-
-3. **Phase 3**
-   - ⏳ Mobile responsiveness
-   - ⏳ Notifications system
-   - ⏳ Performance optimizations
-   - ⏳ Streaming availability integration
+3. **Phase 3 (Scale)**
+   - Mobile responsiveness improvements
+   - Push notifications
+   - Offline support
+   - Streaming service integration
