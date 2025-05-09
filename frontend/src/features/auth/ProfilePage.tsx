@@ -99,7 +99,6 @@ const ProfilePage: React.FC = () => {
 
 	// Username update state
 	const [newUsername, setNewUsername] = useState('');
-	const [usernamePassword, setUsernamePassword] = useState('');
 	const [usernameError, setUsernameError] = useState('');
 	const [usernameSuccess, setUsernameSuccess] = useState('');
 
@@ -123,12 +122,16 @@ const ProfilePage: React.FC = () => {
 	const emailMutation = useMutation({
 		mutationFn: (data: { email: string; password: string }) =>
 			userApi.user.updateEmail(data),
-		onSuccess: () => {
+		onSuccess: (response) => {
 			setEmailSuccess('Email updated successfully');
 			setNewEmail('');
 			setEmailPassword('');
 			setEmailError('');
-			checkAuth(); // Refresh user info
+			// Store new token and refresh auth state
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				checkAuth();
+			}
 		},
 		onError: (error: Error) => {
 			setEmailError(error.message);
@@ -137,14 +140,21 @@ const ProfilePage: React.FC = () => {
 	});
 
 	const usernameMutation = useMutation({
-		mutationFn: (data: { username: string; password: string }) =>
-			userApi.user.updateUsername(data),
-		onSuccess: () => {
+		mutationFn: (data: { username: string }) => {
+			if (!data.username) {
+				throw new Error('Username is required');
+			}
+			return userApi.user.updateUsername(data);
+		},
+		onSuccess: (response) => {
 			setUsernameSuccess('Username updated successfully');
 			setNewUsername('');
-			setUsernamePassword('');
 			setUsernameError('');
-			checkAuth(); // Refresh user info
+			// Store new token and refresh auth state
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				checkAuth();
+			}
 		},
 		onError: (error: Error) => {
 			setUsernameError(error.message);
@@ -203,7 +213,6 @@ const ProfilePage: React.FC = () => {
 
 		usernameMutation.mutate({
 			username: newUsername,
-			password: usernamePassword,
 		});
 	};
 
@@ -235,13 +244,6 @@ const ProfilePage: React.FC = () => {
 						placeholder='New Username'
 						value={newUsername}
 						onChange={(e) => setNewUsername(e.target.value)}
-						required
-					/>
-					<Input
-						type='password'
-						placeholder='Current Password'
-						value={usernamePassword}
-						onChange={(e) => setUsernamePassword(e.target.value)}
 						required
 					/>
 					<Button type='submit' disabled={usernameMutation.isLoading}>

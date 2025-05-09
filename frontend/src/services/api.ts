@@ -83,6 +83,26 @@ interface UpdateUsernameData {
 	password: string;
 }
 
+interface UpdateUsernameResponse {
+	message: string;
+	user: {
+		user_id: string;
+		email: string;
+		username: string;
+	};
+	token: string;
+}
+
+interface UpdateEmailResponse {
+	message: string;
+	user: {
+		user_id: string;
+		email: string;
+		username: string;
+	};
+	token: string;
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 	const token = localStorage.getItem('token');
 	const headers = new Headers({
@@ -152,13 +172,13 @@ export const user = {
 			body: JSON.stringify(data),
 		});
 	},
-	updateEmail: async (data: EmailUpdate) => {
+	updateEmail: async (data: EmailUpdate): Promise<UpdateEmailResponse> => {
 		return fetchWithAuth('/api/user/email', {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});
 	},
-	updateUsername: async (data: UpdateUsernameData) => {
+	updateUsername: async (data: { username: string }): Promise<UpdateUsernameResponse> => {
 		return fetchWithAuth('/api/user/username', {
 			method: 'PUT',
 			body: JSON.stringify(data),

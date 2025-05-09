@@ -32,8 +32,12 @@ export const updateEmail = async (req: Request, res: Response) => {
 		return res.status(400).json({ error: 'Email and password are required' });
 	}
 	try {
-		const updatedUser = await updateEmailService(req.user, email, password);
-		res.json({ message: 'Email updated successfully', user: updatedUser });
+		const { user, token } = await updateEmailService(req.user, email, password);
+		res.json({ 
+			message: 'Email updated successfully', 
+			user,
+			token 
+		});
 	} catch (error) {
 		if (error instanceof Error) {
 			res.status(400).json({ error: error.message });
@@ -46,7 +50,9 @@ export const updateEmail = async (req: Request, res: Response) => {
 export const updatePassword = async (req: Request, res: Response) => {
 	const { currentPassword, newPassword } = req.body;
 	if (!currentPassword || !newPassword) {
-		return res.status(400).json({ error: 'Current password and new password are required' });
+		return res
+			.status(400)
+			.json({ error: 'Current password and new password are required' });
 	}
 	try {
 		await updatePasswordService(req.user, currentPassword, newPassword);
@@ -61,13 +67,17 @@ export const updatePassword = async (req: Request, res: Response) => {
 };
 
 export const updateUsername = async (req: Request, res: Response) => {
-	const { username, password } = req.body;
-	if (!username || !password) {
-		return res.status(400).json({ error: 'Username and password are required' });
+	const { username } = req.body;
+	if (!username) {
+		return res.status(400).json({ error: 'Username is required' });
 	}
 	try {
-		const updatedUser = await updateUsernameService(req.user, username, password);
-		res.json({ message: 'Username updated successfully', user: updatedUser });
+		const { user, token } = await updateUsernameService(req.user, username);
+		res.json({ 
+			message: 'Username updated successfully', 
+			user,
+			token 
+		});
 	} catch (error) {
 		if (error instanceof Error) {
 			res.status(400).json({ error: error.message });
