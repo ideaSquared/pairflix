@@ -61,7 +61,10 @@ export const updatePasswordService = async (
 		throw new Error('User not found');
 	}
 
-	const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+	const isPasswordValid = await bcrypt.compare(
+		currentPassword,
+		user.password_hash
+	);
 	if (!isPasswordValid) {
 		throw new Error('Invalid current password');
 	}

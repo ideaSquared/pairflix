@@ -33,10 +33,10 @@ export const updateEmail = async (req: Request, res: Response) => {
 	}
 	try {
 		const { user, token } = await updateEmailService(req.user, email, password);
-		res.json({ 
-			message: 'Email updated successfully', 
+		res.json({
+			message: 'Email updated successfully',
 			user,
-			token 
+			token,
 		});
 	} catch (error) {
 		if (error instanceof Error) {
@@ -73,10 +73,10 @@ export const updateUsername = async (req: Request, res: Response) => {
 	}
 	try {
 		const { user, token } = await updateUsernameService(req.user, username);
-		res.json({ 
-			message: 'Username updated successfully', 
+		res.json({
+			message: 'Username updated successfully',
 			user,
-			token 
+			token,
 		});
 	} catch (error) {
 		if (error instanceof Error) {

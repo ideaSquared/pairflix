@@ -178,7 +178,9 @@ export const user = {
 			body: JSON.stringify(data),
 		});
 	},
-	updateUsername: async (data: { username: string }): Promise<UpdateUsernameResponse> => {
+	updateUsername: async (data: {
+		username: string;
+	}): Promise<UpdateUsernameResponse> => {
 		return fetchWithAuth('/api/user/username', {
 			method: 'PUT',
 			body: JSON.stringify(data),
