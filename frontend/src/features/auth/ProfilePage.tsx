@@ -12,7 +12,6 @@ import * as userApi from '../../services/api';
 
 type UserPreferences = {
 	theme: 'light' | 'dark';
-	viewStyle: 'list' | 'grid';
 	emailNotifications: boolean;
 	autoArchiveDays: number;
 	favoriteGenres: string[];
@@ -490,21 +489,6 @@ const ProfilePage: React.FC = () => {
 							>
 								<option value='dark'>Dark Theme</option>
 								<option value='light'>Light Theme</option>
-							</Select>
-						</div>
-						<div className='preference-row'>
-							<Label>View Style</Label>
-							<Select
-								value={user?.preferences?.viewStyle || 'grid'}
-								onChange={(e) =>
-									handlePreferenceUpdate(
-										'viewStyle',
-										e.target.value as 'list' | 'grid'
-									)
-								}
-							>
-								<option value='grid'>Grid View</option>
-								<option value='list'>List View</option>
 							</Select>
 						</div>
 

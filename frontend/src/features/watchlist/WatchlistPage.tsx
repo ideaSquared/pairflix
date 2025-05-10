@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardGrid } from '../../components/common/Card';
@@ -10,6 +10,7 @@ import { H1, H3, Typography } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
+import * as userApi from '../../services/api';
 import { watchlist, WatchlistEntry } from '../../services/api';
 import SearchMedia from './SearchMedia';
 
@@ -89,7 +90,27 @@ const WatchlistPage: React.FC = () => {
 	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [activeTab, setActiveTab] = useState<'list' | 'search'>('list');
-	const viewStyle = user?.preferences?.viewStyle || 'grid';
+	const [viewStyle, setViewStyle] = useState(
+		user?.preferences?.viewStyle || 'grid'
+	);
+
+	const preferenceMutation = useMutation({
+		mutationFn: (viewStyle: 'grid' | 'list') =>
+			userApi.user.updatePreferences({ viewStyle }),
+		onSuccess: (response) => {
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				queryClient.invalidateQueries(['auth']);
+			}
+		},
+	});
+
+	// Update useEffect to sync with user preferences
+	useEffect(() => {
+		if (user?.preferences?.viewStyle) {
+			setViewStyle(user.preferences.viewStyle);
+		}
+	}, [user?.preferences?.viewStyle]);
 
 	const {
 		data: entries = [],
@@ -135,6 +156,11 @@ const WatchlistPage: React.FC = () => {
 		status: WatchlistEntry['status']
 	) => {
 		updateMutation.mutate({ id: entryId, updates: { status } });
+	};
+
+	const handleViewStyleChange = (newViewStyle: 'grid' | 'list') => {
+		setViewStyle(newViewStyle); // Update local state immediately
+		preferenceMutation.mutate(newViewStyle); // Update server-side preference
 	};
 
 	if (isLoading) {
@@ -186,7 +212,7 @@ const WatchlistPage: React.FC = () => {
 					<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
 				)}
 
-				<SelectGroup fullWidth>
+				<SelectGroup>
 					<Select
 						value={entry.status}
 						onChange={(e) =>
@@ -226,6 +252,7 @@ const WatchlistPage: React.FC = () => {
 		);
 	};
 
+	// Fixed mismatched JSX tags and syntax errors.
 	return (
 		<Layout>
 			<Container>
@@ -253,14 +280,24 @@ const WatchlistPage: React.FC = () => {
 
 				{activeTab === 'list' ? (
 					<>
-						<InputGroup fullWidth>
-							<Input
-								type='text'
-								placeholder='Search your watchlist...'
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								fullWidth
-							/>
+						<InputGroup>
+							<Flex gap='md' alignItems='center'>
+								<Input
+									type='text'
+									placeholder='Search your watchlist...'
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+								/>
+								<Select
+									value={viewStyle}
+									onChange={(e) =>
+										handleViewStyleChange(e.target.value as 'grid' | 'list')
+									}
+								>
+									<option value='grid'>Grid View</option>
+									<option value='list'>List View</option>
+								</Select>
+							</Flex>
 						</InputGroup>
 
 						{viewStyle === 'grid' ? (
