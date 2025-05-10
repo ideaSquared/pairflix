@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/common/Button';
-import { Card } from '../../components/common/Card';
+import { Card, CardContent } from '../../components/common/Card';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
@@ -47,26 +47,38 @@ const Value = styled(Typography)`
 	font-size: ${({ theme }) => theme.typography.fontSize.md};
 `;
 
-const Form = styled.form`
-	margin-bottom: ${({ theme }) => theme.spacing.lg};
+const StyledForm = styled.form`
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
-const PreferencesCard = styled(ProfileCard)`
-	.preference-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: ${({ theme }) => theme.spacing.sm} 0;
-		border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+const FormCard = styled(Card)`
+  ${CardContent} {
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing.md};
+  }
 
-		&:last-child {
-			border-bottom: none;
-		}
+  ${Button} {
+    margin-top: ${({ theme }) => theme.spacing.sm};
+  }
+`;
 
-		${Select} {
-			width: 150px;
-		}
-	}
+const PreferencesCard = styled(Card)`
+  .preference-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${({ theme }) => theme.spacing.sm} 0;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    ${Select} {
+      width: 150px;
+    }
+  }
 `;
 
 const ErrorMessage = styled(Typography)`
@@ -331,119 +343,126 @@ const ProfilePage: React.FC = () => {
 			<ProfileContainer>
 				<H1 gutterBottom>Profile Settings</H1>
 
-				<ProfileCard>
-					<H2 gutterBottom>Current Profile</H2>
-					<UserInfo>
-						<Label>Username:</Label>
-						<Value>{user?.username}</Value>
-						<Label>Email:</Label>
-						<Value>{user?.email}</Value>
-					</UserInfo>
-				</ProfileCard>
+				<FormCard variant="secondary">
+					<CardContent>
+						<H2 gutterBottom>Current Profile</H2>
+						<UserInfo>
+							<Label>Username:</Label>
+							<Value>{user?.username}</Value>
+							<Label>Email:</Label>
+							<Value>{user?.email}</Value>
+						</UserInfo>
+					</CardContent>
+					</FormCard>
 
-				<Form onSubmit={handleUsernameUpdate}>
-					<H2 gutterBottom>Change Username</H2>
-					{usernameError && <ErrorMessage>{usernameError}</ErrorMessage>}
-					{usernameSuccess && (
-						<SuccessMessage>{usernameSuccess}</SuccessMessage>
-					)}
-					<Input
-						type='text'
-						placeholder='New Username'
-						value={newUsername}
-						onChange={(e) => setNewUsername(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Button type='submit' disabled={usernameMutation.isLoading} fullWidth>
-						Update Username
-					</Button>
-				</Form>
+				<StyledForm onSubmit={handleUsernameUpdate}>
+					<FormCard variant="secondary">
+						<CardContent>
+							<H2 gutterBottom>Change Username</H2>
+							{usernameError && <ErrorMessage>{usernameError}</ErrorMessage>}
+							{usernameSuccess && <SuccessMessage>{usernameSuccess}</SuccessMessage>}
+							<Input
+								type="text"
+								placeholder="New Username"
+								value={newUsername}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUsername(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Button type="submit" disabled={usernameMutation.isLoading} fullWidth>
+								Update Username
+							</Button>
+						</CardContent>
+					</FormCard>
+				</StyledForm>
 
-				<Form onSubmit={handleEmailUpdate}>
-					<H2 gutterBottom>Change Email</H2>
-					{emailError && <ErrorMessage>{emailError}</ErrorMessage>}
-					{emailSuccess && <SuccessMessage>{emailSuccess}</SuccessMessage>}
-					<Input
-						type='email'
-						placeholder='New Email'
-						value={newEmail}
-						onChange={(e) => setNewEmail(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Input
-						type='password'
-						placeholder='Current Password'
-						value={emailPassword}
-						onChange={(e) => setEmailPassword(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Button type='submit' disabled={emailMutation.isLoading} fullWidth>
-						Update Email
-					</Button>
-				</Form>
+				<StyledForm onSubmit={handleEmailUpdate}>
+					<FormCard variant="secondary">
+						<CardContent>
+							<H2 gutterBottom>Change Email</H2>
+							{emailError && <ErrorMessage>{emailError}</ErrorMessage>}
+							{emailSuccess && <SuccessMessage>{emailSuccess}</SuccessMessage>}
+							<Input
+								type="email"
+								placeholder="New Email"
+								value={newEmail}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Input
+								type="password"
+								placeholder="Current Password"
+								value={emailPassword}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Button type="submit" disabled={emailMutation.isLoading} fullWidth>
+								Update Email
+							</Button>
+						</CardContent>
+					</FormCard>
+				</StyledForm>
 
-				<Form onSubmit={handlePasswordUpdate}>
-					<H2 gutterBottom>Change Password</H2>
-					{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
-					{passwordSuccess && (
-						<SuccessMessage>{passwordSuccess}</SuccessMessage>
-					)}
-					<Input
-						type='password'
-						placeholder='Current Password'
-						value={currentPassword}
-						onChange={(e) => setCurrentPassword(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Input
-						type='password'
-						placeholder='New Password'
-						value={newPassword}
-						onChange={(e) => setNewPassword(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Input
-						type='password'
-						placeholder='Confirm New Password'
-						value={confirmPassword}
-						onChange={(e) => setConfirmPassword(e.target.value)}
-						required
-						fullWidth
-					/>
-					<Button type='submit' disabled={passwordMutation.isLoading} fullWidth>
-						Update Password
-					</Button>
-				</Form>
+				<StyledForm onSubmit={handlePasswordUpdate}>
+					<FormCard variant="secondary">
+						<CardContent>
+							<H2 gutterBottom>Change Password</H2>
+							{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
+							{passwordSuccess && <SuccessMessage>{passwordSuccess}</SuccessMessage>}
+							<Input
+								type="password"
+								placeholder="Current Password"
+								value={currentPassword}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Input
+								type="password"
+								placeholder="New Password"
+								value={newPassword}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Input
+								type="password"
+								placeholder="Confirm New Password"
+								value={confirmPassword}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+							<Button type="submit" disabled={passwordMutation.isLoading} fullWidth>
+								Update Password
+							</Button>
+						</CardContent>
+					</FormCard>
+				</StyledForm>
 
-				<PreferencesCard>
-					<H2 gutterBottom>Preferences</H2>
-					{preferenceError && <ErrorMessage>{preferenceError}</ErrorMessage>}
-					{preferenceSuccess && (
-						<SuccessMessage>{preferenceSuccess}</SuccessMessage>
-					)}
-
-					<div className='preference-row'>
-						<Label>Theme</Label>
-						<Select
-							value={user?.preferences?.theme || 'dark'}
-							onChange={(e) =>
-								handlePreferenceUpdate(
-									'theme',
-									e.target.value as 'light' | 'dark'
-								)
-							}
-						>
-							<option value='dark'>Dark Theme</option>
-							<option value='light'>Light Theme</option>
-						</Select>
-					</div>
-
-					<div className='preference-row'>
+				<PreferencesCard variant="secondary">
+					<CardContent>
+						<H2 gutterBottom>Preferences</H2>
+						{preferenceError && <ErrorMessage>{preferenceError}</ErrorMessage>}
+						{preferenceSuccess && <SuccessMessage>{preferenceSuccess}</SuccessMessage>}
+						<div className="preference-row">
+							<Label>Theme</Label>
+							<Select
+								value={user?.preferences?.theme || 'dark'}
+								onChange={(e) =>
+									handlePreferenceUpdate(
+										'theme',
+										e.target.value as 'light' | 'dark'
+									)
+								}
+							>
+								<option value="dark">Dark Theme</option>
+								<option value="light">Light Theme</option>
+							</Select>
+						</div>
+						<div className='preference-row'>
 						<Label>View Style</Label>
 						<Select
 							value={user?.preferences?.viewStyle || 'grid'}
@@ -492,6 +511,7 @@ const ProfilePage: React.FC = () => {
 							<option value='0'>Never</option>
 						</Select>
 					</div>
+					</CardContent>
 				</PreferencesCard>
 			</ProfileContainer>
 		</Layout>
