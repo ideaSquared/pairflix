@@ -208,9 +208,9 @@ const WatchlistPage: React.FC = () => {
 					{entry.title}
 				</H3>
 
-				{entry.tmdb_status && (
+				{/* {entry.tmdb_status && (
 					<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
-				)}
+				)} */}
 
 				<SelectGroup>
 					<Select
