@@ -258,9 +258,9 @@ const WatchlistPage: React.FC = () => {
 			<Container>
 				<H1 gutterBottom>My Watchlist</H1>
 
-				<Card variant='primary'>
+				<Card accentColor='#69c176'>
 					<CardContent>
-						<Flex gap='md' wrap='wrap'>
+						<Flex gap='md' wrap='wrap' style={{ marginBottom: '1rem' }}>
 							<TabButton
 								$active={activeTab === 'list'}
 								onClick={() => setActiveTab('list')}
@@ -275,31 +275,34 @@ const WatchlistPage: React.FC = () => {
 								Add New
 							</TabButton>
 						</Flex>
+
+						{activeTab === 'list' && (
+							<InputGroup>
+								<Flex gap='md' alignItems='center'>
+									<Input
+										type='text'
+										placeholder='Search your watchlist...'
+										value={searchQuery}
+										onChange={(e) => setSearchQuery(e.target.value)}
+										fullWidth
+									/>
+									<Select
+										value={viewStyle}
+										onChange={(e) =>
+											handleViewStyleChange(e.target.value as 'grid' | 'list')
+										}
+									>
+										<option value='grid'>Grid View</option>
+										<option value='list'>List View</option>
+									</Select>
+								</Flex>
+							</InputGroup>
+						)}
 					</CardContent>
 				</Card>
 
 				{activeTab === 'list' ? (
 					<>
-						<InputGroup>
-							<Flex gap='md' alignItems='center'>
-								<Input
-									type='text'
-									placeholder='Search your watchlist...'
-									value={searchQuery}
-									onChange={(e) => setSearchQuery(e.target.value)}
-								/>
-								<Select
-									value={viewStyle}
-									onChange={(e) =>
-										handleViewStyleChange(e.target.value as 'grid' | 'list')
-									}
-								>
-									<option value='grid'>Grid View</option>
-									<option value='list'>List View</option>
-								</Select>
-							</Flex>
-						</InputGroup>
-
 						{viewStyle === 'grid' ? (
 							<GridContainer>
 								{filteredEntries.map(renderWatchlistItem)}
