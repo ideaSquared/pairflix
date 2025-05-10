@@ -19,14 +19,15 @@ const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 	const variants = {
 		primary: css`
 			background: ${({ theme }) => theme.colors.primary};
-			color: ${({ theme }) => theme.colors.text.primary};
+			color: #ffffff;
 			&:hover:not(:disabled) {
 				background: ${({ theme }) => theme.colors.primaryHover};
 			}
 		`,
 		secondary: css`
-			background: ${({ theme }) => theme.colors.secondary};
+			background: ${({ theme }) => theme.colors.background.secondary};
 			color: ${({ theme }) => theme.colors.text.primary};
+			border: 1px solid ${({ theme }) => theme.colors.border};
 			&:hover:not(:disabled) {
 				background: ${({ theme }) => theme.colors.border};
 			}
@@ -40,14 +41,14 @@ const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 		`,
 		danger: css`
 			background: ${({ theme }) => theme.colors.text.error};
-			color: ${({ theme }) => theme.colors.text.primary};
+			color: #ffffff;
 			&:hover:not(:disabled) {
 				opacity: 0.9;
 			}
 		`,
 		warning: css`
 			background: ${({ theme }) => theme.colors.text.warning};
-			color: ${({ theme }) => theme.colors.background.primary};
+			color: #000000;
 			&:hover:not(:disabled) {
 				opacity: 0.9;
 			}

@@ -13,8 +13,16 @@ export function useAuth() {
 	} = useQuery({
 		queryKey: ['auth'],
 		queryFn: authApi.auth.getCurrentUser,
-		retry: false,
-		staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+		retry: (failureCount, error) => {
+			if (error instanceof Error && 
+				(error.message === 'Authentication required' || 
+				error.message === 'Session expired. Please login again.')) {
+				return false;
+			}
+			return failureCount < 3;
+		},
+		staleTime: 0, // Remove stale time to ensure immediate updates
+		cacheTime: 0, // Disable caching to ensure fresh data
 	});
 
 	const logout = () => {

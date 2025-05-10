@@ -162,9 +162,11 @@ const ProfilePage: React.FC = () => {
 	}, [user, logout]);
 
 	const handleAuthError = (error: Error) => {
-		if (error.message === 'Authentication required' || 
+		if (
+			error.message === 'Authentication required' ||
 			error.message === 'Session expired. Please login again.' ||
-			error.message === 'Invalid or expired token') {
+			error.message === 'Invalid or expired token'
+		) {
 			logout();
 			return;
 		}

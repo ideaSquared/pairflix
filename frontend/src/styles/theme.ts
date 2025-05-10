@@ -38,9 +38,9 @@ const baseTheme = {
 export const darkTheme = {
 	...baseTheme,
 	colors: {
-		primary: '#646cff',
-		primaryHover: '#747bff',
-		secondary: '#4a4a4a',
+		primary: '#818cff', // Brightened for better contrast
+		primaryHover: '#919dff',
+		secondary: '#6b6b6b', // Brightened for better contrast
 		background: {
 			primary: '#121212',
 			secondary: '#1a1a1a',
@@ -50,17 +50,17 @@ export const darkTheme = {
 		border: '#3a3a3a',
 		text: {
 			primary: '#ffffff',
-			secondary: '#999999',
-			error: '#ff4444',
-			success: '#00ff00',
+			secondary: '#b3b3b3', // Brightened from #999999 for better contrast
+			error: '#ff6b6b', // Adjusted for better visibility
+			success: '#4caf50', // Changed from #00ff00 for better contrast
 			warning: '#ffd700',
 		},
 		status: {
-			toWatch: '#646cff',
-			toWatchTogether: '#9370db',
-			wouldLikeToWatchTogether: '#ff69b4',
+			toWatch: '#818cff', // Matches primary
+			toWatchTogether: '#a385eb', // Brightened for contrast
+			wouldLikeToWatchTogether: '#ff8ac5', // Brightened for contrast
 			watching: '#ffd700',
-			finished: '#00ff00',
+			finished: '#4caf50', // Matches success color
 		},
 	},
 };
@@ -68,29 +68,29 @@ export const darkTheme = {
 export const lightTheme = {
 	...baseTheme,
 	colors: {
-		primary: '#646cff',
-		primaryHover: '#747bff',
-		secondary: '#e0e0e0',
+		primary: '#4853db', // Darkened for better contrast on light backgrounds
+		primaryHover: '#3942b5',
+		secondary: '#6b6b6b',
 		background: {
 			primary: '#ffffff',
 			secondary: '#f5f5f5',
 			input: '#ffffff',
 			card: '#ffffff',
 		},
-		border: '#e0e0e0',
+		border: '#d0d0d0',
 		text: {
-			primary: '#000000',
-			secondary: '#666666',
-			error: '#ff0000',
-			success: '#008000',
-			warning: '#ffa500',
+			primary: '#1a1a1a',
+			secondary: '#595959', // Darkened from #666666 for better contrast
+			error: '#d32f2f', // Adjusted for better contrast
+			success: '#2e7d32', // Adjusted for better contrast
+			warning: '#ed6c02', // Adjusted from #ffa500 for better contrast
 		},
 		status: {
-			toWatch: '#646cff',
-			toWatchTogether: '#9370db',
-			wouldLikeToWatchTogether: '#ff69b4',
-			watching: '#ffa500',
-			finished: '#008000',
+			toWatch: '#4853db', // Matches primary
+			toWatchTogether: '#6c4aa6', // Darkened for contrast
+			wouldLikeToWatchTogether: '#d4387c', // Adjusted for contrast
+			watching: '#ed6c02', // Matches warning
+			finished: '#2e7d32', // Matches success
 		},
 	},
 };

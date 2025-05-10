@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { useAuth } from '../hooks/useAuth';
 import { GlobalStyles } from './GlobalStyles';
@@ -8,15 +8,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
 	const { user } = useAuth();
-	const [currentTheme, setCurrentTheme] = useState(
-		user?.preferences?.theme === 'light' ? lightTheme : darkTheme
-	);
-
-	useEffect(() => {
-		setCurrentTheme(
-			user?.preferences?.theme === 'light' ? lightTheme : darkTheme
-		);
-	}, [user?.preferences?.theme]);
+	
+	// Directly compute theme instead of using state to avoid race conditions
+	const currentTheme = user?.preferences?.theme === 'light' ? lightTheme : darkTheme;
 
 	return (
 		<StyledThemeProvider theme={currentTheme}>

@@ -1,38 +1,47 @@
 import styled from 'styled-components';
 
 interface SelectProps {
-	error?: boolean;
 	fullWidth?: boolean;
-	size?: 'small' | 'medium' | 'large';
 }
 
 export const Select = styled.select<SelectProps>`
-	width: ${({ fullWidth }) => (fullWidth ? '100%' : '200px')};
-	padding: ${({ theme }) => theme.spacing.sm};
+	appearance: none;
 	background: ${({ theme }) => theme.colors.background.input};
-	border: 1px solid
-		${({ error, theme }) =>
-			error ? theme.colors.text.error : theme.colors.border};
-	border-radius: ${({ theme }) => theme.borderRadius.sm};
 	color: ${({ theme }) => theme.colors.text.primary};
-	cursor: pointer;
+	border: 1px solid ${({ theme }) => theme.colors.border};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+	width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
 	font-size: ${({ theme }) => theme.typography.fontSize.md};
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
+
+	&:hover {
+		border-color: ${({ theme }) => theme.colors.primary};
+	}
 
 	&:focus {
 		outline: none;
-		border-color: ${({ error, theme }) =>
-			error ? theme.colors.text.error : theme.colors.primary};
+		border-color: ${({ theme }) => theme.colors.primary};
+		box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}40;
 	}
 
-	option {
-		background: ${({ theme }) => theme.colors.background.input};
-		color: ${({ theme }) => theme.colors.text.primary};
+	&:focus-visible {
+		outline: 2px solid ${({ theme }) => theme.colors.primary};
+		outline-offset: 2px;
 	}
 
 	&:disabled {
 		background: ${({ theme }) => theme.colors.background.secondary};
 		cursor: not-allowed;
-		opacity: 0.7;
+		opacity: 0.6;
+	}
+
+	/* Styling for options */
+	& option {
+		background: ${({ theme }) => theme.colors.background.input};
+		color: ${({ theme }) => theme.colors.text.primary};
+		padding: ${({ theme }) => theme.spacing.sm};
 	}
 `;
 

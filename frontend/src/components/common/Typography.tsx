@@ -18,20 +18,20 @@ interface TypographyProps {
 	color?: string;
 }
 
-const getVariantStyles = (variant: TypographyVariant = 'body1') => {
+const getVariantStyles = (variant?: TypographyVariant) => {
 	const variants = {
 		h1: css`
-			font-size: ${({ theme }) => theme.typography.fontSize.xl};
+			font-size: calc(${({ theme }) => theme.typography.fontSize.xl} * 1.5);
 			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.2;
 		`,
 		h2: css`
-			font-size: calc(${({ theme }) => theme.typography.fontSize.lg} * 1.2);
+			font-size: calc(${({ theme }) => theme.typography.fontSize.xl} * 1.2);
 			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.3;
 		`,
 		h3: css`
-			font-size: ${({ theme }) => theme.typography.fontSize.lg};
+			font-size: ${({ theme }) => theme.typography.fontSize.xl};
 			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.4;
 		`,
@@ -64,7 +64,7 @@ const getVariantStyles = (variant: TypographyVariant = 'body1') => {
 			line-height: 1.5;
 		`,
 	};
-	return variants[variant];
+	return variants[variant || 'body1'];
 };
 
 export const Typography = styled.p<TypographyProps>`
@@ -75,12 +75,17 @@ export const Typography = styled.p<TypographyProps>`
 		gutterBottom ? theme.spacing.md : 0};
 	${({ variant }) => getVariantStyles(variant)}
 
-	/* Ensure links within typography inherit styles */
-    a {
+	a {
 		color: ${({ theme }) => theme.colors.primary};
 		text-decoration: none;
+		font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
 		&:hover {
 			text-decoration: underline;
+			color: ${({ theme }) => theme.colors.primaryHover};
+		}
+		&:focus-visible {
+			outline: 2px solid ${({ theme }) => theme.colors.primary};
+			outline-offset: 2px;
 		}
 	}
 `;
