@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { theme } from '../../styles/theme';
 import { Card } from '../common/Card';
 import { Container, Flex } from '../common/Layout';
 import { H1, Typography } from '../common/Typography';
@@ -9,7 +8,7 @@ import { H1, Typography } from '../common/Typography';
 const Header = styled(Card)`
 	margin: 0;
 	border-radius: 0;
-	background: ${theme.colors.background.secondary};
+	background: ${({ theme }) => theme.colors.background.secondary};
 	position: sticky;
 	top: 0;
 	z-index: 100;
@@ -24,27 +23,27 @@ const Header = styled(Card)`
 const HeaderContent = styled(Flex)`
 	justify-content: space-between;
 	align-items: center;
-	padding: ${theme.spacing.md};
+	padding: ${({ theme }) => theme.spacing.md};
 `;
 
 const Nav = styled(Flex)`
-	gap: ${theme.spacing.md};
+	gap: ${({ theme }) => theme.spacing.md};
 `;
 
 const NavLink = styled(Typography)<{ active?: boolean }>`
-	color: ${({ active }) =>
+	color: ${({ active, theme }) =>
 		active ? theme.colors.primary : theme.colors.text.primary};
 	cursor: pointer;
 	transition: color 0.2s ease;
 
 	&:hover {
-		color: ${theme.colors.primary};
+		color: ${({ theme }) => theme.colors.primary};
 	}
 `;
 
 const Main = styled.main`
 	flex: 1;
-	padding: ${theme.spacing.xl} 0;
+	padding: ${({ theme }) => theme.spacing.xl} 0;
 `;
 
 interface LayoutProps {
@@ -95,7 +94,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 					</HeaderContent>
 				</Container>
 			</Header>
-			<Main>{children}</Main>
+			<Main>
+				<Container>{children}</Container>
+			</Main>
 		</Flex>
 	);
 };

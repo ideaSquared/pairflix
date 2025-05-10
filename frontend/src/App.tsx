@@ -6,30 +6,30 @@ import Routes from './components/layout/Routes';
 import { ThemeProvider } from './styles/ThemeProvider';
 
 const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
-            cacheTime: 1000 * 60 * 30, // Cache is kept for 30 minutes
-            refetchOnWindowFocus: false,
-            retry: false,
-        },
-    },
+	defaultOptions: {
+		queries: {
+			staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+			cacheTime: 1000 * 60 * 30, // Cache is kept for 30 minutes
+			refetchOnWindowFocus: false,
+			retry: false,
+		},
+	},
 });
 
 function App() {
-    return (
-        <BrowserRouter>
-            <ErrorBoundary>
-                <QueryClientProvider client={queryClient}>
-                    <ThemeProvider>
-                        <Container maxWidth='none' padding='xs'>
-                            <Routes />
-                        </Container>
-                    </ThemeProvider>
-                </QueryClientProvider>
-            </ErrorBoundary>
-        </BrowserRouter>
-    );
+	return (
+		<BrowserRouter>
+			<ErrorBoundary>
+				<QueryClientProvider client={queryClient}>
+					<ThemeProvider>
+						<Container maxWidth='none' padding='xs'>
+							<Routes />
+						</Container>
+					</ThemeProvider>
+				</QueryClientProvider>
+			</ErrorBoundary>
+		</BrowserRouter>
+	);
 }
 
 export default App;

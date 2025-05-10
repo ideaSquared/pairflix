@@ -6,8 +6,8 @@ import { Card, CardContent } from '../../components/common/Card';
 import { Container, Flex, Grid } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
-import  Badge  from '../../components/layout/Badge';
-import  Layout  from '../../components/layout/Layout';
+import Badge from '../../components/layout/Badge';
+import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	ContentMatch,
@@ -15,14 +15,13 @@ import {
 	matches as matchesApi,
 	watchlist,
 } from '../../services/api';
-import { theme } from '../../styles/theme';
 import InviteUser from './InviteUser';
 
 const PosterContainer = styled.div`
 	flex-shrink: 0;
 	width: 200px;
 
-	@media (max-width: ${theme.breakpoints.sm}) {
+	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
 		width: 100%;
 	}
 `;
@@ -31,7 +30,7 @@ const PosterImage = styled.img`
 	width: 100%;
 	aspect-ratio: 2/3;
 	object-fit: cover;
-	border-radius: ${theme.borderRadius.sm};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
 `;
 
 const ContentInfo = styled.div`
@@ -39,11 +38,11 @@ const ContentInfo = styled.div`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: ${theme.spacing.sm};
+	gap: ${({ theme }) => theme.spacing.sm};
 `;
 
 const Overview = styled(Typography).attrs({ variant: 'body2' })`
-	color: ${theme.colors.text.secondary};
+	color: ${({ theme }) => theme.colors.text.secondary};
 	display: -webkit-box;
 	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
@@ -61,9 +60,9 @@ const StatusGroup = styled.div`
 
 const StatusBadge = styled.span<{ status: string }>`
 	display: inline-block;
-	padding: ${theme.spacing.xs} ${theme.spacing.sm};
-	border-radius: ${theme.borderRadius.sm};
-	background: ${({ status }) => {
+	padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	background: ${({ status, theme }) => {
 		switch (status) {
 			case 'to_watch':
 				return theme.colors.status.toWatch;
@@ -79,13 +78,13 @@ const StatusBadge = styled.span<{ status: string }>`
 				return theme.colors.status.toWatch;
 		}
 	}};
-	color: ${theme.colors.text.primary};
+	color: ${({ theme }) => theme.colors.text.primary};
 `;
 
 const MatchPercentage = styled(Typography)<{ percent: number }>`
-	font-size: ${theme.typography.fontSize.lg};
-	font-weight: ${theme.typography.fontWeight.bold};
-	color: ${({ percent }) => {
+	font-size: ${({ theme }) => theme.typography.fontSize.lg};
+	font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+	color: ${({ percent, theme }) => {
 		if (percent >= 80) return theme.colors.text.success;
 		if (percent >= 60) return theme.colors.text.warning;
 		return theme.colors.status.wouldLikeToWatchTogether;
@@ -93,13 +92,13 @@ const MatchPercentage = styled(Typography)<{ percent: number }>`
 `;
 
 const MatchLabel = styled(Typography).attrs({ variant: 'caption' })`
-	margin-top: ${theme.spacing.xs};
+	margin-top: ${({ theme }) => theme.spacing.xs};
 `;
 
 const NoMatches = styled(Typography)`
 	text-align: center;
-	padding: ${theme.spacing.xl};
-	color: ${theme.colors.text.secondary};
+	padding: ${({ theme }) => theme.spacing.xl};
+	color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
 const MatchPage: React.FC = () => {
@@ -149,16 +148,6 @@ const MatchPage: React.FC = () => {
 		const user2Weight = statusWeights[match.user2_status] || 0;
 
 		return Math.round((user1Weight + user2Weight) * 50); // Convert to percentage
-	};
-
-	const isValidContentMatch = (match: any): match is ContentMatch => {
-		return (
-			typeof match === 'object' &&
-			match !== null &&
-			typeof match.user1_status === 'string' &&
-			typeof match.user2_status === 'string' &&
-			typeof match.tmdb_id === 'number'
-		);
 	};
 
 	const filteredAndSortedMatches = useMemo(() => {
@@ -350,8 +339,8 @@ const MatchPage: React.FC = () => {
 
 											<ContentInfo>
 												<Typography variant='h3'>{match.title}</Typography>
-												<Badge variant={match.media_type}>
-													{match.media_type === 'tv' ? 'TV Show' : 'Movie'}
+												<Badge color='primary'>
+													{match.media_type === 'tv' ? 'TV Series' : 'Film'}
 												</Badge>
 												{match.overview && (
 													<Overview>{match.overview}</Overview>

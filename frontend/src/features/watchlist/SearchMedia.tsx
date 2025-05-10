@@ -8,7 +8,6 @@ import { ErrorText, H3, Typography } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
 import { useAuth } from '../../hooks/useAuth';
 import { search, SearchResult, watchlist } from '../../services/api';
-import { theme } from '../../styles/theme';
 
 const PosterImage = styled.img`
 	width: 100%;
@@ -17,7 +16,7 @@ const PosterImage = styled.img`
 	height: ${({ $isListView }: { $isListView?: boolean }) =>
 		$isListView ? '225px' : '375px'};
 	object-fit: cover;
-	border-radius: ${theme.borderRadius.sm};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
 `;
 
 const Overview = styled(Typography).attrs({ variant: 'body2' })`
@@ -26,17 +25,17 @@ const Overview = styled(Typography).attrs({ variant: 'body2' })`
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	margin: ${theme.spacing.sm} 0;
+	margin: ${({ theme }) => theme.spacing.sm} 0;
 `;
 
 const ListViewItem = styled(Card)`
 	display: flex;
-	margin-bottom: ${theme.spacing.md};
+	margin-bottom: ${({ theme }) => theme.spacing.md};
 
 	${CardContent} {
 		flex: 1;
 		display: flex;
-		gap: ${theme.spacing.lg};
+		gap: ${({ theme }) => theme.spacing.lg};
 
 		.content {
 			flex: 1;
@@ -47,17 +46,17 @@ const ListViewItem = styled(Card)`
 		.actions {
 			display: flex;
 			align-items: center;
-			padding-left: ${theme.spacing.md};
+			padding-left: ${({ theme }) => theme.spacing.md};
 		}
 	}
 `;
 
 const GridContainer = styled(CardGrid)`
-	margin-top: ${theme.spacing.lg};
+	margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
 const ListContainer = styled.div`
-	margin-top: ${theme.spacing.lg};
+	margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
 const SearchMedia: React.FC = () => {
@@ -112,7 +111,9 @@ const SearchMedia: React.FC = () => {
 				)}
 				<div className='content'>
 					<H3 gutterBottom>{result.title || result.name}</H3>
-					<Badge variant={result.media_type}>{result.media_type}</Badge>
+					<Badge color='primary'>
+						{result.media_type === 'tv' ? 'TV Series' : 'Movie'}
+					</Badge>
 					<Overview>{result.overview}</Overview>
 				</div>
 				<div className='actions'>

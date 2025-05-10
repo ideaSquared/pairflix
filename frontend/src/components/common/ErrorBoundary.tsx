@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
-import { theme } from '../../styles/theme';
 import { Button } from './Button';
 import { Card, CardContent } from './Card';
 import { Flex } from './Layout';
@@ -19,14 +18,14 @@ interface State {
 
 const ErrorContainer = styled(Card)`
 	max-width: 600px;
-	margin: ${theme.spacing.xl} auto;
+	margin: ${({ theme }) => theme.spacing.xl} auto;
 `;
 
 const ErrorMessage = styled(Typography)`
-	margin: ${theme.spacing.md} 0;
-	padding: ${theme.spacing.md};
-	background: ${theme.colors.background.primary};
-	border-radius: ${theme.borderRadius.sm};
+	margin: ${({ theme }) => theme.spacing.md} 0;
+	padding: ${({ theme }) => theme.spacing.md};
+	background: ${({ theme }) => theme.colors.background.primary};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
 	font-family: monospace;
 	white-space: pre-wrap;
 	overflow-x: auto;

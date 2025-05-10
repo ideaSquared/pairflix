@@ -1,5 +1,4 @@
 import styled, { css } from 'styled-components';
-import { theme } from '../../styles/theme';
 
 export type ButtonVariant =
 	| 'primary'
@@ -19,36 +18,36 @@ interface ButtonProps {
 const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 	const variants = {
 		primary: css`
-			background: ${theme.colors.primary};
-			color: ${theme.colors.text.primary};
+			background: ${({ theme }) => theme.colors.primary};
+			color: ${({ theme }) => theme.colors.text.primary};
 			&:hover:not(:disabled) {
-				background: ${theme.colors.primaryHover};
+				background: ${({ theme }) => theme.colors.primaryHover};
 			}
 		`,
 		secondary: css`
-			background: ${theme.colors.secondary};
-			color: ${theme.colors.text.primary};
+			background: ${({ theme }) => theme.colors.secondary};
+			color: ${({ theme }) => theme.colors.text.primary};
 			&:hover:not(:disabled) {
-				background: ${theme.colors.border};
+				background: ${({ theme }) => theme.colors.border};
 			}
 		`,
 		success: css`
-			background: ${theme.colors.text.success};
-			color: ${theme.colors.background.primary};
+			background: ${({ theme }) => theme.colors.text.success};
+			color: ${({ theme }) => theme.colors.background.primary};
 			&:hover:not(:disabled) {
 				opacity: 0.9;
 			}
 		`,
 		danger: css`
-			background: ${theme.colors.text.error};
-			color: ${theme.colors.text.primary};
+			background: ${({ theme }) => theme.colors.text.error};
+			color: ${({ theme }) => theme.colors.text.primary};
 			&:hover:not(:disabled) {
 				opacity: 0.9;
 			}
 		`,
 		warning: css`
-			background: ${theme.colors.text.warning};
-			color: ${theme.colors.background.primary};
+			background: ${({ theme }) => theme.colors.text.warning};
+			color: ${({ theme }) => theme.colors.background.primary};
 			&:hover:not(:disabled) {
 				opacity: 0.9;
 			}
@@ -60,16 +59,19 @@ const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 const getSizeStyles = (size: ButtonSize = 'medium') => {
 	const sizes = {
 		small: css`
-			padding: ${theme.spacing.xs} ${theme.spacing.sm};
-			font-size: ${theme.typography.fontSize.sm};
+			padding: ${({ theme }) => theme.spacing.xs}
+				${({ theme }) => theme.spacing.sm};
+			font-size: ${({ theme }) => theme.typography.fontSize.sm};
 		`,
 		medium: css`
-			padding: ${theme.spacing.sm} ${theme.spacing.md};
-			font-size: ${theme.typography.fontSize.md};
+			padding: ${({ theme }) => theme.spacing.sm}
+				${({ theme }) => theme.spacing.md};
+			font-size: ${({ theme }) => theme.typography.fontSize.md};
 		`,
 		large: css`
-			padding: ${theme.spacing.md} ${theme.spacing.lg};
-			font-size: ${theme.typography.fontSize.lg};
+			padding: ${({ theme }) => theme.spacing.md}
+				${({ theme }) => theme.spacing.lg};
+			font-size: ${({ theme }) => theme.typography.fontSize.lg};
 		`,
 	};
 	return sizes[size];
@@ -80,9 +82,9 @@ export const Button = styled.button<ButtonProps>`
 	align-items: center;
 	justify-content: center;
 	border: none;
-	border-radius: ${theme.borderRadius.sm};
-	font-family: ${theme.typography.fontFamily};
-	font-weight: ${theme.typography.fontWeight.medium};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	font-family: ${({ theme }) => theme.typography.fontFamily};
+	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
 	cursor: pointer;
 	transition: all 0.2s ease-in-out;
 	width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
@@ -90,14 +92,14 @@ export const Button = styled.button<ButtonProps>`
 	${({ variant }) => getVariantStyles(variant)}
 	${({ size }) => getSizeStyles(size)}
 
-  &:disabled {
-		background: ${theme.colors.secondary};
+    &:disabled {
+		background: ${({ theme }) => theme.colors.secondary};
 		cursor: not-allowed;
 		opacity: 0.6;
 	}
 
 	&:focus-visible {
-		outline: 2px solid ${theme.colors.primary};
+		outline: 2px solid ${({ theme }) => theme.colors.primary};
 		outline-offset: 2px;
 	}
 `;

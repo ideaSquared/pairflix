@@ -11,12 +11,11 @@ import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import { watchlist, WatchlistEntry } from '../../services/api';
-import { theme } from '../../styles/theme';
 import SearchMedia from './SearchMedia';
 
 const WatchlistCard = styled(Card)<{ status: string }>`
 	border-left: 4px solid
-		${({ status }) => {
+		${({ status, theme }) => {
 			switch (status) {
 				case 'to_watch':
 					return theme.colors.status.toWatch;
@@ -35,16 +34,16 @@ const WatchlistCard = styled(Card)<{ status: string }>`
 `;
 
 const MediaStatus = styled(Typography)`
-	color: ${theme.colors.text.secondary};
-	margin-top: ${theme.spacing.xs};
+	color: ${({ theme }) => theme.colors.text.secondary};
+	margin-top: ${({ theme }) => theme.spacing.xs};
 	font-style: italic;
 `;
 
 const TabButton = styled(Button)<{ $active: boolean }>`
-	background: ${({ $active }) =>
+	background: ${({ $active, theme }) =>
 		$active ? theme.colors.primary : theme.colors.background.secondary};
 	&:hover {
-		background: ${({ $active }) =>
+		background: ${({ $active, theme }) =>
 			$active ? theme.colors.primaryHover : theme.colors.border};
 	}
 `;
@@ -55,32 +54,34 @@ const RelativeCard = styled(CardContent)`
 
 const ListViewItem = styled(WatchlistCard)`
 	display: flex;
-	margin-bottom: ${theme.spacing.md};
+	margin-bottom: ${({ theme }) => theme.spacing.md};
 
 	${RelativeCard} {
 		flex: 1;
 		display: flex;
-		align-items: center;
-		gap: ${theme.spacing.lg};
+		gap: ${({ theme }) => theme.spacing.lg};
 
-		h3 {
+		.content {
 			flex: 1;
-			margin: 0;
+			display: flex;
+			flex-direction: column;
+			gap: ${({ theme }) => theme.spacing.sm};
 		}
 
-		${SelectGroup} {
-			width: 200px;
-			margin: 0;
+		.actions {
+			display: flex;
+			align-items: flex-start;
+			padding-left: ${({ theme }) => theme.spacing.md};
 		}
 	}
 `;
 
 const GridContainer = styled(CardGrid)`
-	margin-top: ${theme.spacing.lg};
+	margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
 const ListContainer = styled.div`
-	margin-top: ${theme.spacing.lg};
+	margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
 const WatchlistPage: React.FC = () => {
@@ -175,7 +176,9 @@ const WatchlistPage: React.FC = () => {
 		const commonContent = (
 			<>
 				<H3 gutterBottom>
-					<Badge variant={entry.media_type}>{entry.media_type}</Badge>{' '}
+					<Badge color='primary'>
+						{entry.media_type === 'tv' ? 'TV Series' : 'Movie'}
+					</Badge>{' '}
 					{entry.title}
 				</H3>
 
@@ -205,7 +208,7 @@ const WatchlistPage: React.FC = () => {
 				</SelectGroup>
 
 				{entry.notes && (
-					<Typography variant='body2' style={{ marginTop: theme.spacing.sm }}>
+					<Typography variant='body2' gutterBottom>
 						Notes: {entry.notes}
 					</Typography>
 				)}

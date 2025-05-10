@@ -1,91 +1,73 @@
 import React from 'react';
-import styled, { css } from 'styled-components';
-import { theme } from '../../styles/theme';
+import styled from 'styled-components';
+import { Theme } from '../../styles/theme';
 
-export type BadgeVariant =
-	| 'movie'
-	| 'tv'
+export type BadgeColor =
 	| 'primary'
 	| 'secondary'
 	| 'success'
-	| 'warning'
-	| 'error';
+	| 'error'
+	| 'warning';
 
 interface BadgeProps {
-	variant?: BadgeVariant;
+	color?: BadgeColor;
 	size?: 'small' | 'medium' | 'large';
 	children: React.ReactNode;
 }
 
-const getVariantStyles = (variant: BadgeVariant = 'primary') => {
-	const variants = {
-		movie: css`
-			background: ${theme.colors.status.wouldLikeToWatchTogether};
-			color: ${theme.colors.text.primary};
-		`,
-		tv: css`
-			background: ${theme.colors.status.toWatchTogether};
-			color: ${theme.colors.text.primary};
-		`,
-		primary: css`
-			background: ${theme.colors.primary};
-			color: ${theme.colors.text.primary};
-		`,
-		secondary: css`
-			background: ${theme.colors.secondary};
-			color: ${theme.colors.text.primary};
-		`,
-		success: css`
-			background: ${theme.colors.text.success};
-			color: ${theme.colors.background.primary};
-		`,
-		warning: css`
-			background: ${theme.colors.text.warning};
-			color: ${theme.colors.background.primary};
-		`,
-		error: css`
-			background: ${theme.colors.text.error};
-			color: ${theme.colors.text.primary};
-		`,
-	};
-	return variants[variant];
+const getBadgeColor = (color: BadgeColor = 'primary') => {
+	switch (color) {
+		case 'primary':
+			return '#646CFF'; // Enhanced primary color for better contrast
+		case 'secondary':
+			return '#595959'; // Darker for better contrast (4.5:1 ratio)
+		case 'success':
+			return '#2E7D32'; // Darker green for better contrast
+		case 'error':
+			return '#D32F2F'; // Accessible red
+		case 'warning':
+			return '#ED6C02'; // Accessible orange
+		default:
+			return '#646CFF';
+	}
 };
 
-const getSizeStyles = (size: BadgeProps['size'] = 'medium') => {
-	const sizes = {
-		small: css`
-			padding: ${theme.spacing.xs} ${theme.spacing.sm};
-			font-size: ${theme.typography.fontSize.xs};
-		`,
-		medium: css`
-			padding: ${theme.spacing.xs} ${theme.spacing.sm};
-			font-size: ${theme.typography.fontSize.sm};
-		`,
-		large: css`
-			padding: ${theme.spacing.sm} ${theme.spacing.md};
-			font-size: ${theme.typography.fontSize.md};
-		`,
-	};
-	return sizes[size];
+const getBadgeSize = (size: BadgeProps['size'] = 'medium') => {
+	switch (size) {
+		case 'small':
+			return ({ theme }: { theme: Theme }) => theme.spacing.xs;
+		case 'large':
+			return ({ theme }: { theme: Theme }) => theme.spacing.md;
+		default:
+			return ({ theme }: { theme: Theme }) => theme.spacing.sm;
+	}
 };
 
 const StyledBadge = styled.span<BadgeProps>`
-	display: inline-block;
-	border-radius: ${theme.borderRadius.sm};
-	font-weight: ${theme.typography.fontWeight.medium};
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	${({ variant }) => getVariantStyles(variant)}
-	${({ size }) => getSizeStyles(size)}
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: ${({ size }) => getBadgeSize(size)};
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	background-color: ${({ color }) => getBadgeColor(color)};
+	color: #ffffff;
+	font-size: ${({ size, theme }) =>
+		size === 'small'
+			? theme.typography.fontSize.xs
+			: size === 'large'
+				? theme.typography.fontSize.md
+				: theme.typography.fontSize.sm};
+	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+	line-height: 1.2; // Improved line height for better readability
 `;
 
 const Badge: React.FC<BadgeProps> = ({
-	variant = 'primary',
+	color = 'primary',
 	size = 'medium',
 	children,
 }) => {
 	return (
-		<StyledBadge variant={variant} size={size}>
+		<StyledBadge color={color} size={size}>
 			{children}
 		</StyledBadge>
 	);

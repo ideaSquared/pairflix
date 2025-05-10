@@ -1,5 +1,4 @@
 import styled, { css } from 'styled-components';
-import { theme } from '../../styles/theme';
 
 type TypographyVariant =
 	| 'h1'
@@ -22,46 +21,46 @@ interface TypographyProps {
 const getVariantStyles = (variant: TypographyVariant = 'body1') => {
 	const variants = {
 		h1: css`
-			font-size: ${theme.typography.fontSize.xl};
-			font-weight: ${theme.typography.fontWeight.bold};
+			font-size: ${({ theme }) => theme.typography.fontSize.xl};
+			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.2;
 		`,
 		h2: css`
-			font-size: calc(${theme.typography.fontSize.lg} * 1.2);
-			font-weight: ${theme.typography.fontWeight.bold};
+			font-size: calc(${({ theme }) => theme.typography.fontSize.lg} * 1.2);
+			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.3;
 		`,
 		h3: css`
-			font-size: ${theme.typography.fontSize.lg};
-			font-weight: ${theme.typography.fontWeight.bold};
+			font-size: ${({ theme }) => theme.typography.fontSize.lg};
+			font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
 			line-height: 1.4;
 		`,
 		h4: css`
-			font-size: calc(${theme.typography.fontSize.md} * 1.1);
-			font-weight: ${theme.typography.fontWeight.medium};
+			font-size: calc(${({ theme }) => theme.typography.fontSize.md} * 1.1);
+			font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
 			line-height: 1.4;
 		`,
 		body1: css`
-			font-size: ${theme.typography.fontSize.md};
+			font-size: ${({ theme }) => theme.typography.fontSize.md};
 			line-height: 1.5;
 		`,
 		body2: css`
-			font-size: ${theme.typography.fontSize.sm};
+			font-size: ${({ theme }) => theme.typography.fontSize.sm};
 			line-height: 1.5;
 		`,
 		caption: css`
-			font-size: ${theme.typography.fontSize.xs};
-			color: ${theme.colors.text.secondary};
+			font-size: ${({ theme }) => theme.typography.fontSize.xs};
+			color: ${({ theme }) => theme.colors.text.secondary};
 			line-height: 1.5;
 		`,
 		error: css`
-			font-size: ${theme.typography.fontSize.sm};
-			color: ${theme.colors.text.error};
+			font-size: ${({ theme }) => theme.typography.fontSize.sm};
+			color: ${({ theme }) => theme.colors.text.error};
 			line-height: 1.5;
 		`,
 		success: css`
-			font-size: ${theme.typography.fontSize.sm};
-			color: ${theme.colors.text.success};
+			font-size: ${({ theme }) => theme.typography.fontSize.sm};
+			color: ${({ theme }) => theme.colors.text.success};
 			line-height: 1.5;
 		`,
 	};
@@ -70,14 +69,15 @@ const getVariantStyles = (variant: TypographyVariant = 'body1') => {
 
 export const Typography = styled.p<TypographyProps>`
 	margin: 0;
-	color: ${({ color }) => color || theme.colors.text.primary};
+	color: ${({ color, theme }) => color || theme.colors.text.primary};
 	text-align: ${({ align = 'left' }) => align};
-	margin-bottom: ${({ gutterBottom }) => (gutterBottom ? theme.spacing.md : 0)};
+	margin-bottom: ${({ gutterBottom, theme }) =>
+		gutterBottom ? theme.spacing.md : 0};
 	${({ variant }) => getVariantStyles(variant)}
 
 	/* Ensure links within typography inherit styles */
-  a {
-		color: ${theme.colors.primary};
+    a {
+		color: ${({ theme }) => theme.colors.primary};
 		text-decoration: none;
 		&:hover {
 			text-decoration: underline;

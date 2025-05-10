@@ -89,19 +89,22 @@ export const updateUsername = async (req: Request, res: Response) => {
 };
 
 export const updatePreferences = async (req: Request, res: Response) => {
-    const { preferences } = req.body;
-    if (!preferences || typeof preferences !== 'object') {
-        return res.status(400).json({ error: 'Invalid preferences data' });
-    }
+	const { preferences } = req.body;
+	if (!preferences || typeof preferences !== 'object') {
+		return res.status(400).json({ error: 'Invalid preferences data' });
+	}
 
-    try {
-        const { user, token } = await updatePreferencesService(preferences, req.user);
-        res.json({ user, token });
-    } catch (error) {
-        if (error instanceof Error) {
-            res.status(400).json({ error: error.message });
-        } else {
-            res.status(500).json({ error: 'Unknown error occurred' });
-        }
-    }
+	try {
+		const { user, token } = await updatePreferencesService(
+			preferences,
+			req.user
+		);
+		res.json({ user, token });
+	} catch (error) {
+		if (error instanceof Error) {
+			res.status(400).json({ error: error.message });
+		} else {
+			res.status(500).json({ error: 'Unknown error occurred' });
+		}
+	}
 };

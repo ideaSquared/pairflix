@@ -9,7 +9,6 @@ import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import * as userApi from '../../services/api';
-import { theme } from '../../styles/theme';
 
 type UserPreferences = {
 	theme: 'light' | 'dark';
@@ -22,32 +21,34 @@ type UserPreferences = {
 const ProfileContainer = styled.div`
 	max-width: 600px;
 	margin: 0 auto;
-	padding: ${theme.spacing.md};
+	padding: ${({ theme }) => theme.spacing.md};
 `;
 
 const ProfileCard = styled(Card)`
-	margin-bottom: ${theme.spacing.lg};
+	display: flex;
+	flex-direction: column;
+	gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const ProfileInfo = styled.div`
+const UserInfo = styled.div`
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: ${theme.spacing.md};
+	gap: ${({ theme }) => theme.spacing.md};
 	align-items: center;
 `;
 
 const Label = styled(Typography)`
-	color: ${theme.colors.text.secondary};
-	font-size: ${theme.typography.fontSize.sm};
+	color: ${({ theme }) => theme.colors.text.secondary};
+	font-size: ${({ theme }) => theme.typography.fontSize.sm};
 `;
 
 const Value = styled(Typography)`
-	color: ${theme.colors.text.primary};
-	font-size: ${theme.typography.fontSize.md};
+	color: ${({ theme }) => theme.colors.text.primary};
+	font-size: ${({ theme }) => theme.typography.fontSize.md};
 `;
 
 const Form = styled.form`
-	margin-bottom: ${theme.spacing.lg};
+	margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
 const PreferencesCard = styled(ProfileCard)`
@@ -55,8 +56,8 @@ const PreferencesCard = styled(ProfileCard)`
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: ${theme.spacing.sm} 0;
-		border-bottom: 1px solid ${theme.colors.border};
+		padding: ${({ theme }) => theme.spacing.sm} 0;
+		border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 
 		&:last-child {
 			border-bottom: none;
@@ -69,13 +70,13 @@ const PreferencesCard = styled(ProfileCard)`
 `;
 
 const ErrorMessage = styled(Typography)`
-	color: ${theme.colors.text.error};
-	margin-bottom: ${theme.spacing.sm};
+	color: ${({ theme }) => theme.colors.text.error};
+	margin-bottom: ${({ theme }) => theme.spacing.sm};
 `;
 
 const SuccessMessage = styled(Typography)`
-	color: ${theme.colors.text.success};
-	margin-bottom: ${theme.spacing.sm};
+	color: ${({ theme }) => theme.colors.text.success};
+	margin-bottom: ${({ theme }) => theme.spacing.sm};
 `;
 
 const Switch = styled.label`
@@ -97,10 +98,10 @@ const Switch = styled.label`
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background-color: ${theme.colors.background.secondary};
+		background-color: ${({ theme }) => theme.colors.background.secondary};
 		transition: 0.3s;
 		border-radius: 26px;
-		border: 1px solid ${theme.colors.border};
+		border: 1px solid ${({ theme }) => theme.colors.border};
 
 		&:before {
 			position: absolute;
@@ -109,23 +110,23 @@ const Switch = styled.label`
 			width: 18px;
 			left: 3px;
 			bottom: 3px;
-			background-color: ${theme.colors.text.secondary};
+			background-color: ${({ theme }) => theme.colors.text.secondary};
 			transition: 0.3s;
 			border-radius: 50%;
 		}
 	}
 
 	input:checked + span {
-		background-color: ${theme.colors.primary};
+		background-color: ${({ theme }) => theme.colors.primary};
 	}
 
 	input:checked + span:before {
-		background-color: ${theme.colors.text.primary};
+		background-color: ${({ theme }) => theme.colors.text.primary};
 		transform: translateX(26px);
 	}
 
 	&:hover span:before {
-		box-shadow: 0 0 2px ${theme.colors.primary};
+		box-shadow: 0 0 2px ${({ theme }) => theme.colors.primary};
 	}
 `;
 
@@ -298,12 +299,12 @@ const ProfilePage: React.FC = () => {
 
 				<ProfileCard>
 					<H2 gutterBottom>Current Profile</H2>
-					<ProfileInfo>
+					<UserInfo>
 						<Label>Username:</Label>
 						<Value>{user?.username}</Value>
 						<Label>Email:</Label>
 						<Value>{user?.email}</Value>
-					</ProfileInfo>
+					</UserInfo>
 				</ProfileCard>
 
 				<Form onSubmit={handleUsernameUpdate}>

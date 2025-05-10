@@ -7,14 +7,13 @@ import { Input, InputGroup } from '../../components/common/Input';
 import { Container } from '../../components/common/Layout';
 import { ErrorText, H2 } from '../../components/common/Typography';
 import { auth } from '../../services/api';
-import { theme } from '../../styles/theme';
 
 const LoginContainer = styled(Container)`
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	min-height: 100vh;
-	background: ${theme.colors.background.primary};
+	background: ${({ theme }) => theme.colors.background.primary};
 `;
 
 const LoginCard = styled(Card)`

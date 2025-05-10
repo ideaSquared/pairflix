@@ -159,11 +159,11 @@ export const updatePreferencesService = async (
 
 	// Generate new token with updated preferences
 	const token = jwt.sign(
-		{ 
-			user_id: user.user_id, 
-			email: user.email, 
+		{
+			user_id: user.user_id,
+			email: user.email,
 			username: user.username,
-			preferences: updatedPreferences 
+			preferences: updatedPreferences,
 		},
 		process.env.JWT_SECRET!,
 		{ expiresIn: '7d' }
