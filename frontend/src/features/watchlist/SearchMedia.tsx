@@ -111,7 +111,7 @@ const SearchMedia: React.FC = () => {
 				)}
 				<div className='content'>
 					<H3 gutterBottom>{result.title || result.name}</H3>
-					<Badge color='primary'>
+					<Badge variant='primary'>
 						{result.media_type === 'tv' ? 'TV Series' : 'Movie'}
 					</Badge>
 					<Overview>{result.overview}</Overview>

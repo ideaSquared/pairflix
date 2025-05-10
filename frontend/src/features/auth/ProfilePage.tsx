@@ -48,37 +48,37 @@ const Value = styled(Typography)`
 `;
 
 const StyledForm = styled.form`
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+	margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
 const FormCard = styled(Card)`
-  ${CardContent} {
-    display: flex;
-    flex-direction: column;
-    gap: ${({ theme }) => theme.spacing.md};
-  }
+	${CardContent} {
+		display: flex;
+		flex-direction: column;
+		gap: ${({ theme }) => theme.spacing.md};
+	}
 
-  ${Button} {
-    margin-top: ${({ theme }) => theme.spacing.sm};
-  }
+	${Button} {
+		margin-top: ${({ theme }) => theme.spacing.sm};
+	}
 `;
 
 const PreferencesCard = styled(Card)`
-  .preference-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${({ theme }) => theme.spacing.sm} 0;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+	.preference-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: ${({ theme }) => theme.spacing.sm} 0;
+		border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 
-    &:last-child {
-      border-bottom: none;
-    }
+		&:last-child {
+			border-bottom: none;
+		}
 
-    ${Select} {
-      width: 150px;
-    }
-  }
+		${Select} {
+			width: 150px;
+		}
+	}
 `;
 
 const ErrorMessage = styled(Typography)`
@@ -343,7 +343,7 @@ const ProfilePage: React.FC = () => {
 			<ProfileContainer>
 				<H1 gutterBottom>Profile Settings</H1>
 
-				<FormCard variant="secondary">
+				<FormCard variant='secondary'>
 					<CardContent>
 						<H2 gutterBottom>Current Profile</H2>
 						<UserInfo>
@@ -353,23 +353,31 @@ const ProfilePage: React.FC = () => {
 							<Value>{user?.email}</Value>
 						</UserInfo>
 					</CardContent>
-					</FormCard>
+				</FormCard>
 
 				<StyledForm onSubmit={handleUsernameUpdate}>
-					<FormCard variant="secondary">
+					<FormCard variant='secondary'>
 						<CardContent>
 							<H2 gutterBottom>Change Username</H2>
 							{usernameError && <ErrorMessage>{usernameError}</ErrorMessage>}
-							{usernameSuccess && <SuccessMessage>{usernameSuccess}</SuccessMessage>}
+							{usernameSuccess && (
+								<SuccessMessage>{usernameSuccess}</SuccessMessage>
+							)}
 							<Input
-								type="text"
-								placeholder="New Username"
+								type='text'
+								placeholder='New Username'
 								value={newUsername}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewUsername(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setNewUsername(e.target.value)
+								}
 								required
 								fullWidth
 							/>
-							<Button type="submit" disabled={usernameMutation.isLoading} fullWidth>
+							<Button
+								type='submit'
+								disabled={usernameMutation.isLoading}
+								fullWidth
+							>
 								Update Username
 							</Button>
 						</CardContent>
@@ -377,28 +385,36 @@ const ProfilePage: React.FC = () => {
 				</StyledForm>
 
 				<StyledForm onSubmit={handleEmailUpdate}>
-					<FormCard variant="secondary">
+					<FormCard variant='secondary'>
 						<CardContent>
 							<H2 gutterBottom>Change Email</H2>
 							{emailError && <ErrorMessage>{emailError}</ErrorMessage>}
 							{emailSuccess && <SuccessMessage>{emailSuccess}</SuccessMessage>}
 							<Input
-								type="email"
-								placeholder="New Email"
+								type='email'
+								placeholder='New Email'
 								value={newEmail}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setNewEmail(e.target.value)
+								}
 								required
 								fullWidth
 							/>
 							<Input
-								type="password"
-								placeholder="Current Password"
+								type='password'
+								placeholder='Current Password'
 								value={emailPassword}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailPassword(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setEmailPassword(e.target.value)
+								}
 								required
 								fullWidth
 							/>
-							<Button type="submit" disabled={emailMutation.isLoading} fullWidth>
+							<Button
+								type='submit'
+								disabled={emailMutation.isLoading}
+								fullWidth
+							>
 								Update Email
 							</Button>
 						</CardContent>
@@ -406,48 +422,62 @@ const ProfilePage: React.FC = () => {
 				</StyledForm>
 
 				<StyledForm onSubmit={handlePasswordUpdate}>
-					<FormCard variant="secondary">
+					<FormCard variant='secondary'>
 						<CardContent>
 							<H2 gutterBottom>Change Password</H2>
 							{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
-							{passwordSuccess && <SuccessMessage>{passwordSuccess}</SuccessMessage>}
+							{passwordSuccess && (
+								<SuccessMessage>{passwordSuccess}</SuccessMessage>
+							)}
 							<Input
-								type="password"
-								placeholder="Current Password"
+								type='password'
+								placeholder='Current Password'
 								value={currentPassword}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setCurrentPassword(e.target.value)
+								}
 								required
 								fullWidth
 							/>
 							<Input
-								type="password"
-								placeholder="New Password"
+								type='password'
+								placeholder='New Password'
 								value={newPassword}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setNewPassword(e.target.value)
+								}
 								required
 								fullWidth
 							/>
 							<Input
-								type="password"
-								placeholder="Confirm New Password"
+								type='password'
+								placeholder='Confirm New Password'
 								value={confirmPassword}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+									setConfirmPassword(e.target.value)
+								}
 								required
 								fullWidth
 							/>
-							<Button type="submit" disabled={passwordMutation.isLoading} fullWidth>
+							<Button
+								type='submit'
+								disabled={passwordMutation.isLoading}
+								fullWidth
+							>
 								Update Password
 							</Button>
 						</CardContent>
 					</FormCard>
 				</StyledForm>
 
-				<PreferencesCard variant="secondary">
+				<PreferencesCard variant='secondary'>
 					<CardContent>
 						<H2 gutterBottom>Preferences</H2>
 						{preferenceError && <ErrorMessage>{preferenceError}</ErrorMessage>}
-						{preferenceSuccess && <SuccessMessage>{preferenceSuccess}</SuccessMessage>}
-						<div className="preference-row">
+						{preferenceSuccess && (
+							<SuccessMessage>{preferenceSuccess}</SuccessMessage>
+						)}
+						<div className='preference-row'>
 							<Label>Theme</Label>
 							<Select
 								value={user?.preferences?.theme || 'dark'}
@@ -458,59 +488,62 @@ const ProfilePage: React.FC = () => {
 									)
 								}
 							>
-								<option value="dark">Dark Theme</option>
-								<option value="light">Light Theme</option>
+								<option value='dark'>Dark Theme</option>
+								<option value='light'>Light Theme</option>
 							</Select>
 						</div>
 						<div className='preference-row'>
-						<Label>View Style</Label>
-						<Select
-							value={user?.preferences?.viewStyle || 'grid'}
-							onChange={(e) =>
-								handlePreferenceUpdate(
-									'viewStyle',
-									e.target.value as 'list' | 'grid'
-								)
-							}
-						>
-							<option value='grid'>Grid View</option>
-							<option value='list'>List View</option>
-						</Select>
-					</div>
-
-					<div className='preference-row'>
-						<Label>Email Notifications</Label>
-						<Switch>
-							<input
-								type='checkbox'
-								checked={user?.preferences?.emailNotifications ?? true}
+							<Label>View Style</Label>
+							<Select
+								value={user?.preferences?.viewStyle || 'grid'}
 								onChange={(e) =>
-									handlePreferenceUpdate('emailNotifications', e.target.checked)
+									handlePreferenceUpdate(
+										'viewStyle',
+										e.target.value as 'list' | 'grid'
+									)
 								}
-							/>
-							<span />
-						</Switch>
-					</div>
+							>
+								<option value='grid'>Grid View</option>
+								<option value='list'>List View</option>
+							</Select>
+						</div>
 
-					<div className='preference-row'>
-						<Label>Auto-archive after</Label>
-						<Select
-							value={user?.preferences?.autoArchiveDays || 30}
-							onChange={(e) =>
-								handlePreferenceUpdate(
-									'autoArchiveDays',
-									parseInt(e.target.value)
-								)
-							}
-						>
-							<option value='7'>7 days</option>
-							<option value='14'>14 days</option>
-							<option value='30'>30 days</option>
-							<option value='60'>60 days</option>
-							<option value='90'>90 days</option>
-							<option value='0'>Never</option>
-						</Select>
-					</div>
+						<div className='preference-row'>
+							<Label>Email Notifications</Label>
+							<Switch>
+								<input
+									type='checkbox'
+									checked={user?.preferences?.emailNotifications ?? true}
+									onChange={(e) =>
+										handlePreferenceUpdate(
+											'emailNotifications',
+											e.target.checked
+										)
+									}
+								/>
+								<span />
+							</Switch>
+						</div>
+
+						<div className='preference-row'>
+							<Label>Auto-archive after</Label>
+							<Select
+								value={user?.preferences?.autoArchiveDays || 30}
+								onChange={(e) =>
+									handlePreferenceUpdate(
+										'autoArchiveDays',
+										parseInt(e.target.value)
+									)
+								}
+							>
+								<option value='7'>7 days</option>
+								<option value='14'>14 days</option>
+								<option value='30'>30 days</option>
+								<option value='60'>60 days</option>
+								<option value='90'>90 days</option>
+								<option value='0'>Never</option>
+							</Select>
+						</div>
 					</CardContent>
 				</PreferencesCard>
 			</ProfileContainer>

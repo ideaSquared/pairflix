@@ -176,7 +176,7 @@ const WatchlistPage: React.FC = () => {
 		const commonContent = (
 			<>
 				<H3 gutterBottom>
-					<Badge color='primary'>
+					<Badge variant='primary'>
 						{entry.media_type === 'tv' ? 'TV Series' : 'Movie'}
 					</Badge>{' '}
 					{entry.title}
@@ -231,21 +231,25 @@ const WatchlistPage: React.FC = () => {
 			<Container>
 				<H1 gutterBottom>My Watchlist</H1>
 
-				<Flex gap='md' wrap='wrap'>
-					<TabButton
-						$active={activeTab === 'list'}
-						onClick={() => setActiveTab('list')}
-					>
-						My List{' '}
-						{filteredEntries.length > 0 && `(${filteredEntries.length})`}
-					</TabButton>
-					<TabButton
-						$active={activeTab === 'search'}
-						onClick={() => setActiveTab('search')}
-					>
-						Add New
-					</TabButton>
-				</Flex>
+				<Card variant='primary'>
+					<CardContent>
+						<Flex gap='md' wrap='wrap'>
+							<TabButton
+								$active={activeTab === 'list'}
+								onClick={() => setActiveTab('list')}
+							>
+								My List{' '}
+								{filteredEntries.length > 0 && `(${filteredEntries.length})`}
+							</TabButton>
+							<TabButton
+								$active={activeTab === 'search'}
+								onClick={() => setActiveTab('search')}
+							>
+								Add New
+							</TabButton>
+						</Flex>
+					</CardContent>
+				</Card>
 
 				{activeTab === 'list' ? (
 					<>
