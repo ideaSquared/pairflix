@@ -6,6 +6,7 @@ import { Card, CardContent } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
 import { Container } from '../../components/common/Layout';
 import { ErrorText, H2 } from '../../components/common/Typography';
+import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
 
 const LoginContainer = styled(Container)`
@@ -23,6 +24,7 @@ const LoginCard = styled(Card)`
 
 const LoginPage: React.FC = () => {
 	const navigate = useNavigate();
+	const { checkAuth } = useAuth();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
@@ -32,6 +34,7 @@ const LoginPage: React.FC = () => {
 		try {
 			const { token } = await auth.login({ email, password });
 			localStorage.setItem('token', token);
+			checkAuth();
 			navigate('/watchlist');
 		} catch (err) {
 			setError('Invalid email or password');

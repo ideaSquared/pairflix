@@ -1,92 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import * as authApi from '../services/api';
 
-interface User {
-	user_id: string;
-	email: string;
-	username: string;
-	preferences: {
-		theme: 'light' | 'dark';
-		viewStyle: 'list' | 'grid';
-		emailNotifications: boolean;
-		autoArchiveDays: number;
-		favoriteGenres: string[];
-	};
-}
-
-export const useAuth = () => {
-	const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
-	const [user, setUser] = useState<User | null>(null);
+export function useAuth() {
+	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		checkAuth();
-	}, []);
-
-	const checkAuth = () => {
-		const token = localStorage.getItem('token');
-		if (token) {
-			try {
-				// Parse the JWT payload
-				const payload = JSON.parse(atob(token.split('.')[1]));
-				const isValid = payload.exp * 1000 > Date.now();
-
-				if (isValid) {
-					setIsAuthenticated(true);
-					setUser({
-						user_id: payload.user_id,
-						email: payload.email,
-						username: payload.username,
-						preferences: payload.preferences,
-					});
-				} else {
-					localStorage.removeItem('token');
-					setIsAuthenticated(false);
-					setUser(null);
-					navigate('/login');
-				}
-			} catch (e) {
-				setIsAuthenticated(false);
-				setUser(null);
-				localStorage.removeItem('token');
-				navigate('/login');
-			}
-		} else {
-			setIsAuthenticated(false);
-			setUser(null);
-		}
-		setIsLoading(false);
-	};
-
-	const login = (token: string) => {
-		localStorage.setItem('token', token);
-		setIsAuthenticated(true);
-		const payload = JSON.parse(atob(token.split('.')[1]));
-		setUser({
-			user_id: payload.user_id,
-			email: payload.email,
-			username: payload.username,
-			preferences: payload.preferences,
-		});
-		navigate('/watchlist');
-	};
+	const {
+		data: user,
+		isLoading,
+		error,
+	} = useQuery({
+		queryKey: ['auth'],
+		queryFn: authApi.auth.getCurrentUser,
+		retry: false,
+		staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+	});
 
 	const logout = () => {
 		localStorage.removeItem('token');
-		setIsAuthenticated(false);
-		setUser(null);
+		queryClient.setQueryData(['auth'], null);
+		queryClient.invalidateQueries();
 		navigate('/login');
 	};
 
-	return {
-		isAuthenticated,
-		isLoading,
-		user,
-		login,
-		logout,
-		checkAuth,
+	const checkAuth = () => {
+		queryClient.invalidateQueries(['auth']);
 	};
-};
+
+	const isAuthenticated = Boolean(user && localStorage.getItem('token'));
+
+	return { user, isLoading, error, logout, checkAuth, isAuthenticated };
+}
 
 export default useAuth;

@@ -14,3 +14,16 @@ export const login = async (req: Request, res: Response) => {
 		}
 	}
 };
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+	try {
+		// req.user is set by the authenticateToken middleware
+		res.json(req.user);
+	} catch (error) {
+		if (error instanceof Error) {
+			res.status(401).json({ error: error.message });
+		} else {
+			res.status(500).json({ error: 'Unknown error occurred' });
+		}
+	}
+};

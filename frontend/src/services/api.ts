@@ -1,10 +1,6 @@
 const BASE_URL =
 	(import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
 
-interface ApiError {
-	error: string;
-}
-
 interface LoginCredentials {
 	email: string;
 	password: string;
@@ -78,9 +74,14 @@ interface EmailUpdate {
 	password: string;
 }
 
-interface UpdateUsernameData {
-	username: string;
-	password: string;
+interface UpdateEmailResponse {
+	message: string;
+	user: {
+		user_id: string;
+		email: string;
+		username: string;
+	};
+	token: string;
 }
 
 interface UpdateUsernameResponse {
@@ -93,64 +94,53 @@ interface UpdateUsernameResponse {
 	token: string;
 }
 
-interface UpdateEmailResponse {
-	message: string;
-	user: {
-		user_id: string;
-		email: string;
-		username: string;
-	};
-	token: string;
+export interface User {
+	id: string;
+	username: string;
+	email: string;
+	preferences: UserPreferences;
 }
 
-async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-	const token = localStorage.getItem('token');
+export interface UserPreferences {
+	theme: 'light' | 'dark';
+	viewStyle: 'grid' | 'list';
+	emailNotifications: boolean;
+	autoArchiveDays: number;
+}
+
+export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 	const headers = new Headers({
 		'Content-Type': 'application/json',
-		...(token && { Authorization: `Bearer ${token}` }),
-		...options.headers,
+		...Object.fromEntries(Object.entries(options.headers || {})),
 	});
 
+	const token = localStorage.getItem('token');
+	if (token) {
+		headers.set('Authorization', `Bearer ${token}`);
+	}
+
 	try {
-		console.log('Request headers:', Object.fromEntries(headers.entries()));
+		const fullUrl = url.startsWith('/api') ? `${BASE_URL}${url}` : url;
+		const response = await fetch(fullUrl, { ...options, headers });
 
-		const response = await fetch(`${BASE_URL}${endpoint}`, {
-			...options,
-			headers,
-			credentials: 'include',
-		});
-
-		if (response.status === 401 || response.status === 403) {
-			// Token is invalid or expired
+		if (response.status === 401) {
 			localStorage.removeItem('token');
-			window.location.href = '/login';
 			throw new Error('Authentication required');
 		}
 
 		if (!response.ok) {
-			const contentType = response.headers.get('content-type');
-			let error = { error: 'An error occurred' };
-
-			if (contentType && contentType.includes('application/json')) {
-				error = await response
-					.json()
-					.catch(() => ({ error: 'An error occurred' }));
-			}
-
-			throw new Error(error.error || 'An error occurred');
-		}
-
-		const contentType = response.headers.get('content-type');
-		if (!contentType || !contentType.includes('application/json')) {
-			throw new Error('Invalid response format');
+			const error = await response.json();
+			throw new Error(error.error || error.message || 'An error occurred');
 		}
 
 		return response.json();
 	} catch (error) {
-		console.error('API request failed:', error);
-		throw error instanceof Error ? error : new Error('Network request failed');
+		if (error instanceof Error) {
+			throw error;
+		}
+		throw new Error('Network error occurred');
 	}
-}
+};
 
 export const auth = {
 	login: async (credentials: LoginCredentials) => {
@@ -162,6 +152,9 @@ export const auth = {
 			localStorage.setItem('token', response.token);
 		}
 		return response;
+	},
+	getCurrentUser: async () => {
+		return fetchWithAuth('/api/auth/me');
 	},
 };
 

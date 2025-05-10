@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
@@ -131,7 +131,8 @@ const Switch = styled.label`
 `;
 
 const ProfilePage: React.FC = () => {
-	const { user, checkAuth } = useAuth();
+	const { user, checkAuth, logout } = useAuth();
+
 	// Password update state
 	const [currentPassword, setCurrentPassword] = useState('');
 	const [newPassword, setNewPassword] = useState('');
@@ -153,20 +154,37 @@ const ProfilePage: React.FC = () => {
 	const [preferenceSuccess, setPreferenceSuccess] = useState('');
 	const [preferenceError, setPreferenceError] = useState('');
 
+	useEffect(() => {
+		if (!user) {
+			logout();
+			return;
+		}
+	}, [user, logout]);
+
+	const handleAuthError = (error: Error) => {
+		if (error.message === 'Authentication required' || 
+			error.message === 'Session expired. Please login again.' ||
+			error.message === 'Invalid or expired token') {
+			logout();
+			return;
+		}
+	};
+
 	const passwordMutation = useMutation({
 		mutationFn: (data: { currentPassword: string; newPassword: string }) =>
 			userApi.user.updatePassword(data),
-		onSuccess: () => {
+		onSuccess: (response) => {
 			setPasswordSuccess('Password updated successfully');
-			setCurrentPassword('');
-			setNewPassword('');
-			setConfirmPassword('');
 			setPasswordError('');
-			checkAuth(); // Refresh user info
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				checkAuth();
+			}
 		},
 		onError: (error: Error) => {
 			setPasswordError(error.message);
 			setPasswordSuccess('');
+			handleAuthError(error);
 		},
 	});
 
@@ -175,10 +193,7 @@ const ProfilePage: React.FC = () => {
 			userApi.user.updateEmail(data),
 		onSuccess: (response) => {
 			setEmailSuccess('Email updated successfully');
-			setNewEmail('');
-			setEmailPassword('');
 			setEmailError('');
-			// Store new token and refresh auth state
 			if (response.token) {
 				localStorage.setItem('token', response.token);
 				checkAuth();
@@ -187,21 +202,16 @@ const ProfilePage: React.FC = () => {
 		onError: (error: Error) => {
 			setEmailError(error.message);
 			setEmailSuccess('');
+			handleAuthError(error);
 		},
 	});
 
 	const usernameMutation = useMutation({
-		mutationFn: (data: { username: string }) => {
-			if (!data.username) {
-				throw new Error('Username is required');
-			}
-			return userApi.user.updateUsername(data);
-		},
+		mutationFn: (data: { username: string }) =>
+			userApi.user.updateUsername(data),
 		onSuccess: (response) => {
 			setUsernameSuccess('Username updated successfully');
-			setNewUsername('');
 			setUsernameError('');
-			// Store new token and refresh auth state
 			if (response.token) {
 				localStorage.setItem('token', response.token);
 				checkAuth();
@@ -210,6 +220,7 @@ const ProfilePage: React.FC = () => {
 		onError: (error: Error) => {
 			setUsernameError(error.message);
 			setUsernameSuccess('');
+			handleAuthError(error);
 		},
 	});
 
@@ -219,7 +230,6 @@ const ProfilePage: React.FC = () => {
 		onSuccess: (response) => {
 			setPreferenceSuccess('Preferences updated successfully');
 			setPreferenceError('');
-			// Store new token and refresh auth state
 			if (response.token) {
 				localStorage.setItem('token', response.token);
 				checkAuth();
@@ -228,6 +238,7 @@ const ProfilePage: React.FC = () => {
 		onError: (error: Error) => {
 			setPreferenceError(error.message);
 			setPreferenceSuccess('');
+			handleAuthError(error);
 		},
 	});
 
@@ -285,11 +296,32 @@ const ProfilePage: React.FC = () => {
 		});
 	};
 
-	const handlePreferenceUpdate = (
-		key: keyof UserPreferences,
-		value: UserPreferences[keyof UserPreferences]
+	const handlePreferenceUpdate = async (
+		key: keyof NonNullable<typeof user>['preferences'],
+		value: any
 	) => {
-		preferenceMutation.mutate({ [key]: value });
+		if (!user) return;
+		setPreferenceError('');
+		setPreferenceSuccess('');
+
+		try {
+			const response = await preferenceMutation.mutateAsync({
+				[key]: value,
+			});
+
+			// Update the stored token and auth state
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				checkAuth();
+			}
+
+			setPreferenceSuccess('Preferences updated successfully');
+		} catch (error) {
+			if (error instanceof Error) {
+				setPreferenceError(error.message);
+				handleAuthError(error);
+			}
+		}
 	};
 
 	return (
