@@ -8,9 +8,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
 	const { user } = useAuth();
-	
+
 	// Directly compute theme instead of using state to avoid race conditions
-	const currentTheme = user?.preferences?.theme === 'light' ? lightTheme : darkTheme;
+	const currentTheme =
+		user?.preferences?.theme === 'light' ? lightTheme : darkTheme;
 
 	return (
 		<StyledThemeProvider theme={currentTheme}>

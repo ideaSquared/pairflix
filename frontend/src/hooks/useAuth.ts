@@ -14,9 +14,11 @@ export function useAuth() {
 		queryKey: ['auth'],
 		queryFn: authApi.auth.getCurrentUser,
 		retry: (failureCount, error) => {
-			if (error instanceof Error && 
-				(error.message === 'Authentication required' || 
-				error.message === 'Session expired. Please login again.')) {
+			if (
+				error instanceof Error &&
+				(error.message === 'Authentication required' ||
+					error.message === 'Session expired. Please login again.')
+			) {
 				return false;
 			}
 			return failureCount < 3;
