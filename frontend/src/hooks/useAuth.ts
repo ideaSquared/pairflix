@@ -5,6 +5,13 @@ interface User {
 	user_id: string;
 	email: string;
 	username: string;
+	preferences: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
 }
 
 export const useAuth = () => {
@@ -31,6 +38,7 @@ export const useAuth = () => {
 						user_id: payload.user_id,
 						email: payload.email,
 						username: payload.username,
+						preferences: payload.preferences,
 					});
 				} else {
 					localStorage.removeItem('token');
@@ -59,6 +67,7 @@ export const useAuth = () => {
 			user_id: payload.user_id,
 			email: payload.email,
 			username: payload.username,
+			preferences: payload.preferences,
 		});
 		navigate('/watchlist');
 	};

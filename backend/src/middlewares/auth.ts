@@ -8,6 +8,13 @@ declare global {
 				user_id: string;
 				email: string;
 				username: string;
+				preferences: {
+					theme: 'light' | 'dark';
+					viewStyle: 'list' | 'grid';
+					emailNotifications: boolean;
+					autoArchiveDays: number;
+					favoriteGenres: string[];
+				};
 			};
 		}
 	}
@@ -31,6 +38,13 @@ export const authenticateToken = (
 			user_id: string;
 			email: string;
 			username: string;
+			preferences: {
+				theme: 'light' | 'dark';
+				viewStyle: 'list' | 'grid';
+				emailNotifications: boolean;
+				autoArchiveDays: number;
+				favoriteGenres: string[];
+			};
 		};
 		req.user = user;
 		next();

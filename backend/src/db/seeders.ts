@@ -19,21 +19,32 @@ export async function seedDatabase() {
 
 		// Create test users with usernames
 		const password = await bcrypt.hash('testpass123', 10);
+		const defaultPreferences = {
+			theme: 'dark' as const,
+			viewStyle: 'grid' as const,
+			emailNotifications: true,
+			autoArchiveDays: 30,
+			favoriteGenres: [] as string[]
+		};
+
 		const [user1, user2, user3] = await Promise.all([
 			User.create({
 				email: 'user1@example.com',
 				username: 'user1',
 				password_hash: password,
+				preferences: defaultPreferences
 			}),
 			User.create({
 				email: 'user2@example.com',
 				username: 'user2',
 				password_hash: password,
+				preferences: defaultPreferences
 			}),
 			User.create({
 				email: 'user3@example.com',
 				username: 'user3',
 				password_hash: password,
+				preferences: defaultPreferences
 			}),
 		]);
 

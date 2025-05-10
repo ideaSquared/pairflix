@@ -6,12 +6,16 @@ import { Card, CardContent, CardGrid } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
 import { ErrorText, H3, Typography } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
+import { useAuth } from '../../hooks/useAuth';
 import { search, SearchResult, watchlist } from '../../services/api';
 import { theme } from '../../styles/theme';
 
 const PosterImage = styled.img`
 	width: 100%;
-	height: 375px;
+	max-width: ${({ $isListView }: { $isListView?: boolean }) =>
+		$isListView ? '150px' : '100%'};
+	height: ${({ $isListView }: { $isListView?: boolean }) =>
+		$isListView ? '225px' : '375px'};
 	object-fit: cover;
 	border-radius: ${theme.borderRadius.sm};
 `;
@@ -25,7 +29,40 @@ const Overview = styled(Typography).attrs({ variant: 'body2' })`
 	margin: ${theme.spacing.sm} 0;
 `;
 
+const ListViewItem = styled(Card)`
+	display: flex;
+	margin-bottom: ${theme.spacing.md};
+
+	${CardContent} {
+		flex: 1;
+		display: flex;
+		gap: ${theme.spacing.lg};
+
+		.content {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.actions {
+			display: flex;
+			align-items: center;
+			padding-left: ${theme.spacing.md};
+		}
+	}
+`;
+
+const GridContainer = styled(CardGrid)`
+	margin-top: ${theme.spacing.lg};
+`;
+
+const ListContainer = styled.div`
+	margin-top: ${theme.spacing.lg};
+`;
+
 const SearchMedia: React.FC = () => {
+	const { user } = useAuth();
+	const viewStyle = user?.preferences?.viewStyle || 'grid';
 	const [searchQuery, setSearchQuery] = useState('');
 	const queryClient = useQueryClient();
 
@@ -63,6 +100,43 @@ const SearchMedia: React.FC = () => {
 		addMutation.mutate(result);
 	};
 
+	const renderSearchResult = (result: SearchResult) => {
+		const commonContent = (
+			<>
+				{result.poster_path && (
+					<PosterImage
+						src={`https://image.tmdb.org/t/p/w500${result.poster_path}`}
+						alt={result.title || result.name}
+						$isListView={viewStyle === 'list'}
+					/>
+				)}
+				<div className='content'>
+					<H3 gutterBottom>{result.title || result.name}</H3>
+					<Badge variant={result.media_type}>{result.media_type}</Badge>
+					<Overview>{result.overview}</Overview>
+				</div>
+				<div className='actions'>
+					<Button
+						onClick={() => handleAdd(result)}
+						disabled={addMutation.isLoading}
+					>
+						Add to Watchlist
+					</Button>
+				</div>
+			</>
+		);
+
+		return viewStyle === 'grid' ? (
+			<Card key={result.id}>
+				<CardContent>{commonContent}</CardContent>
+			</Card>
+		) : (
+			<ListViewItem key={result.id}>
+				<CardContent>{commonContent}</CardContent>
+			</ListViewItem>
+		);
+	};
+
 	return (
 		<>
 			<InputGroup fullWidth>
@@ -85,37 +159,23 @@ const SearchMedia: React.FC = () => {
 				<Typography>Loading...</Typography>
 			)}
 
-			<CardGrid>
-				{Array.isArray(searchResults) &&
-					searchResults.map((result: SearchResult) => (
-						<Card key={result.id}>
-							<CardContent>
-								{result.poster_path && (
-									<PosterImage
-										src={`https://image.tmdb.org/t/p/w500${result.poster_path}`}
-										alt={result.title || result.name}
-									/>
-								)}
-								<H3 gutterBottom>{result.title || result.name}</H3>
-								<Badge variant={result.media_type}>{result.media_type}</Badge>
-								<Overview>{result.overview}</Overview>
-								<Button
-									onClick={() => handleAdd(result)}
-									disabled={addMutation.isLoading}
-									fullWidth
-								>
-									Add to Watchlist
-								</Button>
-							</CardContent>
-						</Card>
-					))}
+			{viewStyle === 'grid' ? (
+				<GridContainer>
+					{Array.isArray(searchResults) &&
+						searchResults.map(renderSearchResult)}
+				</GridContainer>
+			) : (
+				<ListContainer>
+					{Array.isArray(searchResults) &&
+						searchResults.map(renderSearchResult)}
+				</ListContainer>
+			)}
 
-				{searchQuery.length > 2 &&
-					!isLoading &&
-					(!searchResults || searchResults.length === 0) && (
-						<Typography>No results found</Typography>
-					)}
-			</CardGrid>
+			{searchQuery.length > 2 &&
+				!isLoading &&
+				(!searchResults || searchResults.length === 0) && (
+					<Typography>No results found</Typography>
+				)}
 		</>
 	);
 };

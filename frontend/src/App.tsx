@@ -3,35 +3,33 @@ import { BrowserRouter } from 'react-router-dom';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Container } from './components/common/Layout';
 import Routes from './components/layout/Routes';
-import { GlobalStyles } from './styles/GlobalStyles';
 import { ThemeProvider } from './styles/ThemeProvider';
 
 const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
-			cacheTime: 1000 * 60 * 30, // Cache is kept for 30 minutes
-			refetchOnWindowFocus: false,
-			retry: false,
-		},
-	},
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+            cacheTime: 1000 * 60 * 30, // Cache is kept for 30 minutes
+            refetchOnWindowFocus: false,
+            retry: false,
+        },
+    },
 });
 
 function App() {
-	return (
-		<ErrorBoundary>
-			<QueryClientProvider client={queryClient}>
-				<ThemeProvider>
-					<GlobalStyles />
-					<BrowserRouter>
-						<Container maxWidth='none' padding='xs'>
-							<Routes />
-						</Container>
-					</BrowserRouter>
-				</ThemeProvider>
-			</QueryClientProvider>
-		</ErrorBoundary>
-	);
+    return (
+        <BrowserRouter>
+            <ErrorBoundary>
+                <QueryClientProvider client={queryClient}>
+                    <ThemeProvider>
+                        <Container maxWidth='none' padding='xs'>
+                            <Routes />
+                        </Container>
+                    </ThemeProvider>
+                </QueryClientProvider>
+            </ErrorBoundary>
+        </BrowserRouter>
+    );
 }
 
 export default App;

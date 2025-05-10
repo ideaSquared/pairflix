@@ -29,7 +29,7 @@ const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 			background: ${theme.colors.secondary};
 			color: ${theme.colors.text.primary};
 			&:hover:not(:disabled) {
-				background: ${({ theme }) => theme.colors.border};
+				background: ${theme.colors.border};
 			}
 		`,
 		success: css`

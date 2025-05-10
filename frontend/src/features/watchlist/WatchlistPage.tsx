@@ -9,6 +9,7 @@ import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H3, Typography } from '../../components/common/Typography';
 import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
+import { useAuth } from '../../hooks/useAuth';
 import { watchlist, WatchlistEntry } from '../../services/api';
 import { theme } from '../../styles/theme';
 import SearchMedia from './SearchMedia';
@@ -52,10 +53,42 @@ const RelativeCard = styled(CardContent)`
 	position: relative;
 `;
 
+const ListViewItem = styled(WatchlistCard)`
+	display: flex;
+	margin-bottom: ${theme.spacing.md};
+
+	${RelativeCard} {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: ${theme.spacing.lg};
+
+		h3 {
+			flex: 1;
+			margin: 0;
+		}
+
+		${SelectGroup} {
+			width: 200px;
+			margin: 0;
+		}
+	}
+`;
+
+const GridContainer = styled(CardGrid)`
+	margin-top: ${theme.spacing.lg};
+`;
+
+const ListContainer = styled.div`
+	margin-top: ${theme.spacing.lg};
+`;
+
 const WatchlistPage: React.FC = () => {
+	const { user } = useAuth();
 	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [activeTab, setActiveTab] = useState<'list' | 'search'>('list');
+	const viewStyle = user?.preferences?.viewStyle || 'grid';
 
 	const {
 		data: entries = [],
@@ -138,6 +171,58 @@ const WatchlistPage: React.FC = () => {
 		}
 	);
 
+	const renderWatchlistItem = (entry: WatchlistEntry) => {
+		const commonContent = (
+			<>
+				<H3 gutterBottom>
+					<Badge variant={entry.media_type}>{entry.media_type}</Badge>{' '}
+					{entry.title}
+				</H3>
+
+				{entry.tmdb_status && (
+					<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
+				)}
+
+				<SelectGroup fullWidth>
+					<Select
+						value={entry.status}
+						onChange={(e) =>
+							handleStatusChange(
+								entry.entry_id,
+								e.target.value as WatchlistEntry['status']
+							)
+						}
+						fullWidth
+					>
+						<option value='to_watch'>To Watch</option>
+						<option value='to_watch_together'>To Watch Together</option>
+						<option value='would_like_to_watch_together'>
+							Would Like To Watch Together
+						</option>
+						<option value='watching'>Watching</option>
+						<option value='finished'>Finished</option>
+					</Select>
+				</SelectGroup>
+
+				{entry.notes && (
+					<Typography variant='body2' style={{ marginTop: theme.spacing.sm }}>
+						Notes: {entry.notes}
+					</Typography>
+				)}
+			</>
+		);
+
+		return viewStyle === 'grid' ? (
+			<WatchlistCard key={entry.entry_id} status={entry.status}>
+				<RelativeCard>{commonContent}</RelativeCard>
+			</WatchlistCard>
+		) : (
+			<ListViewItem key={entry.entry_id} status={entry.status}>
+				<RelativeCard>{commonContent}</RelativeCard>
+			</ListViewItem>
+		);
+	};
+
 	return (
 		<Layout>
 			<Container>
@@ -171,64 +256,24 @@ const WatchlistPage: React.FC = () => {
 							/>
 						</InputGroup>
 
-						<CardGrid>
-							{filteredEntries.map((entry: WatchlistEntry) => (
-								<WatchlistCard key={entry.entry_id} status={entry.status}>
-									<RelativeCard>
-										<H3 gutterBottom>
-											<Badge variant={entry.media_type}>
-												{entry.media_type}
-											</Badge>{' '}
-											{entry.title}
-										</H3>
+						{viewStyle === 'grid' ? (
+							<GridContainer>
+								{filteredEntries.map(renderWatchlistItem)}
+							</GridContainer>
+						) : (
+							<ListContainer>
+								{filteredEntries.map(renderWatchlistItem)}
+							</ListContainer>
+						)}
 
-										{entry.tmdb_status && (
-											<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
-										)}
-
-										<SelectGroup fullWidth>
-											<Select
-												value={entry.status}
-												onChange={(e) =>
-													handleStatusChange(
-														entry.entry_id,
-														e.target.value as WatchlistEntry['status']
-													)
-												}
-												fullWidth
-											>
-												<option value='to_watch'>To Watch</option>
-												<option value='to_watch_together'>
-													To Watch Together
-												</option>
-												<option value='would_like_to_watch_together'>
-													Would Like To Watch Together
-												</option>
-												<option value='watching'>Watching</option>
-												<option value='finished'>Finished</option>
-											</Select>
-										</SelectGroup>
-
-										{entry.notes && (
-											<Typography
-												variant='body2'
-												style={{ marginTop: theme.spacing.sm }}
-											>
-												Notes: {entry.notes}
-											</Typography>
-										)}
-									</RelativeCard>
-								</WatchlistCard>
-							))}
-							{filteredEntries.length === 0 && searchQuery && (
-								<Typography>No matches found for "{searchQuery}"</Typography>
-							)}
-							{filteredEntries.length === 0 && !searchQuery && (
-								<Typography>
-									Your watchlist is empty. Add some titles to get started!
-								</Typography>
-							)}
-						</CardGrid>
+						{filteredEntries.length === 0 && searchQuery && (
+							<Typography>No matches found for "{searchQuery}"</Typography>
+						)}
+						{filteredEntries.length === 0 && !searchQuery && (
+							<Typography>
+								Your watchlist is empty. Add some titles to get started!
+							</Typography>
+						)}
 					</>
 				) : (
 					<SearchMedia />

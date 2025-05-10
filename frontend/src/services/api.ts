@@ -189,6 +189,18 @@ export const user = {
 	findByEmail: async (email: string) => {
 		return fetchWithAuth(`/api/user/search?email=${encodeURIComponent(email)}`);
 	},
+	updatePreferences: async (preferences: {
+		theme?: 'light' | 'dark';
+		viewStyle?: 'list' | 'grid';
+		emailNotifications?: boolean;
+		autoArchiveDays?: number;
+		favoriteGenres?: string[];
+	}) => {
+		return fetchWithAuth('/api/user/preferences', {
+			method: 'PUT',
+			body: JSON.stringify({ preferences }),
+		});
+	},
 };
 
 export const search = {
@@ -205,7 +217,11 @@ export const watchlist = {
 		return fetchWithAuth('/api/watchlist');
 	},
 
-	add: async (entry: Omit<WatchlistEntry, 'entry_id'>) => {
+	add: async (entry: {
+		tmdb_id: number;
+		media_type: 'movie' | 'tv';
+		status: WatchlistEntry['status'];
+	}) => {
 		return fetchWithAuth('/api/watchlist', {
 			method: 'POST',
 			body: JSON.stringify(entry),

@@ -1,61 +1,38 @@
 import { createGlobalStyle } from 'styled-components';
-import { theme } from './theme';
+import { Theme } from './theme';
 
-export const GlobalStyles = createGlobalStyle`
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
+export const GlobalStyles = createGlobalStyle<{ theme: Theme }>`
   body {
-    font-family: ${theme.typography.fontFamily};
-    background-color: ${theme.colors.background.primary};
-    color: ${theme.colors.text.primary};
-    line-height: 1.5;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: ${({ theme }) => theme.colors.background.primary};
+    color: ${({ theme }) => theme.colors.text.primary};
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  input, select, textarea {
-    font-family: inherit;
-    font-size: inherit;
-    color: ${theme.colors.text.primary};
-    background: ${theme.colors.background.input};
-    border: 1px solid ${theme.colors.border};
-    border-radius: ${theme.borderRadius.sm};
-    padding: ${theme.spacing.sm};
-    width: 100%;
-    &:focus {
-      outline: none;
-      border-color: ${theme.colors.primary};
-    }
+  * {
+    box-sizing: border-box;
   }
 
-  button {
+  input, select, textarea, button {
     font-family: inherit;
-    font-size: inherit;
-    cursor: pointer;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: ${({ theme }) => theme.colors.text.primary};
+    margin-top: 0;
   }
 
   a {
-    color: ${theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primary};
     text-decoration: none;
+    
     &:hover {
-      text-decoration: underline;
+      color: ${({ theme }) => theme.colors.primaryHover};
     }
   }
-
-  /* Accessibility */
-  :focus-visible {
-    outline: 2px solid ${theme.colors.primary};
-    outline-offset: 2px;
-  }
-
-  /* Remove default focus outline for mouse users */
-  :focus:not(:focus-visible) {
-    outline: none;
-  }
-
-  /* Improve text rendering */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 `;

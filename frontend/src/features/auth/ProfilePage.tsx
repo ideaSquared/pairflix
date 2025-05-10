@@ -1,85 +1,132 @@
 import { useMutation } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { Button } from '../../components/common/Button';
+import { Card } from '../../components/common/Card';
+import { Input } from '../../components/common/Input';
+import { Select } from '../../components/common/Select';
+import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import * as userApi from '../../services/api';
+import { theme } from '../../styles/theme';
+
+type UserPreferences = {
+	theme: 'light' | 'dark';
+	viewStyle: 'list' | 'grid';
+	emailNotifications: boolean;
+	autoArchiveDays: number;
+	favoriteGenres: string[];
+};
 
 const ProfileContainer = styled.div`
 	max-width: 600px;
 	margin: 0 auto;
+	padding: ${theme.spacing.md};
 `;
 
-const ProfileCard = styled.div`
-	background: #1a1a1a;
-	padding: 2rem;
-	border-radius: 8px;
-	margin-bottom: 2rem;
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	border-left: 4px solid #646cff;
+const ProfileCard = styled(Card)`
+	margin-bottom: ${theme.spacing.lg};
 `;
 
 const ProfileInfo = styled.div`
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: 1rem;
+	gap: ${theme.spacing.md};
 	align-items: center;
 `;
 
-const Label = styled.span`
-	color: #666;
-	font-size: 0.9rem;
+const Label = styled(Typography)`
+	color: ${theme.colors.text.secondary};
+	font-size: ${theme.typography.fontSize.sm};
 `;
 
-const Value = styled.span`
-	color: white;
-	font-size: 1rem;
+const Value = styled(Typography)`
+	color: ${theme.colors.text.primary};
+	font-size: ${theme.typography.fontSize.md};
 `;
 
 const Form = styled.form`
-	background: #1a1a1a;
-	padding: 2rem;
-	border-radius: 8px;
-	margin-bottom: 2rem;
+	margin-bottom: ${theme.spacing.lg};
 `;
 
-const Input = styled.input`
-	width: 100%;
-	padding: 0.5rem;
-	margin-bottom: 1rem;
-	background: #2a2a2a;
-	border: 1px solid #3a3a3a;
-	border-radius: 4px;
-	color: white;
-`;
+const PreferencesCard = styled(ProfileCard)`
+	.preference-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: ${theme.spacing.sm} 0;
+		border-bottom: 1px solid ${theme.colors.border};
 
-const Button = styled.button`
-	width: 100%;
-	padding: 0.5rem;
-	background: #646cff;
-	color: white;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-	&:hover {
-		background: #747bff;
-	}
-	&:disabled {
-		background: #4a4a4a;
-		cursor: not-allowed;
+		&:last-child {
+			border-bottom: none;
+		}
+
+		${Select} {
+			width: 150px;
+		}
 	}
 `;
 
-const ErrorMessage = styled.div`
-	color: #ff4444;
-	margin-bottom: 1rem;
+const ErrorMessage = styled(Typography)`
+	color: ${theme.colors.text.error};
+	margin-bottom: ${theme.spacing.sm};
 `;
 
-const SuccessMessage = styled.div`
-	color: #00ff00;
-	margin-bottom: 1rem;
+const SuccessMessage = styled(Typography)`
+	color: ${theme.colors.text.success};
+	margin-bottom: ${theme.spacing.sm};
+`;
+
+const Switch = styled.label`
+	position: relative;
+	display: inline-block;
+	width: 52px;
+	height: 26px;
+
+	input {
+		opacity: 0;
+		width: 0;
+		height: 0;
+	}
+
+	span {
+		position: absolute;
+		cursor: pointer;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: ${theme.colors.background.secondary};
+		transition: 0.3s;
+		border-radius: 26px;
+		border: 1px solid ${theme.colors.border};
+
+		&:before {
+			position: absolute;
+			content: '';
+			height: 18px;
+			width: 18px;
+			left: 3px;
+			bottom: 3px;
+			background-color: ${theme.colors.text.secondary};
+			transition: 0.3s;
+			border-radius: 50%;
+		}
+	}
+
+	input:checked + span {
+		background-color: ${theme.colors.primary};
+	}
+
+	input:checked + span:before {
+		background-color: ${theme.colors.text.primary};
+		transform: translateX(26px);
+	}
+
+	&:hover span:before {
+		box-shadow: 0 0 2px ${theme.colors.primary};
+	}
 `;
 
 const ProfilePage: React.FC = () => {
@@ -101,6 +148,9 @@ const ProfilePage: React.FC = () => {
 	const [newUsername, setNewUsername] = useState('');
 	const [usernameError, setUsernameError] = useState('');
 	const [usernameSuccess, setUsernameSuccess] = useState('');
+
+	const [preferenceSuccess, setPreferenceSuccess] = useState('');
+	const [preferenceError, setPreferenceError] = useState('');
 
 	const passwordMutation = useMutation({
 		mutationFn: (data: { currentPassword: string; newPassword: string }) =>
@@ -162,6 +212,24 @@ const ProfilePage: React.FC = () => {
 		},
 	});
 
+	const preferenceMutation = useMutation({
+		mutationFn: (data: Partial<UserPreferences>) =>
+			userApi.user.updatePreferences(data),
+		onSuccess: (response) => {
+			setPreferenceSuccess('Preferences updated successfully');
+			setPreferenceError('');
+			// Store new token and refresh auth state
+			if (response.token) {
+				localStorage.setItem('token', response.token);
+				checkAuth();
+			}
+		},
+		onError: (error: Error) => {
+			setPreferenceError(error.message);
+			setPreferenceSuccess('');
+		},
+	});
+
 	const handlePasswordUpdate = (e: React.FormEvent) => {
 		e.preventDefault();
 		setPasswordError('');
@@ -216,25 +284,30 @@ const ProfilePage: React.FC = () => {
 		});
 	};
 
+	const handlePreferenceUpdate = (
+		key: keyof UserPreferences,
+		value: UserPreferences[keyof UserPreferences]
+	) => {
+		preferenceMutation.mutate({ [key]: value });
+	};
+
 	return (
 		<Layout>
 			<ProfileContainer>
-				<h1>Profile Settings</h1>
+				<H1 gutterBottom>Profile Settings</H1>
 
 				<ProfileCard>
-					<h2>Current Profile</h2>
+					<H2 gutterBottom>Current Profile</H2>
 					<ProfileInfo>
 						<Label>Username:</Label>
 						<Value>{user?.username}</Value>
 						<Label>Email:</Label>
 						<Value>{user?.email}</Value>
-						<Label>User ID:</Label>
-						<Value>{user?.user_id}</Value>
 					</ProfileInfo>
 				</ProfileCard>
 
 				<Form onSubmit={handleUsernameUpdate}>
-					<h2>Change Username</h2>
+					<H2 gutterBottom>Change Username</H2>
 					{usernameError && <ErrorMessage>{usernameError}</ErrorMessage>}
 					{usernameSuccess && (
 						<SuccessMessage>{usernameSuccess}</SuccessMessage>
@@ -245,14 +318,15 @@ const ProfilePage: React.FC = () => {
 						value={newUsername}
 						onChange={(e) => setNewUsername(e.target.value)}
 						required
+						fullWidth
 					/>
-					<Button type='submit' disabled={usernameMutation.isLoading}>
+					<Button type='submit' disabled={usernameMutation.isLoading} fullWidth>
 						Update Username
 					</Button>
 				</Form>
 
 				<Form onSubmit={handleEmailUpdate}>
-					<h2>Change Email</h2>
+					<H2 gutterBottom>Change Email</H2>
 					{emailError && <ErrorMessage>{emailError}</ErrorMessage>}
 					{emailSuccess && <SuccessMessage>{emailSuccess}</SuccessMessage>}
 					<Input
@@ -261,6 +335,7 @@ const ProfilePage: React.FC = () => {
 						value={newEmail}
 						onChange={(e) => setNewEmail(e.target.value)}
 						required
+						fullWidth
 					/>
 					<Input
 						type='password'
@@ -268,14 +343,15 @@ const ProfilePage: React.FC = () => {
 						value={emailPassword}
 						onChange={(e) => setEmailPassword(e.target.value)}
 						required
+						fullWidth
 					/>
-					<Button type='submit' disabled={emailMutation.isLoading}>
+					<Button type='submit' disabled={emailMutation.isLoading} fullWidth>
 						Update Email
 					</Button>
 				</Form>
 
 				<Form onSubmit={handlePasswordUpdate}>
-					<h2>Change Password</h2>
+					<H2 gutterBottom>Change Password</H2>
 					{passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
 					{passwordSuccess && (
 						<SuccessMessage>{passwordSuccess}</SuccessMessage>
@@ -286,6 +362,7 @@ const ProfilePage: React.FC = () => {
 						value={currentPassword}
 						onChange={(e) => setCurrentPassword(e.target.value)}
 						required
+						fullWidth
 					/>
 					<Input
 						type='password'
@@ -293,6 +370,7 @@ const ProfilePage: React.FC = () => {
 						value={newPassword}
 						onChange={(e) => setNewPassword(e.target.value)}
 						required
+						fullWidth
 					/>
 					<Input
 						type='password'
@@ -300,11 +378,86 @@ const ProfilePage: React.FC = () => {
 						value={confirmPassword}
 						onChange={(e) => setConfirmPassword(e.target.value)}
 						required
+						fullWidth
 					/>
-					<Button type='submit' disabled={passwordMutation.isLoading}>
+					<Button type='submit' disabled={passwordMutation.isLoading} fullWidth>
 						Update Password
 					</Button>
 				</Form>
+
+				<PreferencesCard>
+					<H2 gutterBottom>Preferences</H2>
+					{preferenceError && <ErrorMessage>{preferenceError}</ErrorMessage>}
+					{preferenceSuccess && (
+						<SuccessMessage>{preferenceSuccess}</SuccessMessage>
+					)}
+
+					<div className='preference-row'>
+						<Label>Theme</Label>
+						<Select
+							value={user?.preferences?.theme || 'dark'}
+							onChange={(e) =>
+								handlePreferenceUpdate(
+									'theme',
+									e.target.value as 'light' | 'dark'
+								)
+							}
+						>
+							<option value='dark'>Dark Theme</option>
+							<option value='light'>Light Theme</option>
+						</Select>
+					</div>
+
+					<div className='preference-row'>
+						<Label>View Style</Label>
+						<Select
+							value={user?.preferences?.viewStyle || 'grid'}
+							onChange={(e) =>
+								handlePreferenceUpdate(
+									'viewStyle',
+									e.target.value as 'list' | 'grid'
+								)
+							}
+						>
+							<option value='grid'>Grid View</option>
+							<option value='list'>List View</option>
+						</Select>
+					</div>
+
+					<div className='preference-row'>
+						<Label>Email Notifications</Label>
+						<Switch>
+							<input
+								type='checkbox'
+								checked={user?.preferences?.emailNotifications ?? true}
+								onChange={(e) =>
+									handlePreferenceUpdate('emailNotifications', e.target.checked)
+								}
+							/>
+							<span />
+						</Switch>
+					</div>
+
+					<div className='preference-row'>
+						<Label>Auto-archive after</Label>
+						<Select
+							value={user?.preferences?.autoArchiveDays || 30}
+							onChange={(e) =>
+								handlePreferenceUpdate(
+									'autoArchiveDays',
+									parseInt(e.target.value)
+								)
+							}
+						>
+							<option value='7'>7 days</option>
+							<option value='14'>14 days</option>
+							<option value='30'>30 days</option>
+							<option value='60'>60 days</option>
+							<option value='90'>90 days</option>
+							<option value='0'>Never</option>
+						</Select>
+					</div>
+				</PreferencesCard>
 			</ProfileContainer>
 		</Layout>
 	);

@@ -12,7 +12,12 @@ export const authenticateUser = async (email: string, password: string) => {
 		throw new Error('Invalid credentials');
 	}
 	const token = jwt.sign(
-		{ user_id: user.user_id, email: user.email, username: user.username },
+		{
+			user_id: user.user_id,
+			email: user.email,
+			username: user.username,
+			preferences: user.preferences,
+		},
 		process.env.JWT_SECRET!,
 		{ expiresIn: '7d' }
 	);

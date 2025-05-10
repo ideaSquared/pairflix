@@ -5,12 +5,26 @@ interface UserAttributes extends UserInterface {
 	password_hash: string;
 	updated_at: Date;
 	username: string;
+	preferences: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
 }
 
 interface UserCreationAttributes {
 	email: string;
 	password_hash: string;
 	username: string;
+	preferences: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
 }
 
 class User extends Model<UserAttributes, UserCreationAttributes> {
@@ -18,6 +32,13 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare email: string;
 	declare username: string;
 	declare password_hash: string;
+	declare preferences: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
 	declare created_at: Date;
 	declare updated_at: Date;
 
@@ -29,6 +50,14 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					defaultValue: DataTypes.UUIDV4,
 					primaryKey: true,
 				},
+				email: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					unique: true,
+					validate: {
+						isEmail: true,
+					},
+				},
 				username: {
 					type: DataTypes.STRING,
 					allowNull: false,
@@ -36,36 +65,32 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					validate: {
 						len: [3, 30],
 						is: /^[a-zA-Z0-9_-]+$/,
-						notNull: {
-							msg: 'Username is required',
-						},
 					},
-				},
-				email: {
-					type: DataTypes.STRING,
-					allowNull: false,
-					unique: true,
 				},
 				password_hash: {
 					type: DataTypes.STRING,
 					allowNull: false,
 				},
-				created_at: {
-					type: DataTypes.DATE,
-					defaultValue: DataTypes.NOW,
+				preferences: {
+					type: DataTypes.JSONB,
+					allowNull: false,
+					defaultValue: {
+						theme: 'dark',
+						viewStyle: 'grid',
+						emailNotifications: true,
+						autoArchiveDays: 30,
+						favoriteGenres: [],
+					},
 				},
-				updated_at: {
-					type: DataTypes.DATE,
-					defaultValue: DataTypes.NOW,
-				},
+				created_at: DataTypes.DATE,
+				updated_at: DataTypes.DATE,
 			},
 			{
 				sequelize,
 				modelName: 'User',
 				tableName: 'users',
 				timestamps: true,
-				createdAt: 'created_at',
-				updatedAt: 'updated_at',
+				underscored: true,
 			}
 		);
 	}

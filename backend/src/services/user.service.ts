@@ -108,3 +108,66 @@ export const updateUsernameService = async (
 
 	return { user, token };
 };
+
+export const updatePreferencesService = async (
+	preferences: {
+		theme?: 'light' | 'dark';
+		viewStyle?: 'list' | 'grid';
+		emailNotifications?: boolean;
+		autoArchiveDays?: number;
+		favoriteGenres?: string[];
+	},
+	currentUser: any
+) => {
+	const user = await User.findByPk(currentUser.user_id);
+	if (!user) {
+		throw new Error('User not found');
+	}
+
+	// Merge existing preferences with new ones
+	const updatedPreferences = {
+		...user.preferences,
+		...preferences,
+	};
+
+	// Validate theme
+	if (
+		updatedPreferences.theme &&
+		!['light', 'dark'].includes(updatedPreferences.theme)
+	) {
+		throw new Error('Invalid theme value');
+	}
+
+	// Validate viewStyle
+	if (
+		updatedPreferences.viewStyle &&
+		!['list', 'grid'].includes(updatedPreferences.viewStyle)
+	) {
+		throw new Error('Invalid view style');
+	}
+
+	// Validate autoArchiveDays
+	if (
+		updatedPreferences.autoArchiveDays !== undefined &&
+		(updatedPreferences.autoArchiveDays < 0 ||
+			updatedPreferences.autoArchiveDays > 365)
+	) {
+		throw new Error('Auto archive days must be between 0 and 365');
+	}
+
+	await user.update({ preferences: updatedPreferences });
+
+	// Generate new token with updated preferences
+	const token = jwt.sign(
+		{ 
+			user_id: user.user_id, 
+			email: user.email, 
+			username: user.username,
+			preferences: updatedPreferences 
+		},
+		process.env.JWT_SECRET!,
+		{ expiresIn: '7d' }
+	);
+
+	return { user, token };
+};
