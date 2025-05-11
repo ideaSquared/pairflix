@@ -36,24 +36,35 @@ describe('User Service', () => {
 
 	describe('updateEmailService', () => {
 		it('should update email successfully', async () => {
-			const mockUser = { save: jest.fn(), password_hash: 'hashedPassword' };
+			// Fix: add email property to mockUser
+			const mockUser = { 
+				save: jest.fn(), 
+				password_hash: 'hashedPassword',
+				email: ''  // Add email property that will be updated
+			};
 			(User.findOne as jest.Mock).mockResolvedValueOnce(null);
+			(User.findByPk as jest.Mock).mockResolvedValue(mockUser);
 			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
+			
+			// Create mock JWT
+			jest.spyOn(require('jsonwebtoken'), 'sign').mockReturnValue('new-token');
 
-			const updatedUser = await updateEmailService(
-				mockUser,
+			const result = await updateEmailService(
+				{ user_id: 'test-user-id' },
 				'new@example.com',
 				'password123'
 			);
 			expect(mockUser.save).toHaveBeenCalled();
-			expect(updatedUser.email).toBe('new@example.com');
+			expect(mockUser.email).toBe('new@example.com');
+			expect(result.user).toBe(mockUser);
+			expect(result.token).toBe('new-token');
 		});
 
 		it('should throw an error if email is already in use', async () => {
 			(User.findOne as jest.Mock).mockResolvedValueOnce({ user_id: 'user-2' });
 
 			await expect(
-				updateEmailService({}, 'new@example.com', 'password123')
+				updateEmailService({ user_id: 'test-user-id' }, 'new@example.com', 'password123')
 			).rejects.toThrow('Email is already in use');
 		});
 	});
@@ -61,66 +72,70 @@ describe('User Service', () => {
 	describe('updatePasswordService', () => {
 		it('should update password successfully', async () => {
 			const mockUser = { save: jest.fn(), password_hash: 'hashedPassword' };
+			(User.findByPk as jest.Mock).mockResolvedValue(mockUser);
 			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
 			(bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
 
-			await updatePasswordService(mockUser, 'oldPassword', 'newPassword');
+			await updatePasswordService(
+				{ user_id: 'test-user-id' }, 
+				'oldPassword', 
+				'newPassword'
+			);
 			expect(mockUser.password_hash).toBe('newHashedPassword');
 			expect(mockUser.save).toHaveBeenCalled();
 		});
 
 		it('should throw an error if current password is invalid', async () => {
+			const mockUser = { password_hash: 'hashedPassword' };
+			(User.findByPk as jest.Mock).mockResolvedValue(mockUser);
 			(bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
 			await expect(
-				updatePasswordService({}, 'oldPassword', 'newPassword')
+				updatePasswordService({ user_id: 'test-user-id' }, 'oldPassword', 'newPassword')
 			).rejects.toThrow('Invalid current password');
 		});
 	});
 
 	describe('updateUsernameService', () => {
 		it('should update username successfully', async () => {
-			const mockUser = { save: jest.fn(), password_hash: 'hashedPassword' };
+			// Fix: add username property to mockUser
+			const mockUser = { 
+				save: jest.fn(), 
+				username: 'oldusername' 
+			};
 			(User.findOne as jest.Mock).mockResolvedValueOnce(null);
-			(bcrypt.compare as jest.Mock).mockResolvedValue(true);
+			(User.findByPk as jest.Mock).mockResolvedValue(mockUser);
+			
+			// Create mock JWT
+			jest.spyOn(require('jsonwebtoken'), 'sign').mockReturnValue('new-token');
 
-			const updatedUser = await updateUsernameService(
-				mockUser,
-				'newusername',
-				'password123'
+			const result = await updateUsernameService(
+				{ user_id: 'test-user-id' },
+				'newusername'
 			);
 			expect(mockUser.save).toHaveBeenCalled();
-			expect(updatedUser.username).toBe('newusername');
+			expect(mockUser.username).toBe('newusername');
+			expect(result.user).toBe(mockUser);
+			expect(result.token).toBe('new-token');
 		});
 
 		it('should throw an error if username is already in use', async () => {
 			(User.findOne as jest.Mock).mockResolvedValueOnce({ user_id: 'user-2' });
 
 			await expect(
-				updateUsernameService({}, 'existingname', 'password123')
+				updateUsernameService({ user_id: 'test-user-id' }, 'existingname')
 			).rejects.toThrow('Username is already in use');
 		});
 
-		it('should throw an error if password is invalid', async () => {
-			(User.findOne as jest.Mock).mockResolvedValue(null);
-			(bcrypt.compare as jest.Mock).mockResolvedValue(false);
-
-			await expect(
-				updateUsernameService({}, 'newusername', 'wrongpassword')
-			).rejects.toThrow('Invalid password');
-		});
-
 		it('should throw an error if username format is invalid', async () => {
-			(User.findOne as jest.Mock).mockResolvedValue(null);
-
 			await expect(
-				updateUsernameService({}, 'inv@lid!', 'password123')
+				updateUsernameService({ user_id: 'test-user-id' }, 'inv@lid!')
 			).rejects.toThrow(
 				'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen'
 			);
 
 			await expect(
-				updateUsernameService({}, 'ab', 'password123')
+				updateUsernameService({ user_id: 'test-user-id' }, 'ab')
 			).rejects.toThrow(
 				'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen'
 			);
