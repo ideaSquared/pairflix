@@ -2,9 +2,7 @@
 
 ## PRIME DIRECTIVE
 
-    Avoid working on more than one file at a time.
-    Multiple simultaneous edits to a file will cause corruption.
-    Be chatting and teach about what you are doing while coding.
+    Follow project standards. Focus on one file at a time to prevent corruption. Explain your reasoning.
 
 ## LARGE FILE & COMPLEX CHANGE PROTOCOL
 
@@ -109,91 +107,14 @@ _Do you approve this plan?_ I will proceed with **Edit [number]** after explicit
     - Firefox, Chrome, Edge, Safari (macOS/iOS)
         - Emphasize progressive enhancement with polyfills or bundlers (e.g., **Babel**, **Vite**) as needed.
 
-Here is your **TypeScript Requirements** specification in **Markdown format**:
+## TypeScript Requirements
 
----
-
-````markdown
-# TypeScript Requirements
-
-## Target Version
-
-- TypeScript 5.x or higher
-
-## Features to Use
-
-- ✅ Native ECMAScript modules (`import` / `export`)
-- ✅ `readonly` class properties where appropriate
-- ✅ `as const` for literal value narrowing
-- ✅ Prefer union types over `enum`, unless `enum` semantics are required
-- ✅ Optional chaining (`?.`) and nullish coalescing (`??`)
-- ✅ Constructor parameter properties:
-
-  ```ts
-  constructor(public readonly id: string) {}
-  ```
-````
-
-````
-
-- ✅ Discriminated unions for polymorphism
-- ✅ Exhaustive `switch` checks using `never`
-- ✅ Strict null checks and strict property initialization
-- ✅ Utility types like `Partial<T>`, `Pick<T, K>`, `Record<K, V>`, etc.
-- ✅ Top-level `await`, `satisfies` keyword, `infer` usage in generics
-- ✅ Decorators (if enabled via `experimentalDecorators`)
-
-## Compiler Settings (`tsconfig.json`)
-
-```json
-{
-	"compilerOptions": {
-		"target": "ES2022",
-		"module": "ESNext",
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"exactOptionalPropertyTypes": true,
-		"useUnknownInCatchVariables": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true
-	}
-}
-```
-
-## Code Quality & Standards
-
-- Follow [Airbnb TypeScript Style Guide](https://github.com/iamturns/eslint-config-airbnb-typescript) or similar
-- Format consistently using [Prettier](https://prettier.io/)
-- Use `eslint` with `@typescript-eslint` plugin
-- Prefer composition over inheritance
-- Use dependency injection for all external dependencies
-- Enforce immutability and pure functions in business logic
-- Avoid use of `any` — prefer `unknown` with proper type guards
-
-## Static Analysis
-
-- Enable all strict TypeScript checks
-- Use schema validation libraries like [Zod](https://github.com/colinhacks/zod) or [io-ts](https://github.com/gcanti/io-ts)
-- Use `ts-prune` to detect unused exports
-- Run `tsc` and `eslint` in CI pipelines
-
-## Error Handling
-
-- Do not suppress errors with `// @ts-ignore` unless absolutely necessary and well-commented
-- Use custom error classes extending `Error`:
-
-  ```ts
-  class InvalidInputError extends Error {
-  	constructor(message: string) {
-  		super(message);
-  		this.name = 'InvalidInputError';
-  	}
-  }
-  ```
-
-- Use `unknown` in `catch` and refine via `instanceof` or custom type guards
-- Handle only known and expected error cases
+- Target: TypeScript 5.x+
+- Use: ESM, readonly properties, const assertions, union types over enums, optional chaining, nullish coalescing, parameter properties, discriminated unions, exhaustive checks, strict null checks, utility types
+- Compiler Settings: ES2022, ESNext, strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes, useUnknownInCatchVariables
+- Quality Standards: Follow Airbnb Style Guide, use Prettier, ESLint with @typescript-eslint, prefer composition, dependency injection, immutability, avoid any
+- Static Analysis: Use Zod/io-ts, ts-prune, run tsc/eslint in CI
+- Error Handling: Custom error classes, unknown in catch blocks, handle expected errors only
 
 ## 🧱 HTML/CSS Requirements
 
@@ -237,32 +158,13 @@ Here is your **TypeScript Requirements** specification in **Markdown format**:
 
 ## Folder Structure
 
-    Follow this monorepo directory layout:
+    Follow this monorepo layout:
 
     	project-root/
-    	├── backend/              # Node.js/TypeScript backend service
-    	│   ├── src/
-    	│   │   ├── controllers/  # Request handlers and business logic
-    	│   │   ├── db/          # Database connection and seeders
-    	│   │   ├── middlewares/ # Express middlewares
-    	│   │   ├── models/      # Data models and schemas
-    	│   │   ├── routes/      # API route definitions
-    	│   │   ├── services/    # Business logic services
-    	│   │   ├── tests/      # Test helpers and setup
-    	│   │   ├── types/      # TypeScript type definitions
-    	│   │   └── utils/      # Utility functions and helpers
-    	│   ├── Dockerfile      # Backend container definition
-    	│   └── package.json    # Backend dependencies
-    	├── frontend/            # React/TypeScript frontend application
-    	│   ├── src/
-    	│   │   ├── components/ # Reusable UI components
-    	│   │   ├── features/   # Feature-specific components and logic
-    	│   │   ├── hooks/      # Custom React hooks
-    	│   │   ├── services/   # API client and services
-    	│   │   ├── styles/     # Global styles and theming
-    	│   │   └── tests/      # Test setup and mocks
-    	│   ├── Dockerfile      # Frontend container definition
-    	│   └── package.json    # Frontend dependencies
+    	├── backend/              # TypeScript backend
+    	│   └── src/              # Source files with controllers, models, services, etc.
+    	├── frontend/            # React/TypeScript frontend
+    	│   └── src/             # Components, features, hooks, services, styles
     	└── docker-compose.yml   # Container orchestration
 
 ## Documentation Requirements
@@ -305,15 +207,190 @@ Here is your **TypeScript Requirements** specification in **Markdown format**:
 
 ## Security Considerations
 
-    - Sanitize all user inputs thoroughly.
-    - Parameterize database queries.
-    - Enforce strong Content Security Policies (CSP).
-    - Use CSRF protection where applicable.
-    - Ensure secure cookies (`HttpOnly`, `Secure`, `SameSite=Strict`).
-    - Limit privileges and enforce role-based access control.
-    - Implement detailed internal logging and monitoring.
+- Sanitize all user inputs thoroughly.
+- Parameterize database queries.
+- Enforce strong Content Security Policies (CSP).
+- Use CSRF protection where applicable.
+- Ensure secure cookies (`HttpOnly`, `Secure`, `SameSite=Strict`).
+- Limit privileges and enforce role-based access control.
+- Implement detailed internal logging and monitoring.
 
-```
+## Performance Requirements
 
-```
-````
+- Core Web Vitals targets: FCP < 1.5s, LCP < 2.5s, FID < 100ms, CLS < 0.1
+- Loading optimizations: Code splitting, lazy loading, React.lazy/Suspense
+- Image handling: WebP/AVIF formats, responsive images, lazy loading, CDNs
+- Caching: Service workers, appropriate headers, client-side cache strategies
+
+## Testing Requirements
+
+- Coverage targets: 80% statements/functions/lines, 75% branches
+- Unit testing: Jest for backend, React Testing Library for frontend
+- Integration testing: API endpoints, database operations, authentication flows
+- E2E testing: Critical user journeys with Playwright
+- Test data: Factories, cleanup, mocks, appropriate environments
+
+## API Standards
+
+- REST design: Proper HTTP methods, status codes, plural nouns, versioning
+- Documentation: OpenAPI/Swagger, examples, error documentation
+- Security: Rate limiting, CORS policies, authentication, authorization
+
+## State Management
+
+- Frontend patterns: Context for global state, Redux/Zustand for complex state, React Query for server state
+- Data fetching: React Query/SWR, retry logic, cache invalidation, prefetching
+- Error boundaries: Route-level implementation, fallback UIs, reporting
+
+## Error Handling
+
+- Error classification: API, validation, authentication, network, runtime
+- Implementation: Custom classes, global handlers, recovery strategies
+- Logging: Structured format, context preservation, appropriate levels
+
+## Enhanced Accessibility Requirements
+
+    - Keyboard Navigation:
+        - Focus management
+        - Focus trapping in modals
+        - Skip links
+        - Keyboard shortcuts
+        - Focus indicators
+
+    - Screen Reader Support:
+        - ARIA landmarks
+        - Live regions
+        - Descriptive headings
+        - Alternative text
+        - Status messages
+
+    - Focus Management:
+        - Return focus after actions
+        - Maintain focus order
+        - Handle modal focus
+        - Focus restoration
+        - Error focus
+
+## Container Orchestration
+
+- Docker-compose configurations:
+
+  - Use named volumes for data persistence
+  - Implement health checks for all services
+  - Set appropriate restart policies (unless-stopped)
+  - Use environment files (.env) for configuration
+  - Define memory/CPU limits for production
+
+- Container standards:
+
+  - Multi-stage builds to minimize image size
+  - Non-root user execution for security
+  - Proper signal handling (SIGTERM, SIGINT)
+  - Use specific version tags, not latest
+  - Use .dockerignore to reduce context size
+
+- Environment configurations:
+  - Development: Hot reloading, debug tools, volume mounts
+  - Production: Optimized builds, minimal dependencies
+  - Testing: In-memory databases, mock services
+  - Staging: Production-like with sanitized data
+
+## CI/CD Requirements
+
+- GitHub Actions workflows:
+
+  - Lint, build, test on pull requests
+  - Security scanning with CodeQL
+  - Docker image building and pushing
+  - Automatic deployments to staging
+  - Manual approval for production
+
+- Deployment strategies:
+
+  - Blue-green deployments for zero downtime
+  - Feature flags for controlled rollouts
+  - Automatic rollback on failure
+  - Database migration safety checks
+  - Environment variable validation
+
+- Monitoring:
+  - Health check endpoints
+  - Prometheus metrics collection
+  - Logging with structured JSON format
+  - Error tracking integration (Sentry)
+  - Performance monitoring (New Relic/Datadog)
+
+## Internationalization (i18n)
+
+- Translation management:
+
+  - Use React-i18next or similar library
+  - Implement locale detection and switching
+  - Extract strings with context information
+  - Support pluralization rules
+  - Handle fallback locales gracefully
+
+- Format considerations:
+
+  - Use Intl API for dates, numbers, currencies
+  - Support RTL layouts with logical properties
+  - Implement locale-specific sorting
+  - Consider cultural differences in UX
+  - Test with pseudo-localization
+
+- Implementation:
+  - Lazy-load translation files
+  - Implement language switcher
+  - Persist language preference
+  - Support locale in URLs
+  - Handle dynamic content translation
+
+## Peer Review Guidelines
+
+- Process:
+
+  - Maximum PR size of 400 lines
+  - Required CI checks passing
+  - Documentation updated
+  - Tests covering new functionality
+  - Security considerations addressed
+
+- Review checklist:
+
+  - Performance impact assessment
+  - Accessibility compliance
+  - Security vulnerability check
+  - Error handling verification
+  - Browser compatibility validation
+
+- Coding standards:
+  - No commented-out code
+  - Consistent naming conventions
+  - Function length < 50 lines
+  - File length < 300 lines
+  - Use of approved dependencies only
+
+## Enhanced Security Requirements
+
+- Authentication:
+
+  - JWT with short expiry (15-60 minutes)
+  - Refresh token rotation
+  - Multi-factor authentication support
+  - Account lockout after failed attempts
+  - Password policy enforcement
+
+- Data protection:
+
+  - PII encryption at rest
+  - Transport layer security (TLSv1.3)
+  - API keys rotation strategy
+  - Secrets management (no hardcoded values)
+  - Data anonymization for non-production
+
+- Attack prevention:
+  - XSS prevention with Content-Security-Policy
+  - SQL injection protection
+  - CSRF token implementation
+  - Rate limiting with token bucket algorithm
+  - Input validation with schema validation
