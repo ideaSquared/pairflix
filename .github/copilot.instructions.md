@@ -133,7 +133,7 @@ _Do you approve this plan?_ I will proceed with **Edit [number]** after explicit
   - `<title>` tag
   - `<meta name="description">`
   - Open Graph (`<meta property="og:*">`) and Twitter Card metadata
-- ✅ Use appropriate `lang` attribute on `<html>` and logical heading order (`<h1>` to `<h6>`)
+- ✅ Use appropriate `lang` attribute on `<html>` and logical heading order (`<h1>` to `<h6>`
 
 ### 🎨 CSS (with `styled-components`)
 
@@ -344,6 +344,113 @@ _Do you approve this plan?_ I will proceed with **Edit [number]** after explicit
   - Persist language preference
   - Support locale in URLs
   - Handle dynamic content translation
+
+## Feature Prioritization
+
+- Priority classification:
+
+  - P0 (Critical): Features that affect core user flows or system stability
+  - P1 (High): Features with significant user impact but not blocking core functionality
+  - P2 (Medium): Important improvements that enhance user experience
+  - P3 (Low): Nice-to-have enhancements for future consideration
+
+- Implementation order:
+
+  - Address critical bugs and security issues first (P0)
+  - Focus on core functionality before peripheral features
+  - Prioritize features with highest user value to development cost ratio
+  - Consider technical dependencies when sequencing work
+
+- Decision framework:
+
+  - Impact on user retention and engagement
+  - Alignment with business objectives
+  - Technical debt implications
+  - Resource availability and constraints
+  - Market differentiation potential
+
+- Technical vs. Product balance:
+
+  - Maintain 70/30 ratio of product features to technical improvements
+  - Schedule regular technical debt reduction sprints
+  - Document tech debt with clear business impact assessment
+  - Balance short-term gains with long-term maintainability
+
+## Dependencies and Versioning
+
+- Core dependencies:
+
+  - React: ^18.2.0
+  - TypeScript: ^5.0.0
+  - Node.js: ^18.0.0
+  - PostgreSQL: ^15.0
+  - Express: ^4.18.0
+  - Sequelize: ^7.0.0
+  - Jest: ^29.0.0
+  - Playwright: ^1.35.0
+  - Styled-components: ^6.0.0
+  - React Query/TanStack Query: ^4.0.0
+  - Zod: ^3.21.0
+
+- Dependency management:
+
+  - Use package.json with specific version ranges (^major.minor.patch)
+  - Lock dependencies with package-lock.json or yarn.lock
+  - Regularly audit dependencies for security vulnerabilities
+  - Update dependencies on a scheduled basis (monthly for security, quarterly for features)
+  - Test thoroughly after dependency updates
+
+- Version control:
+
+  - Follow Semantic Versioning (SemVer) for all internal packages
+  - Use Conventional Commits for commit messages
+  - Tag releases with version numbers
+  - Maintain a detailed CHANGELOG.md
+  - Branch naming: feature/, bugfix/, hotfix/, release/
+
+- Deprecation policy:
+
+  - Announce deprecations at least 2 major versions in advance
+  - Provide migration guides for breaking changes
+  - Support previous major version for at least 6 months
+  - Include deprecation warnings in developer console
+
+## Communication Protocols
+
+- Decision documentation:
+
+  - Document all architectural decisions in ADRs (Architecture Decision Records)
+  - Record the context, alternatives considered, and decision rationale
+  - Link decisions to relevant issues or discussions
+  - Make decisions discoverable in project documentation
+
+- Uncertainty handling:
+
+  - Explicitly flag uncertainties with confidence levels (High/Medium/Low)
+  - Provide multiple options when confidence is low
+  - Request specific information needed to resolve uncertainty
+  - State assumptions made when proceeding with incomplete information
+
+- Clarification requests:
+
+  - Be specific about what information is missing
+  - Suggest possible options to guide the response
+  - Provide context for why the information is needed
+  - Reference related documentation or previous discussions
+
+- Status communication:
+
+  - Provide clear progress indicators (Not Started/In Progress/Complete)
+  - Estimate completion percentage for long-running tasks
+  - Highlight blockers or dependencies that may affect progress
+  - Summarize changes made so far when interrupted
+
+- Technical explanations:
+
+  - Adapt detail level to audience technical expertise
+  - Use analogies for complex concepts
+  - Include visual diagrams for architectural discussions
+  - Link to external resources for background information
 
 ## Peer Review Guidelines
 
