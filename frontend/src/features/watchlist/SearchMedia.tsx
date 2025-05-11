@@ -162,13 +162,15 @@ const SearchMedia: React.FC = () => {
 
 			{viewStyle === 'grid' ? (
 				<GridContainer>
-					{Array.isArray(searchResults) &&
-						searchResults.map(renderSearchResult)}
+					{searchResults?.map((result) =>
+						result ? renderSearchResult(result) : null
+					)}
 				</GridContainer>
 			) : (
 				<ListContainer>
-					{Array.isArray(searchResults) &&
-						searchResults.map(renderSearchResult)}
+					{searchResults?.map((result) =>
+						result ? renderSearchResult(result) : null
+					)}
 				</ListContainer>
 			)}
 
