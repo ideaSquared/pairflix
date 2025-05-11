@@ -4,6 +4,7 @@ import express from 'express';
 import { initDatabase } from './db/connection';
 import { seedDatabase } from './db/seeders';
 import { authenticateToken } from './middlewares/auth';
+import activityRoutes from './routes/activity.routes';
 import authRoutes from './routes/auth.routes';
 import matchRoutes from './routes/match.routes';
 import searchRoutes from './routes/search.routes';
@@ -44,6 +45,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 app.use('/api/matches', authenticateToken, matchRoutes);
+app.use('/api/activity', authenticateToken, activityRoutes);
 
 async function initializeApp() {
 	try {

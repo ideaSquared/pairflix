@@ -16,12 +16,14 @@ This document outlines the testing approach for the PairFlix application.
 Unit tests verify that individual components work as expected in isolation.
 
 **Backend Unit Tests**:
+
 - Service layer logic
 - Helper functions and utilities
 - Data transformation functions
 - Validation logic
 
 **Frontend Unit Tests**:
+
 - Component rendering
 - Hook behavior
 - State management
@@ -32,12 +34,14 @@ Unit tests verify that individual components work as expected in isolation.
 Integration tests verify that different parts of the system work together correctly.
 
 **Backend Integration Tests**:
+
 - API endpoint functionality
 - Database interactions
 - Authentication flow
 - External API integration (TMDb)
 
 **Frontend Integration Tests**:
+
 - User workflows across multiple components
 - Form submissions and validations
 - API service interactions
@@ -48,6 +52,7 @@ Integration tests verify that different parts of the system work together correc
 E2E tests verify complete user journeys through the application.
 
 **Key E2E Test Scenarios**:
+
 - User authentication flow
 - Adding and managing watchlist items
 - Searching for content
@@ -74,20 +79,23 @@ E2E tests verify complete user journeys through the application.
 ### Backend Testing Patterns
 
 1. **Controller Tests**
+
    - Mock service layer
    - Verify HTTP responses
    - Test error handling
 
    Example:
+
    ```typescript
    describe('AuthController', () => {
-     it('should return 401 for invalid credentials', async () => {
-       // Test implementation
-     });
+   	it('should return 401 for invalid credentials', async () => {
+   		// Test implementation
+   	});
    });
    ```
 
 2. **Service Tests**
+
    - Mock database and external APIs
    - Focus on business logic
    - Test edge cases
@@ -100,19 +108,22 @@ E2E tests verify complete user journeys through the application.
 ### Frontend Testing Patterns
 
 1. **Component Tests**
+
    - Render component in isolation
    - Verify correct output based on props
    - Test user interactions
 
    Example:
+
    ```typescript
    test('Button renders correctly with props', () => {
-     render(<Button label="Click me" />);
-     expect(screen.getByText('Click me')).toBeInTheDocument();
+   	render(<Button label='Click me' />);
+   	expect(screen.getByText('Click me')).toBeInTheDocument();
    });
    ```
 
 2. **Hook Tests**
+
    - Test custom hooks in isolation
    - Verify state changes
    - Test side effects
@@ -131,26 +142,27 @@ We use Mock Service Worker (MSW) to intercept and mock API requests:
 ```typescript
 // Example MSW setup
 rest.get('/api/v1/watchlist', (req, res, ctx) => {
-  return res(
-    ctx.status(200),
-    ctx.json({
-      entries: [
-        {
-          id: '123',
-          tmdbId: 550,
-          mediaType: 'movie',
-          status: 'to_watch'
-        }
-      ],
-      total: 1
-    })
-  );
+	return res(
+		ctx.status(200),
+		ctx.json({
+			entries: [
+				{
+					id: '123',
+					tmdbId: 550,
+					mediaType: 'movie',
+					status: 'to_watch',
+				},
+			],
+			total: 1,
+		})
+	);
 });
 ```
 
 ### Database Mocking
 
 For database tests, we use:
+
 - In-memory SQLite for unit tests
 - Test containers for integration tests
 
@@ -161,23 +173,26 @@ For database tests, we use:
 - Database seeding for integration tests
 
 Example test data factory:
+
 ```typescript
 const createUser = (overrides = {}) => ({
-  id: '123e4567-e89b-12d3-a456-426614174000',
-  username: 'testuser',
-  email: 'test@example.com',
-  ...overrides
+	id: '123e4567-e89b-12d3-a456-426614174000',
+	username: 'testuser',
+	email: 'test@example.com',
+	...overrides,
 });
 ```
 
 ## Continuous Integration
 
 Tests run in CI on:
+
 - Pull request creation
 - Updates to pull requests
 - Merges to main branch
 
 The CI pipeline:
+
 1. Installs dependencies
 2. Runs linting checks
 3. Executes unit tests

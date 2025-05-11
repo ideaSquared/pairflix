@@ -1,10 +1,28 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { activityService, ActivityType } from '../services/activity.service';
 import { authenticateUser } from '../services/auth.service';
 
 export const login = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
 	try {
 		const token = await authenticateUser(email, password);
+
+		// Decode token to get user_id for activity logging
+		const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+			user_id: string;
+			email: string;
+			username: string;
+			preferences: any;
+		};
+
+		// Log the login activity
+		await activityService.logActivity(
+			decoded.user_id,
+			ActivityType.USER_LOGIN,
+			{ timestamp: new Date() }
+		);
+
 		res.json({ token });
 	} catch (error) {
 		if (error instanceof Error) {

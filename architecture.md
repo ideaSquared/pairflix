@@ -101,6 +101,7 @@ PostgreSQL database with a normalized schema:
 ## Deployment Architecture
 
 Docker-based deployment with:
+
 - Multi-stage builds for optimized images
 - Separate containers for frontend, backend, and database
 - Environment-specific configuration via Docker Compose

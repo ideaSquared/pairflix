@@ -5,6 +5,7 @@ This document outlines the database schema for the PairFlix application.
 ## Overview
 
 PairFlix uses a PostgreSQL database with the following key entities:
+
 - Users
 - Watchlist Entries
 - Tags
@@ -47,6 +48,7 @@ CREATE TABLE users (
 ```
 
 #### Fields:
+
 - `user_id`: Unique identifier (UUID)
 - `username`: Display name (3-30 alphanumeric characters with underscores/hyphens)
 - `email`: Email address (unique)
@@ -55,6 +57,7 @@ CREATE TABLE users (
 - `updated_at`: Last update timestamp
 
 #### Constraints:
+
 - Username must be 3-30 characters, containing only alphanumeric characters, underscores, or hyphens
 - Email must be unique
 
@@ -77,6 +80,7 @@ CREATE TABLE watchlist_entries (
 ```
 
 #### Fields:
+
 - `entry_id`: Unique identifier (UUID)
 - `user_id`: Reference to user who added this item
 - `tmdb_id`: TMDb API identifier for the movie/show
@@ -88,6 +92,7 @@ CREATE TABLE watchlist_entries (
 - `updated_at`: Last update timestamp
 
 #### Constraints:
+
 - Media type must be either 'movie' or 'tv'
 - Status must be one of the predefined values
 - Rating must be between 0 and 10 if provided
@@ -104,6 +109,7 @@ CREATE TABLE tags (
 ```
 
 #### Fields:
+
 - `tag_id`: Unique identifier (UUID)
 - `name`: Tag name (unique)
 
@@ -120,6 +126,7 @@ CREATE TABLE entry_tags (
 ```
 
 #### Fields:
+
 - `entry_id`: Reference to watchlist entry
 - `tag_id`: Reference to tag
 - Composite primary key of both fields
@@ -139,6 +146,7 @@ CREATE TABLE activity_log (
 ```
 
 #### Fields:
+
 - `log_id`: Unique identifier (UUID)
 - `user_id`: Reference to user who performed the action
 - `action`: Description of the activity
@@ -167,10 +175,12 @@ CREATE INDEX idx_activity_user_id ON activity_log(user_id);
 ## Relationships
 
 1. **Users to WatchlistEntries**: One-to-many
+
    - A user can have multiple watchlist entries
    - Each watchlist entry belongs to exactly one user
 
 2. **WatchlistEntries to Tags**: Many-to-many
+
    - A watchlist entry can have multiple tags
    - A tag can be applied to multiple watchlist entries
    - Relationship managed through the entry_tags junction table
@@ -194,6 +204,7 @@ The database structure is managed through migration files located in the `backen
 ## Seeding
 
 Initial data seeding is provided for development and testing purposes:
+
 - Two default user accounts
 - Sample watchlist entries
 - Common tags
@@ -201,6 +212,7 @@ Initial data seeding is provided for development and testing purposes:
 ## Data Access Patterns
 
 1. **Matching Algorithm**
+
    ```sql
    SELECT * FROM watchlist_entries w1
    JOIN watchlist_entries w2 ON w1.tmdb_id = w2.tmdb_id
@@ -208,6 +220,7 @@ Initial data seeding is provided for development and testing purposes:
    ```
 
 2. **User Activity Feed**
+
    ```sql
    SELECT * FROM activity_log
    WHERE user_id = $userId

@@ -25,23 +25,25 @@ Authorization: Bearer <token>
 Authenticates a user and returns tokens.
 
 **Request Body:**
+
 ```json
 {
-  "email": "user@example.com",
-  "password": "securepassword"
+	"email": "user@example.com",
+	"password": "securepassword"
 }
 ```
 
 **Response: 200 OK**
+
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "username": "user1",
-    "email": "user@example.com"
-  }
+	"accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"user": {
+		"id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "user1",
+		"email": "user@example.com"
+	}
 }
 ```
 
@@ -50,17 +52,19 @@ Authenticates a user and returns tokens.
 Refreshes an expired access token.
 
 **Request Body:**
+
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
 **Response: 200 OK**
+
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+	"accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -69,9 +73,10 @@ Refreshes an expired access token.
 Invalidates a refresh token.
 
 **Request Body:**
+
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -84,12 +89,13 @@ Invalidates a refresh token.
 Returns the current user's profile.
 
 **Response: 200 OK**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "user1",
-  "email": "user@example.com",
-  "createdAt": "2023-01-01T00:00:00.000Z"
+	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"username": "user1",
+	"email": "user@example.com",
+	"createdAt": "2023-01-01T00:00:00.000Z"
 }
 ```
 
@@ -98,20 +104,22 @@ Returns the current user's profile.
 Updates the current user's profile.
 
 **Request Body:**
+
 ```json
 {
-  "username": "newusername",
-  "email": "newemail@example.com"
+	"username": "newusername",
+	"email": "newemail@example.com"
 }
 ```
 
 **Response: 200 OK**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "newusername",
-  "email": "newemail@example.com",
-  "updatedAt": "2023-01-02T00:00:00.000Z"
+	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"username": "newusername",
+	"email": "newemail@example.com",
+	"updatedAt": "2023-01-02T00:00:00.000Z"
 }
 ```
 
@@ -120,10 +128,11 @@ Updates the current user's profile.
 Changes the current user's password.
 
 **Request Body:**
+
 ```json
 {
-  "currentPassword": "oldsecurepassword",
-  "newPassword": "newsecurepassword"
+	"currentPassword": "oldsecurepassword",
+	"newPassword": "newsecurepassword"
 }
 ```
 
@@ -136,26 +145,28 @@ Changes the current user's password.
 Returns the current user's watchlist entries.
 
 **Query Parameters:**
+
 - `status` (optional): Filter by status (`to_watch`, `watching`, `finished`)
 - `sort` (optional): Sort field (`title`, `added_date`, `rating`)
 - `order` (optional): Sort order (`asc`, `desc`)
 
 **Response: 200 OK**
+
 ```json
 {
-  "entries": [
-    {
-      "id": "123e4567-e89b-12d3-a456-426614174000",
-      "tmdbId": 550,
-      "mediaType": "movie",
-      "status": "finished",
-      "rating": 9,
-      "notes": "Great movie!",
-      "createdAt": "2023-01-01T00:00:00.000Z",
-      "updatedAt": "2023-01-02T00:00:00.000Z"
-    }
-  ],
-  "total": 1
+	"entries": [
+		{
+			"id": "123e4567-e89b-12d3-a456-426614174000",
+			"tmdbId": 550,
+			"mediaType": "movie",
+			"status": "finished",
+			"rating": 9,
+			"notes": "Great movie!",
+			"createdAt": "2023-01-01T00:00:00.000Z",
+			"updatedAt": "2023-01-02T00:00:00.000Z"
+		}
+	],
+	"total": 1
 }
 ```
 
@@ -164,24 +175,26 @@ Returns the current user's watchlist entries.
 Adds a new entry to the user's watchlist.
 
 **Request Body:**
+
 ```json
 {
-  "tmdbId": 550,
-  "mediaType": "movie",
-  "status": "to_watch",
-  "notes": "Want to watch this weekend"
+	"tmdbId": 550,
+	"mediaType": "movie",
+	"status": "to_watch",
+	"notes": "Want to watch this weekend"
 }
 ```
 
 **Response: 201 Created**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "tmdbId": 550,
-  "mediaType": "movie",
-  "status": "to_watch",
-  "notes": "Want to watch this weekend",
-  "createdAt": "2023-01-01T00:00:00.000Z"
+	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"tmdbId": 550,
+	"mediaType": "movie",
+	"status": "to_watch",
+	"notes": "Want to watch this weekend",
+	"createdAt": "2023-01-01T00:00:00.000Z"
 }
 ```
 
@@ -190,16 +203,17 @@ Adds a new entry to the user's watchlist.
 Returns a specific watchlist entry.
 
 **Response: 200 OK**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "tmdbId": 550,
-  "mediaType": "movie",
-  "status": "to_watch",
-  "rating": null,
-  "notes": "Want to watch this weekend",
-  "createdAt": "2023-01-01T00:00:00.000Z",
-  "updatedAt": "2023-01-01T00:00:00.000Z"
+	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"tmdbId": 550,
+	"mediaType": "movie",
+	"status": "to_watch",
+	"rating": null,
+	"notes": "Want to watch this weekend",
+	"createdAt": "2023-01-01T00:00:00.000Z",
+	"updatedAt": "2023-01-01T00:00:00.000Z"
 }
 ```
 
@@ -208,24 +222,26 @@ Returns a specific watchlist entry.
 Updates a specific watchlist entry.
 
 **Request Body:**
+
 ```json
 {
-  "status": "finished",
-  "rating": 9,
-  "notes": "Great movie!"
+	"status": "finished",
+	"rating": 9,
+	"notes": "Great movie!"
 }
 ```
 
 **Response: 200 OK**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "tmdbId": 550,
-  "mediaType": "movie",
-  "status": "finished",
-  "rating": 9,
-  "notes": "Great movie!",
-  "updatedAt": "2023-01-02T00:00:00.000Z"
+	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"tmdbId": 550,
+	"mediaType": "movie",
+	"status": "finished",
+	"rating": 9,
+	"notes": "Great movie!",
+	"updatedAt": "2023-01-02T00:00:00.000Z"
 }
 ```
 
@@ -242,26 +258,28 @@ Removes an entry from the watchlist.
 Searches for movies and TV shows via TMDb.
 
 **Query Parameters:**
+
 - `query` (required): Search query string
 - `page` (optional): Page number (default: 1)
 - `mediaType` (optional): Type of media (`movie`, `tv`, or `both`)
 
 **Response: 200 OK**
+
 ```json
 {
-  "results": [
-    {
-      "id": 550,
-      "title": "Fight Club",
-      "mediaType": "movie",
-      "releaseDate": "1999-10-15",
-      "posterPath": "/path/to/poster.jpg",
-      "overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club..."
-    }
-  ],
-  "page": 1,
-  "totalPages": 10,
-  "totalResults": 200
+	"results": [
+		{
+			"id": 550,
+			"title": "Fight Club",
+			"mediaType": "movie",
+			"releaseDate": "1999-10-15",
+			"posterPath": "/path/to/poster.jpg",
+			"overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club..."
+		}
+	],
+	"page": 1,
+	"totalPages": 10,
+	"totalResults": 200
 }
 ```
 
@@ -270,40 +288,43 @@ Searches for movies and TV shows via TMDb.
 Gets detailed information about a specific movie or TV show.
 
 **Path Parameters:**
+
 - `id`: TMDb ID
 
 **Query Parameters:**
+
 - `mediaType` (required): Type of media (`movie` or `tv`)
 
 **Response: 200 OK**
+
 ```json
 {
-  "id": 550,
-  "title": "Fight Club",
-  "mediaType": "movie",
-  "releaseDate": "1999-10-15",
-  "posterPath": "/path/to/poster.jpg",
-  "backdropPath": "/path/to/backdrop.jpg",
-  "overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club...",
-  "genres": ["Drama", "Thriller"],
-  "runtime": 139,
-  "voteAverage": 8.4,
-  "cast": [
-    {
-      "id": 819,
-      "name": "Edward Norton",
-      "character": "The Narrator",
-      "profilePath": "/path/to/profile.jpg"
-    }
-  ],
-  "crew": [
-    {
-      "id": 7467,
-      "name": "David Fincher",
-      "job": "Director",
-      "profilePath": "/path/to/profile.jpg"
-    }
-  ]
+	"id": 550,
+	"title": "Fight Club",
+	"mediaType": "movie",
+	"releaseDate": "1999-10-15",
+	"posterPath": "/path/to/poster.jpg",
+	"backdropPath": "/path/to/backdrop.jpg",
+	"overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club...",
+	"genres": ["Drama", "Thriller"],
+	"runtime": 139,
+	"voteAverage": 8.4,
+	"cast": [
+		{
+			"id": 819,
+			"name": "Edward Norton",
+			"character": "The Narrator",
+			"profilePath": "/path/to/profile.jpg"
+		}
+	],
+	"crew": [
+		{
+			"id": 7467,
+			"name": "David Fincher",
+			"job": "Director",
+			"profilePath": "/path/to/profile.jpg"
+		}
+	]
 }
 ```
 
@@ -314,30 +335,32 @@ Gets detailed information about a specific movie or TV show.
 Returns watchlist entries that both users have in common.
 
 **Query Parameters:**
-- `status` (optional): Filter by status 
-- `sort` (optional): Sort field 
+
+- `status` (optional): Filter by status
+- `sort` (optional): Sort field
 - `order` (optional): Sort order
 
 **Response: 200 OK**
+
 ```json
 {
-  "matches": [
-    {
-      "tmdbId": 550,
-      "mediaType": "movie",
-      "title": "Fight Club",
-      "posterPath": "/path/to/poster.jpg",
-      "user1": {
-        "status": "to_watch",
-        "rating": null
-      },
-      "user2": {
-        "status": "to_watch",
-        "rating": null
-      }
-    }
-  ],
-  "total": 1
+	"matches": [
+		{
+			"tmdbId": 550,
+			"mediaType": "movie",
+			"title": "Fight Club",
+			"posterPath": "/path/to/poster.jpg",
+			"user1": {
+				"status": "to_watch",
+				"rating": null
+			},
+			"user2": {
+				"status": "to_watch",
+				"rating": null
+			}
+		}
+	],
+	"total": 1
 }
 ```
 
@@ -346,20 +369,21 @@ Returns watchlist entries that both users have in common.
 Returns content recommendations based on both users' preferences.
 
 **Response: 200 OK**
+
 ```json
 {
-  "recommendations": [
-    {
-      "id": 550,
-      "title": "Fight Club",
-      "mediaType": "movie",
-      "releaseDate": "1999-10-15",
-      "posterPath": "/path/to/poster.jpg",
-      "overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club...",
-      "matchScore": 0.85
-    }
-  ],
-  "total": 1
+	"recommendations": [
+		{
+			"id": 550,
+			"title": "Fight Club",
+			"mediaType": "movie",
+			"releaseDate": "1999-10-15",
+			"posterPath": "/path/to/poster.jpg",
+			"overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club...",
+			"matchScore": 0.85
+		}
+	],
+	"total": 1
 }
 ```
 
@@ -368,45 +392,50 @@ Returns content recommendations based on both users' preferences.
 All endpoints may return the following error responses:
 
 ### 400 Bad Request
+
 ```json
 {
-  "error": "Bad Request",
-  "message": "Invalid request parameters",
-  "details": {
-    "field": "Description of the error"
-  }
+	"error": "Bad Request",
+	"message": "Invalid request parameters",
+	"details": {
+		"field": "Description of the error"
+	}
 }
 ```
 
 ### 401 Unauthorized
+
 ```json
 {
-  "error": "Unauthorized",
-  "message": "Authentication required"
+	"error": "Unauthorized",
+	"message": "Authentication required"
 }
 ```
 
 ### 403 Forbidden
+
 ```json
 {
-  "error": "Forbidden",
-  "message": "You do not have permission to access this resource"
+	"error": "Forbidden",
+	"message": "You do not have permission to access this resource"
 }
 ```
 
 ### 404 Not Found
+
 ```json
 {
-  "error": "Not Found",
-  "message": "The requested resource was not found"
+	"error": "Not Found",
+	"message": "The requested resource was not found"
 }
 ```
 
 ### 500 Internal Server Error
+
 ```json
 {
-  "error": "Internal Server Error",
-  "message": "An unexpected error occurred"
+	"error": "Internal Server Error",
+	"message": "An unexpected error occurred"
 }
 ```
 
@@ -418,6 +447,7 @@ The API implements rate limiting to prevent abuse:
 - 1000 requests per day per user
 
 Rate limit headers are included in all responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 99
