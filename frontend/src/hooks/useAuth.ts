@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '../services/api';
 
@@ -20,13 +20,7 @@ interface AuthUser {
 export function useAuth() {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-
-	// Force a refresh of authentication status when the hook mounts
-	useEffect(() => {
-		if (localStorage.getItem('token')) {
-			queryClient.invalidateQueries(['auth']);
-		}
-	}, [queryClient]);
+	const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	const {
 		data: user,
@@ -45,8 +39,10 @@ export function useAuth() {
 			}
 			return failureCount < 3;
 		},
-		staleTime: 0, // Remove stale time to ensure immediate updates
-		cacheTime: 0, // Disable caching to ensure fresh data
+		staleTime: 60000, // Consider data fresh for 1 minute
+		cacheTime: 60000, // Keep data in cache for 1 minute
+		refetchOnWindowFocus: false, // Don't refetch when window regains focus
+		enabled: !!localStorage.getItem('token'), // Only run the query if there's a token
 	});
 
 	const logout = async () => {
@@ -60,7 +56,15 @@ export function useAuth() {
 	};
 
 	const checkAuth = () => {
-		queryClient.invalidateQueries(['auth']);
+		// Debounce the auth check to prevent multiple calls
+		if (refreshTimeoutRef.current) {
+			clearTimeout(refreshTimeoutRef.current);
+		}
+
+		refreshTimeoutRef.current = setTimeout(() => {
+			queryClient.invalidateQueries(['auth']);
+			refreshTimeoutRef.current = null;
+		}, 300);
 	};
 
 	const isAuthenticated = Boolean(user && localStorage.getItem('token'));
