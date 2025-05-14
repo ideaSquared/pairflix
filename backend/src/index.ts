@@ -19,7 +19,15 @@ const port = process.env.PORT || 3000;
 // Configure CORS
 app.use(
 	cors({
-		origin: ['http://localhost:5173', 'http://localhost:3000'],
+		origin:
+			process.env.NODE_ENV === 'production'
+				? ['https://your-production-domain.com']
+				: [
+						'http://localhost:5173',
+						'http://localhost:3000',
+						'http://127.0.0.1:5173',
+						'http://127.0.0.1:3000',
+					],
 		credentials: true,
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization'],
@@ -29,12 +37,12 @@ app.use(
 
 app.use(express.json());
 
-// Pre-flight OPTIONS request handler
+// Pre-flight OPTIONS request handler - Apply CORS headers to all routes
 app.options('*', cors());
 
 // Debug middleware to log incoming requests
 app.use((req, res, next) => {
-	// console.log(`${req.method} ${req.url}`);
+	console.log(`${req.method} ${req.url}`);
 	// console.log('Headers:', req.headers);
 	next();
 });

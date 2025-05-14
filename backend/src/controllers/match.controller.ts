@@ -56,9 +56,15 @@ export const updateMatchStatus = async (req: Request, res: Response) => {
 			userId: req.user?.user_id,
 			matchId: req.params.match_id,
 			status: req.body.status,
-		});
+			});
+		
+		const matchId = req.params.match_id;
+		if (!matchId) {
+			return res.status(400).json({ error: 'Match ID is required' });
+		}
+		
 		const updatedMatch = await updateMatchStatusService(
-			req.params.match_id,
+			matchId,
 			req.body.status,
 			req.user
 		);

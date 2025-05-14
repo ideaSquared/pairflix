@@ -3,11 +3,10 @@
 	"version": "1.0.0",
 	"description": "Backend for PairFlix app",
 	"main": "dist/index.js",
-	"type": "module",
 	"scripts": {
 		"build": "tsc",
 		"start": "node dist/index.js",
-		"dev": "cross-env NODE_ENV=development ts-node-dev --esm --poll --respawn src/index.ts",
+		"dev": "cross-env NODE_ENV=development ts-node-dev --poll --respawn src/index.ts",
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage"

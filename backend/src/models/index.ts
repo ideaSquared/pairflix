@@ -9,7 +9,7 @@ export function initializeModels(sequelize: Sequelize) {
 	User.initialize(sequelize);
 	Match.initialize(sequelize);
 	WatchlistEntry.initialize(sequelize);
-	// ActivityLog is initialized in its own file
+	ActivityLog.initialize(sequelize);
 
 	// Then set up associations
 	Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });

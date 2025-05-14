@@ -48,6 +48,10 @@ export async function seedDatabase() {
 			}),
 		]);
 
+		if (!user1 || !user2 || !user3) {
+			throw new Error('Failed to create test users');
+		}
+
 		// Create accepted match between user1 and user2
 		await Match.create({
 			user1_id: user1.user_id,
@@ -56,24 +60,28 @@ export async function seedDatabase() {
 		});
 
 		// Sample TMDb IDs for popular movies/shows (all verified to exist)
-		const sampleContent: Array<{
-			tmdb_id: number;
-			media_type: 'movie' | 'tv';
-			title: string;
-		}> = [
+		const sampleContent = [
 			// Movies both users want to watch together
-			{ tmdb_id: 1233069, media_type: 'movie', title: 'Exterritorial' }, // Both want to watch together
-			{ tmdb_id: 986056, media_type: 'movie', title: 'Thunderbolts' }, // Both watching
-			{ tmdb_id: 693134, media_type: 'movie', title: 'Dune: Part Two' }, // Both to watch
+			{
+				tmdb_id: 1233069,
+				media_type: 'movie' as const,
+				title: 'Exterritorial',
+			}, // Both want to watch together
+			{ tmdb_id: 986056, media_type: 'movie' as const, title: 'Thunderbolts' }, // Both watching
+			{
+				tmdb_id: 693134,
+				media_type: 'movie' as const,
+				title: 'Dune: Part Two',
+			}, // Both to watch
 
 			// TV Shows with matching interest
-			{ tmdb_id: 2734, media_type: 'tv', title: 'Law & Order: SVU' }, // Both watching
-			{ tmdb_id: 1396, media_type: 'tv', title: 'Breaking Bad' }, // Both finished
-			{ tmdb_id: 1399, media_type: 'tv', title: 'Game of Thrones' }, // Both want to watch together
+			{ tmdb_id: 2734, media_type: 'tv' as const, title: 'Law & Order: SVU' }, // Both watching
+			{ tmdb_id: 1396, media_type: 'tv' as const, title: 'Breaking Bad' }, // Both finished
+			{ tmdb_id: 1399, media_type: 'tv' as const, title: 'Game of Thrones' }, // Both want to watch together
 
 			// Non-matching content
-			{ tmdb_id: 1124620, media_type: 'movie', title: 'The Monkey' }, // Only user3
-		];
+			{ tmdb_id: 1124620, media_type: 'movie' as const, title: 'The Monkey' }, // Only user3
+		] as const;
 
 		// Create matching watchlist entries for both users
 		await Promise.all([
