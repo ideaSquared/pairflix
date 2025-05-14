@@ -108,6 +108,37 @@ export interface UserPreferences {
 	autoArchiveDays: number;
 }
 
+export interface AuditLog {
+	log_id: string;
+	level: 'info' | 'warn' | 'error' | 'debug';
+	message: string;
+	source: string;
+	context: any;
+	created_at: string;
+}
+
+export interface AuditLogStats {
+	total: number;
+	byLevel: {
+		info?: number;
+		warn?: number;
+		error?: number;
+		debug?: number;
+	};
+	oldestLog: string | null;
+	newestLog: string | null;
+}
+
+export interface PaginatedResponse<T> {
+	logs: T[];
+	pagination: {
+		total: number;
+		limit: number;
+		offset: number;
+		hasMore: boolean;
+	};
+}
+
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 	const headers = new Headers({
 		'Content-Type': 'application/json',
@@ -249,6 +280,78 @@ export const matches = {
 		return fetchWithAuth(`/api/matches/${match_id}/status`, {
 			method: 'PUT',
 			body: JSON.stringify({ status }),
+		});
+	},
+};
+
+export const admin = {
+	getAuditLogs: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			source?: string;
+			startDate?: string;
+			endDate?: string;
+		} = {}
+	): Promise<PaginatedResponse<AuditLog>> => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.source) queryParams.append('source', params.source);
+		if (params.startDate) queryParams.append('startDate', params.startDate);
+		if (params.endDate) queryParams.append('endDate', params.endDate);
+
+		return fetchWithAuth(`/api/admin/audit-logs?${queryParams.toString()}`);
+	},
+
+	getAuditLogsByLevel: async (
+		level: string,
+		params: {
+			limit?: number;
+			offset?: number;
+			source?: string;
+			startDate?: string;
+			endDate?: string;
+		} = {}
+	): Promise<PaginatedResponse<AuditLog>> => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.source) queryParams.append('source', params.source);
+		if (params.startDate) queryParams.append('startDate', params.startDate);
+		if (params.endDate) queryParams.append('endDate', params.endDate);
+
+		return fetchWithAuth(
+			`/api/admin/audit-logs/${level}?${queryParams.toString()}`
+		);
+	},
+
+	getLogSources: async (): Promise<{ sources: string[] }> => {
+		return fetchWithAuth('/api/admin/audit-logs-sources');
+	},
+
+	getAuditLogStats: async (): Promise<{ stats: AuditLogStats }> => {
+		return fetchWithAuth('/api/admin/audit-logs-stats');
+	},
+
+	runLogRotation: async (customRetention?: {
+		info?: number;
+		warn?: number;
+		error?: number;
+		debug?: number;
+	}): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth('/api/admin/audit-logs-rotation', {
+			method: 'POST',
+			body: JSON.stringify({
+				retentionDays: customRetention,
+			}),
+		});
+	},
+
+	createTestLog: async (data: { level: string; message: string }) => {
+		return fetchWithAuth('/api/admin/audit-logs/test', {
+			method: 'POST',
+			body: JSON.stringify(data),
 		});
 	},
 };

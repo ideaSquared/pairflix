@@ -46,6 +46,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -79,6 +80,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -119,6 +121,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -152,6 +155,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -214,6 +218,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -265,6 +270,7 @@ describe('ActivityController', () => {
 				user_id: 'user123',
 				email: 'user@example.com',
 				username: 'testuser',
+				role: 'user',
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',

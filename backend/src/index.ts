@@ -13,6 +13,7 @@ import matchRoutes from './routes/match.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
+import { initScheduledTasks } from './scheduler';
 import { auditLogService } from './services/audit.service';
 
 dotenv.config();
@@ -97,6 +98,9 @@ async function initializeApp() {
 				timestamp: new Date(),
 			});
 		}
+
+		// Initialize scheduled tasks
+		initScheduledTasks();
 
 		app.listen(port, () => {
 			console.log(`Server running on port ${port}`);

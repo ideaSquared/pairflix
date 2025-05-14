@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import AuditLog from '../models/AuditLog';
 
 /**
@@ -9,6 +10,14 @@ export enum LogLevel {
 	ERROR = 'error',
 	DEBUG = 'debug',
 }
+
+// Default retention periods in days for different log levels
+export const DEFAULT_RETENTION_PERIODS = {
+	[LogLevel.INFO]: 30, // Keep info logs for 30 days
+	[LogLevel.DEBUG]: 7, // Keep debug logs for 7 days
+	[LogLevel.WARN]: 90, // Keep warnings for 90 days
+	[LogLevel.ERROR]: 365, // Keep errors for 1 year
+};
 
 /**
  * Log a system event or error
@@ -126,6 +135,98 @@ export const getLogsByLevel = async (
 	});
 };
 
+/**
+ * Clean up logs older than the specified retention period
+ * @param retentionDays - Number of days to keep logs (default: use DEFAULT_RETENTION_PERIODS)
+ * @returns Number of logs deleted
+ */
+export const cleanupOldLogs = async (retentionDays?: {
+	[key in LogLevel]?: number;
+}): Promise<number> => {
+	try {
+		const retention = {
+			...DEFAULT_RETENTION_PERIODS,
+			...(retentionDays || {}),
+		};
+
+		let totalDeleted = 0;
+
+		// Process each log level separately
+		for (const level of Object.values(LogLevel)) {
+			const daysToKeep = retention[level];
+			const cutoffDate = new Date();
+			cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+			const count = await AuditLog.destroy({
+				where: {
+					level,
+					created_at: {
+						[Op.lt]: cutoffDate,
+					},
+				},
+			});
+
+			totalDeleted += count;
+
+			// Log the cleanup operation itself
+			await log(
+				LogLevel.INFO,
+				`Cleaned up ${count} ${level} logs older than ${daysToKeep} days`,
+				'audit-log-rotation'
+			);
+		}
+
+		return totalDeleted;
+	} catch (error) {
+		console.error('Failed to clean up old logs:', error);
+		return 0;
+	}
+};
+
+/**
+ * Get statistics about audit logs in the system
+ * @returns Object with log count by level and total count
+ */
+export const getAuditLogStats = async (): Promise<{
+	total: number;
+	byLevel: { [key in LogLevel]?: number };
+	oldestLog: Date | null;
+	newestLog: Date | null;
+}> => {
+	const stats = {
+		total: 0,
+		byLevel: {} as { [key in LogLevel]?: number },
+		oldestLog: null as Date | null,
+		newestLog: null as Date | null,
+	};
+
+	// Get total count
+	stats.total = await AuditLog.count();
+
+	// Get count by level
+	for (const level of Object.values(LogLevel)) {
+		stats.byLevel[level] = await AuditLog.count({
+			where: { level },
+		});
+	}
+
+	// Get oldest log date
+	const oldest = await AuditLog.findOne({
+		order: [['created_at', 'ASC']],
+		attributes: ['created_at'],
+	});
+	stats.oldestLog = oldest ? oldest.created_at : null;
+
+	// Get newest log date
+	const newest = await AuditLog.findOne({
+		order: [['created_at', 'DESC']],
+		attributes: ['created_at'],
+	});
+	stats.newestLog = newest ? newest.created_at : null;
+
+	return stats;
+};
+
 // Export service functions with an object for backward compatibility
 export const auditLogService = {
 	log,
@@ -135,4 +236,6 @@ export const auditLogService = {
 	debug,
 	getRecentLogs,
 	getLogsByLevel,
+	cleanupOldLogs,
+	getAuditLogStats,
 };

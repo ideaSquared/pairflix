@@ -5,6 +5,7 @@ interface UserAttributes extends UserInterface {
 	password_hash: string;
 	updated_at: Date;
 	username: string;
+	role: string;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -18,6 +19,7 @@ interface UserCreationAttributes {
 	email: string;
 	password_hash: string;
 	username: string;
+	role?: string;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -32,6 +34,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare email: string;
 	declare username: string;
 	declare password_hash: string;
+	declare role: string;
 	declare preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -70,6 +73,11 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 				password_hash: {
 					type: DataTypes.STRING,
 					allowNull: false,
+				},
+				role: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					defaultValue: 'user',
 				},
 				preferences: {
 					type: DataTypes.JSONB,

@@ -96,12 +96,13 @@ describe('Auth Controller', () => {
 				user_id: 'test-user-id',
 				email: 'test@example.com',
 				username: 'testuser',
+				role: 'user', // Add the missing role property
 				preferences: {
 					theme: 'dark' as 'dark' | 'light',
 					viewStyle: 'grid' as 'grid' | 'list',
 					emailNotifications: true,
 					autoArchiveDays: 30,
-					favoriteGenres: [] as string[]
+					favoriteGenres: [] as string[],
 				},
 			};
 
@@ -118,17 +119,14 @@ describe('Auth Controller', () => {
 		it('should handle errors and return 500', async () => {
 			// Arrange
 			// Create a mock request with no user to trigger an error
-			const req = mockRequest();
-			
-			// Create a response object that tracks calls
+			const req = mockRequest({
+				user: undefined as any, // Using type assertion to bypass type checking
+			});
 			const res = mockResponse();
-			
-			// Force req.user to be undefined to trigger error path
-			req.user = undefined;
-			
+
 			// Act
 			await getCurrentUser(req, res);
-			
+
 			// Assert
 			expect(res.status).toHaveBeenCalledWith(500);
 			expect(res.json).toHaveBeenCalledWith({

@@ -2,6 +2,7 @@ export interface User {
 	user_id: string;
 	email: string;
 	username: string;
+	role: string;
 	created_at: Date;
 }
 
@@ -45,6 +46,14 @@ export interface AuthenticatedUser {
 	user_id: string;
 	email: string;
 	username: string;
+	role: string;
+	preferences: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
 }
 
 export interface AuthenticatedRequest extends Request {

@@ -16,6 +16,7 @@ export const authenticateUser = async (email: string, password: string) => {
 			user_id: user.user_id,
 			email: user.email,
 			username: user.username,
+			role: user.role, // Include the user's role in the token
 			preferences: user.preferences,
 		},
 		process.env.JWT_SECRET!,

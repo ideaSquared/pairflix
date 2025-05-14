@@ -1,16 +1,38 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '../services/api';
+
+interface AuthUser {
+	user_id: string;
+	email: string;
+	username: string;
+	role: string;
+	preferences?: {
+		theme: 'light' | 'dark';
+		viewStyle: 'list' | 'grid';
+		emailNotifications: boolean;
+		autoArchiveDays: number;
+		favoriteGenres: string[];
+	};
+}
 
 export function useAuth() {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 
+	// Force a refresh of authentication status when the hook mounts
+	useEffect(() => {
+		if (localStorage.getItem('token')) {
+			queryClient.invalidateQueries(['auth']);
+		}
+	}, [queryClient]);
+
 	const {
 		data: user,
 		isLoading,
 		error,
-	} = useQuery({
+	} = useQuery<AuthUser>({
 		queryKey: ['auth'],
 		queryFn: authApi.auth.getCurrentUser,
 		retry: (failureCount, error) => {

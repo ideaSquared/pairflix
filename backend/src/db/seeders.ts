@@ -18,7 +18,7 @@ export async function seedDatabase() {
 		await User.destroy({ where: {} });
 
 		// Create test users with usernames
-		const password = await bcrypt.hash('testpass123', 10);
+		const password = await bcrypt.hash('1234', 10);
 		const defaultPreferences = {
 			theme: 'dark' as const,
 			viewStyle: 'grid' as const,
@@ -45,6 +45,13 @@ export async function seedDatabase() {
 				username: 'user3',
 				password_hash: password,
 				preferences: defaultPreferences,
+			}),
+			User.create({
+				email: 'admin@example.com',
+				username: 'admin',
+				password_hash: password,
+				preferences: defaultPreferences,
+				role: 'admin',
 			}),
 		]);
 

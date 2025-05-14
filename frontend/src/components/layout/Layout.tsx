@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../../hooks/useAuth';
 import { Card } from '../common/Card';
 import { Container, Flex } from '../common/Layout';
 import { H1, Typography } from '../common/Typography';
@@ -52,8 +53,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
 	const navigate = useNavigate();
-	const token = localStorage.getItem('token');
+	const { user, isAuthenticated } = useAuth();
 	const currentPath = window.location.pathname;
+	const isAdmin = user?.role === 'admin';
 
 	const handleLogout = () => {
 		localStorage.removeItem('token');
@@ -68,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 						<H1 onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
 							PairFlix
 						</H1>
-						{token && (
+						{isAuthenticated && (
 							<Nav as='nav'>
 								<NavLink
 									active={currentPath === '/watchlist'}
@@ -82,6 +84,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 								>
 									Matches
 								</NavLink>
+								{isAdmin && (
+									<NavLink
+										active={currentPath === '/admin/logs'}
+										onClick={() => navigate('/admin/logs')}
+									>
+										Audit Logs
+									</NavLink>
+								)}
 								<NavLink
 									active={currentPath === '/profile'}
 									onClick={() => navigate('/profile')}

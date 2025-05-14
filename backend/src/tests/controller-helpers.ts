@@ -10,6 +10,7 @@ export const mockRequest = (overrides: Partial<Request> = {}) => {
 			user_id: 'test-user-id',
 			email: 'test@example.com',
 			username: 'testuser',
+			role: 'user', // Adding the role property
 			preferences: {
 				theme: 'dark',
 				viewStyle: 'grid',
