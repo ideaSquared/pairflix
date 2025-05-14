@@ -187,6 +187,19 @@ export const auth = {
 	getCurrentUser: async () => {
 		return fetchWithAuth('/api/auth/me');
 	},
+	logout: async () => {
+		try {
+			// Call the logout endpoint to record the event in audit logs
+			await fetchWithAuth('/api/auth/logout', {
+				method: 'POST',
+			});
+		} catch (error) {
+			// If there's an error logging out, we still want to clear local storage
+			console.error('Error logging out:', error);
+		}
+		// Remove token from localStorage regardless of server response
+		localStorage.removeItem('token');
+	},
 };
 
 export const user = {

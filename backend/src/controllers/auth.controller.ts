@@ -69,3 +69,43 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 		res.status(500).json({ error: 'Unknown error occurred' });
 	}
 };
+
+export const logout = async (req: Request, res: Response) => {
+	try {
+		// Only log if we have a user in the request
+		if (req.user) {
+			// Audit log for successful logout
+			await auditLogService.info('User logged out', 'auth-controller', {
+				userId: req.user.user_id,
+				email: req.user.email,
+				ip: req.ip,
+				userAgent: req.get('user-agent'),
+				timestamp: new Date(),
+			});
+		} else {
+			// Log attempt with no valid user
+			await auditLogService.warn(
+				'Logout attempt with no valid session',
+				'auth-controller',
+				{
+					ip: req.ip,
+					userAgent: req.get('user-agent'),
+					timestamp: new Date(),
+				}
+			);
+		}
+
+		res.status(204).send();
+	} catch (error) {
+		// Log error during logout
+		await auditLogService.warn('Error during logout', 'auth-controller', {
+			userId: req.user?.user_id,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			ip: req.ip,
+			userAgent: req.get('user-agent'),
+			timestamp: new Date(),
+		});
+
+		res.status(500).json({ error: 'An error occurred during logout' });
+	}
+};

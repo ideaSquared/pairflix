@@ -49,8 +49,11 @@ export function useAuth() {
 		cacheTime: 0, // Disable caching to ensure fresh data
 	});
 
-	const logout = () => {
-		localStorage.removeItem('token');
+	const logout = async () => {
+		// Call the server-side logout endpoint to record in audit logs
+		await authApi.auth.logout();
+
+		// Update local state
 		queryClient.setQueryData(['auth'], null);
 		queryClient.invalidateQueries();
 		navigate('/login');
