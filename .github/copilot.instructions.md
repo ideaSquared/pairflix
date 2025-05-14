@@ -81,6 +81,7 @@ _Do you approve this plan?_ I will proceed with **Edit [number]** after explicit
   - Constraints or technical notes
 
 - ✅ An **AI-managed decision log** noting:
+  - EVERY decision made
   - All architectural choices
   - Trade-offs considered
   - All changes made

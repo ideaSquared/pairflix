@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { auditLogService } from '../services/audit.service';
 
 declare global {
 	namespace Express {
@@ -30,6 +31,20 @@ export const authenticateToken = (
 
 	if (!token) {
 		console.log('Auth failed: No token provided');
+
+		// Audit log - missing token
+		auditLogService.warn(
+			'Authentication failed: No token provided',
+			'auth-middleware',
+			{
+				path: req.path,
+				method: req.method,
+				ip: req.ip,
+				userAgent: req.get('user-agent'),
+				timestamp: new Date(),
+			}
+		);
+
 		return res.status(401).json({ error: 'Authentication required' });
 	}
 
@@ -50,6 +65,21 @@ export const authenticateToken = (
 		next();
 	} catch (error) {
 		console.error('Auth failed:', error);
+
+		// Audit log - invalid token
+		auditLogService.warn(
+			'Authentication failed: Invalid or expired token',
+			'auth-middleware',
+			{
+				path: req.path,
+				method: req.method,
+				error: error instanceof Error ? error.message : 'Unknown error',
+				ip: req.ip,
+				userAgent: req.get('user-agent'),
+				timestamp: new Date(),
+			}
+		);
+
 		return res.status(403).json({ error: 'Invalid or expired token' });
 	}
 };

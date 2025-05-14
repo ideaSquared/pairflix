@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import { ActivityLog } from './ActivityLog';
+import AuditLog from './AuditLog';
 import Match from './Match';
 import User from './User';
 import WatchlistEntry from './WatchlistEntry';
@@ -10,6 +11,7 @@ export function initializeModels(sequelize: Sequelize) {
 	Match.initialize(sequelize);
 	WatchlistEntry.initialize(sequelize);
 	ActivityLog.initialize(sequelize);
+	AuditLog.initialize(sequelize);
 
 	// Then set up associations
 	Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -25,6 +27,7 @@ export function initializeModels(sequelize: Sequelize) {
 		Match,
 		WatchlistEntry,
 		ActivityLog,
+		AuditLog,
 	};
 }
 
@@ -33,4 +36,5 @@ export default {
 	Match,
 	WatchlistEntry,
 	ActivityLog,
+	AuditLog,
 };

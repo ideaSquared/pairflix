@@ -8,7 +8,10 @@ import {
 	TMDbTV,
 } from './tmdb.service';
 
-export const addToWatchlistService = async (user: any, body: any) => {
+/**
+ * Add a new entry to a user's watchlist
+ */
+export const addToWatchlist = async (user: any, body: any) => {
 	const { tmdb_id, media_type, status, notes } = body;
 	return WatchlistEntry.create({
 		user_id: user.user_id,
@@ -19,7 +22,10 @@ export const addToWatchlistService = async (user: any, body: any) => {
 	});
 };
 
-export const getWatchlistService = async (user: any) => {
+/**
+ * Get all entries in a user's watchlist with TMDb details
+ */
+export const getWatchlist = async (user: any) => {
 	const entries = await WatchlistEntry.findAll({
 		where: { user_id: user.user_id },
 		order: [['created_at', 'DESC']],
@@ -51,7 +57,10 @@ export const getWatchlistService = async (user: any) => {
 	);
 };
 
-export const updateWatchlistEntryService = async (
+/**
+ * Update an existing watchlist entry
+ */
+export const updateWatchlistEntry = async (
 	entry_id: string,
 	body: any,
 	user: any
@@ -91,7 +100,10 @@ export const updateWatchlistEntryService = async (
 	};
 };
 
-export const getMatchesService = async (user: any) => {
+/**
+ * Get content matches between a user and their matched users
+ */
+export const getMatches = async (user: any) => {
 	try {
 		console.log('Getting matches for user:', user.user_id);
 
@@ -182,7 +194,21 @@ export const getMatchesService = async (user: any) => {
 		console.log('Returning valid content matches:', validMatches.length);
 		return validMatches;
 	} catch (error) {
-		console.error('Error in getMatchesService:', error);
+		console.error('Error in getMatches:', error);
 		return [];
 	}
 };
+
+// Export service functions with an object for backward compatibility
+export const watchlistService = {
+	addToWatchlist,
+	getWatchlist,
+	updateWatchlistEntry,
+	getMatches,
+};
+
+// Keep the original function names for backward compatibility
+export const addToWatchlistService = addToWatchlist;
+export const getWatchlistService = getWatchlist;
+export const updateWatchlistEntryService = updateWatchlistEntry;
+export const getMatchesService = getMatches;

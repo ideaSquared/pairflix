@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
+import { auditLogService } from '../services/audit.service';
 
 export const findUserByEmailService = async (
 	email: string,
@@ -23,6 +24,17 @@ export const updateEmailService = async (
 ) => {
 	const existingUser = await User.findOne({ where: { email: newEmail } });
 	if (existingUser) {
+		// Audit log - email change attempt with existing email
+		await auditLogService.warn(
+			'Email change failed: Email already in use',
+			'user-service',
+			{
+				userId: requestUser.user_id,
+				attemptedEmail: newEmail,
+				timestamp: new Date(),
+			}
+		);
+
 		throw new Error('Email is already in use');
 	}
 
@@ -34,11 +46,35 @@ export const updateEmailService = async (
 
 	const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 	if (!isPasswordValid) {
+		// Audit log - email change attempt with invalid password
+		await auditLogService.warn(
+			'Email change failed: Invalid password',
+			'user-service',
+			{
+				userId: user.user_id,
+				attemptedEmail: newEmail,
+				timestamp: new Date(),
+			}
+		);
+
 		throw new Error('Invalid password');
 	}
 
+	const oldEmail = user.email;
 	user.email = newEmail;
 	await user.save();
+
+	// Audit log - successful email change
+	await auditLogService.info(
+		'User email changed successfully',
+		'user-service',
+		{
+			userId: user.user_id,
+			oldEmail: oldEmail,
+			newEmail: newEmail,
+			timestamp: new Date(),
+		}
+	);
 
 	// Generate new token with updated email
 	const token = jwt.sign(
@@ -66,11 +102,31 @@ export const updatePasswordService = async (
 		user.password_hash
 	);
 	if (!isPasswordValid) {
+		// Audit log - failed password change attempt due to invalid current password
+		await auditLogService.warn(
+			'Password change failed: Invalid current password',
+			'user-service',
+			{
+				userId: user.user_id,
+				timestamp: new Date(),
+			}
+		);
+
 		throw new Error('Invalid current password');
 	}
 
 	user.password_hash = await bcrypt.hash(newPassword, 10);
 	await user.save();
+
+	// Audit log - successful password change
+	await auditLogService.info(
+		'User password changed successfully',
+		'user-service',
+		{
+			userId: user.user_id,
+			timestamp: new Date(),
+		}
+	);
 };
 
 export const updateUsernameService = async (

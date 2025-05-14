@@ -13,6 +13,13 @@ jest.mock('../services/match.service', () => ({
 	updateMatchStatusService: jest.fn(),
 }));
 
+// Mock the activity service
+jest.mock('../services/activity.service', () => ({
+	activityService: {
+		logActivity: jest.fn().mockResolvedValue({}),
+	},
+}));
+
 describe('Match Controller', () => {
 	beforeEach(() => {
 		resetMocks();

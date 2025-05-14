@@ -21,6 +21,13 @@ jest.mock('../services/user.service', () => ({
 	updateUsernameService: jest.fn(),
 }));
 
+// Mock the activity service
+jest.mock('../services/activity.service', () => ({
+	activityService: {
+		logActivity: jest.fn().mockResolvedValue({}),
+	},
+}));
+
 describe('User Controller', () => {
 	beforeEach(() => {
 		resetMocks();

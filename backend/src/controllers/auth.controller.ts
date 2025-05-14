@@ -1,11 +1,19 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { activityService, ActivityType } from '../services/activity.service';
+import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
 
 export const login = async (req: Request, res: Response) => {
 	const { email, password } = req.body;
 	try {
+		// Audit log - login attempt
+		await auditLogService.info('Login attempt', 'auth-controller', {
+			email,
+			ip: req.ip,
+			userAgent: req.get('user-agent'),
+			timestamp: new Date(),
+		});
+
 		const token = await authenticateUser(email, password);
 
 		// Decode token to get user_id for activity logging
@@ -16,15 +24,31 @@ export const login = async (req: Request, res: Response) => {
 			preferences: any;
 		};
 
-		// Log the login activity
-		await activityService.logActivity(
-			decoded.user_id,
-			ActivityType.USER_LOGIN,
-			{ timestamp: new Date() }
-		);
+		// Log the login activity - this isn't typically shown to other users
+		// and should be moved to audit logging only
+		// await activityService.logActivity(
+		//	decoded.user_id,
+		//	ActivityType.USER_LOGIN,
+		//	{ timestamp: new Date() }
+		// );
+
+		// Audit log - successful login
+		await auditLogService.info('Login successful', 'auth-controller', {
+			userId: decoded.user_id,
+			email,
+			timestamp: new Date(),
+		});
 
 		res.json({ token });
 	} catch (error) {
+		// Audit log - failed login
+		await auditLogService.warn('Login failed', 'auth-controller', {
+			email,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			ip: req.ip,
+			timestamp: new Date(),
+		});
+
 		if (error instanceof Error) {
 			res.status(401).json({ error: error.message });
 		} else {

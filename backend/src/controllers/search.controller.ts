@@ -10,6 +10,22 @@ export const searchTMDb = async (req: Request, res: Response) => {
 	try {
 		console.log('[Search Controller] Searching media:', { query });
 		const tmdbResponse = await searchMediaService(query);
+
+		// Search activity isn't typically interesting for other users to see
+		// in an activity feed - it clutters the feed without providing value
+		// Consider logging only searches that lead to watchlist additions
+		// if (req.user) {
+		//   await activityService.logActivity(
+		//     req.user.user_id,
+		//     ActivityType.MEDIA_SEARCH,
+		//     {
+		//       searchQuery: query,
+		//       resultCount: tmdbResponse.results?.length || 0,
+		//       timestamp: new Date(),
+		//     }
+		//   );
+		// }
+
 		res.json(tmdbResponse);
 	} catch (error) {
 		console.error('[Search Controller] Error searching media:', {

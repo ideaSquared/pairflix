@@ -11,6 +11,13 @@ jest.mock('../services/search.service', () => ({
 	searchMediaService: jest.fn(),
 }));
 
+// Mock the activity service
+jest.mock('../services/activity.service', () => ({
+	activityService: {
+		logActivity: jest.fn().mockResolvedValue({}),
+	},
+}));
+
 describe('Search Controller', () => {
 	beforeEach(() => {
 		resetMocks();
