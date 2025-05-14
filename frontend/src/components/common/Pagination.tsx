@@ -5,9 +5,11 @@ import { Flex } from './Layout';
 import { Typography } from './Typography';
 
 interface PaginationProps {
-	page: number;
-	totalCount: number;
-	limit: number;
+	page?: number; // Keep for backward compatibility
+	currentPage?: number;
+	totalCount?: number;
+	limit?: number;
+	totalPages?: number;
 	onPageChange: (page: number) => void;
 }
 
@@ -32,24 +34,45 @@ const PaginationButton = styled(Button)<{ disabled?: boolean }>`
 
 export const Pagination: React.FC<PaginationProps> = ({
 	page,
+	currentPage,
 	totalCount,
+	totalPages,
 	limit,
 	onPageChange,
 }) => {
-	const from = (page - 1) * limit + 1;
-	const to = Math.min(page * limit, totalCount);
-	const hasNextPage = page * limit < totalCount;
-	const hasPreviousPage = page > 1;
+	// Use currentPage if provided, otherwise fall back to page
+	const activePage = currentPage ?? page ?? 1;
+
+	// Calculate totalPages if not directly provided
+	const actualTotalPages =
+		totalPages ?? (totalCount && limit ? Math.ceil(totalCount / limit) : 1);
+
+	// Only calculate from/to if we have totalCount and limit
+	let from, to;
+	if (totalCount !== undefined && limit !== undefined) {
+		from = (activePage - 1) * limit + 1;
+		to = Math.min(activePage * limit, totalCount);
+	}
+
+	const hasNextPage = activePage < actualTotalPages;
+	const hasPreviousPage = activePage > 1;
 
 	return (
 		<PaginationContainer>
-			<PaginationInfo>
-				Showing {from} to {to} of {totalCount} results
-			</PaginationInfo>
+			{totalCount !== undefined && limit !== undefined && (
+				<PaginationInfo>
+					Showing {from} to {to} of {totalCount} results
+				</PaginationInfo>
+			)}
+			{!totalCount && (
+				<PaginationInfo>
+					Page {activePage} of {actualTotalPages}
+				</PaginationInfo>
+			)}
 			<Flex gap='sm'>
 				<PaginationButton
 					variant='secondary'
-					onClick={() => onPageChange(page - 1)}
+					onClick={() => onPageChange(activePage - 1)}
 					disabled={!hasPreviousPage}
 					size='small'
 				>
@@ -57,7 +80,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 				</PaginationButton>
 				<PaginationButton
 					variant='secondary'
-					onClick={() => onPageChange(page + 1)}
+					onClick={() => onPageChange(activePage + 1)}
 					disabled={!hasNextPage}
 					size='small'
 				>

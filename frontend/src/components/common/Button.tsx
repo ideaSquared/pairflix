@@ -5,7 +5,8 @@ export type ButtonVariant =
 	| 'secondary'
 	| 'success'
 	| 'danger'
-	| 'warning';
+	| 'warning'
+	| 'text';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
 interface ButtonProps {
@@ -51,6 +52,15 @@ const getVariantStyles = (variant: ButtonVariant = 'primary') => {
 			color: #000000;
 			&:hover:not(:disabled) {
 				opacity: 0.9;
+			}
+		`,
+		text: css`
+			background: transparent;
+			color: ${({ theme }) => theme.colors.primary};
+			padding: ${({ theme }) => theme.spacing.xs};
+			&:hover:not(:disabled) {
+				text-decoration: underline;
+				background: transparent;
 			}
 		`,
 	};

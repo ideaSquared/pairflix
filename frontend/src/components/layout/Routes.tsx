@@ -1,6 +1,13 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { AuditLogDashboard } from '../../features/admin';
+import {
+	AdminDashboard,
+	AdminLayout,
+	AdminSettings,
+	AuditLogDashboard,
+	SystemStatsPage,
+	UserManagement,
+} from '../../features/admin';
 import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
 import MatchPage from '../../features/match/MatchPage';
@@ -42,6 +49,8 @@ const AppRoutes: React.FC = () => {
 	return (
 		<Routes>
 			<Route path='/login' element={<LoginPage />} />
+
+			{/* Protected user routes */}
 			<Route
 				path='/watchlist'
 				element={<ProtectedRoute element={<WatchlistPage />} />}
@@ -54,11 +63,19 @@ const AppRoutes: React.FC = () => {
 				path='/profile'
 				element={<ProtectedRoute element={<ProfilePage />} />}
 			/>
-			<Route
-				path='/admin/logs'
-				element={<AdminRoute element={<AuditLogDashboard />} />}
-			/>
+
+			{/* Admin routes */}
+			<Route path='/admin' element={<AdminRoute element={<AdminLayout />} />}>
+				<Route index element={<AdminDashboard />} />
+				<Route path='users' element={<UserManagement />} />
+				<Route path='logs' element={<AuditLogDashboard />} />
+				<Route path='stats' element={<SystemStatsPage />} />
+				<Route path='settings' element={<AdminSettings />} />
+			</Route>
+
+			{/* Default route */}
 			<Route path='/' element={<Navigate to='/watchlist' />} />
+			<Route path='*' element={<Navigate to='/' />} />
 		</Routes>
 	);
 };

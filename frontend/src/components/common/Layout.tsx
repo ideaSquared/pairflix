@@ -10,7 +10,9 @@ interface GridProps {
 		| 'center'
 		| 'end'
 		| 'space-between'
-		| 'space-around';
+		| 'space-around'
+		| 'flex-start'
+		| 'flex-end';
 }
 
 export const Grid = styled.div<GridProps>`
@@ -50,7 +52,9 @@ interface FlexProps {
 		| 'center'
 		| 'end'
 		| 'space-between'
-		| 'space-around';
+		| 'space-around'
+		| 'flex-start'
+		| 'flex-end';
 	wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
 }
 

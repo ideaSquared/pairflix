@@ -139,6 +139,114 @@ export interface PaginatedResponse<T> {
 	};
 }
 
+// New interfaces for admin dashboard
+export interface DashboardStats {
+	totalUsers: number;
+	activeUsers: number;
+	totalMatches: number;
+	watchlistEntries: number;
+}
+
+export interface SystemStats {
+	server: {
+		uptime: number;
+		memory: {
+			total: number;
+			used: number;
+			free: number;
+		};
+		cpu: {
+			usage: number;
+			cores: number;
+		};
+		storage: {
+			total: number;
+			used: number;
+			free: number;
+		};
+	};
+	database: {
+		connections: number;
+		queriesPerSecond: number;
+		size: number;
+		tables: {
+			name: string;
+			rows: number;
+			size: number;
+		}[];
+	};
+	application: {
+		activeUsers: number;
+		activeUsersTrend: 'up' | 'down' | 'neutral';
+		requestsPerMinute: number;
+		requestsPerMinuteTrend: 'up' | 'down' | 'neutral';
+		averageResponseTime: number;
+		averageResponseTimeTrend: 'up' | 'down' | 'neutral';
+		errorRate: number;
+		errorRateTrend: 'up' | 'down' | 'neutral';
+	};
+}
+
+export interface AdminUser {
+	user_id: string;
+	username: string;
+	email: string;
+	role: 'admin' | 'user' | 'moderator';
+	status: 'active' | 'inactive' | 'suspended';
+	created_at: string;
+	last_login?: string;
+	preferences: {
+		theme: 'light' | 'dark';
+		emailNotifications: boolean;
+		[key: string]: any;
+	};
+}
+
+export interface AppSettings {
+	general: {
+		siteName: string;
+		siteDescription: string;
+		maintenanceMode: boolean;
+		defaultUserRole: string;
+	};
+	security: {
+		sessionTimeout: number;
+		maxLoginAttempts: number;
+		passwordPolicy: {
+			minLength: number;
+			requireUppercase: boolean;
+			requireLowercase: boolean;
+			requireNumbers: boolean;
+			requireSpecialChars: boolean;
+		};
+		twoFactorAuth: {
+			enabled: boolean;
+			requiredForAdmins: boolean;
+		};
+	};
+	email: {
+		smtpServer: string;
+		smtpPort: number;
+		smtpUsername: string;
+		smtpPassword: string;
+		senderEmail: string;
+		senderName: string;
+		emailTemplatesPath: string;
+	};
+	media: {
+		maxUploadSize: number;
+		allowedFileTypes: string[];
+		imageQuality: number;
+		storageProvider: string;
+	};
+	features: {
+		enableMatching: boolean;
+		enableUserProfiles: boolean;
+		enableNotifications: boolean;
+		enableActivityFeed: boolean;
+	};
+}
+
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 	const headers = new Headers({
 		'Content-Type': 'application/json',
@@ -298,6 +406,7 @@ export const matches = {
 };
 
 export const admin = {
+	// Existing audit log methods
 	getAuditLogs: async (
 		params: {
 			limit?: number;
@@ -367,4 +476,114 @@ export const admin = {
 			body: JSON.stringify(data),
 		});
 	},
+
+	// New admin dashboard methods
+	getDashboardStats: async (): Promise<{ stats: DashboardStats }> => {
+		// This would call a new endpoint to get overall dashboard stats
+		return fetchWithAuth('/api/admin/dashboard-stats');
+	},
+
+	// User management methods
+	getUsers: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			search?: string;
+			status?: string;
+			role?: string;
+			sortBy?: string;
+			sortOrder?: 'asc' | 'desc';
+		} = {}
+	): Promise<{
+		users: AdminUser[];
+		pagination: {
+			total: number;
+			limit: number;
+			offset: number;
+			hasMore: boolean;
+		};
+	}> => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.search) queryParams.append('search', params.search);
+		if (params.status) queryParams.append('status', params.status);
+		if (params.role) queryParams.append('role', params.role);
+		if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+		if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+		return fetchWithAuth(`/api/admin/users?${queryParams.toString()}`);
+	},
+
+	getUser: async (userId: string): Promise<{ user: AdminUser }> => {
+		return fetchWithAuth(`/api/admin/users/${userId}`);
+	},
+
+	createUser: async (userData: {
+		username: string;
+		email: string;
+		password: string;
+		role: string;
+		status: string;
+	}): Promise<{ user: AdminUser; message: string }> => {
+		return fetchWithAuth('/api/admin/users', {
+			method: 'POST',
+			body: JSON.stringify(userData),
+		});
+	},
+
+	updateUser: async (
+		userId: string,
+		updates: {
+			username?: string;
+			email?: string;
+			password?: string;
+			role?: string;
+			status?: string;
+		}
+	): Promise<{ user: AdminUser; message: string }> => {
+		return fetchWithAuth(`/api/admin/users/${userId}`, {
+			method: 'PUT',
+			body: JSON.stringify(updates),
+		});
+	},
+
+	// System stats methods
+	getSystemStats: async (): Promise<{ stats: SystemStats }> => {
+		return fetchWithAuth('/api/admin/system-stats');
+	},
+
+	// App settings methods
+	getAppSettings: async (): Promise<{ settings: AppSettings }> => {
+		return fetchWithAuth('/api/admin/settings');
+	},
+
+	updateAppSettings: async (
+		settings: AppSettings
+	): Promise<{ settings: AppSettings; message: string }> => {
+		return fetchWithAuth('/api/admin/settings', {
+			method: 'PUT',
+			body: JSON.stringify({ settings }),
+		});
+	},
+
+	deleteUser: async (
+		userId: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/users/${userId}`, {
+			method: 'DELETE',
+		});
+	},
 };
+
+// Create and export a default api object that combines all services
+const api = {
+	auth,
+	user,
+	search,
+	watchlist,
+	matches,
+	admin,
+};
+
+export default api;
