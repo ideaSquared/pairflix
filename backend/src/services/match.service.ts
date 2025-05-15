@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import Match from '../models/Match';
 import User from '../models/User';
+import WatchlistEntry from '../models/WatchlistEntry';
 
 export const createMatchService = async (user: any, body: any) => {
 	const { user2_id } = body;
@@ -26,6 +27,11 @@ export const getMatchesService = async (user: any) => {
 		include: [
 			{ model: User, as: 'user1', attributes: ['email'] },
 			{ model: User, as: 'user2', attributes: ['email'] },
+			{
+				model: WatchlistEntry,
+				as: 'watchlistEntry',
+				attributes: ['entry_id', 'tmdb_id', 'media_type', 'status'], // Include fields that actually exist
+			},
 		],
 	});
 };

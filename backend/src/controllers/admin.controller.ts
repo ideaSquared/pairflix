@@ -1018,7 +1018,7 @@ export const getAllMatches = async (req: Request, res: Response) => {
 				{
 					model: WatchlistEntry,
 					as: 'watchlistEntry',
-					attributes: ['title', 'media_type', 'media_id'],
+					attributes: ['tmdb_id', 'media_type', 'status'], // Replace 'title' with existing fields
 				},
 			],
 		});
@@ -1191,23 +1191,18 @@ export const getUserActivityStats = async (req: Request, res: Response) => {
 			order: [[sequelize.fn('COUNT', sequelize.col('*')), 'DESC']],
 		});
 
-		// Get most active users - only include records where user_id exists
-		const mostActiveUsers = await ActivityLog.findAll({
-			attributes: [
-				'user_id',
-				[sequelize.fn('COUNT', sequelize.col('*')), 'count'],
-			],
-			where: {
-				...dateFilter,
-				user_id: {
-					[Op.ne]: '', // Filter for non-empty strings instead of using Op.not: null
-				},
-			},
-			group: ['user_id'],
-			order: [[sequelize.fn('COUNT', sequelize.col('*')), 'DESC']],
-			limit: 10,
-			include: [{ model: User, as: 'user', attributes: ['username', 'email'] }],
-		});
+		// Get most active users - use direct SQL with a subquery to validate UUIDs
+		// This approach avoids the type issues with Sequelize operators
+		const [mostActiveUsers] = await sequelize.query(`
+			SELECT "ActivityLog"."user_id", COUNT(*) as count, 
+			       "User"."username", "User"."email"
+			FROM "activity_log" AS "ActivityLog"
+			INNER JOIN "users" AS "User" ON "ActivityLog"."user_id" = "User"."user_id"
+			WHERE "ActivityLog"."created_at" >= '${startDate.toISOString()}'
+			GROUP BY "ActivityLog"."user_id", "User"."username", "User"."email"
+			ORDER BY count DESC
+			LIMIT 10
+		`);
 
 		return res.status(200).json({
 			timespan: { days, startDate },
