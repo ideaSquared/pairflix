@@ -86,10 +86,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 								</NavLink>
 								{isAdmin && (
 									<NavLink
-										active={currentPath === '/admin/logs'}
-										onClick={() => navigate('/admin/logs')}
+										active={currentPath === '/admin/'}
+										onClick={() => navigate('/admin/')}
 									>
-										Audit Logs
+										Admin
 									</NavLink>
 								)}
 								<NavLink
