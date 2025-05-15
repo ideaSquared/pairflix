@@ -6,6 +6,8 @@ interface UserAttributes extends UserInterface {
 	updated_at: Date;
 	username: string;
 	role: string;
+	status: 'active' | 'inactive' | 'pending' | 'suspended';
+	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -20,6 +22,8 @@ interface UserCreationAttributes {
 	password_hash: string;
 	username: string;
 	role?: string;
+	status?: 'active' | 'inactive' | 'pending' | 'suspended';
+	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -35,6 +39,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare username: string;
 	declare password_hash: string;
 	declare role: string;
+	declare status: 'active' | 'inactive' | 'pending' | 'suspended';
+	declare last_login?: Date;
 	declare preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -78,6 +84,18 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					type: DataTypes.STRING,
 					allowNull: false,
 					defaultValue: 'user',
+				},
+				status: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					defaultValue: 'active',
+					validate: {
+						isIn: [['active', 'inactive', 'pending', 'suspended']],
+					},
+				},
+				last_login: {
+					type: DataTypes.DATE,
+					allowNull: true,
 				},
 				preferences: {
 					type: DataTypes.JSONB,

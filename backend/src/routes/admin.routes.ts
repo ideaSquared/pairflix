@@ -9,6 +9,13 @@ router.use(authenticateToken);
 // Ensure all admin routes are restricted to admin users only
 router.use(requireAdmin);
 
+// User management routes
+router.get('/users', adminController.getUsers);
+router.get('/users/:userId', adminController.getUserById);
+router.put('/users/:userId', adminController.updateUser);
+router.delete('/users/:userId', adminController.deleteUser);
+
+// Audit log routes
 // Get all audit logs with filtering options
 router.get('/audit-logs', adminController.getAuditLogs);
 

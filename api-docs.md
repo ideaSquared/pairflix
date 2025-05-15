@@ -138,6 +138,123 @@ Changes the current user's password.
 
 **Response: 204 No Content**
 
+## Admin Endpoints
+
+These endpoints are only accessible to users with admin role.
+
+### User Management
+
+#### GET /admin/users
+
+Returns a paginated list of users with optional filtering and sorting.
+
+**Query Parameters:**
+
+- `limit` (optional): Number of users per page (default: 10)
+- `offset` (optional): Starting position for pagination
+- `search` (optional): Search by username or email
+- `role` (optional): Filter by role (`admin`, `moderator`, `user`)
+- `status` (optional): Filter by status (`active`, `inactive`, `pending`, `suspended`)
+- `sortBy` (optional): Sort field (`username`, `email`, `created_at`, `last_login`)
+- `sortOrder` (optional): Sort direction (`asc`, `desc`)
+
+**Response: 200 OK**
+
+```json
+{
+	"users": [
+		{
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"username": "admin",
+			"email": "admin@example.com",
+			"role": "admin",
+			"status": "active",
+			"created_at": "2023-01-01T00:00:00.000Z",
+			"last_login": "2023-01-02T00:00:00.000Z",
+			"preferences": {
+				"theme": "dark",
+				"emailNotifications": true
+			}
+		}
+	],
+	"pagination": {
+		"total": 25,
+		"limit": 10,
+		"offset": 0,
+		"hasMore": true
+	}
+}
+```
+
+#### GET /admin/users/:userId
+
+Returns details for a specific user.
+
+**Response: 200 OK**
+
+```json
+{
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "admin",
+		"email": "admin@example.com",
+		"role": "admin",
+		"status": "active",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"last_login": "2023-01-02T00:00:00.000Z",
+		"preferences": {
+			"theme": "dark",
+			"emailNotifications": true
+		}
+	}
+}
+```
+
+#### PUT /admin/users/:userId
+
+Updates a user's details.
+
+**Request Body:**
+
+```json
+{
+	"username": "newusername",
+	"email": "newemail@example.com",
+	"role": "moderator",
+	"status": "suspended"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "newusername",
+		"email": "newemail@example.com",
+		"role": "moderator",
+		"status": "suspended",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"last_login": "2023-01-02T00:00:00.000Z"
+	},
+	"message": "User updated successfully"
+}
+```
+
+#### DELETE /admin/users/:userId
+
+Deletes a user.
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "User deleted successfully"
+}
+```
+
 ## Watchlist Endpoints
 
 #### GET /watchlist

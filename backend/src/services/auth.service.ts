@@ -11,12 +11,18 @@ export const authenticateUser = async (email: string, password: string) => {
 	if (!isPasswordValid) {
 		throw new Error('Invalid credentials');
 	}
+
+	// Update the last login time
+	user.last_login = new Date();
+	await user.save();
+
 	const token = jwt.sign(
 		{
 			user_id: user.user_id,
 			email: user.email,
 			username: user.username,
-			role: user.role, // Include the user's role in the token
+			role: user.role,
+			status: user.status, // Include user status in token
 			preferences: user.preferences,
 		},
 		process.env.JWT_SECRET!,

@@ -3,6 +3,8 @@ export interface User {
 	email: string;
 	username: string;
 	role: string;
+	status: 'active' | 'inactive' | 'pending' | 'suspended';
+	last_login?: Date;
 	created_at: Date;
 }
 
@@ -47,6 +49,7 @@ export interface AuthenticatedUser {
 	email: string;
 	username: string;
 	role: string;
+	status: 'active' | 'inactive' | 'pending' | 'suspended';
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
