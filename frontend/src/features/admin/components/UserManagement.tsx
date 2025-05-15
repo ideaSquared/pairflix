@@ -209,6 +209,7 @@ const UserManagement: React.FC = () => {
 					<Select
 						value={roleFilter}
 						onChange={(e) => setRoleFilter(e.target.value)}
+						fullWidth
 					>
 						<option value=''>All Roles</option>
 						<option value='admin'>Admin</option>
@@ -221,6 +222,7 @@ const UserManagement: React.FC = () => {
 					<Select
 						value={statusFilter}
 						onChange={(e) => setStatusFilter(e.target.value)}
+						fullWidth
 					>
 						<option value=''>All Statuses</option>
 						<option value='active'>Active</option>
@@ -231,7 +233,11 @@ const UserManagement: React.FC = () => {
 				</FilterItem>
 
 				<FilterItem label='Sort By'>
-					<Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+					<Select
+						value={sortBy}
+						onChange={(e) => setSortBy(e.target.value)}
+						fullWidth
+					>
 						<option value='name'>Name</option>
 						<option value='email'>Email</option>
 						<option value='created_at'>Created Date</option>
@@ -243,6 +249,7 @@ const UserManagement: React.FC = () => {
 					<Select
 						value={sortOrder}
 						onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+						fullWidth
 					>
 						<option value='asc'>Ascending</option>
 						<option value='desc'>Descending</option>
