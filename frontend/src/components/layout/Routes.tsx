@@ -5,6 +5,8 @@ import {
 	AdminLayout,
 	AdminSettings,
 	AuditLogDashboard,
+	ContentModeration,
+	SystemMonitoring,
 	SystemStatsPage,
 	UserManagement,
 } from '../../features/admin';
@@ -68,6 +70,8 @@ const AppRoutes: React.FC = () => {
 			<Route path='/admin' element={<AdminRoute element={<AdminLayout />} />}>
 				<Route index element={<AdminDashboard />} />
 				<Route path='users' element={<UserManagement />} />
+				<Route path='content' element={<ContentModeration />} />
+				<Route path='monitoring' element={<SystemMonitoring />} />
 				<Route path='logs' element={<AuditLogDashboard />} />
 				<Route path='stats' element={<SystemStatsPage />} />
 				<Route path='settings' element={<AdminSettings />} />

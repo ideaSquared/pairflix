@@ -61,6 +61,17 @@ const NavItem = styled(Link)<{ active?: boolean }>`
 	}
 `;
 
+const NavSectionTitle = styled.div`
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: ${({ theme }) => theme.colors.text.secondary};
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: ${({ theme }) => theme.spacing.md} 0
+		${({ theme }) => theme.spacing.xs};
+	padding: 0 ${({ theme }) => theme.spacing.md};
+`;
+
 const AdminLayout: React.FC = () => {
 	const location = useLocation();
 
@@ -77,8 +88,23 @@ const AdminLayout: React.FC = () => {
 					<NavItem to='/admin' active={location.pathname === '/admin'}>
 						<i className='fas fa-tachometer-alt'></i> Overview
 					</NavItem>
+
+					<NavSectionTitle>User Management</NavSectionTitle>
 					<NavItem to='/admin/users' active={isActive('/admin/users')}>
-						<i className='fas fa-users'></i> User Management
+						<i className='fas fa-users'></i> Users
+					</NavItem>
+
+					<NavSectionTitle>Content Management</NavSectionTitle>
+					<NavItem to='/admin/content' active={isActive('/admin/content')}>
+						<i className='fas fa-film'></i> Content Moderation
+					</NavItem>
+
+					<NavSectionTitle>System</NavSectionTitle>
+					<NavItem
+						to='/admin/monitoring'
+						active={isActive('/admin/monitoring')}
+					>
+						<i className='fas fa-heartbeat'></i> Monitoring
 					</NavItem>
 					<NavItem to='/admin/logs' active={isActive('/admin/logs')}>
 						<i className='fas fa-list'></i> Audit Logs

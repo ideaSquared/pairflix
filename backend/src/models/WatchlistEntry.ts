@@ -57,7 +57,10 @@ class WatchlistEntry extends Model<
 						'to_watch_together',
 						'would_like_to_watch_together',
 						'watching',
-						'finished'
+						'finished',
+						'flagged',
+						'removed',
+						'active'
 					),
 					allowNull: false,
 					defaultValue: 'to_watch',

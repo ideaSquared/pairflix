@@ -34,4 +34,16 @@ router.post('/audit-logs-rotation', adminController.runLogRotation);
 // Create a test log (useful for testing)
 router.post('/audit-logs/test', adminController.createTestLog);
 
+// Content management routes
+router.get('/watchlist-entries', adminController.getAllWatchlistEntries);
+router.put(
+	'/watchlist-entries/:entryId/moderate',
+	adminController.moderateWatchlistEntry
+);
+router.get('/matches', adminController.getAllMatches);
+
+// System monitoring routes
+router.get('/system-metrics', adminController.getSystemMetrics);
+router.get('/user-activity-stats', adminController.getUserActivityStats);
+
 export default router;

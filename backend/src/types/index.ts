@@ -18,7 +18,10 @@ export interface WatchlistEntry {
 		| 'to_watch_together'
 		| 'would_like_to_watch_together'
 		| 'watching'
-		| 'finished';
+		| 'finished'
+		| 'flagged'
+		| 'removed'
+		| 'active';
 	rating?: number;
 	notes?: string;
 	created_at: Date;

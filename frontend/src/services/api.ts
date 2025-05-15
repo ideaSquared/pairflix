@@ -574,6 +574,76 @@ export const admin = {
 			method: 'DELETE',
 		});
 	},
+
+	// Content management methods
+	getAllWatchlistEntries: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			userId?: string;
+			status?: string;
+			mediaType?: string;
+		} = {}
+	) => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.userId) queryParams.append('userId', params.userId);
+		if (params.status) queryParams.append('status', params.status);
+		if (params.mediaType) queryParams.append('mediaType', params.mediaType);
+
+		return fetchWithAuth(
+			`/api/admin/watchlist-entries?${queryParams.toString()}`
+		);
+	},
+
+	moderateWatchlistEntry: async (params: {
+		entryId: string;
+		action: 'flag' | 'remove' | 'approve';
+		reason?: string;
+	}) => {
+		return fetchWithAuth(
+			`/api/admin/watchlist-entries/${params.entryId}/moderate`,
+			{
+				method: 'PUT',
+				body: JSON.stringify({
+					action: params.action,
+					reason: params.reason,
+				}),
+			}
+		);
+	},
+
+	getAllMatches: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			userId?: string;
+			status?: string;
+		} = {}
+	) => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.userId) queryParams.append('userId', params.userId);
+		if (params.status) queryParams.append('status', params.status);
+
+		return fetchWithAuth(`/api/admin/matches?${queryParams.toString()}`);
+	},
+
+	// System monitoring methods
+	getSystemMetrics: async () => {
+		return fetchWithAuth('/api/admin/system-metrics');
+	},
+
+	getUserActivityStats: async (params: { days?: number } = {}) => {
+		const queryParams = new URLSearchParams();
+		if (params.days) queryParams.append('days', params.days.toString());
+
+		return fetchWithAuth(
+			`/api/admin/user-activity-stats?${queryParams.toString()}`
+		);
+	},
 };
 
 // Create and export a default api object that combines all services
