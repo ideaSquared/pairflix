@@ -266,6 +266,7 @@ export const getUsers = async (req: Request, res: Response) => {
 				'user_id',
 				'username',
 				'email',
+				'status',
 				'role',
 				'preferences',
 				'created_at',
