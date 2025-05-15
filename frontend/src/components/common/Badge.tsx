@@ -1,49 +1,105 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { Theme } from '../../styles/theme';
 
-export type BadgeVariant = 'error' | 'warning' | 'info' | 'success' | 'default';
+export type BadgeVariant =
+	| 'primary'
+	| 'secondary'
+	| 'success'
+	| 'error'
+	| 'warning'
+	| 'info'
+	| 'default';
 
 interface BadgeProps {
-	variant: BadgeVariant;
+	variant?: BadgeVariant;
+	size?: 'small' | 'medium' | 'large';
 	children: React.ReactNode;
+	className?: string;
 }
 
-const BadgeContainer = styled.span<{ variant: BadgeVariant }>`
+const getVariantStyles = (variant: BadgeVariant = 'primary') => {
+	const variants = {
+		primary: css`
+			background: ${({ theme }) => theme.colors.primary};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		secondary: css`
+			background: ${({ theme }) => theme.colors.secondary};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		success: css`
+			background: ${({ theme }) => theme.colors.text.success};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		error: css`
+			background: ${({ theme }) => theme.colors.text.error};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		warning: css`
+			background: ${({ theme }) => theme.colors.text.warning};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		info: css`
+			background: ${({ theme }) => theme.colors.primary};
+			color: ${({ theme }) => theme.colors.text.primary};
+		`,
+		default: css`
+			background: ${({ theme }) => `${theme.colors.text.secondary}20`};
+			color: ${({ theme }) => theme.colors.text.secondary};
+		`,
+	};
+	return variants[variant];
+};
+
+const getBadgeSize = (size: BadgeProps['size'] = 'medium') => {
+	switch (size) {
+		case 'small':
+			return ({ theme }: { theme: Theme }) => theme.spacing.xs;
+		case 'large':
+			return ({ theme }: { theme: Theme }) => theme.spacing.md;
+		default:
+			return ({ theme }: { theme: Theme }) => theme.spacing.sm;
+	}
+};
+
+const StyledBadge = styled.span<Omit<BadgeProps, 'className'>>`
 	display: inline-flex;
-	padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+	align-items: center;
+	justify-content: center;
+	padding: ${({ size }) => getBadgeSize(size)};
 	border-radius: ${({ theme }) => theme.borderRadius.sm};
-	font-size: ${({ theme }) => theme.typography.fontSize.xs};
+	font-size: ${({ size, theme }) =>
+		size === 'small'
+			? theme.typography.fontSize.xs
+			: size === 'large'
+				? theme.typography.fontSize.md
+				: theme.typography.fontSize.sm};
 	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
-	background: ${({ variant, theme }) => {
-		switch (variant) {
-			case 'error':
-				return `${theme.colors.text.error}20`;
-			case 'warning':
-				return `${theme.colors.text.warning}20`;
-			case 'info':
-				return `${theme.colors.primary}20`;
-			case 'success':
-				return `${theme.colors.text.success}20`;
-			default:
-				return `${theme.colors.text.secondary}20`;
-		}
-	}};
-	color: ${({ variant, theme }) => {
-		switch (variant) {
-			case 'error':
-				return theme.colors.text.error;
-			case 'warning':
-				return theme.colors.text.warning;
-			case 'info':
-				return theme.colors.primary;
-			case 'success':
-				return theme.colors.text.success;
-			default:
-				return theme.colors.text.secondary;
-		}
-	}};
+	line-height: 1.2; // Improved line height for better readability
+	${({ variant }) => getVariantStyles(variant)}
+
+	&:focus-visible {
+		outline: 2px solid ${({ theme }) => theme.colors.primary};
+		outline-offset: 2px;
+	}
 `;
 
-export const Badge: React.FC<BadgeProps> = ({ variant, children }) => {
-	return <BadgeContainer variant={variant}>{children}</BadgeContainer>;
+export const Badge: React.FC<BadgeProps> = ({
+	variant = 'primary',
+	size = 'medium',
+	children,
+	className,
+}) => {
+	return (
+		<StyledBadge
+			variant={variant}
+			size={size}
+			className={className || undefined}
+		>
+			{children}
+		</StyledBadge>
+	);
 };
+
+export default Badge;

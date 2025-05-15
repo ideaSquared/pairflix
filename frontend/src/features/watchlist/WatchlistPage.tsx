@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardGrid } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
 import { Container, Flex } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H3, Typography } from '../../components/common/Typography';
-import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import * as userApi from '../../services/api';

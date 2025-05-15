@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent } from '../../components/common/Card';
 import { Container, Flex, Grid } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
-import Badge from '../../components/layout/Badge';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -339,7 +339,7 @@ const MatchPage: React.FC = () => {
 
 											<ContentInfo>
 												<Typography variant='h3'>{match.title}</Typography>
-												<Badge color='primary'>
+												<Badge variant='primary'>
 													{match.media_type === 'tv' ? 'TV Series' : 'Film'}
 												</Badge>
 												{match.overview && (
