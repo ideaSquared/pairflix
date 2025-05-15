@@ -1,5 +1,7 @@
 # 📘 API Documentation
 
+This document provides details about all the APIs in the Pairflix application. Use this documentation as a reference when developing frontend components or integrating with the backend.
+
 ## Overview
 
 The PairFlix API follows RESTful principles and uses JWT for authentication. All endpoints return JSON responses and expect JSON in request bodies where applicable.
@@ -18,18 +20,18 @@ Most endpoints require authentication via a JWT token in the Authorization heade
 Authorization: Bearer <token>
 ```
 
-### Authentication Endpoints
+## Authentication Endpoints
 
-#### POST /auth/login
+#### POST /api/auth/login
 
-Authenticates a user and returns tokens.
+Authenticates a user and returns a JWT token.
 
 **Request Body:**
 
 ```json
 {
 	"email": "user@example.com",
-	"password": "securepassword"
+	"password": "password123"
 }
 ```
 
@@ -37,78 +39,70 @@ Authenticates a user and returns tokens.
 
 ```json
 {
-	"accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-	"user": {
-		"id": "123e4567-e89b-12d3-a456-426614174000",
-		"username": "user1",
-		"email": "user@example.com"
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### GET /api/auth/me
+
+Returns the current authenticated user.
+
+**Response: 200 OK**
+
+```json
+{
+	"user_id": "123e4567-e89b-12d3-a456-426614174000",
+	"email": "user@example.com",
+	"username": "johndoe",
+	"role": "user",
+	"preferences": {
+		"theme": "dark",
+		"viewStyle": "grid",
+		"emailNotifications": true,
+		"autoArchiveDays": 30,
+		"favoriteGenres": ["action", "comedy"]
 	}
 }
 ```
 
-#### POST /auth/refresh
+#### POST /api/auth/logout
 
-Refreshes an expired access token.
-
-**Request Body:**
-
-```json
-{
-	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response: 200 OK**
-
-```json
-{
-	"accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### POST /auth/logout
-
-Invalidates a refresh token.
-
-**Request Body:**
-
-```json
-{
-	"refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+Logs out the current user.
 
 **Response: 204 No Content**
 
 ## User Endpoints
 
-#### GET /user/profile
+#### GET /api/user/profile
 
-Returns the current user's profile.
+Returns the profile of the current authenticated user.
 
 **Response: 200 OK**
 
 ```json
 {
-	"id": "123e4567-e89b-12d3-a456-426614174000",
-	"username": "user1",
+	"user_id": "123e4567-e89b-12d3-a456-426614174000",
 	"email": "user@example.com",
-	"createdAt": "2023-01-01T00:00:00.000Z"
+	"username": "johndoe",
+	"preferences": {
+		"theme": "dark",
+		"viewStyle": "grid",
+		"emailNotifications": true,
+		"autoArchiveDays": 30,
+		"favoriteGenres": ["action", "comedy"]
+	}
 }
 ```
 
-#### PATCH /user/profile
+#### PATCH /api/user/profile
 
-Updates the current user's profile.
+Updates the profile of the current authenticated user.
 
 **Request Body:**
 
 ```json
 {
-	"username": "newusername",
-	"email": "newemail@example.com"
+	"username": "newusername"
 }
 ```
 
@@ -116,27 +110,130 @@ Updates the current user's profile.
 
 ```json
 {
-	"id": "123e4567-e89b-12d3-a456-426614174000",
+	"user_id": "123e4567-e89b-12d3-a456-426614174000",
+	"email": "user@example.com",
 	"username": "newusername",
-	"email": "newemail@example.com",
-	"updatedAt": "2023-01-02T00:00:00.000Z"
+	"preferences": {
+		"theme": "dark",
+		"viewStyle": "grid",
+		"emailNotifications": true,
+		"autoArchiveDays": 30,
+		"favoriteGenres": ["action", "comedy"]
+	}
 }
 ```
 
-#### PUT /user/password
+#### PUT /api/user/password
 
-Changes the current user's password.
+Updates the password of the current authenticated user.
 
 **Request Body:**
 
 ```json
 {
-	"currentPassword": "oldsecurepassword",
-	"newPassword": "newsecurepassword"
+	"currentPassword": "oldpassword123",
+	"newPassword": "newpassword456"
 }
 ```
 
-**Response: 204 No Content**
+**Response: 200 OK**
+
+```json
+{
+	"message": "Password updated successfully"
+}
+```
+
+#### PUT /api/user/email
+
+Updates the email of the current authenticated user.
+
+**Request Body:**
+
+```json
+{
+	"email": "newemail@example.com",
+	"password": "currentpassword123"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"message": "Email updated successfully",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"email": "newemail@example.com",
+		"username": "johndoe"
+	},
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### PUT /api/user/username
+
+Updates the username of the current authenticated user.
+
+**Request Body:**
+
+```json
+{
+	"username": "newusername"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"message": "Username updated successfully",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"email": "user@example.com",
+		"username": "newusername"
+	},
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### PUT /api/user/preferences
+
+Updates the preferences of the current authenticated user.
+
+**Request Body:**
+
+```json
+{
+	"preferences": {
+		"theme": "light",
+		"viewStyle": "list",
+		"emailNotifications": false,
+		"autoArchiveDays": 15,
+		"favoriteGenres": ["action", "comedy"]
+	}
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"email": "user@example.com",
+		"username": "johndoe",
+		"preferences": {
+			"theme": "light",
+			"viewStyle": "list",
+			"emailNotifications": false,
+			"autoArchiveDays": 15,
+			"favoriteGenres": ["action", "comedy"]
+		}
+	},
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
 
 ## Admin Endpoints
 
@@ -144,7 +241,7 @@ These endpoints are only accessible to users with admin role.
 
 ### User Management
 
-#### GET /admin/users
+#### GET /api/admin/users
 
 Returns a paginated list of users with optional filtering and sorting.
 
@@ -186,7 +283,40 @@ Returns a paginated list of users with optional filtering and sorting.
 }
 ```
 
-#### GET /admin/users/:userId
+#### POST /api/admin/users
+
+Creates a new user.
+
+**Request Body:**
+
+```json
+{
+	"username": "newuser",
+	"email": "newuser@example.com",
+	"password": "password123",
+	"role": "user",
+	"status": "active"
+}
+```
+
+**Response: 201 Created**
+
+```json
+{
+	"success": true,
+	"message": "User created successfully",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "newuser",
+		"email": "newuser@example.com",
+		"role": "user",
+		"status": "active",
+		"created_at": "2023-01-01T00:00:00.000Z"
+	}
+}
+```
+
+#### GET /api/admin/users/:userId
 
 Returns details for a specific user.
 
@@ -210,7 +340,7 @@ Returns details for a specific user.
 }
 ```
 
-#### PUT /admin/users/:userId
+#### PUT /api/admin/users/:userId
 
 Updates a user's details.
 
@@ -242,7 +372,75 @@ Updates a user's details.
 }
 ```
 
-#### DELETE /admin/users/:userId
+#### PUT /api/admin/users/:userId/status
+
+Changes a user's status.
+
+**Request Body:**
+
+```json
+{
+	"status": "suspended",
+	"reason": "Violation of community guidelines"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "User status changed to suspended successfully",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "username",
+		"email": "user@example.com",
+		"role": "user",
+		"status": "suspended",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"last_login": "2023-01-02T00:00:00.000Z"
+	}
+}
+```
+
+#### POST /api/admin/users/:userId/reset-password
+
+Resets a user's password.
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Password reset successful",
+	"newPassword": "ab12cd34",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"username": "username",
+		"email": "user@example.com"
+	}
+}
+```
+
+#### GET /api/admin/users-csv
+
+Exports users as CSV.
+
+**Query Parameters:**
+
+- `role` (optional): Filter by role (`admin`, `moderator`, `user`)
+- `status` (optional): Filter by status (`active`, `inactive`, `pending`, `suspended`)
+
+**Response: 200 OK**
+Content-Type: text/csv
+Content-Disposition: attachment; filename=users.csv
+
+```
+User ID,Username,Email,Status,Role,Created At,Last Login
+123e4567-e89b-12d3-a456-426614174000,admin,admin@example.com,active,admin,2023-01-01T00:00:00.000Z,2023-01-02T00:00:00.000Z
+```
+
+#### DELETE /api/admin/users/:userId
 
 Deletes a user.
 
@@ -255,17 +453,19 @@ Deletes a user.
 }
 ```
 
-## Watchlist Endpoints
+### Content Moderation
 
-#### GET /watchlist
+#### GET /api/admin/watchlist-entries
 
-Returns the current user's watchlist entries.
+Returns all watchlist entries across all users.
 
 **Query Parameters:**
 
-- `status` (optional): Filter by status (`to_watch`, `watching`, `finished`)
-- `sort` (optional): Sort field (`title`, `added_date`, `rating`)
-- `order` (optional): Sort order (`asc`, `desc`)
+- `limit` (optional): Number of entries per page (default: 10)
+- `offset` (optional): Starting position for pagination
+- `userId` (optional): Filter by user ID
+- `status` (optional): Filter by status
+- `mediaType` (optional): Filter by media type (`movie`, `tv`)
 
 **Response: 200 OK**
 
@@ -273,32 +473,324 @@ Returns the current user's watchlist entries.
 {
 	"entries": [
 		{
-			"id": "123e4567-e89b-12d3-a456-426614174000",
-			"tmdbId": 550,
-			"mediaType": "movie",
-			"status": "finished",
-			"rating": 9,
-			"notes": "Great movie!",
-			"createdAt": "2023-01-01T00:00:00.000Z",
-			"updatedAt": "2023-01-02T00:00:00.000Z"
+			"entry_id": "123e4567-e89b-12d3-a456-426614174000",
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"tmdb_id": 12345,
+			"media_type": "movie",
+			"status": "to_watch",
+			"notes": "Recommended by friend",
+			"created_at": "2023-01-01T00:00:00.000Z",
+			"updated_at": "2023-01-01T00:00:00.000Z",
+			"title": "Movie Title",
+			"overview": "Movie description",
+			"poster_path": "/path/to/poster.jpg",
+			"User": {
+				"username": "johndoe",
+				"email": "user@example.com"
+			}
 		}
 	],
-	"total": 1
+	"pagination": {
+		"total": 100,
+		"limit": 10,
+		"offset": 0,
+		"hasMore": true
+	}
 }
 ```
 
-#### POST /watchlist
+#### PUT /api/admin/watchlist-entries/:entryId/moderate
 
-Adds a new entry to the user's watchlist.
+Moderates a watchlist entry.
 
 **Request Body:**
 
 ```json
 {
-	"tmdbId": 550,
-	"mediaType": "movie",
-	"status": "to_watch",
-	"notes": "Want to watch this weekend"
+	"action": "flag",
+	"reason": "Inappropriate content"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Watchlist entry flagged successfully",
+	"entry": {
+		"entry_id": "123e4567-e89b-12d3-a456-426614174000",
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"tmdb_id": 12345,
+		"media_type": "movie",
+		"status": "flagged",
+		"notes": "Inappropriate content",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"updated_at": "2023-01-02T00:00:00.000Z"
+	}
+}
+```
+
+### System Monitoring
+
+#### GET /api/admin/system-metrics
+
+Returns system metrics.
+
+**Response: 200 OK**
+
+```json
+{
+	"metrics": {
+		"users": {
+			"total": 100,
+			"active": 80,
+			"inactivePercentage": 20
+		},
+		"content": {
+			"watchlistEntries": 500,
+			"matches": 150
+		},
+		"activity": {
+			"last24Hours": 100,
+			"lastWeek": 500
+		},
+		"system": {
+			"recentErrors": 5,
+			"uptime": 86400,
+			"memoryUsage": {
+				"rss": 50000000,
+				"heapTotal": 30000000,
+				"heapUsed": 20000000,
+				"external": 10000000
+			},
+			"timestamp": "2023-01-01T00:00:00.000Z"
+		}
+	}
+}
+```
+
+#### GET /api/admin/user-activity-stats
+
+Returns user activity statistics.
+
+**Query Parameters:**
+
+- `days` (optional): Number of days to include (default: 7, max: 90)
+
+**Response: 200 OK**
+
+```json
+{
+	"timespan": {
+		"days": 7,
+		"startDate": "2023-01-01T00:00:00.000Z"
+	},
+	"activityByDate": [
+		{
+			"date": "2023-01-01",
+			"count": 50
+		}
+	],
+	"activityByType": [
+		{
+			"action": "WATCHLIST_ADD",
+			"count": 30
+		}
+	],
+	"mostActiveUsers": [
+		{
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"count": 20,
+			"User": {
+				"username": "johndoe",
+				"email": "user@example.com"
+			}
+		}
+	]
+}
+```
+
+### Audit Logs
+
+#### GET /api/admin/audit-logs
+
+Returns all audit logs.
+
+**Query Parameters:**
+
+- `limit` (optional): Number of logs per page (default: 100)
+- `offset` (optional): Starting position for pagination
+- `source` (optional): Filter by source
+- `startDate` (optional): Filter by start date
+- `endDate` (optional): Filter by end date
+
+**Response: 200 OK**
+
+```json
+{
+	"logs": [
+		{
+			"log_id": "123e4567-e89b-12d3-a456-426614174000",
+			"level": "info",
+			"message": "User login",
+			"source": "auth-controller",
+			"context": {
+				"userId": "123e4567-e89b-12d3-a456-426614174000",
+				"timestamp": "2023-01-01T00:00:00.000Z"
+			},
+			"created_at": "2023-01-01T00:00:00.000Z"
+		}
+	],
+	"pagination": {
+		"total": 500,
+		"limit": 100,
+		"offset": 0,
+		"hasMore": true
+	}
+}
+```
+
+#### GET /api/admin/audit-logs/:level
+
+Returns audit logs filtered by level.
+
+**Path Parameters:**
+
+- `level` (required): Log level (`info`, `warn`, `error`, `debug`)
+
+**Query Parameters:**
+
+- `limit` (optional): Number of logs per page (default: 100)
+- `offset` (optional): Starting position for pagination
+- `source` (optional): Filter by source
+- `startDate` (optional): Filter by start date
+- `endDate` (optional): Filter by end date
+
+**Response: 200 OK**
+
+```json
+{
+	"logs": [
+		{
+			"log_id": "123e4567-e89b-12d3-a456-426614174000",
+			"level": "info",
+			"message": "User login",
+			"source": "auth-controller",
+			"context": {
+				"userId": "123e4567-e89b-12d3-a456-426614174000",
+				"timestamp": "2023-01-01T00:00:00.000Z"
+			},
+			"created_at": "2023-01-01T00:00:00.000Z"
+		}
+	],
+	"pagination": {
+		"total": 300,
+		"limit": 100,
+		"offset": 0,
+		"hasMore": true
+	}
+}
+```
+
+#### GET /api/admin/audit-logs-sources
+
+Returns all unique log sources.
+
+**Response: 200 OK**
+
+```json
+{
+	"sources": ["auth-controller", "user-controller", "admin-controller"]
+}
+```
+
+#### GET /api/admin/audit-logs-stats
+
+Returns audit log statistics.
+
+**Response: 200 OK**
+
+```json
+{
+	"stats": {
+		"total": 500,
+		"byLevel": {
+			"info": 300,
+			"warn": 150,
+			"error": 50
+		},
+		"oldestLog": "2023-01-01T00:00:00.000Z",
+		"newestLog": "2023-01-10T00:00:00.000Z"
+	}
+}
+```
+
+#### POST /api/admin/audit-logs-rotation
+
+Manually runs log rotation.
+
+**Request Body:**
+
+```json
+{
+	"retentionDays": {
+		"info": 30,
+		"warn": 60,
+		"error": 90,
+		"debug": 7
+	}
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Log rotation complete. Removed 100 old logs."
+}
+```
+
+## Watchlist Endpoints
+
+#### GET /api/watchlist
+
+Returns the watchlist of the current authenticated user.
+
+**Response: 200 OK**
+
+```json
+{
+	"entries": [
+		{
+			"entry_id": "123e4567-e89b-12d3-a456-426614174000",
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"tmdb_id": 12345,
+			"media_type": "movie",
+			"status": "to_watch",
+			"notes": "Recommended by friend",
+			"created_at": "2023-01-01T00:00:00.000Z",
+			"updated_at": "2023-01-01T00:00:00.000Z",
+			"title": "Movie Title",
+			"overview": "Movie description",
+			"poster_path": "/path/to/poster.jpg"
+		}
+	]
+}
+```
+
+#### POST /api/watchlist
+
+Adds a new entry to the watchlist.
+
+**Request Body:**
+
+```json
+{
+	"tmdb_id": 12345,
+	"media_type": "movie",
+	"status": "to_watch"
 }
 ```
 
@@ -306,45 +798,31 @@ Adds a new entry to the user's watchlist.
 
 ```json
 {
-	"id": "123e4567-e89b-12d3-a456-426614174000",
-	"tmdbId": 550,
-	"mediaType": "movie",
-	"status": "to_watch",
-	"notes": "Want to watch this weekend",
-	"createdAt": "2023-01-01T00:00:00.000Z"
+	"entry": {
+		"entry_id": "123e4567-e89b-12d3-a456-426614174000",
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"tmdb_id": 12345,
+		"media_type": "movie",
+		"status": "to_watch",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"updated_at": "2023-01-01T00:00:00.000Z",
+		"title": "Movie Title",
+		"overview": "Movie description",
+		"poster_path": "/path/to/poster.jpg"
+	}
 }
 ```
 
-#### GET /watchlist/:id
+#### PUT /api/watchlist/:entryId
 
-Returns a specific watchlist entry.
-
-**Response: 200 OK**
-
-```json
-{
-	"id": "123e4567-e89b-12d3-a456-426614174000",
-	"tmdbId": 550,
-	"mediaType": "movie",
-	"status": "to_watch",
-	"rating": null,
-	"notes": "Want to watch this weekend",
-	"createdAt": "2023-01-01T00:00:00.000Z",
-	"updatedAt": "2023-01-01T00:00:00.000Z"
-}
-```
-
-#### PATCH /watchlist/:id
-
-Updates a specific watchlist entry.
+Updates a watchlist entry.
 
 **Request Body:**
 
 ```json
 {
-	"status": "finished",
-	"rating": 9,
-	"notes": "Great movie!"
+	"status": "watching",
+	"notes": "Currently watching, enjoying so far"
 }
 ```
 
@@ -352,96 +830,54 @@ Updates a specific watchlist entry.
 
 ```json
 {
-	"id": "123e4567-e89b-12d3-a456-426614174000",
-	"tmdbId": 550,
-	"mediaType": "movie",
-	"status": "finished",
-	"rating": 9,
-	"notes": "Great movie!",
-	"updatedAt": "2023-01-02T00:00:00.000Z"
+	"entry": {
+		"entry_id": "123e4567-e89b-12d3-a456-426614174000",
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"tmdb_id": 12345,
+		"media_type": "movie",
+		"status": "watching",
+		"notes": "Currently watching, enjoying so far",
+		"created_at": "2023-01-01T00:00:00.000Z",
+		"updated_at": "2023-01-02T00:00:00.000Z",
+		"title": "Movie Title",
+		"overview": "Movie description",
+		"poster_path": "/path/to/poster.jpg"
+	}
 }
 ```
 
-#### DELETE /watchlist/:id
+#### DELETE /api/watchlist/:entryId
 
-Removes an entry from the watchlist.
+Deletes a watchlist entry.
 
 **Response: 204 No Content**
 
 ## Search Endpoints
 
-#### GET /search
+#### GET /api/search/media
 
-Searches for movies and TV shows via TMDb.
+Searches for movies and TV shows.
 
 **Query Parameters:**
 
-- `query` (required): Search query string
-- `page` (optional): Page number (default: 1)
-- `mediaType` (optional): Type of media (`movie`, `tv`, or `both`)
+- `query` (required): The search term
 
 **Response: 200 OK**
 
 ```json
 {
+	"page": 1,
 	"results": [
 		{
-			"id": 550,
-			"title": "Fight Club",
-			"mediaType": "movie",
-			"releaseDate": "1999-10-15",
-			"posterPath": "/path/to/poster.jpg",
-			"overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club..."
+			"id": 12345,
+			"title": "Movie Title",
+			"media_type": "movie",
+			"poster_path": "/path/to/poster.jpg",
+			"overview": "Movie description"
 		}
 	],
-	"page": 1,
-	"totalPages": 10,
-	"totalResults": 200
-}
-```
-
-#### GET /search/:id
-
-Gets detailed information about a specific movie or TV show.
-
-**Path Parameters:**
-
-- `id`: TMDb ID
-
-**Query Parameters:**
-
-- `mediaType` (required): Type of media (`movie` or `tv`)
-
-**Response: 200 OK**
-
-```json
-{
-	"id": 550,
-	"title": "Fight Club",
-	"mediaType": "movie",
-	"releaseDate": "1999-10-15",
-	"posterPath": "/path/to/poster.jpg",
-	"backdropPath": "/path/to/backdrop.jpg",
-	"overview": "An insomniac office worker and a devil-may-care soapmaker form an underground fight club...",
-	"genres": ["Drama", "Thriller"],
-	"runtime": 139,
-	"voteAverage": 8.4,
-	"cast": [
-		{
-			"id": 819,
-			"name": "Edward Norton",
-			"character": "The Narrator",
-			"profilePath": "/path/to/profile.jpg"
-		}
-	],
-	"crew": [
-		{
-			"id": 7467,
-			"name": "David Fincher",
-			"job": "Director",
-			"profilePath": "/path/to/profile.jpg"
-		}
-	]
+	"total_pages": 10,
+	"total_results": 100
 }
 ```
 

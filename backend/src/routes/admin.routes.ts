@@ -11,9 +11,13 @@ router.use(requireAdmin);
 
 // User management routes
 router.get('/users', adminController.getUsers);
+router.post('/users', adminController.createUser);
 router.get('/users/:userId', adminController.getUserById);
 router.put('/users/:userId', adminController.updateUser);
 router.delete('/users/:userId', adminController.deleteUser);
+router.put('/users/:userId/status', adminController.changeUserStatus);
+router.post('/users/:userId/reset-password', adminController.resetUserPassword);
+router.get('/users-csv', adminController.exportUsersAsCsv);
 
 // Audit log routes
 // Get all audit logs with filtering options

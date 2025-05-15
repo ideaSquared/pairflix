@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import sequelize from '../db/connection';
@@ -7,6 +8,9 @@ import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 import { auditLogService, LogLevel } from '../services/audit.service';
+
+// Import Express namespace to ensure the Request type includes user property
+import '../middlewares/auth';
 
 /**
  * Get all recent audit logs
@@ -498,6 +502,331 @@ export const deleteUser = async (req: Request, res: Response) => {
 };
 
 /**
+ * Change a user's status (suspend, activate, etc.)
+ */
+export const changeUserStatus = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		const { status, reason } = req.body;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		if (
+			!status ||
+			!['active', 'inactive', 'suspended', 'pending'].includes(status)
+		) {
+			return res.status(400).json({
+				error: 'Valid status is required',
+				validStatuses: ['active', 'inactive', 'suspended', 'pending'],
+			});
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Store original status for logging
+		const originalStatus = user.status;
+
+		// Update user status
+		user.status = status;
+		await user.save();
+
+		// Audit log for user status change
+		await auditLogService.warn(
+			`Changed user status to ${status}`,
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: userId,
+				change: {
+					from: originalStatus,
+					to: status,
+				},
+				reason,
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: `User status changed to ${status} successfully`,
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				status: user.status,
+				created_at: user.created_at,
+				last_login: user.last_login,
+			},
+		});
+	} catch (error) {
+		console.error('Error changing user status:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to change user status',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to change user status' });
+	}
+};
+
+/**
+ * Reset a user's password
+ */
+export const resetUserPassword = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Generate random password (8 characters)
+		const newPassword = Math.random().toString(36).slice(-8);
+
+		// Hash the new password
+		const password_hash = await bcrypt.hash(newPassword, 10);
+
+		// Update user's password
+		user.password_hash = password_hash;
+		await user.save();
+
+		// Audit log for password reset
+		await auditLogService.warn('Reset user password', 'admin-controller', {
+			adminId: req.user?.user_id,
+			targetUserId: userId,
+			// Don't log the new password in audit logs for security reasons
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Password reset successful',
+			newPassword,
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+			},
+		});
+	} catch (error) {
+		console.error('Error resetting user password:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to reset user password',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to reset user password' });
+	}
+};
+
+/**
+ * Create a new user (admin function)
+ */
+export const createUser = async (req: Request, res: Response) => {
+	try {
+		const { username, email, password, role, status } = req.body;
+
+		// Validate required fields
+		if (!username || !email || !password) {
+			return res
+				.status(400)
+				.json({ error: 'Username, email, and password are required' });
+		}
+
+		// Validate email format
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			return res.status(400).json({ error: 'Invalid email format' });
+		}
+
+		// Validate username format
+		if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+			return res.status(400).json({
+				error:
+					'Username must be 3-30 characters and contain only letters, numbers, underscore, or hyphen',
+			});
+		}
+
+		// Check if user already exists
+		const existingUser = await User.findOne({
+			where: {
+				[Op.or]: [{ email }, { username }],
+			},
+		});
+
+		if (existingUser) {
+			const field = existingUser.email === email ? 'email' : 'username';
+			return res
+				.status(400)
+				.json({ error: `User with this ${field} already exists` });
+		}
+
+		// Hash the password
+		const password_hash = await bcrypt.hash(password, 10);
+
+		// Create default preferences
+		const preferences = {
+			theme: 'dark' as 'dark' | 'light',
+			viewStyle: 'grid' as 'grid' | 'list',
+			emailNotifications: true,
+			autoArchiveDays: 30,
+			favoriteGenres: [] as string[],
+		};
+
+		// Create the new user
+		const user = await User.create({
+			username,
+			email,
+			password_hash,
+			role: role || 'user',
+			status: status || 'active',
+			preferences,
+		});
+
+		// Audit log for user creation
+		await auditLogService.info('Created new user', 'admin-controller', {
+			adminId: req.user?.user_id,
+			newUserId: user.user_id,
+			username,
+			email,
+			role: user.role,
+			status: user.status,
+		});
+
+		return res.status(201).json({
+			success: true,
+			message: 'User created successfully',
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+				role: user.role,
+				status: user.status,
+				created_at: user.created_at,
+			},
+		});
+	} catch (error) {
+		console.error('Error creating user:', error);
+
+		// Audit log for error
+		await auditLogService.error('Failed to create user', 'admin-controller', {
+			userId: req.user?.user_id,
+			attemptedData: req.body,
+			error: error instanceof Error ? error.message : 'Unknown error',
+		});
+
+		return res.status(500).json({ error: 'Failed to create user' });
+	}
+};
+
+/**
+ * Export data as CSV (Users list)
+ */
+export const exportUsersAsCsv = async (req: Request, res: Response) => {
+	try {
+		// Filter parameters (optional)
+		const role = req.query.role as string;
+		const status = req.query.status as string;
+
+		// Build query conditions
+		const where: any = {};
+
+		// Add role filter
+		if (role) {
+			where.role = role;
+		}
+
+		// Add status filter
+		if (status) {
+			where.status = status;
+		}
+
+		// Fetch all users matching criteria
+		const users = await User.findAll({
+			where,
+			attributes: [
+				'user_id',
+				'username',
+				'email',
+				'status',
+				'role',
+				'created_at',
+				'last_login',
+			],
+			order: [['created_at', 'DESC']],
+		});
+
+		// Create CSV header
+		let csv = 'User ID,Username,Email,Status,Role,Created At,Last Login\n';
+
+		// Add rows
+		users.forEach(user => {
+			const created = user.created_at
+				? new Date(user.created_at).toISOString()
+				: '';
+			const lastLogin = user.last_login
+				? new Date(user.last_login).toISOString()
+				: 'Never';
+
+			csv += `${user.user_id},${user.username},${user.email},${user.status},${user.role},${created},${lastLogin}\n`;
+		});
+
+		// Audit log for CSV export
+		await auditLogService.info('Exported users as CSV', 'admin-controller', {
+			adminId: req.user?.user_id,
+			filters: { role, status },
+			usersCount: users.length,
+		});
+
+		// Set response headers
+		res.setHeader('Content-Type', 'text/csv');
+		res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
+
+		return res.status(200).send(csv);
+	} catch (error) {
+		console.error('Error exporting users:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to export users as CSV',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to export users' });
+	}
+};
+
+/**
  * Get all watchlist entries across all users (for moderation)
  */
 export const getAllWatchlistEntries = async (req: Request, res: Response) => {
@@ -877,7 +1206,7 @@ export const getUserActivityStats = async (req: Request, res: Response) => {
 			group: ['user_id'],
 			order: [[sequelize.fn('COUNT', sequelize.col('*')), 'DESC']],
 			limit: 10,
-			include: [{ model: User, attributes: ['username', 'email'] }],
+			include: [{ model: User, as: 'user', attributes: ['username', 'email'] }],
 		});
 
 		return res.status(200).json({
@@ -919,6 +1248,10 @@ export const adminController = {
 	getUserById,
 	updateUser,
 	deleteUser,
+	changeUserStatus,
+	resetUserPassword,
+	createUser,
+	exportUsersAsCsv,
 	// Content management functions
 	getAllWatchlistEntries,
 	moderateWatchlistEntry,

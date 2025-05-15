@@ -548,6 +548,79 @@ export const admin = {
 		});
 	},
 
+	deleteUser: async (
+		userId: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/users/${userId}`, {
+			method: 'DELETE',
+		});
+	},
+
+	changeUserStatus: async (
+		userId: string,
+		status: 'active' | 'inactive' | 'suspended' | 'pending',
+		reason?: string
+	): Promise<{
+		success: boolean;
+		message: string;
+		user: AdminUser;
+	}> => {
+		return fetchWithAuth(`/api/admin/users/${userId}/status`, {
+			method: 'PUT',
+			body: JSON.stringify({ status, reason }),
+		});
+	},
+
+	resetUserPassword: async (
+		userId: string
+	): Promise<{
+		success: boolean;
+		message: string;
+		newPassword: string;
+		user: {
+			user_id: string;
+			username: string;
+			email: string;
+		};
+	}> => {
+		return fetchWithAuth(`/api/admin/users/${userId}/reset-password`, {
+			method: 'POST',
+		});
+	},
+
+	exportUsersAsCsv: async (
+		params: {
+			role?: string;
+			status?: string;
+		} = {}
+	): Promise<Blob> => {
+		const queryParams = new URLSearchParams();
+		if (params.role) queryParams.append('role', params.role);
+		if (params.status) queryParams.append('status', params.status);
+
+		// Use fetch directly for blob response
+		const token = localStorage.getItem('token');
+		const headers = new Headers({
+			'Content-Type': 'application/json',
+		});
+
+		if (token) {
+			headers.set('Authorization', `Bearer ${token}`);
+		}
+
+		const response = await fetch(
+			`${BASE_URL}/api/admin/users-csv?${queryParams.toString()}`,
+			{ headers }
+		);
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.error || error.message || 'An error occurred');
+		}
+
+		return response.blob();
+	},
+
 	// System stats methods
 	getSystemStats: async (): Promise<{ stats: SystemStats }> => {
 		return fetchWithAuth('/api/admin/system-stats');
@@ -564,14 +637,6 @@ export const admin = {
 		return fetchWithAuth('/api/admin/settings', {
 			method: 'PUT',
 			body: JSON.stringify({ settings }),
-		});
-	},
-
-	deleteUser: async (
-		userId: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/users/${userId}`, {
-			method: 'DELETE',
 		});
 	},
 
