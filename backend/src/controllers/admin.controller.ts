@@ -1,13 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import sequelize from '../db/connection';
-import ActivityLog from '../models/ActivityLog';
 import AuditLog from '../models/AuditLog';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 import { auditLogService, LogLevel } from '../services/audit.service';
+import { statisticsService } from '../services/statistics.service';
 
 // Import Express namespace to ensure the Request type includes user property
 import '../middlewares/auth';
@@ -1064,71 +1063,16 @@ export const getAllMatches = async (req: Request, res: Response) => {
  */
 export const getSystemMetrics = async (req: Request, res: Response) => {
 	try {
-		// Get counts from various tables
-		const userCount = await User.count();
-		const activeUserCount = await User.count({
-			where: {
-				last_login: {
-					[Op.gte]: new Date(new Date().setDate(new Date().getDate() - 30)),
-				},
-			},
-		});
-		const watchlistCount = await WatchlistEntry.count();
-		const matchCount = await Match.count();
+		// Use our centralized statistics service instead of duplicate queries
+		const metrics = await statisticsService.getSystemMetrics();
 
-		// Get activity stats
-		const last24HoursActivity = await ActivityLog.count({
-			where: {
-				created_at: {
-					[Op.gte]: new Date(new Date().setDate(new Date().getDate() - 1)),
-				},
-			},
+		// Audit log for system metrics retrieval
+		await auditLogService.info('Retrieved system metrics', 'admin-controller', {
+			userId: req.user?.user_id,
+			timestamp: new Date(),
 		});
 
-		const lastWeekActivity = await ActivityLog.count({
-			where: {
-				created_at: {
-					[Op.gte]: new Date(new Date().setDate(new Date().getDate() - 7)),
-				},
-			},
-		});
-
-		// Get errors from audit logs
-		const recentErrors = await AuditLog.count({
-			where: {
-				level: 'error',
-				created_at: {
-					[Op.gte]: new Date(new Date().setDate(new Date().getDate() - 7)),
-				},
-			},
-		});
-
-		return res.status(200).json({
-			metrics: {
-				users: {
-					total: userCount,
-					active: activeUserCount,
-					inactivePercentage:
-						userCount > 0
-							? ((userCount - activeUserCount) / userCount) * 100
-							: 0,
-				},
-				content: {
-					watchlistEntries: watchlistCount,
-					matches: matchCount,
-				},
-				activity: {
-					last24Hours: last24HoursActivity,
-					lastWeek: lastWeekActivity,
-				},
-				system: {
-					recentErrors,
-					uptime: process.uptime(), // Server uptime in seconds
-					memoryUsage: process.memoryUsage(),
-					timestamp: new Date(),
-				},
-			},
-		});
+		return res.status(200).json({ metrics });
 	} catch (error) {
 		console.error('Error fetching system metrics:', error);
 
@@ -1147,6 +1091,38 @@ export const getSystemMetrics = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get detailed system statistics
+ */
+export const getSystemStats = async (req: Request, res: Response) => {
+	try {
+		// Use the centralized statistics service
+		const stats = await statisticsService.getSystemStats();
+
+		// Audit log for stats retrieval
+		await auditLogService.info('Retrieved system stats', 'admin-controller', {
+			adminId: req.user?.user_id,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json(stats);
+	} catch (error) {
+		console.error('Error fetching system stats:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch system stats',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to fetch system statistics' });
+	}
+};
+
+/**
  * Get user activity statistics
  */
 export const getUserActivityStats = async (req: Request, res: Response) => {
@@ -1160,55 +1136,22 @@ export const getUserActivityStats = async (req: Request, res: Response) => {
 				.json({ error: 'Days parameter must be between 1 and 90' });
 		}
 
-		// Get date for filtering
-		const startDate = new Date();
-		startDate.setDate(startDate.getDate() - days);
+		// Use our centralized statistics service
+		const activityStats =
+			await statisticsService.getDetailedActivityStats(days);
 
-		// Common where clause for filtering by date
-		const dateFilter = {
-			created_at: { [Op.gte]: startDate },
-		};
-
-		// Get activity counts by date
-		const activityByDate = await ActivityLog.findAll({
-			attributes: [
-				[sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
-				[sequelize.fn('COUNT', sequelize.col('*')), 'count'],
-			],
-			where: dateFilter,
-			group: [sequelize.fn('DATE', sequelize.col('created_at'))],
-			order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
+		// Audit log for activity stats retrieval
+		await auditLogService.info('Retrieved activity stats', 'admin-controller', {
+			userId: req.user?.user_id,
+			days,
+			timestamp: new Date(),
 		});
-
-		// Get activity counts by type
-		const activityByType = await ActivityLog.findAll({
-			attributes: [
-				'action',
-				[sequelize.fn('COUNT', sequelize.col('*')), 'count'],
-			],
-			where: dateFilter,
-			group: ['action'],
-			order: [[sequelize.fn('COUNT', sequelize.col('*')), 'DESC']],
-		});
-
-		// Get most active users - use direct SQL with a subquery to validate UUIDs
-		// This approach avoids the type issues with Sequelize operators
-		const [mostActiveUsers] = await sequelize.query(`
-			SELECT "ActivityLog"."user_id", COUNT(*) as count, 
-			       "User"."username", "User"."email"
-			FROM "activity_log" AS "ActivityLog"
-			INNER JOIN "users" AS "User" ON "ActivityLog"."user_id" = "User"."user_id"
-			WHERE "ActivityLog"."created_at" >= '${startDate.toISOString()}'
-			GROUP BY "ActivityLog"."user_id", "User"."username", "User"."email"
-			ORDER BY count DESC
-			LIMIT 10
-		`);
 
 		return res.status(200).json({
-			timespan: { days, startDate },
-			activityByDate,
-			activityByType,
-			mostActiveUsers,
+			timespan: { days, startDate: new Date(Date.now() - days * 86400000) },
+			activityByDate: activityStats.activityByDate,
+			activityByType: activityStats.activityByType,
+			mostActiveUsers: activityStats.mostActiveUsers,
 		});
 	} catch (error) {
 		console.error('Error fetching user activity stats:', error);
@@ -1230,6 +1173,42 @@ export const getUserActivityStats = async (req: Request, res: Response) => {
 	}
 };
 
+/**
+ * Get dashboard statistics for admin overview
+ */
+export const getDashboardStats = async (req: Request, res: Response) => {
+	try {
+		// Use our centralized statistics service
+		const stats = await statisticsService.getDashboardStats();
+
+		// Audit log for dashboard stats retrieval
+		await auditLogService.info(
+			'Retrieved dashboard stats',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({ stats });
+	} catch (error) {
+		console.error('Error fetching dashboard stats:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch dashboard stats',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+	}
+};
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -1247,11 +1226,11 @@ export const adminController = {
 	resetUserPassword,
 	createUser,
 	exportUsersAsCsv,
-	// Content management functions
 	getAllWatchlistEntries,
 	moderateWatchlistEntry,
 	getAllMatches,
-	// System functions
 	getSystemMetrics,
 	getUserActivityStats,
+	getDashboardStats,
+	getSystemStats,
 };

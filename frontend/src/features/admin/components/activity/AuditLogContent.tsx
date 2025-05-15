@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Alert } from '../../../components/common/Alert';
-import { Badge } from '../../../components/common/Badge';
-import { Button } from '../../../components/common/Button';
-import { Card, CardContent } from '../../../components/common/Card';
+import { Alert } from '../../../../components/common/Alert';
+import { Badge } from '../../../../components/common/Badge';
+import { Button } from '../../../../components/common/Button';
+import { Card, CardContent } from '../../../../components/common/Card';
 import {
 	FilterGroup,
 	FilterItem,
-} from '../../../components/common/FilterGroup';
-import { Input } from '../../../components/common/Input';
-import { Container, Grid } from '../../../components/common/Layout';
-import { Pagination } from '../../../components/common/Pagination';
-import { Select } from '../../../components/common/Select';
+} from '../../../../components/common/FilterGroup';
+import { Input } from '../../../../components/common/Input';
+import { Grid } from '../../../../components/common/Layout';
+import { Pagination } from '../../../../components/common/Pagination';
+import { Select } from '../../../../components/common/Select';
 import {
 	Table,
 	TableActionButton,
@@ -20,16 +20,10 @@ import {
 	TableContainer,
 	TableHead,
 	TableHeaderCell,
-} from '../../../components/common/Table';
-import { H1 } from '../../../components/common/Typography';
-import { admin, AuditLog, AuditLogStats } from '../../../services/api';
+} from '../../../../components/common/Table';
+import { admin, AuditLog, AuditLogStats } from '../../../../services/api';
 
 // Styled components
-const DashboardContainer = styled(Container)`
-	padding-top: ${({ theme }) => theme.spacing.xl};
-	padding-bottom: ${({ theme }) => theme.spacing.xl};
-`;
-
 const StatsGrid = styled(Grid)`
 	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 	gap: ${({ theme }) => theme.spacing.md};
@@ -57,7 +51,7 @@ const getLevelVariant = (
 	}
 };
 
-const AuditLogDashboard: React.FC = () => {
+const AuditLogContent: React.FC = () => {
 	const [logs, setLogs] = useState<AuditLog[]>([]);
 	const [sources, setSources] = useState<string[]>([]);
 	const [stats, setStats] = useState<AuditLogStats | null>(null);
@@ -195,9 +189,7 @@ const AuditLogDashboard: React.FC = () => {
 	};
 
 	return (
-		<DashboardContainer>
-			<H1 gutterBottom>Admin Dashboard - Audit Logs</H1>
-
+		<>
 			{/* Stats Cards */}
 			{stats && (
 				<StatsGrid>
@@ -361,8 +353,8 @@ const AuditLogDashboard: React.FC = () => {
 					)}
 				</CardContent>
 			</LogsTable>
-		</DashboardContainer>
+		</>
 	);
 };
 
-export default AuditLogDashboard;
+export default AuditLogContent;

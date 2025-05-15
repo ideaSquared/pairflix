@@ -1,19 +1,33 @@
-import AdminDashboard from './components/AdminDashboard';
+import AuditLogContent from './components/activity/AuditLogContent';
+import UserActivityContent from './components/activity/UserActivityContent';
+import ActivityManagement from './components/ActivityManagement';
 import AdminLayout from './components/AdminLayout';
 import AdminSettings from './components/AdminSettings';
-import AuditLogDashboard from './components/AuditLogDashboard';
-import ContentModeration from './components/ContentModeration';
-import SystemMonitoring from './components/SystemMonitoring';
-import SystemStatsPage from './components/SystemStats';
+import ContentModeration from './components/content/ContentModerationContent';
+import AdminDashboard from './components/dashboard/AdminDashboardContent';
+import ContentManagement from './components/dashboard/ContentManagement';
+import SystemMonitoring from './components/dashboard/SystemMonitoringContent';
+import SystemStatsContent from './components/dashboard/SystemStatsContent';
+import UnifiedDashboard from './components/UnifiedDashboard';
 import UserManagement from './components/UserManagement';
 
+// Shared components
+import PageHeader from './components/shared/PageHeader';
+import StatsOverview from './components/shared/StatsOverview';
+
 export {
+	ActivityManagement,
 	AdminDashboard,
 	AdminLayout,
 	AdminSettings,
-	AuditLogDashboard,
+	AuditLogContent,
+	ContentManagement,
 	ContentModeration,
+	PageHeader,
+	StatsOverview,
 	SystemMonitoring,
-	SystemStatsPage,
+	SystemStatsContent,
+	UnifiedDashboard,
+	UserActivityContent,
 	UserManagement,
 };

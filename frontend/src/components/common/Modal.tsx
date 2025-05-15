@@ -8,6 +8,7 @@ interface ModalProps {
 	onClose: () => void;
 	title?: string;
 	children: React.ReactNode;
+	size?: 'small' | 'medium' | 'large' | string;
 }
 
 const ModalOverlay = styled.div`
@@ -23,12 +24,27 @@ const ModalOverlay = styled.div`
 	z-index: 1000;
 `;
 
-const ModalContent = styled.div`
+interface ModalContentProps {
+	size?: string;
+}
+
+const ModalContent = styled.div<ModalContentProps>`
 	background-color: ${({ theme }) => theme.colors.background.paper};
 	border-radius: ${({ theme }) => theme.borderRadius.md};
 	box-shadow: ${({ theme }) => theme.shadows.lg};
 	width: 100%;
-	max-width: 500px;
+	max-width: ${({ size }) => {
+		switch (size) {
+			case 'small':
+				return '400px';
+			case 'medium':
+				return '600px';
+			case 'large':
+				return '800px';
+			default:
+				return '500px';
+		}
+	}};
 	max-height: 80vh;
 	overflow-y: auto;
 	padding: ${({ theme }) => theme.spacing.lg};
@@ -61,6 +77,7 @@ export const Modal: React.FC<ModalProps> = ({
 	onClose,
 	title,
 	children,
+	size,
 }) => {
 	const modalRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +117,7 @@ export const Modal: React.FC<ModalProps> = ({
 
 	return createPortal(
 		<ModalOverlay>
-			<ModalContent ref={modalRef}>
+			<ModalContent ref={modalRef} size={size}>
 				<ModalHeader>
 					{title && <H3>{title}</H3>}
 					<CloseButton onClick={onClose}>×</CloseButton>

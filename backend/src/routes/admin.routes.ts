@@ -49,5 +49,7 @@ router.get('/matches', adminController.getAllMatches);
 // System monitoring routes
 router.get('/system-metrics', adminController.getSystemMetrics);
 router.get('/user-activity-stats', adminController.getUserActivityStats);
+router.get('/dashboard-stats', adminController.getDashboardStats);
+router.get('/system-stats', adminController.getSystemStats);
 
 export default router;

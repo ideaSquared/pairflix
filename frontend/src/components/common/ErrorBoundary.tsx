@@ -13,19 +13,19 @@ interface Props {
 
 interface State {
 	hasError: boolean;
-	error?: Error;
+	error?: Error | undefined;
 }
 
 const ErrorContainer = styled(Card)`
 	max-width: 600px;
-	margin: ${({ theme }) => theme.spacing.xl} auto;
+	margin: ${({ theme }) => theme?.spacing?.xl || '2rem'} auto;
 `;
 
 const ErrorMessage = styled(Typography)`
-	margin: ${({ theme }) => theme.spacing.md} 0;
-	padding: ${({ theme }) => theme.spacing.md};
-	background: ${({ theme }) => theme.colors.background.primary};
-	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	margin: ${({ theme }) => theme?.spacing?.md || '1rem'} 0;
+	padding: ${({ theme }) => theme?.spacing?.md || '1rem'};
+	background: ${({ theme }) => theme?.colors?.background?.primary || '#f5f5f5'};
+	border-radius: ${({ theme }) => theme?.borderRadius?.sm || '4px'};
 	font-family: monospace;
 	white-space: pre-wrap;
 	overflow-x: auto;

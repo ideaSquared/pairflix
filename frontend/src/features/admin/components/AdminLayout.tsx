@@ -86,32 +86,18 @@ const AdminLayout: React.FC = () => {
 				<H3>Admin Dashboard</H3>
 				<Flex direction='column' gap='sm'>
 					<NavItem to='/admin' active={location.pathname === '/admin'}>
-						<i className='fas fa-tachometer-alt'></i> Overview
+						<i className='fas fa-tachometer-alt'></i> Dashboard
 					</NavItem>
 
-					<NavSectionTitle>User Management</NavSectionTitle>
+					<NavSectionTitle>Management</NavSectionTitle>
 					<NavItem to='/admin/users' active={isActive('/admin/users')}>
 						<i className='fas fa-users'></i> Users
 					</NavItem>
-
-					<NavSectionTitle>Content Management</NavSectionTitle>
-					<NavItem to='/admin/content' active={isActive('/admin/content')}>
-						<i className='fas fa-film'></i> Content Moderation
+					<NavItem to='/admin/activity' active={isActive('/admin/activity')}>
+						<i className='fas fa-list-alt'></i> Activity & Logs
 					</NavItem>
 
 					<NavSectionTitle>System</NavSectionTitle>
-					<NavItem
-						to='/admin/monitoring'
-						active={isActive('/admin/monitoring')}
-					>
-						<i className='fas fa-heartbeat'></i> Monitoring
-					</NavItem>
-					<NavItem to='/admin/logs' active={isActive('/admin/logs')}>
-						<i className='fas fa-list'></i> Audit Logs
-					</NavItem>
-					<NavItem to='/admin/stats' active={isActive('/admin/stats')}>
-						<i className='fas fa-chart-bar'></i> System Stats
-					</NavItem>
 					<NavItem to='/admin/settings' active={isActive('/admin/settings')}>
 						<i className='fas fa-cog'></i> Settings
 					</NavItem>

@@ -148,42 +148,52 @@ export interface DashboardStats {
 }
 
 export interface SystemStats {
-	server: {
-		uptime: number;
+	timestamp: Date;
+	database: {
+		totalUsers: number;
+		newUsers: {
+			lastDay: number;
+			lastWeek: number;
+			lastMonth: number;
+		};
+		activeUsers: number;
+		inactivePercentage: number;
+		contentStats: {
+			watchlistEntries: number;
+			matches: number;
+			averageWatchlistPerUser: number;
+		};
+		errorCount: number;
+		size: {
+			bytes: number;
+			megabytes: number;
+		};
+	};
+	system: {
+		os: {
+			type: string;
+			platform: string;
+			arch: string;
+			release: string;
+			uptime: number;
+			loadAvg: number[];
+		};
 		memory: {
 			total: number;
-			used: number;
 			free: number;
+			usagePercent: number;
 		};
 		cpu: {
-			usage: number;
 			cores: number;
+			model: string;
+			speed: number;
 		};
-		storage: {
-			total: number;
-			used: number;
-			free: number;
+		process: {
+			uptime: number;
+			memoryUsage: any;
+			nodeVersion: string;
+			pid: number;
 		};
-	};
-	database: {
-		connections: number;
-		queriesPerSecond: number;
-		size: number;
-		tables: {
-			name: string;
-			rows: number;
-			size: number;
-		}[];
-	};
-	application: {
-		activeUsers: number;
-		activeUsersTrend: 'up' | 'down' | 'neutral';
-		requestsPerMinute: number;
-		requestsPerMinuteTrend: 'up' | 'down' | 'neutral';
-		averageResponseTime: number;
-		averageResponseTimeTrend: 'up' | 'down' | 'neutral';
-		errorRate: number;
-		errorRateTrend: 'up' | 'down' | 'neutral';
 	};
 }
 
@@ -479,7 +489,6 @@ export const admin = {
 
 	// New admin dashboard methods
 	getDashboardStats: async (): Promise<{ stats: DashboardStats }> => {
-		// This would call a new endpoint to get overall dashboard stats
 		return fetchWithAuth('/api/admin/dashboard-stats');
 	},
 
@@ -622,7 +631,7 @@ export const admin = {
 	},
 
 	// System stats methods
-	getSystemStats: async (): Promise<{ stats: SystemStats }> => {
+	getSystemStats: async (): Promise<{ [key: string]: any }> => {
 		return fetchWithAuth('/api/admin/system-stats');
 	},
 
@@ -707,6 +716,120 @@ export const admin = {
 
 		return fetchWithAuth(
 			`/api/admin/user-activity-stats?${queryParams.toString()}`
+		);
+	},
+
+	// Content management methods
+	getContent: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			search?: string;
+			type?: string;
+			status?: string;
+			sortBy?: string;
+			sortOrder?: 'asc' | 'desc';
+		} = {}
+	): Promise<{
+		content: any[];
+		pagination: {
+			total: number;
+			limit: number;
+			offset: number;
+			hasMore: boolean;
+		};
+	}> => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.search) queryParams.append('search', params.search);
+		if (params.type) queryParams.append('type', params.type);
+		if (params.status) queryParams.append('status', params.status);
+		if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+		if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+		return fetchWithAuth(`/api/admin/content?${queryParams.toString()}`);
+	},
+
+	removeContent: async (
+		contentId: string,
+		reason: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/content/${contentId}/remove`, {
+			method: 'PUT',
+			body: JSON.stringify({ reason }),
+		});
+	},
+
+	updateContent: async (
+		contentId: string,
+		updates: {
+			title?: string;
+			status?: string;
+		}
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/content/${contentId}`, {
+			method: 'PUT',
+			body: JSON.stringify(updates),
+		});
+	},
+
+	getContentReports: async (contentId: string): Promise<{ reports: any[] }> => {
+		return fetchWithAuth(`/api/admin/content/${contentId}/reports`);
+	},
+
+	dismissReport: async (
+		reportId: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/reports/${reportId}/dismiss`, {
+			method: 'PUT',
+		});
+	},
+
+	approveContent: async (
+		contentId: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/content/${contentId}/approve`, {
+			method: 'PUT',
+		});
+	},
+
+	flagContent: async (
+		contentId: string
+	): Promise<{ success: boolean; message: string }> => {
+		return fetchWithAuth(`/api/admin/content/${contentId}/flag`, {
+			method: 'PUT',
+		});
+	},
+
+	getUserActivities: async (
+		params: {
+			limit?: number;
+			offset?: number;
+			action?: string;
+			userId?: string;
+			startDate?: string;
+			endDate?: string;
+		} = {}
+	): Promise<{
+		activities: any[];
+		pagination: {
+			total: number;
+			limit: number;
+			offset: number;
+			hasMore: boolean;
+		};
+	}> => {
+		const queryParams = new URLSearchParams();
+		if (params.limit) queryParams.append('limit', params.limit.toString());
+		if (params.offset) queryParams.append('offset', params.offset.toString());
+		if (params.action) queryParams.append('action', params.action);
+		if (params.userId) queryParams.append('userId', params.userId);
+		if (params.startDate) queryParams.append('startDate', params.startDate);
+		if (params.endDate) queryParams.append('endDate', params.endDate);
+
+		return fetchWithAuth(
+			`/api/admin/user-activities?${queryParams.toString()}`
 		);
 	},
 };

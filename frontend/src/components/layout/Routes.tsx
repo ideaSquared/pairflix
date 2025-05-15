@@ -1,13 +1,14 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
+	ActivityManagement,
 	AdminDashboard,
 	AdminLayout,
 	AdminSettings,
-	AuditLogDashboard,
+	AuditLogContent,
 	ContentModeration,
 	SystemMonitoring,
-	SystemStatsPage,
+	SystemStatsContent,
 	UserManagement,
 } from '../../features/admin';
 import LoginPage from '../../features/auth/LoginPage';
@@ -72,8 +73,9 @@ const AppRoutes: React.FC = () => {
 				<Route path='users' element={<UserManagement />} />
 				<Route path='content' element={<ContentModeration />} />
 				<Route path='monitoring' element={<SystemMonitoring />} />
-				<Route path='logs' element={<AuditLogDashboard />} />
-				<Route path='stats' element={<SystemStatsPage />} />
+				<Route path='activity' element={<ActivityManagement />} />
+				<Route path='logs' element={<AuditLogContent />} />
+				<Route path='stats' element={<SystemStatsContent />} />
 				<Route path='settings' element={<AdminSettings />} />
 			</Route>
 
