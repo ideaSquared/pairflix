@@ -514,11 +514,11 @@ export const changeUserStatus = async (req: Request, res: Response) => {
 
 		if (
 			!status ||
-			!['active', 'inactive', 'suspended', 'pending'].includes(status)
+			!['active', 'inactive', 'suspended', 'pending', 'banned'].includes(status)
 		) {
 			return res.status(400).json({
 				error: 'Valid status is required',
-				validStatuses: ['active', 'inactive', 'suspended', 'pending'],
+				validStatuses: ['active', 'inactive', 'suspended', 'pending', 'banned'],
 			});
 		}
 

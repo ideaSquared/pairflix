@@ -4,12 +4,12 @@ import ActivityManagement from './components/ActivityManagement';
 import AdminLayout from './components/AdminLayout';
 import AdminSettings from './components/AdminSettings';
 import ContentModeration from './components/content/ContentModerationContent';
+import UserManagementContent from './components/content/UserManagementContent';
 import AdminDashboard from './components/dashboard/AdminDashboardContent';
 import ContentManagement from './components/dashboard/ContentManagement';
 import SystemMonitoring from './components/dashboard/SystemMonitoringContent';
 import SystemStatsContent from './components/dashboard/SystemStatsContent';
 import UnifiedDashboard from './components/UnifiedDashboard';
-import UserManagement from './components/UserManagement';
 
 // Shared components
 import PageHeader from './components/shared/PageHeader';
@@ -29,5 +29,5 @@ export {
 	SystemStatsContent,
 	UnifiedDashboard,
 	UserActivityContent,
-	UserManagement,
+	UserManagementContent,
 };

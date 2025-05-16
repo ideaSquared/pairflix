@@ -202,7 +202,7 @@ export interface AdminUser {
 	username: string;
 	email: string;
 	role: 'admin' | 'user' | 'moderator';
-	status: 'active' | 'inactive' | 'suspended';
+	status: 'active' | 'inactive' | 'suspended' | 'banned' | 'pending';
 	created_at: string;
 	last_login?: string;
 	preferences: {
@@ -567,7 +567,7 @@ export const admin = {
 
 	changeUserStatus: async (
 		userId: string,
-		status: 'active' | 'inactive' | 'suspended' | 'pending',
+		status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned',
 		reason?: string
 	): Promise<{
 		success: boolean;

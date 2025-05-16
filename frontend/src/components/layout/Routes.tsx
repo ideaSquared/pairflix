@@ -9,7 +9,7 @@ import {
 	ContentModeration,
 	SystemMonitoring,
 	SystemStatsContent,
-	UserManagement,
+	UserManagementContent,
 } from '../../features/admin';
 import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
@@ -70,7 +70,7 @@ const AppRoutes: React.FC = () => {
 			{/* Admin routes */}
 			<Route path='/admin' element={<AdminRoute element={<AdminLayout />} />}>
 				<Route index element={<AdminDashboard />} />
-				<Route path='users' element={<UserManagement />} />
+				<Route path='users' element={<UserManagementContent />} />
 				<Route path='content' element={<ContentModeration />} />
 				<Route path='monitoring' element={<SystemMonitoring />} />
 				<Route path='activity' element={<ActivityManagement />} />
