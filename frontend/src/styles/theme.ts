@@ -33,6 +33,12 @@ const baseTheme = {
 		lg: '1280px',
 		xl: '1920px',
 	},
+	shadows: {
+		sm: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)',
+		md: '0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12)',
+		lg: '0 10px 20px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.10)',
+		xl: '0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22)',
+	},
 };
 
 export const darkTheme = {
@@ -46,8 +52,12 @@ export const darkTheme = {
 			secondary: '#1a1a1a',
 			input: '#2a2a2a',
 			card: '#1a1a1a',
+			paper: '#1f1f1f', // Added for modal backgrounds
+			hover: '#2a2a2a', // Added for hover states
+			highlight: '#2d2d2d', // Added for highlights
 		},
 		border: '#3a3a3a',
+		overlay: 'rgba(0, 0, 0, 0.6)', // Added for modal overlay
 		text: {
 			primary: '#ffffff',
 			secondary: '#b3b3b3', // Brightened from #999999 for better contrast
@@ -76,8 +86,12 @@ export const lightTheme = {
 			secondary: '#f5f5f5',
 			input: '#ffffff',
 			card: '#ffffff',
+			paper: '#ffffff', // Added for modal backgrounds
+			hover: '#f0f0f0', // Added for hover states
+			highlight: '#f5f7ff', // Added for highlights
 		},
 		border: '#d0d0d0',
+		overlay: 'rgba(0, 0, 0, 0.5)', // Added for modal overlay
 		text: {
 			primary: '#1a1a1a',
 			secondary: '#595959', // Darkened from #666666 for better contrast

@@ -76,6 +76,11 @@ const PasswordDisplay = styled.div`
 // Define a style for the icons
 const IconStyle = { fontSize: '1.2rem' };
 
+// Helper function for unimplemented features
+const notImplemented = (feature: string) => {
+	alert(`This feature (${feature}) isn't available yet.`);
+};
+
 const getBadgeVariant = (
 	status: UserStatus
 ): 'error' | 'warning' | 'info' | 'success' | 'default' => {
@@ -543,9 +548,7 @@ const UserManagementContent: React.FC = () => {
 				<Button
 					variant='primary'
 					style={{ marginLeft: '20px' }}
-					onClick={() => {
-						/* TODO: Implement create user functionality */
-					}}
+					onClick={() => notImplemented('Create User')}
 				>
 					<FiUserPlus style={IconStyle} /> Create User
 				</Button>
@@ -751,9 +754,7 @@ const UserManagementContent: React.FC = () => {
 					<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
 						<Button
 							variant='secondary'
-							onClick={() => {
-								/* TODO: Implement export CSV */
-							}}
+							onClick={() => notImplemented('Export CSV')}
 						>
 							<FiDownload style={IconStyle} /> Export CSV
 						</Button>
