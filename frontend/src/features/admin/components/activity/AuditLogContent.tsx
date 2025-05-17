@@ -21,7 +21,8 @@ import {
 	TableHead,
 	TableHeaderCell,
 } from '../../../../components/common/Table';
-import { admin, AuditLog, AuditLogStats } from '../../../../services/api';
+import { admin } from '../../../../services/api';
+import { AuditLog, AuditLogStats } from '../../../../services/api/admin';
 
 // Styled components
 const StatsGrid = styled(Grid)`
@@ -97,6 +98,13 @@ const AuditLogContent: React.FC = () => {
 
 		fetchInitialData();
 	}, []);
+
+	// Re-fetch logs when page changes
+	useEffect(() => {
+		if (!isLoading) {
+			fetchLogs();
+		}
+	}, [page]);
 
 	// Fetch logs based on current filters
 	const fetchLogs = async () => {
