@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+// Import the React Icons
+import { FiDownload, FiEdit, FiKey, FiUserPlus } from 'react-icons/fi';
+import {
+	RiExchangeLine,
+	RiHistoryLine,
+	RiUserFollowLine,
+	RiUserForbidLine,
+	RiUserSettingsLine,
+	RiUserUnfollowLine,
+} from 'react-icons/ri';
 import { Badge } from '../../../../components/common/Badge';
 import { Button } from '../../../../components/common/Button';
 import { Card } from '../../../../components/common/Card';
@@ -62,6 +72,9 @@ const PasswordDisplay = styled.div`
 	font-family: monospace;
 	font-size: 18px;
 `;
+
+// Define a style for the icons
+const IconStyle = { fontSize: '1.2rem' };
 
 const getBadgeVariant = (
 	status: UserStatus
@@ -235,7 +248,7 @@ const UserManagementContent: React.FC = () => {
 				...response.user,
 				id: response.user.user_id,
 				// Ensure last_login is properly handled as optional
-				last_login: response.user.last_login || null
+				last_login: response.user.last_login || null,
 			} as User; // Use type assertion to ensure compatibility
 		} catch (error) {
 			console.error('Error fetching user details:', error);
@@ -534,7 +547,7 @@ const UserManagementContent: React.FC = () => {
 						/* TODO: Implement create user functionality */
 					}}
 				>
-					<i className='ri-user-add-line'></i> Create User
+					<FiUserPlus style={IconStyle} /> Create User
 				</Button>
 			</Flex>
 
@@ -651,7 +664,7 @@ const UserManagementContent: React.FC = () => {
 															onClick={() => handleEditUser(user)}
 															title='Edit user'
 														>
-															<i className='ri-edit-line'></i>
+															<FiEdit style={IconStyle} />
 														</TableActionButton>
 
 														<TableActionButton
@@ -659,7 +672,7 @@ const UserManagementContent: React.FC = () => {
 															title='View activity'
 															variant='secondary'
 														>
-															<i className='ri-history-line'></i>
+															<RiHistoryLine style={IconStyle} />
 														</TableActionButton>
 
 														<TableActionButton
@@ -667,7 +680,7 @@ const UserManagementContent: React.FC = () => {
 															title='Reset password'
 															variant='secondary'
 														>
-															<i className='ri-key-line'></i>
+															<FiKey style={IconStyle} />
 														</TableActionButton>
 
 														<TableActionButton
@@ -675,7 +688,7 @@ const UserManagementContent: React.FC = () => {
 															title='Change role'
 															variant='primary'
 														>
-															<i className='ri-user-settings-line'></i>
+															<RiUserSettingsLine style={IconStyle} />
 														</TableActionButton>
 
 														<TableActionButton
@@ -683,7 +696,7 @@ const UserManagementContent: React.FC = () => {
 															title='Change status'
 															variant='warning'
 														>
-															<i className='ri-exchange-line'></i>
+															<RiExchangeLine style={IconStyle} />
 														</TableActionButton>
 
 														{user.status === 'suspended' ||
@@ -693,7 +706,7 @@ const UserManagementContent: React.FC = () => {
 																title='Activate user'
 																variant='primary'
 															>
-																<i className='ri-user-follow-line'></i>
+																<RiUserFollowLine style={IconStyle} />
 															</TableActionButton>
 														) : (
 															<>
@@ -703,7 +716,7 @@ const UserManagementContent: React.FC = () => {
 																		title='Suspend user'
 																		variant='warning'
 																	>
-																		<i className='ri-user-forbid-line'></i>
+																		<RiUserForbidLine style={IconStyle} />
 																	</TableActionButton>
 																) : user.status === 'pending' ||
 																  user.status === 'inactive' ? (
@@ -712,7 +725,7 @@ const UserManagementContent: React.FC = () => {
 																		title='Activate user'
 																		variant='primary'
 																	>
-																		<i className='ri-user-follow-line'></i>
+																		<RiUserFollowLine style={IconStyle} />
 																	</TableActionButton>
 																) : null}
 
@@ -721,7 +734,7 @@ const UserManagementContent: React.FC = () => {
 																	onClick={() => handleBanUser(user)}
 																	title='Ban user'
 																>
-																	<i className='ri-user-unfollow-line'></i>
+																	<RiUserUnfollowLine style={IconStyle} />
 																</TableActionButton>
 															</>
 														)}
@@ -742,7 +755,7 @@ const UserManagementContent: React.FC = () => {
 								/* TODO: Implement export CSV */
 							}}
 						>
-							<i className='ri-file-download-line'></i> Export CSV
+							<FiDownload style={IconStyle} /> Export CSV
 						</Button>
 					</Flex>
 
