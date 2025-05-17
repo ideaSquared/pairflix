@@ -34,7 +34,7 @@ import {
 	TableRow,
 } from '../../../../components/common/Table';
 import { H1, Typography } from '../../../../components/common/Typography';
-import api from '../../../../services/api';
+import { admin } from '../../../../services/api';
 
 // Types
 type UserRole = 'user' | 'moderator' | 'admin';
@@ -186,7 +186,7 @@ const UserManagementContent: React.FC = () => {
 			setIsLoading(true);
 
 			// Call the admin API
-			const response = await api.admin.getUsers({
+			const response = await admin.getUsers({
 				limit: 10, // items per page
 				offset: (page - 1) * 10, // calculate offset based on page number
 				...(search ? { search } : {}),
@@ -248,7 +248,7 @@ const UserManagementContent: React.FC = () => {
 	// Function to fetch the latest user details
 	const fetchUserDetails = async (userId: string): Promise<User> => {
 		try {
-			const response = await api.admin.getUser(userId);
+			const response = await admin.getUser(userId);
 			return {
 				...response.user,
 				id: response.user.user_id,
@@ -272,7 +272,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Call the admin API to ban the user
-			await api.admin.changeUserStatus(userToBan.id, 'banned', banReason);
+			await admin.changeUserStatus(userToBan.id, 'banned', banReason);
 
 			// Update user in local state
 			setUsers(
@@ -297,7 +297,7 @@ const UserManagementContent: React.FC = () => {
 	const saveUserChanges = async (updatedUser: User) => {
 		try {
 			// Call the admin API to update the user
-			await api.admin.updateUser(updatedUser.id, {
+			await admin.updateUser(updatedUser.id, {
 				role: updatedUser.role,
 				status: updatedUser.status,
 			});
@@ -321,7 +321,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Fetch activity for this user
-			const response = await api.admin.getUserActivities({ userId: user.id });
+			const response = await admin.getUserActivities({ userId: user.id });
 			setUserActivity(response.activities || []);
 			setShowActivityModal(true);
 		} catch (error) {
@@ -333,7 +333,7 @@ const UserManagementContent: React.FC = () => {
 	const unbanUser = async (user: User) => {
 		try {
 			// Call the admin API to unban the user
-			await api.admin.updateUser(user.id, {
+			await admin.updateUser(user.id, {
 				status: 'active',
 				role: user.role,
 			});
@@ -352,7 +352,7 @@ const UserManagementContent: React.FC = () => {
 	const suspendUser = async (user: User) => {
 		try {
 			// Call the admin API to suspend the user
-			await api.admin.updateUser(user.id, {
+			await admin.updateUser(user.id, {
 				status: 'suspended',
 				role: user.role,
 			});
@@ -371,7 +371,7 @@ const UserManagementContent: React.FC = () => {
 	const activateUser = async (user: User) => {
 		try {
 			// Call the admin API to activate the user
-			await api.admin.updateUser(user.id, {
+			await admin.updateUser(user.id, {
 				status: 'active',
 				role: user.role,
 			});
@@ -398,9 +398,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Call the admin API to reset the user's password
-			const response = await api.admin.resetUserPassword(
-				userToResetPassword.id
-			);
+			const response = await admin.resetUserPassword(userToResetPassword.id);
 
 			// Set the new password in the state
 			setNewPassword(response.newPassword);
@@ -426,7 +424,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Call the admin API to update the user's role
-			await api.admin.updateUser(userToChangeRole.id, {
+			await admin.updateUser(userToChangeRole.id, {
 				role: newRole,
 				status: userToChangeRole.status,
 			});
@@ -460,7 +458,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Call the admin API to update the user's status
-			await api.admin.changeUserStatus(
+			await admin.changeUserStatus(
 				userToChangeStatus.id,
 				newStatus,
 				statusChangeReason

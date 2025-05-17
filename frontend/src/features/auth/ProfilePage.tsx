@@ -8,13 +8,25 @@ import { Select } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
-import * as userApi from '../../services/api';
+import { user as userService } from '../../services/api';
+
+// Define response types for API calls
+type ApiResponse = {
+	token: string;
+	message?: string;
+	user?: {
+		preferences?: UserPreferences;
+		[key: string]: any;
+	};
+};
 
 type UserPreferences = {
 	theme: 'light' | 'dark';
 	emailNotifications: boolean;
 	autoArchiveDays: number;
 	favoriteGenres: string[];
+	viewStyle?: 'grid' | 'list';
+	[key: string]: any;
 };
 
 const ProfileContainer = styled.div`
@@ -23,7 +35,17 @@ const ProfileContainer = styled.div`
 	padding: ${({ theme }) => theme.spacing.md};
 `;
 
-const ProfileCard = styled(Card)`
+// Create proper interfaces for our custom card components
+interface StandardCardProps {
+	variant?: 'primary' | 'secondary' | 'outlined';
+	children: React.ReactNode;
+	className?: string;
+	elevation?: 'low' | 'medium' | 'high';
+	accentColor?: string;
+	interactive?: boolean;
+}
+
+const ProfileCard = styled(Card)<StandardCardProps>`
 	display: flex;
 	flex-direction: column;
 	gap: ${({ theme }) => theme.spacing.md};
@@ -50,7 +72,9 @@ const StyledForm = styled.form`
 	margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
-const FormCard = styled(Card)`
+const FormCard = styled(Card).attrs<StandardCardProps>((props) => ({
+	variant: props.variant || 'secondary',
+}))<StandardCardProps>`
 	${CardContent} {
 		display: flex;
 		flex-direction: column;
@@ -62,7 +86,9 @@ const FormCard = styled(Card)`
 	}
 `;
 
-const PreferencesCard = styled(Card)`
+const PreferencesCard = styled(Card).attrs<StandardCardProps>((props) => ({
+	variant: props.variant || 'secondary',
+}))<StandardCardProps>`
 	.preference-row {
 		display: flex;
 		align-items: center;
@@ -183,9 +209,12 @@ const ProfilePage: React.FC = () => {
 		}
 	};
 
-	const passwordMutation = useMutation({
-		mutationFn: (data: { currentPassword: string; newPassword: string }) =>
-			userApi.user.updatePassword(data),
+	const passwordMutation = useMutation<
+		ApiResponse,
+		Error,
+		{ currentPassword: string; newPassword: string }
+	>({
+		mutationFn: (data) => userService.updatePassword(data),
 		onSuccess: (response) => {
 			setPasswordSuccess('Password updated successfully');
 			setPasswordError('');
@@ -201,9 +230,12 @@ const ProfilePage: React.FC = () => {
 		},
 	});
 
-	const emailMutation = useMutation({
-		mutationFn: (data: { email: string; password: string }) =>
-			userApi.user.updateEmail(data),
+	const emailMutation = useMutation<
+		ApiResponse,
+		Error,
+		{ email: string; password: string }
+	>({
+		mutationFn: (data) => userService.updateEmail(data),
 		onSuccess: (response) => {
 			setEmailSuccess('Email updated successfully');
 			setEmailError('');
@@ -219,9 +251,12 @@ const ProfilePage: React.FC = () => {
 		},
 	});
 
-	const usernameMutation = useMutation({
-		mutationFn: (data: { username: string }) =>
-			userApi.user.updateUsername(data),
+	const usernameMutation = useMutation<
+		ApiResponse,
+		Error,
+		{ username: string }
+	>({
+		mutationFn: (data) => userService.updateUsername(data),
 		onSuccess: (response) => {
 			setUsernameSuccess('Username updated successfully');
 			setUsernameError('');
@@ -237,9 +272,12 @@ const ProfilePage: React.FC = () => {
 		},
 	});
 
-	const preferenceMutation = useMutation({
-		mutationFn: (data: Partial<UserPreferences>) =>
-			userApi.user.updatePreferences(data),
+	const preferenceMutation = useMutation<
+		ApiResponse,
+		Error,
+		Partial<UserPreferences>
+	>({
+		mutationFn: (data) => userService.updatePreferences(data),
 		onSuccess: (response) => {
 			setPreferenceSuccess('Preferences updated successfully');
 			setPreferenceError('');
@@ -310,7 +348,7 @@ const ProfilePage: React.FC = () => {
 	};
 
 	const handlePreferenceUpdate = async (
-		key: keyof NonNullable<typeof user>['preferences'],
+		key: keyof UserPreferences,
 		value: any
 	) => {
 		if (!user) return;

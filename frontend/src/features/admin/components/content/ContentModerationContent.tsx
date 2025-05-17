@@ -24,7 +24,7 @@ import {
 	TableRow,
 } from '../../../../components/common/Table';
 import { H4, Typography } from '../../../../components/common/Typography';
-import api from '../../../../services/api';
+import { admin } from '../../../../services/api';
 
 // Types for content items
 type ContentItem = {
@@ -162,7 +162,7 @@ const ContentModerationContent: React.FC = () => {
 			setIsLoading(true);
 
 			// Call the admin API
-			const response = await api.admin.getContent({
+			const response = await admin.getContent({
 				limit: 10, // items per page
 				offset: (page - 1) * 10, // calculate offset based on page number
 				...(search ? { search } : {}),
@@ -215,7 +215,7 @@ const ContentModerationContent: React.FC = () => {
 
 		try {
 			// Call the admin API to remove the content
-			await api.admin.removeContent(contentToRemove.id, removalReason);
+			await admin.removeContent(contentToRemove.id, removalReason);
 
 			// Update content in local state
 			setContentItems(
@@ -235,7 +235,7 @@ const ContentModerationContent: React.FC = () => {
 	const saveContentChanges = async (updatedContent: ContentItem) => {
 		try {
 			// Call the admin API to update the content
-			await api.admin.updateContent(updatedContent.id, {
+			await admin.updateContent(updatedContent.id, {
 				title: updatedContent.title,
 				status: updatedContent.status,
 			});
@@ -263,7 +263,7 @@ const ContentModerationContent: React.FC = () => {
 
 		try {
 			// Fetch reports for this content
-			const response = await api.admin.getContentReports(content.id);
+			const response = await admin.getContentReports(content.id);
 			setReports(response.reports);
 			setShowReportsModal(true);
 		} catch (error) {
@@ -275,7 +275,7 @@ const ContentModerationContent: React.FC = () => {
 	const dismissReport = async (reportId: string) => {
 		try {
 			// Call the admin API to dismiss the report
-			await api.admin.dismissReport(reportId);
+			await admin.dismissReport(reportId);
 
 			// Update reports in local state
 			setReports(reports.filter((report) => report.id !== reportId));
@@ -306,7 +306,7 @@ const ContentModerationContent: React.FC = () => {
 	const approveContent = async (content: ContentItem) => {
 		try {
 			// Call the admin API to approve the content
-			await api.admin.approveContent(content.id);
+			await admin.approveContent(content.id);
 
 			// Update content in local state
 			setContentItems(
@@ -324,7 +324,7 @@ const ContentModerationContent: React.FC = () => {
 	const flagContent = async (content: ContentItem) => {
 		try {
 			// Call the admin API to flag the content
-			await api.admin.flagContent(content.id);
+			await admin.flagContent(content.id);
 
 			// Update content in local state
 			setContentItems(

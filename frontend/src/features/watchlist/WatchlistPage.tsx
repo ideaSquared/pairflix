@@ -10,11 +10,26 @@ import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H3, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
-import * as userApi from '../../services/api';
-import { watchlist, WatchlistEntry } from '../../services/api';
+import {
+	user as userService,
+	watchlist,
+	WatchlistEntry,
+} from '../../services/api';
 import SearchMedia from './SearchMedia';
 
-const WatchlistCard = styled(Card)<{ status: string }>`
+// Create a custom type for our WatchlistCard component that properly extends Card props
+interface WatchlistCardProps {
+	status: string;
+	variant?: 'primary' | 'secondary' | 'outlined';
+	children: React.ReactNode;
+	className?: string;
+	elevation?: 'low' | 'medium' | 'high';
+	accentColor?: string;
+	interactive?: boolean;
+}
+
+// Extend the Card component to include status prop
+const WatchlistCard = styled(Card)<WatchlistCardProps>`
 	border-left: 4px solid
 		${({ status, theme }) => {
 			switch (status) {
@@ -85,6 +100,16 @@ const ListContainer = styled.div`
 	margin-top: ${({ theme }) => theme.spacing.lg};
 `;
 
+type PreferenceResponse = {
+	token: string;
+	user: {
+		preferences: {
+			viewStyle: 'grid' | 'list';
+			[key: string]: any;
+		};
+	};
+};
+
 const WatchlistPage: React.FC = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
@@ -94,9 +119,13 @@ const WatchlistPage: React.FC = () => {
 		user?.preferences?.viewStyle || 'grid'
 	);
 
-	const preferenceMutation = useMutation({
+	const preferenceMutation = useMutation<
+		PreferenceResponse,
+		Error,
+		'grid' | 'list'
+	>({
 		mutationFn: (viewStyle: 'grid' | 'list') =>
-			userApi.user.updatePreferences({ viewStyle }),
+			userService.updatePreferences({ viewStyle }),
 		onSuccess: (response) => {
 			if (response.token) {
 				localStorage.setItem('token', response.token);
