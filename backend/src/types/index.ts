@@ -3,7 +3,7 @@ export interface User {
 	email: string;
 	username: string;
 	role: string;
-	status: 'active' | 'inactive' | 'pending' | 'suspended';
+	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
 	last_login?: Date;
 	created_at: Date;
 }

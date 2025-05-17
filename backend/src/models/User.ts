@@ -6,7 +6,7 @@ interface UserAttributes extends UserInterface {
 	updated_at: Date;
 	username: string;
 	role: string;
-	status: 'active' | 'inactive' | 'pending' | 'suspended';
+	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
 	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
@@ -22,7 +22,7 @@ interface UserCreationAttributes {
 	password_hash: string;
 	username: string;
 	role?: string;
-	status?: 'active' | 'inactive' | 'pending' | 'suspended';
+	status?: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
 	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
@@ -39,7 +39,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare username: string;
 	declare password_hash: string;
 	declare role: string;
-	declare status: 'active' | 'inactive' | 'pending' | 'suspended';
+	declare status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
 	declare last_login?: Date;
 	declare preferences: {
 		theme: 'light' | 'dark';
@@ -90,7 +90,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					allowNull: false,
 					defaultValue: 'active',
 					validate: {
-						isIn: [['active', 'inactive', 'pending', 'suspended']],
+						isIn: [['active', 'inactive', 'pending', 'suspended', 'banned']],
 					},
 				},
 				last_login: {

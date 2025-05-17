@@ -272,17 +272,17 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Call the admin API to ban the user
-			await api.admin.changeUserStatus(userToBan.id, 'suspended', banReason);
+			await api.admin.changeUserStatus(userToBan.id, 'banned', banReason);
 
 			// Update user in local state
 			setUsers(
 				users.map((u) =>
-					u.id === userToBan.id ? { ...u, status: 'suspended' } : u
+					u.id === userToBan.id ? { ...u, status: 'banned' } : u
 				)
 			);
 			setShowBanModal(false);
 			setUserToBan(null);
-			setSuccessMessage(`User ${userToBan.username} has been suspended`);
+			setSuccessMessage(`User ${userToBan.username} has been banned`);
 		} catch (error) {
 			console.error('Error banning user:', error);
 			setErrorMessage('Failed to ban user. Please try again.');

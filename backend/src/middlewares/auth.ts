@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import User from '../models/User';
 import { auditLogService } from '../services/audit.service';
 
 declare global {
@@ -10,6 +11,7 @@ declare global {
 				email: string;
 				username: string;
 				role: string;
+				status: string;
 				preferences: {
 					theme: 'light' | 'dark';
 					viewStyle: 'list' | 'grid';
@@ -22,7 +24,7 @@ declare global {
 	}
 }
 
-export const authenticateToken = (
+export const authenticateToken = async (
 	req: Request,
 	res: Response,
 	next: NextFunction
@@ -50,11 +52,12 @@ export const authenticateToken = (
 	}
 
 	try {
-		const user = jwt.verify(token, process.env.JWT_SECRET as string) as {
+		const decodedUser = jwt.verify(token, process.env.JWT_SECRET as string) as {
 			user_id: string;
 			email: string;
 			username: string;
 			role: string;
+			status: string;
 			preferences: {
 				theme: 'light' | 'dark';
 				viewStyle: 'list' | 'grid';
@@ -63,7 +66,71 @@ export const authenticateToken = (
 				favoriteGenres: string[];
 			};
 		};
-		req.user = user;
+
+		// Get the latest user data from database to check current status
+		const currentUser = await User.findByPk(decodedUser.user_id);
+
+		// If user no longer exists in DB
+		if (!currentUser) {
+			auditLogService.warn(
+				'Authentication failed: User no longer exists',
+				'auth-middleware',
+				{
+					userId: decodedUser.user_id,
+					path: req.path,
+					method: req.method,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(403).json({ error: 'Invalid or expired token' });
+		}
+
+		// Check if user is suspended or banned
+		if (currentUser.status === 'suspended') {
+			auditLogService.warn(
+				'Access attempt by suspended user',
+				'auth-middleware',
+				{
+					userId: decodedUser.user_id,
+					email: decodedUser.email,
+					path: req.path,
+					method: req.method,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(403).json({
+				error:
+					'Your account has been suspended. Please contact support for assistance.',
+			});
+		}
+
+		if (currentUser.status === 'banned') {
+			auditLogService.warn('Access attempt by banned user', 'auth-middleware', {
+				userId: decodedUser.user_id,
+				email: decodedUser.email,
+				path: req.path,
+				method: req.method,
+				ip: req.ip,
+				timestamp: new Date(),
+			});
+			return res.status(403).json({
+				error:
+					'Your account has been banned for violating our terms of service.',
+			});
+		}
+
+		// Use current user data to ensure we have the most up-to-date information
+		req.user = {
+			user_id: currentUser.user_id,
+			email: currentUser.email,
+			username: currentUser.username,
+			role: currentUser.role,
+			status: currentUser.status,
+			preferences: currentUser.preferences,
+		};
+
 		next();
 	} catch (error) {
 		console.error('Auth failed:', error);

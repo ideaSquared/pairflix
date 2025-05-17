@@ -12,6 +12,19 @@ export const authenticateUser = async (email: string, password: string) => {
 		throw new Error('Invalid credentials');
 	}
 
+	// Check user status - prevent login for suspended or banned users
+	if (user.status === 'suspended') {
+		throw new Error(
+			'Your account has been suspended. Please contact support for assistance.'
+		);
+	}
+
+	if (user.status === 'banned') {
+		throw new Error(
+			'Your account has been banned for violating our terms of service.'
+		);
+	}
+
 	// Update the last login time
 	user.last_login = new Date();
 	await user.save();

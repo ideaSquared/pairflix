@@ -39,12 +39,15 @@ export async function seedDatabase() {
 				username: 'user2',
 				password_hash: password,
 				preferences: defaultPreferences,
+				status: 'banned',
 			}),
 			User.create({
 				email: 'user3@example.com',
 				username: 'user3',
 				password_hash: password,
 				preferences: defaultPreferences,
+
+				status: 'suspended',
 			}),
 			User.create({
 				email: 'admin@example.com',

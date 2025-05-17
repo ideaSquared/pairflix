@@ -37,7 +37,14 @@ const LoginPage: React.FC = () => {
 			checkAuth();
 			navigate('/watchlist');
 		} catch (err) {
-			setError('Invalid email or password');
+			// Extract the specific error message from the response if available
+			if (err instanceof Error) {
+				setError(err.message);
+			} else if (typeof err === 'object' && err !== null && 'message' in err) {
+				setError(err.message as string);
+			} else {
+				setError('Invalid email or password');
+			}
 		}
 	};
 

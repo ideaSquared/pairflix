@@ -293,14 +293,30 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
 export const auth = {
 	login: async (credentials: LoginCredentials) => {
-		const response = await fetchWithAuth('/api/auth/login', {
-			method: 'POST',
-			body: JSON.stringify(credentials),
-		});
-		if (response.token) {
-			localStorage.setItem('token', response.token);
+		try {
+			const fullUrl = `${BASE_URL}/api/auth/login`;
+			const response = await fetch(fullUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(credentials),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Invalid email or password');
+			}
+
+			if (data.token) {
+				localStorage.setItem('token', data.token);
+			}
+
+			return data;
+		} catch (error) {
+			throw error;
 		}
-		return response;
 	},
 	getCurrentUser: async () => {
 		return fetchWithAuth('/api/auth/me');
