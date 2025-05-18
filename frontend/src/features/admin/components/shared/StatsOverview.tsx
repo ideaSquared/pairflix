@@ -1,4 +1,15 @@
 import React from 'react';
+import {
+	FaChartLine,
+	FaClock,
+	FaExclamationTriangle,
+	FaHeart,
+	FaHeartbeat,
+	FaList,
+	FaMemory,
+	FaUserCheck,
+	FaUsers,
+} from 'react-icons/fa';
 import styled from 'styled-components';
 import { Badge } from '../../../../components/common/Badge';
 import { Card, CardContent } from '../../../../components/common/Card';
@@ -136,6 +147,32 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 		return 'good';
 	};
 
+	// Render the appropriate icon component based on the icon string
+	const renderIcon = (iconName: string) => {
+		switch (iconName) {
+			case 'users':
+				return <FaUsers />;
+			case 'activeUsers':
+				return <FaUserCheck />;
+			case 'content':
+				return <FaList />;
+			case 'matches':
+				return <FaHeart />;
+			case 'activity':
+				return <FaChartLine />;
+			case 'errors':
+				return <FaExclamationTriangle />;
+			case 'systemHealth':
+				return <FaHeartbeat />;
+			case 'memory':
+				return <FaMemory />;
+			case 'uptime':
+				return <FaClock />;
+			default:
+				return null;
+		}
+	};
+
 	switch (type) {
 		case 'users':
 			if (!metrics.users) return null;
@@ -143,11 +180,7 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 				<StatsCard>
 					<CardContent>
 						<Flex alignItems='center'>
-							{icon && (
-								<StatIcon>
-									<i className={icon}></i>
-								</StatIcon>
-							)}
+							{icon && <StatIcon>{renderIcon(type)}</StatIcon>}
 							<div>
 								<StatValue>{formatNumber(metrics.users.total)}</StatValue>
 								<StatLabel>Total Users</StatLabel>
@@ -163,11 +196,7 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 				<StatsCard>
 					<CardContent>
 						<Flex alignItems='center'>
-							{icon && (
-								<StatIcon>
-									<i className={icon}></i>
-								</StatIcon>
-							)}
+							{icon && <StatIcon>{renderIcon(type)}</StatIcon>}
 							<div>
 								<StatValue>{formatNumber(metrics.users.active)}</StatValue>
 								<StatLabel>Active Users</StatLabel>
@@ -186,11 +215,7 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 				<StatsCard>
 					<CardContent>
 						<Flex alignItems='center'>
-							{icon && (
-								<StatIcon>
-									<i className={icon}></i>
-								</StatIcon>
-							)}
+							{icon && <StatIcon>{renderIcon(type)}</StatIcon>}
 							<div>
 								<StatValue>
 									{formatNumber(metrics.content.watchlistEntries)}
@@ -208,11 +233,7 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 				<StatsCard>
 					<CardContent>
 						<Flex alignItems='center'>
-							{icon && (
-								<StatIcon>
-									<i className={icon}></i>
-								</StatIcon>
-							)}
+							{icon && <StatIcon>{renderIcon(type)}</StatIcon>}
 							<div>
 								<StatValue>{formatNumber(metrics.content.matches)}</StatValue>
 								<StatLabel>Total Matches</StatLabel>
@@ -367,19 +388,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 }) => {
 	if (!isValidMetrics(metrics)) return null;
 
-	// Map cards to appropriate icons
-	const cardIcons: Record<StatsCardType, string> = {
-		users: 'fas fa-users',
-		activeUsers: 'fas fa-user-check',
-		content: 'fas fa-list',
-		matches: 'fas fa-heart',
-		activity: 'fas fa-chart-line',
-		errors: 'fas fa-exclamation-triangle',
-		systemHealth: 'fas fa-heartbeat',
-		memory: 'fas fa-memory',
-		uptime: 'fas fa-clock',
-	};
-
+	// Pass the card type as the icon identifier
 	return (
 		<Grid columns={columns} gap='md'>
 			{cards.map((cardType) => (
@@ -387,7 +396,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 					key={cardType}
 					type={cardType}
 					metrics={metrics}
-					icon={cardIcons[cardType]}
+					icon={cardType}
 				/>
 			))}
 		</Grid>

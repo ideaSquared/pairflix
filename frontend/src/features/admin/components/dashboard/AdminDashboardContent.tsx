@@ -39,7 +39,32 @@ const AdminDashboardContent: React.FC = () => {
 
 				// Use the centralized admin stats service
 				const metricsData = await adminStatsService.getDashboardStats();
-				setMetrics(metricsData);
+
+				// Transform stats to the format expected by StatsOverview
+				const formattedMetrics = {
+					users: {
+						total: metricsData.totalUsers,
+						active: metricsData.activeUsers,
+						inactivePercentage:
+							metricsData.totalUsers > 0
+								? ((metricsData.totalUsers - metricsData.activeUsers) /
+										metricsData.totalUsers) *
+									100
+								: 0,
+					},
+					content: {
+						watchlistEntries: metricsData.watchlistEntries,
+						matches: metricsData.totalMatches,
+					},
+					// Add placeholder system data for the system health card
+					system: {
+						recentErrors: 0,
+						uptime: 0,
+						memoryUsage: { heapUsed: 0, heapTotal: 0 },
+					},
+				};
+
+				setMetrics(formattedMetrics);
 			} catch (err) {
 				setError(
 					`Failed to load dashboard metrics: ${err instanceof Error ? err.message : String(err)}`
@@ -59,7 +84,32 @@ const AdminDashboardContent: React.FC = () => {
 
 			// Force a refresh by setting the cache bust flag to true
 			const metricsData = await adminStatsService.getDashboardStats(true);
-			setMetrics(metricsData);
+
+			// Transform stats to the format expected by StatsOverview
+			const formattedMetrics = {
+				users: {
+					total: metricsData.totalUsers,
+					active: metricsData.activeUsers,
+					inactivePercentage:
+						metricsData.totalUsers > 0
+							? ((metricsData.totalUsers - metricsData.activeUsers) /
+									metricsData.totalUsers) *
+								100
+							: 0,
+				},
+				content: {
+					watchlistEntries: metricsData.watchlistEntries,
+					matches: metricsData.totalMatches,
+				},
+				// Add placeholder system data for the system health card
+				system: {
+					recentErrors: 0,
+					uptime: 0,
+					memoryUsage: { heapUsed: 0, heapTotal: 0 },
+				},
+			};
+
+			setMetrics(formattedMetrics);
 		} catch (err) {
 			setError(
 				`Failed to refresh metrics: ${err instanceof Error ? err.message : String(err)}`
@@ -107,7 +157,7 @@ const AdminDashboardContent: React.FC = () => {
 				<>
 					<StatsOverview
 						metrics={metrics}
-						cards={['users', 'content', 'activity', 'systemHealth']}
+						cards={['users', 'activeUsers', 'content', 'matches']}
 					/>
 
 					<SectionTitle>Quick Actions</SectionTitle>
