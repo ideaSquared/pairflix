@@ -1,7 +1,12 @@
 // User management related types
 
 export type UserRole = 'user' | 'moderator' | 'admin';
-export type UserStatus = 'active' | 'suspended' | 'pending' | 'inactive' | 'banned';
+export type UserStatus =
+	| 'active'
+	| 'suspended'
+	| 'pending'
+	| 'inactive'
+	| 'banned';
 
 export interface User {
 	id: string;
