@@ -1,151 +1,78 @@
 import React, { useEffect, useState } from 'react';
+import { FiDownload } from 'react-icons/fi';
 import styled from 'styled-components';
-// Import the React Icons
-import { FiDownload, FiEdit, FiKey, FiUserPlus } from 'react-icons/fi';
-import {
-	RiExchangeLine,
-	RiHistoryLine,
-	RiUserFollowLine,
-	RiUserForbidLine,
-	RiUserSettingsLine,
-	RiUserUnfollowLine,
-} from 'react-icons/ri';
-import { Badge } from '../../../../components/common/Badge';
 import { Button } from '../../../../components/common/Button';
-import { Card } from '../../../../components/common/Card';
-import {
-	FilterGroup,
-	FilterItem,
-} from '../../../../components/common/FilterGroup';
-import { Input } from '../../../../components/common/Input';
 import { Flex } from '../../../../components/common/Layout';
 import { Loading } from '../../../../components/common/Loading';
-import { Modal } from '../../../../components/common/Modal';
 import { Pagination } from '../../../../components/common/Pagination';
-import { Select } from '../../../../components/common/Select';
-import {
-	Table,
-	TableActionButton,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableHeaderCell,
-	TableRow,
-} from '../../../../components/common/Table';
 import { H1, Typography } from '../../../../components/common/Typography';
 import { admin } from '../../../../services/api';
-
-// Types
-type UserRole = 'user' | 'moderator' | 'admin';
-type UserStatus = 'active' | 'suspended' | 'pending' | 'inactive' | 'banned';
-
-interface User {
-	id: string;
-	user_id?: string;
-	username: string;
-	email: string;
-	role: UserRole;
-	status: UserStatus;
-	name?: string;
-	created_at: string;
-	last_login?: string | null; // Made last_login optional with ?
-}
+import {
+	BanUserModal,
+	ChangeRoleModal,
+	ChangeStatusModal,
+	EditUserModal,
+	ErrorMessage,
+	IconStyle,
+	ResetPasswordModal,
+	SuccessMessage,
+	User,
+	UserActivity,
+	UserActivityModal,
+	UserFilter,
+	UserManagementFilters,
+	UserRole,
+	UserStatus,
+	UserTable,
+	notImplemented,
+} from './user-management';
 
 // Styled components
 const UserManagementContainer = styled.div`
 	padding-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
-const SearchContainer = styled.div`
-	margin-bottom: ${({ theme }) => theme.spacing.md};
-`;
-
-// Styled component for password display
-const PasswordDisplay = styled.div`
-	margin: 20px 0;
-	padding: 15px;
-	background-color: #f8f9fa;
-	border: 1px solid #dee2e6;
-	border-radius: 4px;
-	text-align: center;
-	font-family: monospace;
-	font-size: 18px;
-`;
-
-// Define a style for the icons
-const IconStyle = { fontSize: '1.2rem' };
-
-// Helper function for unimplemented features
-const notImplemented = (feature: string) => {
-	alert(`This feature (${feature}) isn't available yet.`);
-};
-
-const getBadgeVariant = (
-	status: UserStatus
-): 'error' | 'warning' | 'info' | 'success' | 'default' => {
-	switch (status) {
-		case 'active':
-			return 'success';
-		case 'suspended':
-			return 'warning';
-		case 'pending':
-			return 'info';
-		case 'inactive':
-			return 'default';
-		case 'banned':
-			return 'error';
-		default:
-			return 'default';
-	}
-};
-
-const getRoleBadgeVariant = (
-	role: UserRole
-): 'error' | 'warning' | 'info' | 'success' | 'default' => {
-	switch (role) {
-		case 'admin':
-			return 'error';
-		case 'moderator':
-			return 'warning';
-		case 'user':
-			return 'info';
-		default:
-			return 'default';
-	}
-};
-
 const UserManagementContent: React.FC = () => {
+	// State for user data
 	const [users, setUsers] = useState<User[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
+
+	// State for search and filters
 	const [search, setSearch] = useState('');
-	const [roleFilter, setRoleFilter] = useState('');
-	const [statusFilter, setStatusFilter] = useState('');
-	const [sortBy, setSortBy] = useState('created_at');
-	const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+	const [filters, setFilters] = useState<UserManagementFilters>({
+		roleFilter: '',
+		statusFilter: '',
+		sortBy: 'created_at',
+		sortOrder: 'desc',
+	});
 
 	// Modal states
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [userToEdit, setUserToEdit] = useState<User | null>(null);
+
 	const [showBanModal, setShowBanModal] = useState(false);
 	const [userToBan, setUserToBan] = useState<User | null>(null);
 	const [banReason, setBanReason] = useState('');
+
 	const [showActivityModal, setShowActivityModal] = useState(false);
 	const [userForActivity, setUserForActivity] = useState<User | null>(null);
-	const [userActivity, setUserActivity] = useState<any[]>([]);
+	const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
+
 	const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 	const [userToResetPassword, setUserToResetPassword] = useState<User | null>(
 		null
 	);
 	const [newPassword, setNewPassword] = useState('');
-	// New states for role management
+
+	// States for role management
 	const [showRoleModal, setShowRoleModal] = useState(false);
 	const [userToChangeRole, setUserToChangeRole] = useState<User | null>(null);
 	const [newRole, setNewRole] = useState<UserRole>('user');
 	const [roleChangeReason, setRoleChangeReason] = useState('');
-	// New states for status management
+
+	// States for status management
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [userToChangeStatus, setUserToChangeStatus] = useState<User | null>(
 		null
@@ -157,11 +84,19 @@ const UserManagementContent: React.FC = () => {
 	const [successMessage, setSuccessMessage] = useState('');
 	const [errorMessage, setErrorMessage] = useState('');
 
+	// Load users when filters or pagination changes
 	useEffect(() => {
 		fetchUsers();
-	}, [page, search, roleFilter, statusFilter, sortBy, sortOrder]);
+	}, [
+		page,
+		search,
+		filters.roleFilter,
+		filters.statusFilter,
+		filters.sortBy,
+		filters.sortOrder,
+	]);
 
-	// Show success message temporarily
+	// Clear success message after 3 seconds
 	useEffect(() => {
 		if (successMessage) {
 			const timer = setTimeout(() => {
@@ -171,7 +106,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	}, [successMessage]);
 
-	// Show error message temporarily
+	// Clear error message after 5 seconds
 	useEffect(() => {
 		if (errorMessage) {
 			const timer = setTimeout(() => {
@@ -181,6 +116,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	}, [errorMessage]);
 
+	// Fetch users from the API
 	const fetchUsers = async () => {
 		try {
 			setIsLoading(true);
@@ -190,10 +126,10 @@ const UserManagementContent: React.FC = () => {
 				limit: 10, // items per page
 				offset: (page - 1) * 10, // calculate offset based on page number
 				...(search ? { search } : {}),
-				...(roleFilter ? { role: roleFilter } : {}),
-				...(statusFilter ? { status: statusFilter } : {}),
-				...(sortBy ? { sortBy } : {}),
-				...(sortOrder ? { sortOrder } : {}),
+				...(filters.roleFilter ? { role: filters.roleFilter } : {}),
+				...(filters.statusFilter ? { status: filters.statusFilter } : {}),
+				...(filters.sortBy ? { sortBy: filters.sortBy } : {}),
+				...(filters.sortOrder ? { sortOrder: filters.sortOrder } : {}),
 			});
 
 			// Map the API response to match our User interface
@@ -212,23 +148,40 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// Handler for search input changes
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearch(e.target.value);
 		setPage(1); // Reset to first page on search
 	};
 
+	// Handler for filter changes
+	const handleFilterChange = (
+		name: keyof UserManagementFilters,
+		value: string
+	) => {
+		setFilters((prev) => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	// Apply filters
 	const applyFilters = () => {
 		setPage(1); // Reset to first page when applying filters
 	};
 
+	// Clear all filters
 	const clearFilters = () => {
-		setRoleFilter('');
-		setStatusFilter('');
-		setSortBy('created_at');
-		setSortOrder('desc');
+		setFilters({
+			roleFilter: '',
+			statusFilter: '',
+			sortBy: 'created_at',
+			sortOrder: 'desc',
+		});
 		setPage(1);
 	};
 
+	// Edit user handlers
 	const handleEditUser = (user: User) => {
 		// Fetch the latest user data before editing to ensure we have up-to-date information
 		fetchUserDetails(user.id)
@@ -261,13 +214,14 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// Ban user handlers
 	const handleBanUser = (user: User) => {
 		setUserToBan(user);
 		setBanReason('');
 		setShowBanModal(true);
 	};
 
-	const banUser = async (user: User) => {
+	const confirmBanUser = async () => {
 		if (!userToBan) return;
 
 		try {
@@ -289,11 +243,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
-	const confirmBanUser = async () => {
-		if (!userToBan) return;
-		await banUser(userToBan);
-	};
-
+	// Save user changes
 	const saveUserChanges = async (updatedUser: User) => {
 		try {
 			// Call the admin API to update the user
@@ -315,6 +265,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// View user activity
 	const handleViewActivity = async (user: User) => {
 		setUserForActivity(user);
 		setUserActivity([]);
@@ -330,6 +281,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// User status management handlers
 	const unbanUser = async (user: User) => {
 		try {
 			// Call the admin API to unban the user
@@ -387,6 +339,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// Reset password handler
 	const handleResetPassword = (user: User) => {
 		setUserToResetPassword(user);
 		setNewPassword('');
@@ -411,7 +364,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
-	// Other handlers
+	// Role management handler
 	const handleChangeRole = (user: User) => {
 		setUserToChangeRole(user);
 		setNewRole(user.role); // Default to current role
@@ -446,6 +399,7 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// Status management handler
 	const handleChangeStatus = (user: User) => {
 		setUserToChangeStatus(user);
 		setNewStatus(user.status); // Default to current status
@@ -483,42 +437,6 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
-	const renderSuccessMessage = () => {
-		if (!successMessage) return null;
-		return (
-			<div
-				style={{
-					marginBottom: '20px',
-					padding: '10px 20px',
-					backgroundColor: '#dff0d8',
-					borderColor: '#d6e9c6',
-					borderRadius: '4px',
-					border: '1px solid #d6e9c6',
-				}}
-			>
-				<Typography style={{ color: '#3c763d' }}>{successMessage}</Typography>
-			</div>
-		);
-	};
-
-	const renderErrorMessage = () => {
-		if (!errorMessage) return null;
-		return (
-			<div
-				style={{
-					marginBottom: '20px',
-					padding: '10px 20px',
-					backgroundColor: '#f2dede',
-					borderColor: '#ebccd1',
-					borderRadius: '4px',
-					border: '1px solid #ebccd1',
-				}}
-			>
-				<Typography style={{ color: '#a94442' }}>{errorMessage}</Typography>
-			</div>
-		);
-	};
-
 	return (
 		<UserManagementContainer>
 			<H1 gutterBottom>User Management</H1>
@@ -526,228 +444,35 @@ const UserManagementContent: React.FC = () => {
 				View and manage user accounts and permissions
 			</Typography>
 
-			{renderSuccessMessage()}
-			{renderErrorMessage()}
+			<SuccessMessage message={successMessage} />
+			<ErrorMessage message={errorMessage} />
 
-			<Flex
-				justifyContent='space-between'
-				alignItems='center'
-				style={{ marginBottom: '20px' }}
-			>
-				<SearchContainer style={{ flex: 1 }}>
-					<Input
-						placeholder='Search users by name, username, or email...'
-						value={search}
-						onChange={handleSearchChange}
-						type='search'
-						fullWidth
-					/>
-				</SearchContainer>
-				<Button
-					variant='primary'
-					style={{ marginLeft: '20px' }}
-					onClick={() => notImplemented('Create User')}
-				>
-					<FiUserPlus style={IconStyle} /> Create User
-				</Button>
-			</Flex>
+			{/* Search and Filter Section */}
+			<UserFilter
+				search={search}
+				onSearchChange={handleSearchChange}
+				filters={filters}
+				onFilterChange={handleFilterChange}
+				onApplyFilters={applyFilters}
+				onClearFilters={clearFilters}
+			/>
 
-			<FilterGroup
-				title='Filter Users'
-				onApply={applyFilters}
-				onClear={clearFilters}
-			>
-				<FilterItem label='Role'>
-					<Select
-						value={roleFilter}
-						onChange={(e) => setRoleFilter(e.target.value)}
-						fullWidth
-					>
-						<option value=''>All Roles</option>
-						<option value='admin'>Admin</option>
-						<option value='moderator'>Moderator</option>
-						<option value='user'>User</option>
-					</Select>
-				</FilterItem>
-
-				<FilterItem label='Status'>
-					<Select
-						value={statusFilter}
-						onChange={(e) => setStatusFilter(e.target.value)}
-						fullWidth
-					>
-						<option value=''>All Statuses</option>
-						<option value='active'>Active</option>
-						<option value='suspended'>Suspended</option>
-						<option value='pending'>Pending</option>
-						<option value='inactive'>Inactive</option>
-					</Select>
-				</FilterItem>
-
-				<FilterItem label='Sort By'>
-					<Select
-						value={sortBy}
-						onChange={(e) => setSortBy(e.target.value)}
-						fullWidth
-					>
-						<option value='username'>Username</option>
-						<option value='name'>Name</option>
-						<option value='created_at'>Join Date</option>
-						<option value='last_login'>Last Login</option>
-					</Select>
-				</FilterItem>
-
-				<FilterItem label='Sort Order'>
-					<Select
-						value={sortOrder}
-						onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-						fullWidth
-					>
-						<option value='asc'>Ascending</option>
-						<option value='desc'>Descending</option>
-					</Select>
-				</FilterItem>
-			</FilterGroup>
-
+			{/* User Table */}
 			{isLoading ? (
 				<Loading message='Loading users...' />
 			) : (
 				<>
-					<Card>
-						<TableContainer>
-							<Table>
-								<TableHead>
-									<TableRow>
-										<TableHeaderCell>Username</TableHeaderCell>
-										<TableHeaderCell>Name</TableHeaderCell>
-										<TableHeaderCell>Email</TableHeaderCell>
-										<TableHeaderCell>Role</TableHeaderCell>
-										<TableHeaderCell>Status</TableHeaderCell>
-										<TableHeaderCell>Joined</TableHeaderCell>
-										<TableHeaderCell>Last Login</TableHeaderCell>
-										<TableHeaderCell>Actions</TableHeaderCell>
-									</TableRow>
-								</TableHead>
-								<TableBody>
-									{users.length === 0 ? (
-										<TableRow>
-											<TableCell colSpan={8} style={{ textAlign: 'center' }}>
-												No users found
-											</TableCell>
-										</TableRow>
-									) : (
-										users.map((user) => (
-											<TableRow key={user.id}>
-												<TableCell>{user.username}</TableCell>
-												<TableCell>{user.name}</TableCell>
-												<TableCell>{user.email}</TableCell>
-												<TableCell>
-													<Badge variant={getRoleBadgeVariant(user.role)}>
-														{user.role}
-													</Badge>
-												</TableCell>
-												<TableCell>
-													<Badge variant={getBadgeVariant(user.status)}>
-														{user.status}
-													</Badge>
-												</TableCell>
-												<TableCell>
-													{new Date(user.created_at).toLocaleDateString()}
-												</TableCell>
-												<TableCell>
-													{user.last_login
-														? new Date(user.last_login).toLocaleDateString()
-														: 'Never'}
-												</TableCell>
-												<TableCell>
-													<Flex gap='xs'>
-														<TableActionButton
-															onClick={() => handleEditUser(user)}
-															title='Edit user'
-														>
-															<FiEdit style={IconStyle} />
-														</TableActionButton>
-
-														<TableActionButton
-															onClick={() => handleViewActivity(user)}
-															title='View activity'
-															variant='secondary'
-														>
-															<RiHistoryLine style={IconStyle} />
-														</TableActionButton>
-
-														<TableActionButton
-															onClick={() => handleResetPassword(user)}
-															title='Reset password'
-															variant='secondary'
-														>
-															<FiKey style={IconStyle} />
-														</TableActionButton>
-
-														<TableActionButton
-															onClick={() => handleChangeRole(user)}
-															title='Change role'
-															variant='primary'
-														>
-															<RiUserSettingsLine style={IconStyle} />
-														</TableActionButton>
-
-														<TableActionButton
-															onClick={() => handleChangeStatus(user)}
-															title='Change status'
-															variant='warning'
-														>
-															<RiExchangeLine style={IconStyle} />
-														</TableActionButton>
-
-														{user.status === 'suspended' ||
-														user.status === 'banned' ? (
-															<TableActionButton
-																onClick={() => activateUser(user)}
-																title='Activate user'
-																variant='primary'
-															>
-																<RiUserFollowLine style={IconStyle} />
-															</TableActionButton>
-														) : (
-															<>
-																{user.status === 'active' ? (
-																	<TableActionButton
-																		onClick={() => suspendUser(user)}
-																		title='Suspend user'
-																		variant='warning'
-																	>
-																		<RiUserForbidLine style={IconStyle} />
-																	</TableActionButton>
-																) : user.status === 'pending' ||
-																  user.status === 'inactive' ? (
-																	<TableActionButton
-																		onClick={() => activateUser(user)}
-																		title='Activate user'
-																		variant='primary'
-																	>
-																		<RiUserFollowLine style={IconStyle} />
-																	</TableActionButton>
-																) : null}
-
-																<TableActionButton
-																	variant='danger'
-																	onClick={() => handleBanUser(user)}
-																	title='Ban user'
-																>
-																	<RiUserUnfollowLine style={IconStyle} />
-																</TableActionButton>
-															</>
-														)}
-													</Flex>
-												</TableCell>
-											</TableRow>
-										))
-									)}
-								</TableBody>
-							</Table>
-						</TableContainer>
-					</Card>
+					<UserTable
+						users={users}
+						onEditUser={handleEditUser}
+						onViewActivity={handleViewActivity}
+						onResetPassword={handleResetPassword}
+						onChangeRole={handleChangeRole}
+						onChangeStatus={handleChangeStatus}
+						onActivateUser={activateUser}
+						onSuspendUser={suspendUser}
+						onBanUser={handleBanUser}
+					/>
 
 					<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
 						<Button
@@ -766,384 +491,60 @@ const UserManagementContent: React.FC = () => {
 				</>
 			)}
 
-			{/* Edit User Modal */}
-			{userToEdit && (
-				<Modal
-					isOpen={showEditModal}
-					onClose={() => setShowEditModal(false)}
-					title='Edit User'
-				>
-					<form
-						onSubmit={(e) => {
-							e.preventDefault();
-							if (userToEdit) saveUserChanges(userToEdit);
-						}}
-					>
-						<div style={{ marginBottom: '16px' }}>
-							<label
-								htmlFor='user-role'
-								style={{ display: 'block', marginBottom: '8px' }}
-							>
-								Role
-							</label>
-							<Select
-								id='user-role'
-								value={userToEdit.role}
-								onChange={(e) =>
-									setUserToEdit({
-										...userToEdit,
-										role: e.target.value as UserRole,
-									})
-								}
-								fullWidth
-							>
-								<option value='user'>User</option>
-								<option value='moderator'>Moderator</option>
-								<option value='admin'>Admin</option>
-							</Select>
-						</div>
+			{/* Modals */}
+			<EditUserModal
+				isOpen={showEditModal}
+				onClose={() => setShowEditModal(false)}
+				user={userToEdit}
+				onSave={saveUserChanges}
+				setUserToEdit={setUserToEdit}
+			/>
 
-						<div style={{ marginBottom: '16px' }}>
-							<label
-								htmlFor='user-status'
-								style={{ display: 'block', marginBottom: '8px' }}
-							>
-								Status
-							</label>
-							<Select
-								id='user-status'
-								value={userToEdit.status}
-								onChange={(e) =>
-									setUserToEdit({
-										...userToEdit,
-										status: e.target.value as UserStatus,
-									})
-								}
-								fullWidth
-							>
-								<option value='active'>Active</option>
-								<option value='suspended'>Suspended</option>
-								<option value='pending'>Pending</option>
-								<option value='inactive'>Inactive</option>
-								<option value='banned'>Banned</option>
-							</Select>
-						</div>
-
-						<div style={{ marginBottom: '16px' }}>
-							<Typography style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-								User Information (Read-only)
-							</Typography>
-							<div style={{ marginBottom: '8px' }}>
-								<span style={{ fontWeight: 'bold' }}>Username:</span>{' '}
-								{userToEdit.username}
-							</div>
-							<div style={{ marginBottom: '8px' }}>
-								<span style={{ fontWeight: 'bold' }}>Name:</span>{' '}
-								{userToEdit.name}
-							</div>
-							<div>
-								<span style={{ fontWeight: 'bold' }}>Email:</span>{' '}
-								{userToEdit.email}
-							</div>
-						</div>
-
-						<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-							<Button
-								variant='secondary'
-								onClick={() => setShowEditModal(false)}
-							>
-								Cancel
-							</Button>
-							<Button variant='primary' type='submit'>
-								Save Changes
-							</Button>
-						</Flex>
-					</form>
-				</Modal>
-			)}
-
-			{/* Ban User Modal */}
-			<Modal
+			<BanUserModal
 				isOpen={showBanModal}
 				onClose={() => setShowBanModal(false)}
-				title='Ban User'
-			>
-				<Typography gutterBottom>
-					Are you sure you want to ban <strong>{userToBan?.username}</strong>?
-					This will prevent the user from logging in and using the platform.
-				</Typography>
+				user={userToBan}
+				onBan={confirmBanUser}
+				banReason={banReason}
+				setBanReason={setBanReason}
+			/>
 
-				<div style={{ marginBottom: '16px', marginTop: '16px' }}>
-					<label
-						htmlFor='ban-reason'
-						style={{ display: 'block', marginBottom: '8px' }}
-					>
-						Reason for Ban
-					</label>
-					<Input
-						id='ban-reason'
-						as='textarea'
-						rows={3}
-						value={banReason}
-						onChange={(e) => setBanReason(e.target.value)}
-						placeholder='Explain why this user is being banned'
-						fullWidth
-					/>
-				</div>
-
-				<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-					<Button variant='secondary' onClick={() => setShowBanModal(false)}>
-						Cancel
-					</Button>
-					<Button variant='danger' onClick={confirmBanUser}>
-						Ban User
-					</Button>
-				</Flex>
-			</Modal>
-
-			{/* View Activity Modal */}
-			<Modal
+			<UserActivityModal
 				isOpen={showActivityModal}
 				onClose={() => setShowActivityModal(false)}
-				title='User Activity'
-				size='large'
-			>
-				{userForActivity && (
-					<>
-						<div style={{ marginBottom: '20px' }}>
-							<Typography variant='h4' gutterBottom>
-								{userForActivity.name} ({userForActivity.username})
-							</Typography>
-							<Typography>Showing recent activity for this user</Typography>
-						</div>
+				user={userForActivity}
+				activities={userActivity}
+			/>
 
-						{userActivity.length === 0 ? (
-							<Typography>No activity found for this user.</Typography>
-						) : (
-							<Card>
-								<TableContainer>
-									<Table>
-										<TableHead>
-											<TableRow>
-												<TableHeaderCell>Date</TableHeaderCell>
-												<TableHeaderCell>Activity Type</TableHeaderCell>
-												<TableHeaderCell>Details</TableHeaderCell>
-												<TableHeaderCell>IP Address</TableHeaderCell>
-											</TableRow>
-										</TableHead>
-										<TableBody>
-											{userActivity.map((activity) => (
-												<TableRow key={activity.id}>
-													<TableCell>
-														{new Date(activity.timestamp).toLocaleString()}
-													</TableCell>
-													<TableCell>{activity.activity_type}</TableCell>
-													<TableCell>{activity.details}</TableCell>
-													<TableCell>{activity.ip_address}</TableCell>
-												</TableRow>
-											))}
-										</TableBody>
-									</Table>
-								</TableContainer>
-							</Card>
-						)}
-
-						<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-							<Button
-								variant='secondary'
-								onClick={() => setShowActivityModal(false)}
-							>
-								Close
-							</Button>
-						</Flex>
-					</>
-				)}
-			</Modal>
-
-			{/* Reset Password Modal */}
-			<Modal
+			<ResetPasswordModal
 				isOpen={showResetPasswordModal}
 				onClose={() => setShowResetPasswordModal(false)}
-				title='Reset Password'
-			>
-				<Typography gutterBottom>
-					Are you sure you want to reset the password for{' '}
-					<strong>{userToResetPassword?.username}</strong>? This will generate a
-					new password for the user.
-				</Typography>
+				user={userToResetPassword}
+				onReset={resetPassword}
+				newPassword={newPassword}
+			/>
 
-				{newPassword && (
-					<PasswordDisplay>New Password: {newPassword}</PasswordDisplay>
-				)}
-
-				<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-					<Button
-						variant='secondary'
-						onClick={() => setShowResetPasswordModal(false)}
-					>
-						Cancel
-					</Button>
-					<Button variant='primary' onClick={resetPassword}>
-						Reset Password
-					</Button>
-				</Flex>
-			</Modal>
-
-			{/* Role Management Modal */}
-			<Modal
+			<ChangeRoleModal
 				isOpen={showRoleModal}
 				onClose={() => setShowRoleModal(false)}
-				title='Change User Role'
-			>
-				<form
-					onSubmit={(e) => {
-						e.preventDefault();
-						changeUserRole();
-					}}
-				>
-					<div style={{ marginBottom: '16px' }}>
-						<Typography gutterBottom>
-							Current role for <strong>{userToChangeRole?.username}</strong>:{' '}
-							<Badge
-								variant={
-									userToChangeRole
-										? getRoleBadgeVariant(userToChangeRole.role)
-										: 'default'
-								}
-							>
-								{userToChangeRole?.role}
-							</Badge>
-						</Typography>
-					</div>
+				user={userToChangeRole}
+				newRole={newRole}
+				setNewRole={setNewRole}
+				roleChangeReason={roleChangeReason}
+				setRoleChangeReason={setRoleChangeReason}
+				onChangeRole={changeUserRole}
+			/>
 
-					<div style={{ marginBottom: '16px' }}>
-						<label
-							htmlFor='new-role'
-							style={{ display: 'block', marginBottom: '8px' }}
-						>
-							New Role
-						</label>
-						<Select
-							id='new-role'
-							value={newRole}
-							onChange={(e) => setNewRole(e.target.value as UserRole)}
-							fullWidth
-						>
-							<option value='user'>User</option>
-							<option value='moderator'>Moderator</option>
-							<option value='admin'>Admin</option>
-						</Select>
-					</div>
-
-					<div style={{ marginBottom: '16px' }}>
-						<label
-							htmlFor='role-reason'
-							style={{ display: 'block', marginBottom: '8px' }}
-						>
-							Reason for Change (optional)
-						</label>
-						<Input
-							id='role-reason'
-							as='textarea'
-							rows={3}
-							value={roleChangeReason}
-							onChange={(e) => setRoleChangeReason(e.target.value)}
-							placeholder='Add a note explaining why the role was changed'
-							fullWidth
-						/>
-					</div>
-
-					<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-						<Button variant='secondary' onClick={() => setShowRoleModal(false)}>
-							Cancel
-						</Button>
-						<Button variant='primary' type='submit'>
-							Change Role
-						</Button>
-					</Flex>
-				</form>
-			</Modal>
-
-			{/* Status Management Modal */}
-			<Modal
+			<ChangeStatusModal
 				isOpen={showStatusModal}
 				onClose={() => setShowStatusModal(false)}
-				title='Change User Status'
-			>
-				<form
-					onSubmit={(e) => {
-						e.preventDefault();
-						changeUserStatus();
-					}}
-				>
-					<div style={{ marginBottom: '16px' }}>
-						<Typography gutterBottom>
-							Current status for <strong>{userToChangeStatus?.username}</strong>
-							:{' '}
-							<Badge
-								variant={
-									userToChangeStatus
-										? getBadgeVariant(userToChangeStatus.status)
-										: 'default'
-								}
-							>
-								{userToChangeStatus?.status}
-							</Badge>
-						</Typography>
-					</div>
-
-					<div style={{ marginBottom: '16px' }}>
-						<label
-							htmlFor='new-status'
-							style={{ display: 'block', marginBottom: '8px' }}
-						>
-							New Status
-						</label>
-						<Select
-							id='new-status'
-							value={newStatus}
-							onChange={(e) => setNewStatus(e.target.value as UserStatus)}
-							fullWidth
-						>
-							<option value='active'>Active</option>
-							<option value='suspended'>Suspended</option>
-							<option value='pending'>Pending</option>
-							<option value='inactive'>Inactive</option>
-							<option value='banned'>Banned</option>
-						</Select>
-					</div>
-
-					<div style={{ marginBottom: '16px' }}>
-						<label
-							htmlFor='status-reason'
-							style={{ display: 'block', marginBottom: '8px' }}
-						>
-							Reason for Change (optional)
-						</label>
-						<Input
-							id='status-reason'
-							as='textarea'
-							rows={3}
-							value={statusChangeReason}
-							onChange={(e) => setStatusChangeReason(e.target.value)}
-							placeholder='Add a note explaining why the status was changed'
-							fullWidth
-						/>
-					</div>
-
-					<Flex justifyContent='end' gap='md' style={{ marginTop: '20px' }}>
-						<Button
-							variant='secondary'
-							onClick={() => setShowStatusModal(false)}
-						>
-							Cancel
-						</Button>
-						<Button variant='primary' type='submit'>
-							Change Status
-						</Button>
-					</Flex>
-				</form>
-			</Modal>
+				user={userToChangeStatus}
+				newStatus={newStatus}
+				setNewStatus={setNewStatus}
+				statusChangeReason={statusChangeReason}
+				setStatusChangeReason={setStatusChangeReason}
+				onChangeStatus={changeUserStatus}
+			/>
 		</UserManagementContainer>
 	);
 };
