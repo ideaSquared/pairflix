@@ -551,8 +551,9 @@ export const admin = {
 		if (params.startDate) queryParams.append('startDate', params.startDate);
 		if (params.endDate) queryParams.append('endDate', params.endDate);
 
+		// Use the correct endpoint: /api/activity/user/{userId}
 		return fetchWithAuth(
-			`/api/admin/user-activities?${queryParams.toString()}`
+			`/api/activity/user/${params.userId}?${queryParams.toString()}`
 		);
 	},
 };

@@ -64,6 +64,19 @@ export const getUserActivities = async (
 };
 
 /**
+ * Get the count of activity log entries for a specific user
+ * @param userId - ID of the user whose activities to count
+ * @returns Total number of activity entries
+ */
+export const getUserActivitiesCount = async (
+	userId: string
+): Promise<number> => {
+	return ActivityLog.count({
+		where: { user_id: userId },
+	});
+};
+
+/**
  * Get all recent activities (for partner's activities)
  * @param excludeUserId - User ID to exclude from results (typically the current user)
  * @param limit - Maximum number of activities to return (default: 20)
@@ -98,4 +111,5 @@ export const activityService = {
 	logActivity,
 	getUserActivities,
 	getRecentActivities,
+	getUserActivitiesCount,
 };

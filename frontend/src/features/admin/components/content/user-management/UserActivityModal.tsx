@@ -13,13 +13,13 @@ import {
 	TableRow,
 } from '../../../../../components/common/Table';
 import { Typography } from '../../../../../components/common/Typography';
-import { User, UserActivity } from './types';
+import { User } from './types';
 
 interface UserActivityModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	user: User | null;
-	activities: UserActivity[];
+	activities: any[]; // Changed to any[] to handle backend response format
 }
 
 const UserActivityModal: React.FC<UserActivityModalProps> = ({
@@ -30,11 +30,40 @@ const UserActivityModal: React.FC<UserActivityModalProps> = ({
 }) => {
 	if (!user) return null;
 
+	// Format date safely to prevent "Invalid Date"
+	const formatDate = (dateString: string | undefined) => {
+		if (!dateString) return 'N/A';
+
+		try {
+			const date = new Date(dateString);
+			// Check if date is valid before formatting
+			return date instanceof Date && !isNaN(date.getTime())
+				? date.toLocaleString()
+				: 'Invalid date';
+		} catch (error) {
+			return 'Invalid date';
+		}
+	};
+
+	// Function to format metadata for display
+	const formatMetadata = (metadata: any) => {
+		if (!metadata) return 'No details available';
+
+		try {
+			if (typeof metadata === 'string') return metadata;
+
+			// Format the metadata object for display
+			return JSON.stringify(metadata, null, 2);
+		} catch (error) {
+			return 'Error displaying details';
+		}
+	};
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title='User Activity' size='large'>
 			<div style={{ marginBottom: '20px' }}>
 				<Typography variant='h4' gutterBottom>
-					{user.name} ({user.username})
+					{user.username}
 				</Typography>
 				<Typography>Showing recent activity for this user</Typography>
 			</div>
@@ -50,18 +79,18 @@ const UserActivityModal: React.FC<UserActivityModalProps> = ({
 									<TableHeaderCell>Date</TableHeaderCell>
 									<TableHeaderCell>Activity Type</TableHeaderCell>
 									<TableHeaderCell>Details</TableHeaderCell>
-									<TableHeaderCell>IP Address</TableHeaderCell>
 								</TableRow>
 							</TableHead>
 							<TableBody>
 								{activities.map((activity) => (
-									<TableRow key={activity.id}>
+									<TableRow key={activity.log_id || activity.id}>
+										<TableCell>{formatDate(activity.created_at)}</TableCell>
+										<TableCell>{activity.action}</TableCell>
 										<TableCell>
-											{new Date(activity.timestamp).toLocaleString()}
+											<pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+												{formatMetadata(activity.metadata)}
+											</pre>
 										</TableCell>
-										<TableCell>{activity.activity_type}</TableCell>
-										<TableCell>{activity.details}</TableCell>
-										<TableCell>{activity.ip_address}</TableCell>
 									</TableRow>
 								))}
 							</TableBody>

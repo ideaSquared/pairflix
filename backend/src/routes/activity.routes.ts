@@ -16,4 +16,7 @@ router.get('/partner', activityController.getPartnerActivities);
 // Get combined activity feed
 router.get('/feed', activityController.getFeed);
 
+// Admin route - Get any user's activity by userId
+router.get('/user/:userId', activityController.getAdminUserActivities);
+
 export default router;

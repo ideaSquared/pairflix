@@ -21,11 +21,11 @@ export interface User {
 }
 
 export interface UserActivity {
-	id: string;
-	activity_type: string;
-	details: string;
-	timestamp: string;
-	ip_address: string;
+	log_id: string;
+	user_id: string;
+	action: string;
+	metadata?: any;
+	created_at: string;
 }
 
 export interface UserManagementFilters {
