@@ -9,7 +9,7 @@ import { Input } from '../../../../../components/common/Input';
 import { Flex } from '../../../../../components/common/Layout';
 import { Select } from '../../../../../components/common/Select';
 import { UserManagementFilters } from './types';
-import { IconStyle, notImplemented } from './utils';
+import { IconStyle } from './utils';
 
 interface UserFilterProps {
 	search: string;
@@ -18,6 +18,7 @@ interface UserFilterProps {
 	onFilterChange: (name: keyof UserManagementFilters, value: string) => void;
 	onApplyFilters: () => void;
 	onClearFilters: () => void;
+	onCreateUser: () => void;
 }
 
 const UserFilter: React.FC<UserFilterProps> = ({
@@ -27,6 +28,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
 	onFilterChange,
 	onApplyFilters,
 	onClearFilters,
+	onCreateUser,
 }) => {
 	return (
 		<>
@@ -47,7 +49,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
 				<Button
 					variant='primary'
 					style={{ marginLeft: '20px' }}
-					onClick={() => notImplemented('Create User')}
+					onClick={onCreateUser}
 				>
 					<FiUserPlus style={IconStyle} /> Create User
 				</Button>

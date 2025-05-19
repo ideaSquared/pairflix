@@ -11,6 +11,7 @@ import {
 	BanUserModal,
 	ChangeRoleModal,
 	ChangeStatusModal,
+	CreateUserModal,
 	EditUserModal,
 	ErrorMessage,
 	IconStyle,
@@ -51,6 +52,8 @@ const UserManagementContent: React.FC = () => {
 	// Modal states
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [userToEdit, setUserToEdit] = useState<User | null>(null);
+
+	const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
 	const [showBanModal, setShowBanModal] = useState(false);
 	const [userToBan, setUserToBan] = useState<User | null>(null);
@@ -437,12 +440,52 @@ const UserManagementContent: React.FC = () => {
 		}
 	};
 
+	// Create user handler
+	const handleCreateUser = async (userData: {
+		username: string;
+		email: string;
+		password: string;
+		role: UserRole;
+		status: UserStatus;
+	}) => {
+		try {
+			// Call the admin API to create a new user
+			const response = await admin.createUser(userData);
+
+			// Add the new user to the local state
+			const newUser = {
+				...response.user,
+				id: response.user.user_id,
+				// Convert timestamps and handle optional fields
+				created_at: response.user.created_at,
+				last_login: response.user.last_login || null,
+			};
+
+			setUsers([newUser as User, ...users]);
+			setShowCreateUserModal(false);
+			setSuccessMessage(`User ${userData.username} created successfully`);
+
+			// Refresh the users list to get updated data
+			fetchUsers();
+		} catch (error) {
+			console.error('Error creating user:', error);
+			setErrorMessage('Failed to create user. Please try again.');
+		}
+	};
+
 	return (
 		<UserManagementContainer>
 			<H1 gutterBottom>User Management</H1>
-			<Typography gutterBottom>
-				View and manage user accounts and permissions
-			</Typography>
+			<Flex
+				justifyContent='space-between'
+				alignItems='center'
+				style={{ marginBottom: '1rem' }}
+			>
+				<Typography>View and manage user accounts and permissions</Typography>
+				{/* <Button variant='primary' onClick={() => setShowCreateUserModal(true)}>
+					<FiPlus style={IconStyle} /> Create User
+				</Button> */}
+			</Flex>
 
 			<SuccessMessage message={successMessage} />
 			<ErrorMessage message={errorMessage} />
@@ -455,6 +498,7 @@ const UserManagementContent: React.FC = () => {
 				onFilterChange={handleFilterChange}
 				onApplyFilters={applyFilters}
 				onClearFilters={clearFilters}
+				onCreateUser={() => setShowCreateUserModal(true)}
 			/>
 
 			{/* User Table */}
@@ -523,7 +567,6 @@ const UserManagementContent: React.FC = () => {
 				onReset={resetPassword}
 				newPassword={newPassword}
 			/>
-
 			<ChangeRoleModal
 				isOpen={showRoleModal}
 				onClose={() => setShowRoleModal(false)}
@@ -544,6 +587,12 @@ const UserManagementContent: React.FC = () => {
 				statusChangeReason={statusChangeReason}
 				setStatusChangeReason={setStatusChangeReason}
 				onChangeStatus={changeUserStatus}
+			/>
+
+			<CreateUserModal
+				isOpen={showCreateUserModal}
+				onClose={() => setShowCreateUserModal(false)}
+				onSave={handleCreateUser}
 			/>
 		</UserManagementContainer>
 	);
