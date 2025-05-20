@@ -35,10 +35,10 @@ const WatchlistCard = styled(Card)<WatchlistCardProps>`
 			switch (status) {
 				case 'to_watch':
 					return theme.colors.status.toWatch;
-				case 'to_watch_together':
-					return theme.colors.status.toWatchTogether;
-				case 'would_like_to_watch_together':
-					return theme.colors.status.wouldLikeToWatchTogether;
+				case 'watch_together_focused':
+					return theme.colors.status.watchTogetherFocused;
+				case 'watch_together_background':
+					return theme.colors.status.watchTogetherBackground;
 				case 'watching':
 					return theme.colors.status.watching;
 				case 'finished':
@@ -253,9 +253,11 @@ const WatchlistPage: React.FC = () => {
 						fullWidth
 					>
 						<option value='to_watch'>To Watch</option>
-						<option value='to_watch_together'>To Watch Together</option>
-						<option value='would_like_to_watch_together'>
-							Would Like To Watch Together
+						<option value='watch_together_focused'>
+							Watch together (focused)
+						</option>
+						<option value='watch_together_background'>
+							Watch together (background)
 						</option>
 						<option value='watching'>Watching</option>
 						<option value='finished'>Finished</option>

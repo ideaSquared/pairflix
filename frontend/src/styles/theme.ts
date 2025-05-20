@@ -67,8 +67,8 @@ export const darkTheme = {
 		},
 		status: {
 			toWatch: '#818cff', // Matches primary
-			toWatchTogether: '#a385eb', // Brightened for contrast
-			wouldLikeToWatchTogether: '#ff8ac5', // Brightened for contrast
+			watchTogetherFocused: '#a385eb', // For "Watch together (focused)"
+			watchTogetherBackground: '#ff8ac5', // For "Watch together (background)"
 			watching: '#ffd700',
 			finished: '#4caf50', // Matches success color
 		},
@@ -101,8 +101,8 @@ export const lightTheme = {
 		},
 		status: {
 			toWatch: '#4853db', // Matches primary
-			toWatchTogether: '#6c4aa6', // Darkened for contrast
-			wouldLikeToWatchTogether: '#d4387c', // Adjusted for contrast
+			watchTogetherFocused: '#6c4aa6', // Darkened for contrast
+			watchTogetherBackground: '#d4387c', // Adjusted for contrast
 			watching: '#ed6c02', // Matches warning
 			finished: '#2e7d32', // Matches success
 		},

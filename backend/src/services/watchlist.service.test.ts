@@ -292,7 +292,7 @@ describe('Watchlist Service', () => {
 				{
 					tmdb_id: 123,
 					media_type: 'movie',
-					status: 'to_watch_together',
+					status: 'watch_together_focused',
 				},
 				{
 					tmdb_id: 456,
@@ -337,7 +337,7 @@ describe('Watchlist Service', () => {
 				title: 'Test Movie',
 				poster_path: '/movie-path.jpg',
 				overview: 'Movie overview',
-				user1_status: 'to_watch_together',
+				user1_status: 'watch_together_focused',
 				user2_status: 'watching',
 			});
 
@@ -369,7 +369,7 @@ describe('Watchlist Service', () => {
 				{
 					tmdb_id: 123,
 					media_type: 'movie',
-					status: 'to_watch_together',
+					status: 'watch_together_focused',
 				},
 			];
 
@@ -401,3 +401,13 @@ describe('Watchlist Service', () => {
 		});
 	});
 });
+
+const mockEntry1 = {
+	entry_id: 'entry1',
+	user_id: 'user1',
+	tmdb_id: 123,
+	media_type: 'movie',
+	status: 'watch_together_focused',
+	created_at: new Date(),
+	updated_at: new Date(),
+};

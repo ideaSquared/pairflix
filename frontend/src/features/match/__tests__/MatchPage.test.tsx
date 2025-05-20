@@ -84,19 +84,10 @@ describe('MatchPage', () => {
 			tmdb_id: 123,
 			media_type: 'movie',
 			title: 'Test Movie',
-			poster_path: '/test-movie-path.jpg',
-			overview: 'This is a test movie overview',
-			user1_status: 'to_watch_together',
-			user2_status: 'would_like_to_watch_together',
-		},
-		{
-			tmdb_id: 456,
-			media_type: 'tv',
-			title: 'Test TV Show',
-			poster_path: '/test-tv-path.jpg',
-			overview: 'This is a test TV show overview',
-			user1_status: 'watching',
-			user2_status: 'watching',
+			poster_path: '/test.jpg',
+			overview: 'Test overview',
+			user1_status: 'watch_together_focused',
+			user2_status: 'watch_together_background',
 		},
 	];
 

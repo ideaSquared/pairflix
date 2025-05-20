@@ -36,12 +36,7 @@ export interface WatchlistEntry {
 	user_id: string;
 	tmdb_id: number;
 	media_type: 'movie' | 'tv';
-	status:
-		| 'to_watch'
-		| 'to_watch_together'
-		| 'would_like_to_watch_together'
-		| 'watching'
-		| 'finished';
+	status: WatchlistEntryStatus;
 	rating?: number;
 	notes?: string;
 	created_at: Date;
@@ -51,6 +46,16 @@ export interface WatchlistEntry {
 	overview?: string;
 	poster_path?: string;
 }
+
+export type WatchlistEntryStatus =
+	| 'to_watch'
+	| 'watch_together_focused'
+	| 'watch_together_background'
+	| 'watching'
+	| 'finished'
+	| 'flagged'
+	| 'removed'
+	| 'active';
 
 export interface SearchResult {
 	id: number;

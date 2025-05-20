@@ -309,10 +309,9 @@ describe('Watchlist Controller', () => {
 					tmdb_id: 123,
 					media_type: 'movie',
 					title: 'Test Movie',
-					poster_path: '/path/to/poster.jpg',
-					overview: 'Movie description',
-					user1_status: 'to_watch_together',
-					user2_status: 'watching',
+					poster_path: '/test-poster.jpg',
+					user1_status: 'watch_together_focused',
+					user2_status: 'watch_together_background',
 				},
 				{
 					tmdb_id: 456,

@@ -54,8 +54,8 @@ class WatchlistEntry extends Model<
 				status: {
 					type: DataTypes.ENUM(
 						'to_watch',
-						'to_watch_together',
-						'would_like_to_watch_together',
+						'watch_together_focused',
+						'watch_together_background',
 						'watching',
 						'finished',
 						'flagged',

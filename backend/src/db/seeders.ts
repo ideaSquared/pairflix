@@ -103,7 +103,7 @@ export async function seedDatabase() {
 				user_id: user1.user_id,
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
-				status: 'to_watch_together',
+				status: 'watch_together_focused',
 			}),
 			WatchlistEntry.create({
 				user_id: user1.user_id,
@@ -135,7 +135,7 @@ export async function seedDatabase() {
 				user_id: user1.user_id,
 				tmdb_id: sampleContent[5].tmdb_id,
 				media_type: sampleContent[5].media_type,
-				status: 'to_watch_together',
+				status: 'watch_together_focused',
 			}),
 
 			// User 2's matching entries
@@ -143,7 +143,7 @@ export async function seedDatabase() {
 				user_id: user2.user_id,
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
-				status: 'to_watch_together',
+				status: 'watch_together_focused',
 			}),
 			WatchlistEntry.create({
 				user_id: user2.user_id,
@@ -156,7 +156,7 @@ export async function seedDatabase() {
 				user_id: user2.user_id,
 				tmdb_id: sampleContent[2].tmdb_id,
 				media_type: sampleContent[2].media_type,
-				status: 'would_like_to_watch_together',
+				status: 'watch_together_background',
 			}),
 			WatchlistEntry.create({
 				user_id: user2.user_id,
@@ -175,7 +175,7 @@ export async function seedDatabase() {
 				user_id: user2.user_id,
 				tmdb_id: sampleContent[5].tmdb_id,
 				media_type: sampleContent[5].media_type,
-				status: 'would_like_to_watch_together',
+				status: 'watch_together_background',
 			}),
 
 			// User 3's unique entry
@@ -183,7 +183,7 @@ export async function seedDatabase() {
 				user_id: user3.user_id,
 				tmdb_id: sampleContent[6].tmdb_id,
 				media_type: sampleContent[6].media_type,
-				status: 'to_watch_together',
+				status: 'watch_together_focused',
 			}),
 		]);
 

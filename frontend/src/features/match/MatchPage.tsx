@@ -66,10 +66,10 @@ const StatusBadge = styled.span<{ status: string }>`
 		switch (status) {
 			case 'to_watch':
 				return theme.colors.status.toWatch;
-			case 'to_watch_together':
-				return theme.colors.status.toWatchTogether;
-			case 'would_like_to_watch_together':
-				return theme.colors.status.wouldLikeToWatchTogether;
+			case 'watch_together_focused':
+				return theme.colors.status.watchTogetherFocused;
+			case 'watch_together_background':
+				return theme.colors.status.watchTogetherBackground;
 			case 'watching':
 				return theme.colors.status.watching;
 			case 'finished':
@@ -87,7 +87,7 @@ const MatchPercentage = styled(Typography)<{ percent: number }>`
 	color: ${({ percent, theme }) => {
 		if (percent >= 80) return theme.colors.text.success;
 		if (percent >= 60) return theme.colors.text.warning;
-		return theme.colors.status.wouldLikeToWatchTogether;
+		return theme.colors.status.watchTogetherBackground;
 	}};
 `;
 
@@ -100,6 +100,23 @@ const NoMatches = styled(Typography)`
 	padding: ${({ theme }) => theme.spacing.xl};
 	color: ${({ theme }) => theme.colors.text.secondary};
 `;
+
+const getStatusText = (status: string): string => {
+	switch (status) {
+		case 'to_watch':
+			return 'To Watch';
+		case 'watch_together_focused':
+			return 'Watch together (focused)';
+		case 'watch_together_background':
+			return 'Watch together (background)';
+		case 'watching':
+			return 'Watching';
+		case 'finished':
+			return 'Finished';
+		default:
+			return status;
+	}
+};
 
 const MatchPage: React.FC = () => {
 	const queryClient = useQueryClient();
@@ -137,8 +154,8 @@ const MatchPage: React.FC = () => {
 
 	const calculateMatchPercentage = (match: ContentMatch) => {
 		const statusWeights: Record<string, number> = {
-			to_watch_together: 1,
-			would_like_to_watch_together: 0.8,
+			watch_together_focused: 1,
+			watch_together_background: 0.8,
 			to_watch: 0.6,
 			watching: 0.9,
 			finished: 0.4,
@@ -352,7 +369,7 @@ const MatchPage: React.FC = () => {
 															Your Status:
 														</Typography>
 														<StatusBadge status={match.user1_status}>
-															{match.user1_status.replace(/_/g, ' ')}
+															{getStatusText(match.user1_status)}
 														</StatusBadge>
 													</StatusGroup>
 													<StatusGroup>
@@ -360,7 +377,7 @@ const MatchPage: React.FC = () => {
 															Partner's Status:
 														</Typography>
 														<StatusBadge status={match.user2_status}>
-															{match.user2_status.replace(/_/g, ' ')}
+															{getStatusText(match.user2_status)}
 														</StatusBadge>
 													</StatusGroup>
 												</StatusContainer>
