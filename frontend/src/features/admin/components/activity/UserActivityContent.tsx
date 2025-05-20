@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Alert } from '../../../../components/common/Alert';
 import { Badge } from '../../../../components/common/Badge';
+import { Button } from '../../../../components/common/Button';
 import { Card, CardContent } from '../../../../components/common/Card';
 import {
 	FilterGroup,
@@ -40,11 +41,21 @@ const SectionHeader = styled(H3)`
 	margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
+// Add styled table row that can be highlighted
+const TableRow = styled.tr<{ isToday?: boolean }>`
+	background-color: ${({ isToday, theme }) =>
+		isToday ? `${theme.colors.primary}10` : 'transparent'};
+
+	&:hover {
+		background-color: ${({ theme }) => theme.colors.background.secondary};
+	}
+`;
+
 interface Activity {
 	id: string;
 	user_id: string;
 	action: string;
-	details: Record<string, any>;
+	metadata: Record<string, any>; // Changed from 'details' to 'metadata'
 	created_at: string;
 	username?: string;
 }
@@ -58,6 +69,8 @@ interface ActivityStats {
 		count: number;
 	}[];
 	activityByDay: { date: string; count: number }[];
+	last24Hours?: number; // Added this property to fix TypeScript error
+	lastWeek?: number; // Also adding lastWeek for completeness
 }
 
 const UserActivityContent: React.FC = () => {
@@ -86,7 +99,23 @@ const UserActivityContent: React.FC = () => {
 				// Use our centralized statistics service for activity stats
 				const activityData =
 					await adminStatsService.getUserActivityStats(timeRange);
-				setStats(activityData);
+
+				// Process the response data to adapt it to our component's expected structure
+				const processedStats = {
+					...activityData,
+					// Calculate total activities using the pagination total from API or use a calculated sum
+					totalActivities:
+						totalCount ||
+						activityData.activityByType?.reduce(
+							(sum: number, item: { count: number }) =>
+								sum + Number(item.count),
+							0
+						) ||
+						activityData.lastWeek ||
+						0,
+				};
+
+				setStats(processedStats);
 
 				// Get activities with current filters
 				await fetchActivities();
@@ -101,7 +130,7 @@ const UserActivityContent: React.FC = () => {
 		};
 
 		fetchActivityData();
-	}, [timeRange]);
+	}, [timeRange, totalCount]);
 
 	// Fetch activities based on current filters
 	const fetchActivities = async () => {
@@ -131,16 +160,35 @@ const UserActivityContent: React.FC = () => {
 			if (endDate) params.endDate = endDate;
 
 			const response = await admin.getUserActivities(params);
-			setActivities(response.activities);
-			setTotalCount(response.pagination.total);
+
+			if (response && Array.isArray(response.activities)) {
+				setActivities(response.activities);
+				setTotalCount(response.pagination?.total || 0);
+			} else {
+				setActivities([]);
+				setTotalCount(0);
+				console.warn('Unexpected response format from activity API:', response);
+			}
 		} catch (err) {
+			console.error('Activity fetch error:', err);
 			setError(
 				'Failed to load activities: ' +
 					(err instanceof Error ? err.message : String(err))
 			);
+			setActivities([]);
 		} finally {
 			setIsLoading(false);
 		}
+	};
+
+	// Find and count today's activities
+	const findTodayActivities = (): number => {
+		if (!activities || activities.length === 0) return 0;
+
+		const today = new Date().toDateString();
+		return activities.filter(
+			(activity) => new Date(activity.created_at).toDateString() === today
+		).length;
 	};
 
 	// Apply filters
@@ -160,7 +208,14 @@ const UserActivityContent: React.FC = () => {
 
 	// Format date for display
 	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleString();
+		const date = new Date(dateString);
+		const today = new Date();
+
+		// Check if the activity date is today
+		const isToday = date.toDateString() === today.toDateString();
+
+		// Format: "May 20, 2025, 2:35 PM (Today)" or just the regular date
+		return isToday ? `${date.toLocaleString()} (Today)` : date.toLocaleString();
 	};
 
 	// Handle time range change for stats
@@ -186,7 +241,7 @@ const UserActivityContent: React.FC = () => {
 					<Card
 						variant='stats'
 						title='Recent Activities'
-						value={stats.activityByDay?.[0]?.count || 0}
+						value={findTodayActivities() || stats.last24Hours || 0}
 						caption='today'
 					/>
 					<Card
@@ -289,6 +344,25 @@ const UserActivityContent: React.FC = () => {
 				onApply={applyFilters}
 				onClear={clearFilters}
 			>
+				<FilterItem label='Quick Filters'>
+					<Button
+						onClick={() => {
+							const today = new Date();
+							const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+							setStartDate(formattedDate);
+							setEndDate(formattedDate);
+							setTimeout(applyFilters, 0);
+						}}
+						variant='secondary'
+						style={{ marginRight: '8px' }}
+					>
+						Today's Activities ({findTodayActivities()})
+					</Button>
+					<Button onClick={clearFilters} variant='text'>
+						Clear All Filters
+					</Button>
+				</FilterItem>
+
 				<FilterItem label='Action'>
 					<Select
 						value={selectedAction}
@@ -361,26 +435,31 @@ const UserActivityContent: React.FC = () => {
 										</TableCell>
 									</tr>
 								) : (
-									activities.map((activity) => (
-										<tr key={activity.id}>
-											<TableCell>
-												{activity.username || activity.user_id}
-											</TableCell>
-											<TableCell>
-												<Badge>{activity.action}</Badge>
-											</TableCell>
-											<TableCell>{formatDate(activity.created_at)}</TableCell>
-											<TableCell>
-												<TableActionButton
-													onClick={() =>
-														alert(JSON.stringify(activity.details, null, 2))
-													}
-												>
-													View
-												</TableActionButton>
-											</TableCell>
-										</tr>
-									))
+									activities.map((activity) => {
+										const isToday =
+											new Date(activity.created_at).toDateString() ===
+											new Date().toDateString();
+										return (
+											<TableRow key={activity.id} isToday={isToday}>
+												<TableCell>
+													{activity.username || activity.user_id}
+												</TableCell>
+												<TableCell>
+													<Badge>{activity.action}</Badge>
+												</TableCell>
+												<TableCell>{formatDate(activity.created_at)}</TableCell>
+												<TableCell>
+													<TableActionButton
+														onClick={() =>
+															alert(JSON.stringify(activity.metadata, null, 2))
+														}
+													>
+														View
+													</TableActionButton>
+												</TableCell>
+											</TableRow>
+										);
+									})
 								)}
 							</TableBody>
 						</Table>
