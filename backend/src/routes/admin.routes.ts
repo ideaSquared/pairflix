@@ -49,6 +49,16 @@ router.get('/matches', adminController.getAllMatches);
 // System monitoring routes
 router.get('/system-metrics', adminController.getSystemMetrics);
 router.get('/user-activity-stats', adminController.getUserActivityStats);
+router.get('/all-activities', adminController.getAllActivities);
+router.get('/activity-analytics', adminController.getActivityAnalytics);
+router.get(
+	'/activities/context/:context',
+	adminController.getActivitiesByContext
+);
+router.get(
+	'/user/:userId/activity-patterns',
+	adminController.getUserActivityPatterns
+);
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/system-stats', adminController.getSystemStats);
 

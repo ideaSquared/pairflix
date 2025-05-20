@@ -752,6 +752,210 @@ Manually runs log rotation.
 }
 ```
 
+### Activity Analytics
+
+#### GET /api/admin/all-activities
+
+Returns activities across all users with optional filtering.
+
+**Query Parameters:**
+
+- `limit` (optional): Number of activities per page (default: 20)
+- `offset` (optional): Starting position for pagination
+- `action` (optional): Filter by action type
+- `startDate` (optional): Filter by start date (ISO format)
+- `endDate` (optional): Filter by end date (ISO format)
+
+**Response: 200 OK**
+
+```json
+{
+	"activities": [
+		{
+			"log_id": "123e4567-e89b-12d3-a456-426614174000",
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"action": "WATCHLIST_ADD",
+			"context": "watchlist",
+			"metadata": {
+				"mediaId": 12345,
+				"mediaType": "movie",
+				"title": "The Matrix"
+			},
+			"ip_address": "192.168.1.1",
+			"user_agent": "Mozilla/5.0...",
+			"created_at": "2023-01-02T00:00:00.000Z",
+			"user": {
+				"user_id": "123e4567-e89b-12d3-a456-426614174000",
+				"username": "johndoe",
+				"email": "user@example.com"
+			}
+		}
+	],
+	"pagination": {
+		"total": 500,
+		"limit": 20,
+		"offset": 0,
+		"hasMore": true
+	}
+}
+```
+
+#### GET /api/admin/activity-analytics
+
+Returns comprehensive activity analytics for admin dashboard.
+
+**Query Parameters:**
+
+- `days` (optional): Number of days to include (default: 30)
+- `startDate` (optional): Custom start date (ISO format)
+- `endDate` (optional): Custom end date (ISO format)
+- `groupBy` (optional): Group time data by 'day', 'week', or 'month' (default: 'day')
+
+**Response: 200 OK**
+
+```json
+{
+	"timeRange": {
+		"days": 30,
+		"startDate": "2023-01-01T00:00:00.000Z",
+		"endDate": "2023-01-30T23:59:59.999Z"
+	},
+	"popularActivities": [
+		{
+			"action": "WATCHLIST_ADD",
+			"count": 150
+		},
+		{
+			"action": "USER_LOGIN",
+			"count": 120
+		}
+	],
+	"timeline": [
+		{
+			"date": "2023-01-01",
+			"count": 50
+		},
+		{
+			"date": "2023-01-02",
+			"count": 45
+		}
+	],
+	"contextStats": [
+		{
+			"label": "watchlist",
+			"count": 200
+		},
+		{
+			"label": "user",
+			"count": 150
+		}
+	],
+	"actionStats": [
+		{
+			"label": "WATCHLIST_ADD",
+			"count": 150
+		},
+		{
+			"label": "WATCHLIST_REMOVE",
+			"count": 30
+		}
+	],
+	"userPatterns": [
+		{
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"username": "johndoe",
+			"mostFrequentActivity": "WATCHLIST_ADD",
+			"mostActiveTime": "20",
+			"activityCount": 45
+		}
+	]
+}
+```
+
+#### GET /api/admin/activities/context/:context
+
+Returns activities filtered by context category.
+
+**Path Parameters:**
+
+- `context` (required): Activity context ('watchlist', 'user', 'match', 'search', 'media', 'system')
+
+**Query Parameters:**
+
+- `action` (optional): Filter by specific action type
+- `limit` (optional): Number of activities per page (default: 20)
+- `offset` (optional): Starting position for pagination
+
+**Response: 200 OK**
+
+```json
+{
+	"activities": [
+		{
+			"log_id": "123e4567-e89b-12d3-a456-426614174000",
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"action": "WATCHLIST_ADD",
+			"context": "watchlist",
+			"metadata": {
+				"mediaId": 12345,
+				"mediaType": "movie",
+				"title": "The Matrix"
+			},
+			"created_at": "2023-01-02T00:00:00.000Z",
+			"user": {
+				"user_id": "123e4567-e89b-12d3-a456-426614174000",
+				"username": "johndoe",
+				"email": "user@example.com"
+			}
+		}
+	],
+	"pagination": {
+		"total": 200,
+		"limit": 20,
+		"offset": 0,
+		"hasMore": true
+	}
+}
+```
+
+#### GET /api/admin/user/:userId/activity-patterns
+
+Returns detailed activity patterns for a specific user.
+
+**Path Parameters:**
+
+- `userId` (required): The user ID to analyze
+
+**Query Parameters:**
+
+- `days` (optional): Number of days to include (default: 30)
+
+**Response: 200 OK**
+
+```json
+{
+	"patterns": [
+		{
+			"user_id": "123e4567-e89b-12d3-a456-426614174000",
+			"username": "johndoe",
+			"mostFrequentActivity": "WATCHLIST_ADD",
+			"mostActiveTime": "20",
+			"activityCount": 45,
+			"activityBreakdown": {
+				"WATCHLIST_ADD": 20,
+				"WATCHLIST_RATE": 10,
+				"USER_LOGIN": 15
+			},
+			"timeDistribution": {
+				"morning": 10,
+				"afternoon": 15,
+				"evening": 20
+			}
+		}
+	]
+}
+```
+
 ## Watchlist Endpoints
 
 #### GET /api/watchlist

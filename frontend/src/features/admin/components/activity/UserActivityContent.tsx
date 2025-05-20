@@ -20,7 +20,7 @@ import {
 	TableHead,
 	TableHeaderCell,
 } from '../../../../components/common/Table';
-import { H3, Typography } from '../../../../components/common/Typography';
+import { H3 } from '../../../../components/common/Typography';
 import { adminStatsService } from '../../../../services/adminStats.service';
 import { admin } from '../../../../services/api';
 
@@ -176,23 +176,23 @@ const UserActivityContent: React.FC = () => {
 					<Card
 						variant='stats'
 						title='Total Activities'
-						value={stats.totalActivities}
+						value={stats.totalActivities || 0}
 					/>
 					<Card
 						variant='stats'
 						title='Active Users'
-						value={stats.mostActiveUsers.length}
+						value={stats.mostActiveUsers?.length || 0}
 					/>
 					<Card
 						variant='stats'
 						title='Recent Activities'
 						value={stats.activityByDay?.[0]?.count || 0}
+						caption='today'
 					/>
-					<Typography variant='caption'>today</Typography>
 					<Card
 						variant='stats'
 						title='Activity Types'
-						value={stats.activityByType.length}
+						value={stats.activityByType?.length || 0}
 					/>
 				</StatsGrid>
 			)}

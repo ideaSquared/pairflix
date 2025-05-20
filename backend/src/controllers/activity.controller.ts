@@ -1,10 +1,14 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { activityService } from '../services/activity.service';
+import { AuthenticatedRequest } from '../types';
 
 /**
  * Get the current user's activity log
  */
-export const getUserActivities = async (req: Request, res: Response) => {
+export const getUserActivities = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	try {
 		if (!req.user) {
 			return res.status(401).json({ error: 'Authentication required' });
@@ -30,7 +34,10 @@ export const getUserActivities = async (req: Request, res: Response) => {
 /**
  * Get activities from the user's partner
  */
-export const getPartnerActivities = async (req: Request, res: Response) => {
+export const getPartnerActivities = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	try {
 		if (!req.user) {
 			return res.status(401).json({ error: 'Authentication required' });
@@ -58,7 +65,7 @@ export const getPartnerActivities = async (req: Request, res: Response) => {
 /**
  * Get a combined feed of both users' activities
  */
-export const getFeed = async (req: Request, res: Response) => {
+export const getFeed = async (req: AuthenticatedRequest, res: Response) => {
 	try {
 		if (!req.user) {
 			return res.status(401).json({ error: 'Authentication required' });
@@ -93,7 +100,10 @@ export const getFeed = async (req: Request, res: Response) => {
 /**
  * Get activities for a specific user (Admin only)
  */
-export const getAdminUserActivities = async (req: Request, res: Response) => {
+export const getAdminUserActivities = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	try {
 		if (!req.user) {
 			return res.status(401).json({ error: 'Authentication required' });
@@ -105,9 +115,9 @@ export const getAdminUserActivities = async (req: Request, res: Response) => {
 		}
 
 		const userId = req.params.userId;
-		// Ensure userId is provided
-		if (!userId) {
-			return res.status(400).json({ error: 'User ID is required' });
+		// Ensure userId is provided and is not the string "undefined"
+		if (!userId || userId === 'undefined') {
+			return res.status(400).json({ error: 'Valid User ID is required' });
 		}
 
 		const limit = parseInt(req.query.limit as string, 10) || 20;

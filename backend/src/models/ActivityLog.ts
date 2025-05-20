@@ -1,16 +1,23 @@
 import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
 import User from './User';
 
+// Base interface with all properties required
 interface ActivityLogAttributes {
 	log_id: string;
 	user_id: string;
 	action: string;
+	context: string;
 	metadata?: any;
+	ip_address: string | null; // Using null instead of undefined for DB fields
+	user_agent: string | null; // Using null instead of undefined for DB fields
 	created_at: Date;
 }
 
-interface ActivityLogCreationAttributes
-	extends Optional<ActivityLogAttributes, 'log_id' | 'created_at'> {}
+// Interface for creation where some fields are optional
+type ActivityLogCreationAttributes = Optional<
+	ActivityLogAttributes,
+	'log_id' | 'created_at' | 'context' | 'metadata' | 'ip_address' | 'user_agent'
+>;
 
 export class ActivityLog extends Model<
 	ActivityLogAttributes,
@@ -19,7 +26,10 @@ export class ActivityLog extends Model<
 	declare log_id: string;
 	declare user_id: string;
 	declare action: string;
+	declare context: string;
 	declare metadata: any;
+	declare ip_address: string | null;
+	declare user_agent: string | null;
 	declare created_at: Date;
 
 	static initialize(sequelize: Sequelize) {
@@ -42,8 +52,21 @@ export class ActivityLog extends Model<
 					type: DataTypes.STRING,
 					allowNull: false,
 				},
+				context: {
+					type: DataTypes.STRING,
+					allowNull: false,
+					defaultValue: 'system', // Default context
+				},
 				metadata: {
 					type: DataTypes.JSONB,
+					allowNull: true,
+				},
+				ip_address: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				user_agent: {
+					type: DataTypes.TEXT,
 					allowNull: true,
 				},
 				created_at: {

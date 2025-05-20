@@ -30,6 +30,7 @@ interface StatsCardProps extends BaseCardProps {
 	title: string;
 	value: string | number;
 	valueColor?: string;
+	caption?: string; // Add caption property for additional context
 	children?: never; // Stats cards don't use children
 }
 
@@ -127,6 +128,13 @@ const StatsValue = styled(Typography)`
 	font-weight: ${({ theme }) => theme?.typography?.fontWeight?.bold || '700'};
 `;
 
+const StatsCaption = styled(Typography)`
+	color: ${({ theme }) => theme?.colors?.text?.secondary || '#666'};
+	font-size: ${({ theme }) => theme?.typography?.fontSize?.sm || '12px'};
+	margin-top: ${({ theme }) => theme?.spacing?.xs || '4px'};
+	font-style: italic;
+`;
+
 export const Card = (props: CardProps) => {
 	// Helper function to filter out undefined values
 	const filterProps = (obj: Record<string, any>) => {
@@ -141,6 +149,7 @@ export const Card = (props: CardProps) => {
 			title,
 			value,
 			valueColor,
+			caption,
 			variant,
 			accentColor,
 			className,
@@ -163,6 +172,7 @@ export const Card = (props: CardProps) => {
 					<StatsValue style={valueColor ? { color: valueColor } : undefined}>
 						{typeof value === 'number' ? value.toLocaleString() : value}
 					</StatsValue>
+					{caption && <StatsCaption>{caption}</StatsCaption>}
 				</StatsCardContent>
 			</CardContainer>
 		);

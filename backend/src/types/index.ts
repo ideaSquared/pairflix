@@ -65,3 +65,60 @@ export interface AuthenticatedUser {
 export interface AuthenticatedRequest extends Request {
 	user?: AuthenticatedUser;
 }
+
+// Activity tracking metadata interfaces
+export interface WatchlistActivityMetadata {
+	mediaId: number;
+	mediaType: 'movie' | 'tv';
+	title: string;
+	posterPath?: string;
+	rating?: number; // for rating activities
+	status?: string; // for status updates
+	notes?: string; // for user notes
+}
+
+export interface MatchActivityMetadata {
+	matchId: string;
+	mediaId: number;
+	mediaType: 'movie' | 'tv';
+	title: string;
+	partnerUserId: string;
+	partnerUsername: string;
+	status?: string; // match status
+}
+
+export interface SearchActivityMetadata {
+	query: string;
+	resultsCount: number;
+	filters?: {
+		mediaType?: string;
+		genre?: string;
+		year?: number;
+		region?: string;
+		language?: string;
+	};
+}
+
+export interface UserActivityMetadata {
+	previousValues?: Record<string, any>;
+	newValues?: Record<string, any>;
+	userAgent?: string;
+	ipAddress?: string;
+	sessionId?: string;
+}
+
+export interface MediaActivityMetadata {
+	mediaId: number;
+	mediaType: 'movie' | 'tv';
+	title: string;
+	actionType?: string; // viewed, favorited, shared, etc.
+	duration?: number; // time spent viewing, in seconds
+}
+
+export type ActivityContext =
+	| 'watchlist'
+	| 'user'
+	| 'match'
+	| 'search'
+	| 'media'
+	| 'system';

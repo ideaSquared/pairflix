@@ -547,11 +547,17 @@ export const admin = {
 		if (params.limit) queryParams.append('limit', params.limit.toString());
 		if (params.offset) queryParams.append('offset', params.offset.toString());
 		if (params.action) queryParams.append('action', params.action);
-		if (params.userId) queryParams.append('userId', params.userId);
 		if (params.startDate) queryParams.append('startDate', params.startDate);
 		if (params.endDate) queryParams.append('endDate', params.endDate);
 
-		// Use the correct endpoint: /api/activity/user/{userId}
+		// For the admin dashboard showing ALL activities across the site
+		if (!params.userId || params.userId === 'undefined') {
+			return fetchWithAuth(
+				`/api/admin/all-activities?${queryParams.toString()}`
+			);
+		}
+
+		// When looking at a specific user's activities
 		return fetchWithAuth(
 			`/api/activity/user/${params.userId}?${queryParams.toString()}`
 		);

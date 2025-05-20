@@ -71,6 +71,47 @@ PostgreSQL database with a normalized schema:
 - **WatchlistEntries**: User's watchlist items with status and ratings
 - **Tags**: Categorization system for watchlist entries
 - **Matches**: Derived data showing overlapping watchlist items
+- **ActivityLog**: Enhanced tracking of user actions with contextual data
+
+## Activity Tracking System
+
+The application implements a comprehensive activity tracking system that monitors and analyzes user behavior:
+
+### Components
+
+- **ActivityLog Model**: Stores structured activity data with contextual information
+- **ActivityType Enum**: Standardized activity types for consistency across the application
+- **Activity Service**: Core service for logging and retrieving activity data
+- **Analytics Functions**: Advanced analytics to derive insights from user activity
+- **Admin Dashboard**: Visualization and reporting of activity patterns
+
+### Activity Tracking Flow
+
+1. User performs an action (e.g., adds a movie to watchlist)
+2. Action is processed by the appropriate controller
+3. Controller calls the activity service to log the action
+4. Activity is stored with context, metadata, and security information
+5. Analytics functions process activity data for insights
+6. Admin dashboard displays activity trends and patterns
+
+### Activity Categories
+
+Activities are organized into contextual categories:
+
+- **Watchlist**: Adding, updating, rating, or removing watchlist items
+- **User**: Login, logout, profile updates, preference changes
+- **Match**: Creating, viewing, accepting, or declining matches
+- **Search**: Media searches with filters
+- **Media**: Viewing media details, trailers, etc.
+- **System**: Notification interactions, feature usage
+
+### Security Tracking
+
+The activity system captures security-relevant data:
+
+- IP addresses for geographic and device tracking
+- User agent strings for browser/device identification
+- Timestamps for temporal pattern analysis
 
 ## External Dependencies
 
@@ -85,6 +126,7 @@ PostgreSQL database with a normalized schema:
 - HTTPS for all API communication
 - Input validation on all endpoints
 - Rate limiting to prevent abuse
+- Activity tracking for security monitoring
 
 ## Caching Strategy
 

@@ -1,12 +1,15 @@
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
+import { ActivityLog } from '../models/ActivityLog';
 import AuditLog from '../models/AuditLog';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
+import { activityService } from '../services/activity.service';
 import { auditLogService, LogLevel } from '../services/audit.service';
 import { statisticsService } from '../services/statistics.service';
+import { ActivityContext } from '../types';
 
 // Import Express namespace to ensure the Request type includes user property
 import '../middlewares/auth';
@@ -1209,6 +1212,276 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 	}
 };
 
+/**
+ * Get all user activities across the site (Admin only)
+ */
+export const getAllActivities = async (req: Request, res: Response) => {
+	try {
+		const limit = parseInt(req.query.limit as string, 10) || 20;
+		const offset = parseInt(req.query.offset as string, 10) || 0;
+		const action = req.query.action as string;
+		const startDate = req.query.startDate as string;
+		const endDate = req.query.endDate as string;
+
+		// Build query conditions
+		const where: any = {};
+
+		// Filter by action if provided
+		if (action) {
+			where.action = action;
+		}
+
+		// Filter by date range if provided
+		if (startDate || endDate) {
+			where.created_at = {};
+
+			if (startDate) {
+				where.created_at[Op.gte] = new Date(startDate);
+			}
+
+			if (endDate) {
+				where.created_at[Op.lte] = new Date(endDate);
+			}
+		}
+
+		// Get activities for all users with user information
+		const activities = await ActivityLog.findAll({
+			where,
+			order: [['created_at', 'DESC']],
+			limit,
+			offset,
+			include: [
+				{
+					model: User,
+					as: 'user',
+					attributes: ['user_id', 'username', 'email'],
+				},
+			],
+		});
+
+		// Get total count for pagination
+		const totalCount = await ActivityLog.count({ where });
+
+		// Audit log for admin viewing all activities
+		await auditLogService.info(
+			'Viewed all user activities',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				filters: { action, startDate, endDate },
+				pagination: { limit, offset },
+			}
+		);
+
+		return res.status(200).json({
+			activities,
+			pagination: {
+				total: totalCount,
+				limit,
+				offset,
+				hasMore: offset + activities.length < totalCount,
+			},
+		});
+	} catch (error) {
+		console.error('Error fetching all activities:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch all activities',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to fetch activities' });
+	}
+};
+
+/**
+ * Get detailed activity analytics
+ */
+export const getActivityAnalytics = async (req: Request, res: Response) => {
+	try {
+		const days = parseInt(req.query.days as string, 10) || 30;
+		const startDate = req.query.startDate
+			? new Date(req.query.startDate as string)
+			: new Date(Date.now() - days * 86400000);
+		const endDate = req.query.endDate
+			? new Date(req.query.endDate as string)
+			: new Date();
+		const groupBy = (req.query.groupBy as 'day' | 'week' | 'month') || 'day';
+
+		// Get all the activity data we need for comprehensive analytics
+		const [
+			popularActivities,
+			timeline,
+			contextStats,
+			actionStats,
+			userPatterns,
+		] = await Promise.all([
+			activityService.getMostPopularActivities(days),
+			activityService.getActivityTimeline(startDate, endDate, groupBy),
+			activityService.getActivityStats(days, 'context'),
+			activityService.getActivityStats(days, 'action'),
+			activityService.getUserActivityPatterns(undefined, days, 10),
+		]);
+
+		// Audit log for analytics retrieval
+		await auditLogService.info(
+			'Retrieved activity analytics',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				timeRange: { days, startDate, endDate },
+			}
+		);
+
+		return res.status(200).json({
+			timeRange: {
+				days,
+				startDate,
+				endDate,
+			},
+			popularActivities,
+			timeline,
+			contextStats,
+			actionStats,
+			userPatterns,
+		});
+	} catch (error) {
+		console.error('Error fetching activity analytics:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch activity analytics',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to fetch activity analytics' });
+	}
+};
+
+/**
+ * Get activities filtered by context (category)
+ */
+export const getActivitiesByContext = async (req: Request, res: Response) => {
+	try {
+		const context = req.params.context as ActivityContext;
+		const action = req.query.action as string;
+		const limit = parseInt(req.query.limit as string, 10) || 20;
+		const offset = parseInt(req.query.offset as string, 10) || 0;
+
+		if (
+			!['watchlist', 'user', 'match', 'search', 'media', 'system'].includes(
+				context
+			)
+		) {
+			return res.status(400).json({
+				error: 'Invalid context',
+				validContexts: [
+					'watchlist',
+					'user',
+					'match',
+					'search',
+					'media',
+					'system',
+				],
+			});
+		}
+
+		const result = await activityService.getActivitiesByContext(
+			context,
+			action,
+			limit,
+			offset
+		);
+
+		// Audit log for activity retrieval by context
+		await auditLogService.info(
+			'Retrieved activities by context',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				context,
+				action,
+				pagination: { limit, offset },
+			}
+		);
+
+		return res.status(200).json(result);
+	} catch (error) {
+		console.error('Error fetching activities by context:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch activities by context',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				context: req.params.context,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to fetch activities by context' });
+	}
+};
+
+/**
+ * Get user activity patterns
+ */
+export const getUserActivityPatterns = async (req: Request, res: Response) => {
+	try {
+		const userId = req.params.userId;
+		const days = parseInt(req.query.days as string, 10) || 30;
+
+		const patterns = await activityService.getUserActivityPatterns(
+			userId,
+			days
+		);
+
+		// Audit log for user activity patterns retrieval
+		await auditLogService.info(
+			'Retrieved user activity patterns',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: userId,
+				days,
+			}
+		);
+
+		return res.status(200).json({ patterns });
+	} catch (error) {
+		console.error('Error fetching user activity patterns:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch user activity patterns',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to fetch user activity patterns' });
+	}
+};
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -1233,4 +1506,8 @@ export const adminController = {
 	getUserActivityStats,
 	getDashboardStats,
 	getSystemStats,
+	getAllActivities,
+	getActivityAnalytics,
+	getActivitiesByContext,
+	getUserActivityPatterns,
 };

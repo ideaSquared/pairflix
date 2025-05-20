@@ -133,14 +133,17 @@ CREATE TABLE entry_tags (
 
 ### Activity Log
 
-Tracks user actions within the system.
+Tracks user actions within the system with enhanced contextual data.
 
 ```sql
 CREATE TABLE activity_log (
     log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
     action TEXT NOT NULL,
+    context TEXT NOT NULL DEFAULT 'system',
     metadata JSONB,
+    ip_address TEXT,
+    user_agent TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
@@ -150,7 +153,10 @@ CREATE TABLE activity_log (
 - `log_id`: Unique identifier (UUID)
 - `user_id`: Reference to user who performed the action
 - `action`: Description of the activity
+- `context`: Category of the activity (watchlist, user, match, search, media, system)
 - `metadata`: JSON data with additional details about the activity
+- `ip_address`: IP address from which the activity was performed (for security tracking)
+- `user_agent`: Browser/device information (for security tracking)
 - `created_at`: Timestamp when the activity occurred
 
 ## Indexes
