@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import ActivityLog from './ActivityLog'; // Assuming it's a default export like others
+import AppSettings from './AppSettings';
 import AuditLog from './AuditLog';
 import Match from './Match';
 import User from './User';
@@ -9,6 +10,7 @@ export function initializeModels(sequelize: Sequelize) {
 	// Initialize models that don't depend on other models first
 	User.initialize(sequelize);
 	WatchlistEntry.initialize(sequelize);
+	AppSettings.initialize(sequelize);
 
 	// Then initialize models that depend on those
 	Match.initialize(sequelize);
@@ -37,6 +39,7 @@ export function initializeModels(sequelize: Sequelize) {
 		WatchlistEntry,
 		ActivityLog,
 		AuditLog,
+		AppSettings,
 	};
 }
 
@@ -46,4 +49,5 @@ export default {
 	WatchlistEntry,
 	ActivityLog,
 	AuditLog,
+	AppSettings,
 };

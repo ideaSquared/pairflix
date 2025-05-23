@@ -11,6 +11,7 @@ PairFlix uses a PostgreSQL database with the following key entities:
 - Tags
 - Entry Tags
 - Activity Log
+- Application Settings
 
 ## Entity Relationship Diagram
 
@@ -23,11 +24,11 @@ PairFlix uses a PostgreSQL database with the following key entities:
       ▲                      ▲
       │                      │
       │                      │
-┌─────┴─────┐                │
-│           │                │
-│ActivityLog├────────────────┘
-│           │
-└───────────┘
+┌─────┴─────┐                │      ┌──────────────┐
+│           │                │      │              │
+│ActivityLog├────────────────┘      │ AppSettings  │
+│           │                       │              │
+└───────────┘                       └──────────────┘
 ```
 
 ## Tables Structure
@@ -158,6 +159,75 @@ CREATE TABLE activity_log (
 - `ip_address`: IP address from which the activity was performed (for security tracking)
 - `user_agent`: Browser/device information (for security tracking)
 - `created_at`: Timestamp when the activity occurred
+
+### AppSettings
+
+Stores application-wide settings and configurations in a key-value format.
+
+```sql
+CREATE TABLE app_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### Fields:
+
+- `key`: Setting key/name (primary key)
+- `value`: Setting value stored as JSONB data
+- `category`: Logical grouping for the setting (e.g., 'general', 'security', 'email')
+- `description`: Human-readable description of the setting's purpose
+- `created_at`: Setting creation timestamp
+- `updated_at`: Last update timestamp
+
+#### Usage:
+
+The AppSettings table is designed to store application-wide configurations in a flexible format. The settings service manages these values with features like:
+
+- In-memory caching with TTL for performance optimization
+- Environment variable overrides for sensitive data
+- Hierarchical organization of settings
+- Audit logging of all settings changes
+
+Settings are organized into these categories:
+
+- `general`: Basic application information and configuration
+- `security`: Password policies, session timeouts, and authentication rules
+- `email`: SMTP configuration for transactional emails
+- `media`: File upload rules and content management settings
+- `features`: Feature flags for enabling/disabling application capabilities
+
+#### Example Structure:
+
+```json
+// Individual setting entry
+{
+  "key": "general.siteName",
+  "value": "PairFlix",
+  "category": "general",
+  "description": "Name of the application shown to users"
+}
+
+// Compiled hierarchical settings object
+{
+  "general": {
+    "siteName": "PairFlix",
+    "siteDescription": "Find your perfect movie match",
+    "maintenanceMode": false
+  },
+  "security": {
+    "sessionTimeout": 120,
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireUppercase": true
+    }
+  }
+}
+```
 
 ## Indexes
 

@@ -1210,3 +1210,169 @@ X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 99
 X-RateLimit-Reset: 1609459200
 ```
+
+## Settings Management
+
+#### GET /api/admin/settings
+
+Returns all application settings.
+
+**Query Parameters:**
+
+- `forceRefresh` (optional): Boolean to force refresh from database even if cache is valid
+
+**Response: 200 OK**
+
+```json
+{
+	"general": {
+		"siteName": "PairFlix",
+		"siteDescription": "Find your perfect movie match",
+		"maintenanceMode": false,
+		"defaultUserRole": "user"
+	},
+	"security": {
+		"sessionTimeout": 120,
+		"maxLoginAttempts": 5,
+		"passwordPolicy": {
+			"minLength": 8,
+			"requireUppercase": true,
+			"requireLowercase": true,
+			"requireNumbers": true,
+			"requireSpecialChars": false
+		},
+		"twoFactorAuth": {
+			"enabled": false,
+			"requiredForAdmins": false
+		}
+	},
+	"email": {
+		"smtpServer": "smtp.example.com",
+		"smtpPort": 587,
+		"smtpUsername": "notifications@pairflix.com",
+		"senderEmail": "notifications@pairflix.com",
+		"senderName": "PairFlix Notifications",
+		"emailTemplatesPath": "/templates/email"
+	},
+	"media": {
+		"maxUploadSize": 5,
+		"allowedFileTypes": ["jpg", "jpeg", "png", "gif"],
+		"imageQuality": 85,
+		"storageProvider": "local"
+	},
+	"features": {
+		"enableMatching": true,
+		"enableUserProfiles": true,
+		"enableNotifications": true,
+		"enableActivityFeed": true
+	}
+}
+```
+
+#### GET /api/admin/settings/:key
+
+Returns a specific setting by key.
+
+**Path Parameters:**
+
+- `key` (required): The setting key to retrieve (e.g., "general.siteName")
+
+**Response: 200 OK**
+
+```json
+{
+	"key": "general.siteName",
+	"value": "PairFlix",
+	"category": "general",
+	"description": "Name of the application shown to users"
+}
+```
+
+#### PUT /api/admin/settings/:key
+
+Updates a specific setting.
+
+**Path Parameters:**
+
+- `key` (required): The setting key to update
+
+**Request Body:**
+
+```json
+{
+	"value": "New Site Name",
+	"category": "general",
+	"description": "Name of the application shown to users"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Setting updated successfully",
+	"setting": {
+		"key": "general.siteName",
+		"value": "New Site Name",
+		"category": "general",
+		"description": "Name of the application shown to users",
+		"updated_at": "2025-05-23T12:00:00.000Z"
+	}
+}
+```
+
+#### PUT /api/admin/settings
+
+Updates multiple settings at once.
+
+**Request Body:**
+
+```json
+{
+	"general.siteName": "New Site Name",
+	"general.maintenanceMode": true,
+	"features.enableMatching": false
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Settings updated successfully",
+	"updatedCount": 3
+}
+```
+
+#### DELETE /api/admin/settings/:key
+
+Deletes a specific setting.
+
+**Path Parameters:**
+
+- `key` (required): The setting key to delete
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Setting deleted successfully"
+}
+```
+
+#### POST /api/admin/settings/reset
+
+Resets all settings to default values.
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "All settings reset to default values",
+	"settingsCount": 25
+}
+```

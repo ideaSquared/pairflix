@@ -359,7 +359,11 @@ export const admin = {
 	},
 
 	// App settings methods
-	getAppSettings: async (): Promise<{ settings: AppSettings }> => {
+	getAppSettings: async (): Promise<{
+		settings: AppSettings;
+		fromCache?: boolean;
+		lastUpdated?: Date;
+	}> => {
 		return fetchWithAuth('/api/admin/settings');
 	},
 

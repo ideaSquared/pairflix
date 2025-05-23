@@ -3,12 +3,15 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent } from '../../components/common/Card';
+import DocumentTitle from '../../components/common/DocumentTitle';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../hooks/useAuth';
 import { user as userService } from '../../services/api';
+import { validatePassword } from '../../utils/passwordPolicy';
 
 // Define response types for API calls
 type ApiResponse = {
@@ -169,6 +172,7 @@ const Switch = styled.label`
 
 const ProfilePage: React.FC = () => {
 	const { user, checkAuth, logout } = useAuth();
+	const { settings } = useSettings();
 
 	// Password update state
 	const [currentPassword, setCurrentPassword] = useState('');
@@ -303,9 +307,23 @@ const ProfilePage: React.FC = () => {
 			return;
 		}
 
-		if (newPassword.length < 8) {
-			setPasswordError('Password must be at least 8 characters long');
-			return;
+		// If we have password policy settings, validate the new password against them
+		if (settings?.security.passwordPolicy) {
+			const validationResult = validatePassword(
+				newPassword,
+				settings.security.passwordPolicy
+			);
+
+			if (!validationResult.isValid) {
+				setPasswordError(validationResult.errors.join('\n'));
+				return;
+			}
+		} else {
+			// Fallback to basic validation if settings aren't available
+			if (newPassword.length < 8) {
+				setPasswordError('Password must be at least 8 characters long');
+				return;
+			}
 		}
 
 		passwordMutation.mutate({
@@ -377,6 +395,7 @@ const ProfilePage: React.FC = () => {
 
 	return (
 		<Layout>
+			<DocumentTitle title='Profile Settings' />
 			<ProfileContainer>
 				<H1 gutterBottom>Profile Settings</H1>
 

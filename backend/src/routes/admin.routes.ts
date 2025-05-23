@@ -1,13 +1,23 @@
-import { Router } from 'express';
-import { adminController } from '../controllers/admin.controller';
-import { authenticateToken, requireAdmin } from '../middlewares/auth';
+import express from 'express';
+import {
+	adminController,
+	clearCache,
+	getAppSettings,
+	updateAppSettings,
+} from '../controllers/admin.controller';
+import { adminOnlyMiddleware } from '../middlewares/admin-only';
+import { authenticateToken } from '../middlewares/auth';
 
-const router = Router();
+const router = express.Router();
 
-// All admin routes require authentication
+// Apply auth middleware to all admin routes
 router.use(authenticateToken);
-// Ensure all admin routes are restricted to admin users only
-router.use(requireAdmin);
+router.use(adminOnlyMiddleware);
+
+// Settings routes
+router.get('/settings', getAppSettings);
+router.put('/settings', updateAppSettings);
+router.post('/settings/clear-cache', clearCache);
 
 // User management routes
 router.get('/users', adminController.getUsers);

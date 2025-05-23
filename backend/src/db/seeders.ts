@@ -1,9 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { ActivityLog } from '../models/ActivityLog';
+import AppSettings from '../models/AppSettings';
+import AuditLog from '../models/AuditLog';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 import { ActivityType } from '../services/activity.service';
+import { auditLogService } from '../services/audit.service';
+import { settingsService } from '../services/settings.service';
 import sequelize from './connection';
 
 export async function seedDatabase() {
@@ -19,8 +23,10 @@ export async function seedDatabase() {
 		await WatchlistEntry.destroy({ where: {} });
 		await Match.destroy({ where: {} });
 		await User.destroy({ where: {} });
+		await AppSettings.destroy({ where: {} });
+		await AuditLog.destroy({ where: {} });
 
-		// Create test users with usernames
+		// Create test users first so we can associate the settings creation with the admin
 		const password = await bcrypt.hash('1234', 10);
 		const defaultPreferences = {
 			theme: 'dark' as const,
@@ -30,7 +36,7 @@ export async function seedDatabase() {
 			favoriteGenres: [] as string[],
 		};
 
-		const [user1, user2, user3] = await Promise.all([
+		const [user1, user2, user3, adminUser] = await Promise.all([
 			User.create({
 				email: 'user1@example.com',
 				username: 'user1',
@@ -49,7 +55,6 @@ export async function seedDatabase() {
 				username: 'user3',
 				password_hash: password,
 				preferences: defaultPreferences,
-
 				status: 'suspended',
 			}),
 			User.create({
@@ -61,9 +66,35 @@ export async function seedDatabase() {
 			}),
 		]);
 
-		if (!user1 || !user2 || !user3) {
+		if (!user1 || !user2 || !user3 || !adminUser) {
 			throw new Error('Failed to create test users');
 		}
+
+		// Initialize default app settings using the settings service
+		await settingsService.initializeDefaultSettings();
+		console.log('Default app settings created');
+
+		// Create an audit log entry for the initial settings creation
+		await auditLogService.info(
+			'Initial application settings created',
+			'db-seeder',
+			{
+				userId: adminUser.user_id,
+				timestamp: new Date(),
+			}
+		);
+
+		// Create an activity log entry for the admin user creating settings
+		await ActivityLog.create({
+			user_id: adminUser.user_id,
+			action: ActivityType.SYSTEM_CONFIG,
+			context: 'system',
+			metadata: {
+				action: 'initialize_app_settings',
+				timestamp: new Date(),
+			},
+			created_at: new Date(),
+		});
 
 		// Create accepted match between user1 and user2
 		await Match.create({
@@ -462,51 +493,72 @@ export async function seedDatabase() {
 			}),
 		]);
 
-		// Get admin user first to avoid potential undefined issues
-		const adminUser = await User.findOne({ where: { username: 'admin' } });
-
-		if (!adminUser || !adminUser.user_id) {
-			console.warn(
-				'Admin user not found or missing user_id, skipping admin activity creation'
-			);
-		} else {
-			// Activity logs for admin using the safely retrieved user_id
-			await Promise.all([
-				// Login activities
-				ActivityLog.create({
-					user_id: adminUser.user_id,
-					action: ActivityType.USER_LOGIN,
-					created_at: pastDate(27),
-				}),
-				ActivityLog.create({
-					user_id: adminUser.user_id,
-					action: ActivityType.USER_LOGIN,
-					created_at: pastDate(14),
-				}),
-				ActivityLog.create({
-					user_id: adminUser.user_id,
-					action: ActivityType.USER_LOGIN,
-					created_at: pastDate(3),
-				}),
-				ActivityLog.create({
-					user_id: adminUser.user_id,
-					action: ActivityType.USER_LOGIN,
-					created_at: pastDate(1),
-				}),
-
-				// Profile updates
-				ActivityLog.create({
-					user_id: adminUser.user_id,
-					action: ActivityType.USER_PROFILE_UPDATE,
-					metadata: {
-						changedFields: ['preferences.theme'],
-						oldValue: 'light',
-						newValue: 'dark',
+		// Additional admin activities related to system management
+		await Promise.all([
+			// Existing admin activities
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.USER_LOGIN,
+				created_at: pastDate(27),
+			}),
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.USER_LOGIN,
+				created_at: pastDate(14),
+			}),
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.USER_LOGIN,
+				created_at: pastDate(3),
+			}),
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.USER_LOGIN,
+				created_at: pastDate(1),
+			}),
+			// Profile updates
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.USER_PROFILE_UPDATE,
+				metadata: {
+					changedFields: ['preferences.theme'],
+					oldValue: 'light',
+					newValue: 'dark',
+				},
+				created_at: pastDate(19),
+			}),
+			// Admin specific activities - system settings update
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.SYSTEM_CONFIG,
+				context: 'system',
+				metadata: {
+					action: 'update_app_settings',
+					changes: {
+						'general.siteName': {
+							from: 'PairFlix',
+							to: 'PairFlix Beta',
+						},
+						'features.enableNewRecommendations': {
+							from: false,
+							to: true,
+						},
 					},
-					created_at: pastDate(19),
-				}),
-			]);
-		}
+				},
+				created_at: pastDate(5),
+			}),
+			// System maintenance activity
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.SYSTEM_MAINTENANCE,
+				context: 'system',
+				metadata: {
+					action: 'clear_expired_sessions',
+					count: 12,
+				},
+				created_at: pastDate(2),
+			}),
+		]);
 
 		console.log('Database seeded successfully!');
 	} catch (error) {

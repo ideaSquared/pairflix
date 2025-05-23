@@ -8,6 +8,7 @@ import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 import { activityService } from '../services/activity.service';
 import { auditLogService, LogLevel } from '../services/audit.service';
+import { settingsService } from '../services/settings.service';
 import { statisticsService } from '../services/statistics.service';
 import { ActivityContext } from '../types';
 
@@ -1482,6 +1483,133 @@ export const getUserActivityPatterns = async (req: Request, res: Response) => {
 	}
 };
 
+/**
+ * Get application settings
+ */
+export async function getAppSettings(req: Request, res: Response) {
+	try {
+		const settings = await settingsService.getSettings();
+
+		// Audit log for settings retrieval
+		await auditLogService.info('Retrieved app settings', 'admin-controller', {
+			userId: req.user?.user_id,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({
+			settings,
+			fromCache: true,
+			lastUpdated: new Date(),
+		});
+	} catch (error) {
+		console.error('Error fetching application settings:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to fetch app settings',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to fetch application settings' });
+	}
+}
+
+/**
+ * Update application settings
+ */
+export async function updateAppSettings(req: Request, res: Response) {
+	try {
+		const { settings } = req.body;
+
+		if (!settings) {
+			return res.status(400).json({ error: 'Settings object is required' });
+		}
+
+		// Validate settings
+		if (
+			!settings.general ||
+			!settings.security ||
+			!settings.email ||
+			!settings.features
+		) {
+			return res.status(400).json({
+				error:
+					'Invalid settings format. Required sections: general, security, email, features',
+			});
+		}
+
+		// Update settings using the service
+		const updatedSettings = await settingsService.updateSettings(
+			settings,
+			req.user?.user_id
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'Settings updated successfully',
+			settings: updatedSettings,
+			lastUpdated: new Date(),
+		});
+	} catch (error) {
+		console.error('Error updating application settings:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to update app settings',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to update application settings' });
+	}
+}
+
+/**
+ * Clear server-side cache (for development/debugging)
+ */
+export async function clearCache(req: Request, res: Response) {
+	try {
+		// Clear settings cache using service
+		settingsService.clearCache();
+
+		// Audit log for cache clearing
+		await auditLogService.warn('Cleared server cache', 'admin-controller', {
+			userId: req.user?.user_id,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Server cache cleared successfully',
+		});
+	} catch (error) {
+		console.error('Error clearing cache:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to clear server cache',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to clear server cache' });
+	}
+}
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -1510,4 +1638,8 @@ export const adminController = {
 	getActivityAnalytics,
 	getActivitiesByContext,
 	getUserActivityPatterns,
+	// App settings methods
+	getAppSettings: getAppSettings, // Explicitly assign the function
+	updateAppSettings: updateAppSettings, // Explicitly assign the function
+	clearCache: clearCache, // Explicitly assign the function
 };

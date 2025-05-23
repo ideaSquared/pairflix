@@ -148,3 +148,46 @@ Docker-based deployment with:
 - Separate containers for frontend, backend, and database
 - Environment-specific configuration via Docker Compose
 - Volume mapping for database persistence
+
+## Settings Management System
+
+The application implements a centralized settings management system that provides consistent configuration across the application:
+
+### Components
+
+- **AppSettings Model**: Database table storing application-wide settings as key-value pairs
+- **Settings Service**: Core service for retrieving and updating application settings
+- **Environment Variable Integration**: Security-focused approach for sensitive settings
+- **Admin Dashboard**: Interface for adjusting application settings
+
+### Settings Architecture
+
+1. **Database Storage**: Core settings are persisted in the database using JSONB
+2. **Memory Cache**: Settings are cached in-memory with TTL to reduce database load
+3. **Environment Override**: Environment variables can override database settings
+4. **Sensitive Data Handling**: Sensitive fields (passwords, API keys) are never stored in DB
+
+### Settings Organization
+
+Settings are organized into logical sections:
+
+- **General**: Basic application information and configuration
+- **Security**: Password policies, session timeouts, and authentication rules
+- **Email**: SMTP configuration for transactional emails
+- **Media**: File upload rules and content management settings
+- **Features**: Feature flags for enabling/disabling application capabilities
+
+### Environment Configuration
+
+The settings system supports different environments:
+
+- **Development**: Default settings with easy override via .env file
+- **Testing**: Static settings for consistent test execution
+- **Production**: Environment variable overrides for secure deployment
+
+### Security Approach
+
+- Sensitive data like SMTP passwords are stored as empty placeholders in database
+- Runtime environment variables provide actual sensitive values
+- Settings changes are audit-logged for security tracking
+- Role-based access control limits settings modifications

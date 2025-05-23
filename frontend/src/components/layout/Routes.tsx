@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useSettings } from '../../contexts/SettingsContext';
 import {
 	ActivityManagement,
 	AdminDashboard,
@@ -16,6 +17,7 @@ import ProfilePage from '../../features/auth/ProfilePage';
 import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
+import MaintenanceMode from '../common/MaintenanceMode';
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
 	element,
@@ -49,6 +51,14 @@ const AdminRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
 };
 
 const AppRoutes: React.FC = () => {
+	const { settings } = useSettings();
+	const { user } = useAuth();
+
+	// Show maintenance mode for non-admin users when enabled
+	if (settings?.general.maintenanceMode && user?.role !== 'admin') {
+		return <MaintenanceMode />;
+	}
+
 	return (
 		<Routes>
 			<Route path='/login' element={<LoginPage />} />

@@ -6,6 +6,9 @@ import { user } from './user';
 import { fetchWithAuth } from './utils';
 import { watchlist } from './watchlist';
 
+// Re-export the AppSettings type from admin
+export type { AppSettings } from './admin';
+
 // Export individual services
 export { admin, auth, fetchWithAuth, matches, search, user, watchlist };
 

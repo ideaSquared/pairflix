@@ -3,7 +3,9 @@ import { BrowserRouter } from 'react-router-dom';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Container } from './components/common/Layout';
 import QueryErrorBoundary from './components/common/QueryErrorBoundary';
+import SessionManager from './components/common/SessionManager';
 import Routes from './components/layout/Routes';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { ThemeProvider } from './styles/ThemeProvider';
 
 const queryClient = new QueryClient({
@@ -33,11 +35,15 @@ function App() {
 			<ErrorBoundary>
 				<QueryClientProvider client={queryClient}>
 					<QueryErrorBoundary>
-						<ThemeProvider>
-							<Container maxWidth='none' padding='xs'>
-								<Routes />
-							</Container>
-						</ThemeProvider>
+						<SettingsProvider>
+							<ThemeProvider>
+								{/* SessionManager enforces session timeout settings */}
+								<SessionManager />
+								<Container maxWidth='none' padding='xs'>
+									<Routes />
+								</Container>
+							</ThemeProvider>
+						</SettingsProvider>
 					</QueryErrorBoundary>
 				</QueryClientProvider>
 			</ErrorBoundary>
