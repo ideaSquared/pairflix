@@ -1,16 +1,29 @@
 import express from 'express';
 import {
 	adminController,
+	adminLogin,
 	clearCache,
 	getAppSettings,
 	updateAppSettings,
+	validateAdminToken,
 } from '../controllers/admin.controller';
 import { adminOnlyMiddleware } from '../middlewares/admin-only';
 import { authenticateToken } from '../middlewares/auth';
 
 const router = express.Router();
 
-// Apply auth middleware to all admin routes
+// Public admin routes (no auth required)
+router.post('/login', adminLogin);
+
+// Protected admin routes (require authentication)
+router.get(
+	'/validate-token',
+	authenticateToken,
+	adminOnlyMiddleware,
+	validateAdminToken
+);
+
+// Apply auth middleware to all other admin routes
 router.use(authenticateToken);
 router.use(adminOnlyMiddleware);
 

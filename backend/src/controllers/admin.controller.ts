@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { ActivityLog } from '../models/ActivityLog';
 import AuditLog from '../models/AuditLog';
@@ -1610,6 +1611,142 @@ export async function clearCache(req: Request, res: Response) {
 	}
 }
 
+/**
+ * Admin login endpoint
+ */
+export const adminLogin = async (req: Request, res: Response) => {
+	const { email, password } = req.body;
+	try {
+		// Audit log - admin login attempt
+		await auditLogService.info('Admin login attempt', 'admin-controller', {
+			email,
+			ip: req.ip,
+			userAgent: req.get('user-agent'),
+			timestamp: new Date(),
+		});
+
+		// Check if user exists and has admin role
+		const user = await User.findOne({ where: { email } });
+
+		if (!user) {
+			await auditLogService.warn(
+				'Admin login failed - user not found',
+				'admin-controller',
+				{
+					email,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(401).json({ error: 'Invalid credentials' });
+		}
+
+		// Verify the password
+		const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
+		if (!isPasswordValid) {
+			await auditLogService.warn(
+				'Admin login failed - invalid password',
+				'admin-controller',
+				{
+					email,
+					userId: user.user_id,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(401).json({ error: 'Invalid credentials' });
+		}
+
+		// Verify user has admin role
+		if (user.role !== 'admin') {
+			await auditLogService.warn(
+				'Admin login failed - not an admin',
+				'admin-controller',
+				{
+					email,
+					userId: user.user_id,
+					role: user.role,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(403).json({ error: 'Access denied' });
+		}
+
+		// Create a token with admin privileges
+		const tokenPayload = {
+			user_id: user.user_id,
+			email: user.email,
+			username: user.username,
+			role: user.role,
+		};
+
+		const token = jwt.sign(
+			tokenPayload,
+			process.env.JWT_SECRET || 'default_jwt_secret',
+			{ expiresIn: '8h' }
+		);
+
+		// Update last login time
+		user.last_login = new Date();
+		await user.save();
+
+		// Audit log - successful admin login
+		await auditLogService.info('Admin login successful', 'admin-controller', {
+			userId: user.user_id,
+			email,
+			timestamp: new Date(),
+		});
+
+		// Return user data and token
+		return res.status(200).json({
+			user: {
+				id: user.user_id,
+				email: user.email,
+				name: user.username,
+				role: user.role,
+			},
+			token,
+		});
+	} catch (error) {
+		// Audit log - failed login
+		await auditLogService.warn('Admin login error', 'admin-controller', {
+			email,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			ip: req.ip,
+			timestamp: new Date(),
+		});
+
+		console.error('Admin login error:', error);
+		res.status(500).json({ error: 'An error occurred during login' });
+	}
+};
+
+/**
+ * Validate an admin token
+ */
+export const validateAdminToken = async (req: Request, res: Response) => {
+	try {
+		// If we got here, the token is valid (checked by authenticateToken middleware)
+		// and the user is an admin (checked by adminOnlyMiddleware)
+
+		if (!req.user) {
+			return res.status(401).json({ error: 'Authentication required' });
+		}
+
+		return res.status(200).json({
+			id: req.user.user_id,
+			email: req.user.email,
+			name: req.user.username,
+			role: req.user.role,
+		});
+	} catch (error) {
+		console.error('Token validation error:', error);
+		res.status(401).json({ error: 'Invalid token' });
+	}
+};
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -1642,4 +1779,6 @@ export const adminController = {
 	getAppSettings: getAppSettings, // Explicitly assign the function
 	updateAppSettings: updateAppSettings, // Explicitly assign the function
 	clearCache: clearCache, // Explicitly assign the function
+	adminLogin,
+	validateAdminToken,
 };

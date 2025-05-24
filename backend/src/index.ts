@@ -21,39 +21,58 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configure CORS
-app.use(
-	cors({
-		origin:
-			process.env.NODE_ENV === 'production'
-				? ['https://your-production-domain.com']
-				: [
-						'http://localhost:5173',
-						'http://localhost:3000',
-						'http://127.0.0.1:5173',
-						'http://127.0.0.1:3000',
-					],
-		credentials: true,
-		methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-		allowedHeaders: ['Content-Type', 'Authorization'],
-		exposedHeaders: ['Authorization'],
-	})
-);
+// Define allowed origins
+const allowedOrigins =
+	process.env.NODE_ENV === 'production'
+		? ['https://your-production-domain.com']
+		: [
+				'http://localhost:5174',
+				'http://localhost:5173',
+				'http://localhost:3000',
+				'http://127.0.0.1:5173',
+				'http://127.0.0.1:5174',
+				'http://127.0.0.1:3000',
+			];
+
+// CORS configuration
+const corsOptions = {
+	origin: function (
+		origin: string | undefined,
+		callback: (err: Error | null, allow?: boolean) => void
+	) {
+		// Allow requests with no origin (like mobile apps, curl requests)
+		if (!origin) return callback(null, true);
+
+		if (allowedOrigins.indexOf(origin) !== -1) {
+			callback(null, true);
+		} else {
+			callback(new Error('Not allowed by CORS'));
+		}
+	},
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+	exposedHeaders: ['Authorization'],
+	preflightContinue: false,
+	optionsSuccessStatus: 204,
+};
+
+// Apply CORS for all routes
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
-
-// Pre-flight OPTIONS request handler - Apply CORS headers to all routes
-app.options('*', cors());
-
-// Request audit logging middleware (before routes)
-app.use(requestLogger);
 
 // Debug middleware to log incoming requests
 app.use((req, res, next) => {
 	console.log(`${req.method} ${req.url}`);
-	// console.log('Headers:', req.headers);
 	next();
 });
+
+// Request audit logging middleware (before routes)
+app.use(requestLogger);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -62,7 +81,7 @@ app.use('/api/search', authenticateToken, searchRoutes);
 app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 app.use('/api/matches', authenticateToken, matchRoutes);
 app.use('/api/activity', authenticateToken, activityRoutes);
-app.use('/api/admin', authenticateToken, adminRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes handle their own authentication
 
 // Global error handler middleware (after routes)
 app.use(errorHandler);
