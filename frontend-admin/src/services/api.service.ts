@@ -111,7 +111,7 @@ class ApiService {
 		if (response.status === 401) {
 			console.warn('Authentication error - clearing token');
 			localStorage.removeItem(ADMIN_TOKEN_KEY);
-			
+
 			// Get current URL path
 			const currentPath = window.location.pathname;
 			// Only redirect to login if not already on login page

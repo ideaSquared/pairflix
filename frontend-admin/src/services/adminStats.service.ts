@@ -1,9 +1,11 @@
-/**
- * Admin statistics service
- * Provides centralized access to admin statistics with caching
- */
-import { apiService } from './api.service';
+// Admin statistics service for frontend
+import { fetchWithAuth } from './api';
 
+/**
+ * AdminStatsService - A centralized service for admin statistics
+ * This eliminates duplication across components by providing a single source for stats data
+ * and implements client-side caching to reduce redundant API calls
+ */
 export class AdminStatsService {
 	private cache = {
 		dashboardStats: null as any,
@@ -57,13 +59,8 @@ export class AdminStatsService {
 			return this.cache.dashboardStats;
 		}
 
-		try {
-			const response = await apiService.get('/api/admin/dashboard-stats');
-			return this.updateCache('dashboardStats', response.stats);
-		} catch (error) {
-			console.error('Error fetching dashboard stats:', error);
-			throw error;
-		}
+		const response = await fetchWithAuth('/api/admin/dashboard-stats');
+		return this.updateCache('dashboardStats', response.stats);
 	}
 
 	/**
@@ -78,7 +75,7 @@ export class AdminStatsService {
 			return this.cache.systemMetrics;
 		}
 
-		const response = await apiService.get('/api/admin/system-metrics');
+		const response = await fetchWithAuth('/api/admin/system-metrics');
 		return this.updateCache('systemMetrics', response.metrics);
 	}
 
@@ -94,7 +91,7 @@ export class AdminStatsService {
 			return this.cache.systemStats;
 		}
 
-		const response = await apiService.get('/api/admin/system-stats');
+		const response = await fetchWithAuth('/api/admin/system-stats');
 		return this.updateCache('systemStats', response);
 	}
 
@@ -112,12 +109,11 @@ export class AdminStatsService {
 			return this.cache.activityStats;
 		}
 
-		const queryParams: Record<string, string> = {};
-		if (days) queryParams.days = days.toString();
+		const queryParams = new URLSearchParams();
+		if (days) queryParams.append('days', days.toString());
 
-		const response = await apiService.get(
-			'/api/admin/user-activity-stats',
-			queryParams
+		const response = await fetchWithAuth(
+			`/api/admin/user-activity-stats?${queryParams.toString()}`
 		);
 		return this.updateCache(cacheKey, response);
 	}

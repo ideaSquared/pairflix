@@ -5,7 +5,6 @@ import { Container, Flex } from '../../../components/common/Layout';
 import { H3 } from '../../../components/common/Typography';
 import { Theme } from '../../../styles/theme';
 
-// Styled components for the admin dashboard
 const AdminContainer = styled(Container)`
 	padding: 0;
 	max-width: none;
@@ -52,12 +51,13 @@ const NavItem = styled(Link)<{ active?: boolean }>`
 
 	&:hover {
 		background-color: ${({ theme, active }) =>
-			active ? `${theme.colors.primary}20` : theme.colors.background.secondary};
+			active ? `${theme.colors.primary}30` : theme.colors.background.hover};
 	}
 
 	svg,
 	i {
 		margin-right: ${({ theme }) => theme.spacing.sm};
+		font-size: 1rem;
 	}
 `;
 
@@ -77,7 +77,10 @@ const AdminLayout: React.FC = () => {
 
 	// Helper function to check if a path is active
 	const isActive = (path: string) => {
-		return location.pathname.includes(path);
+		if (path === '/') {
+			return location.pathname === '/';
+		}
+		return location.pathname.startsWith(path);
 	};
 
 	return (
@@ -85,7 +88,7 @@ const AdminLayout: React.FC = () => {
 			<SidebarContainer>
 				<H3>Admin Dashboard</H3>
 				<Flex direction='column' gap='sm'>
-					<NavItem to='/' active={location.pathname === '/'}>
+					<NavItem to='/' active={isActive('/')}>
 						<i className='fas fa-tachometer-alt'></i> Dashboard
 					</NavItem>
 
@@ -93,11 +96,23 @@ const AdminLayout: React.FC = () => {
 					<NavItem to='/users' active={isActive('/users')}>
 						<i className='fas fa-users'></i> Users
 					</NavItem>
+					<NavItem to='/content' active={isActive('/content')}>
+						<i className='fas fa-film'></i> Content
+					</NavItem>
 					<NavItem to='/activity' active={isActive('/activity')}>
-						<i className='fas fa-list-alt'></i> Activity & Logs
+						<i className='fas fa-chart-line'></i> Activity
+					</NavItem>
+					<NavItem to='/logs' active={isActive('/logs')}>
+						<i className='fas fa-clipboard-list'></i> Audit Logs
 					</NavItem>
 
 					<NavSectionTitle>System</NavSectionTitle>
+					<NavItem to='/monitoring' active={isActive('/monitoring')}>
+						<i className='fas fa-heartbeat'></i> Monitoring
+					</NavItem>
+					<NavItem to='/stats' active={isActive('/stats')}>
+						<i className='fas fa-chart-bar'></i> Statistics
+					</NavItem>
 					<NavItem to='/settings' active={isActive('/settings')}>
 						<i className='fas fa-cog'></i> Settings
 					</NavItem>

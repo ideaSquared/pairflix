@@ -1,25 +1,33 @@
-import { AdminLayout } from '../layouts/AdminLayout';
+import AuditLogContent from './components/activity/AuditLogContent';
+import UserActivityContent from './components/activity/UserActivityContent';
+import ActivityManagement from './components/ActivityManagement';
+import AdminLayout from './components/AdminLayout';
+import AdminSettings from './components/AdminSettings';
+import ContentModeration from './components/content/ContentModerationContent';
+import UserManagementContent from './components/content/UserManagementContent';
+import AdminDashboard from './components/dashboard/AdminDashboardContent';
+import ContentManagement from './components/dashboard/ContentManagement';
+import SystemMonitoring from './components/dashboard/SystemMonitoringContent';
+import SystemStatsContent from './components/dashboard/SystemStatsContent';
+import UnifiedDashboard from './components/UnifiedDashboard';
 
-// Activity and logs
-export { ActivityLogPage } from './activity/ActivityLogPage';
-export { ActivityLogsPage } from './activity/ActivityLogsPage';
-export { ActivityManagementPage } from './activity/ActivityManagementPage';
-export { AuditLogsPage } from './activity/AuditLogsPage';
+// Shared components
+import PageHeader from './components/shared/PageHeader';
+import StatsOverview from './components/shared/StatsOverview';
 
-// Dashboard
-export { DashboardPage } from './dashboard/DashboardPage';
-
-// Monitoring
-export { SystemMonitoringPage } from './monitoring/SystemMonitoringPage';
-export { SystemStatsPage } from './monitoring/SystemStatsPage';
-
-// Settings
-export { SettingsPage } from './settings/SettingsPage';
-
-// Users
-export { UsersPage } from './users/UsersPage';
-
-// Content
-export { ContentModerationPage } from './content/ContentModerationPage';
-
-export { AdminLayout };
+export {
+	ActivityManagement,
+	AdminDashboard,
+	AdminLayout,
+	AdminSettings,
+	AuditLogContent,
+	ContentManagement,
+	ContentModeration,
+	PageHeader,
+	StatsOverview,
+	SystemMonitoring,
+	SystemStatsContent,
+	UnifiedDashboard,
+	UserActivityContent,
+	UserManagementContent,
+};

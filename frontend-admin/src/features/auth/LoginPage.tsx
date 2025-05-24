@@ -1,114 +1,91 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAdminAuth } from '../../contexts/AdminAuthContext';
+import styled from 'styled-components';
+import { Button } from '../../components/common/Button';
+import { Card, CardContent } from '../../components/common/Card';
+import { Input, InputGroup } from '../../components/common/Input';
+import { Container } from '../../components/common/Layout';
+import { ErrorText, H2 } from '../../components/common/Typography';
+import { useAuth } from '../../hooks/useAuth';
+import { auth } from '../../services/api';
 
-export const LoginPage = () => {
+const LoginContainer = styled(Container)`
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	background: ${({ theme }) => theme.colors.background.primary};
+`;
+
+const LoginCard = styled(Card)`
+	width: 100%;
+	max-width: 400px;
+`;
+
+const LoginPage: React.FC = () => {
+	const navigate = useNavigate();
+	const { checkAuth } = useAuth();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
-	const [error, setError] = useState<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const { login, isAuthenticated, checkAuth } = useAdminAuth();
-	const navigate = useNavigate();
-
-	// Redirect if already logged in
-	if (isAuthenticated) {
-		navigate('/dashboard');
-		return null;
-	}
+	const [error, setError] = useState('');
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setError(null);
-
-		if (!email || !password) {
-			setError('Please enter both email and password');
-			return;
-		}
-
 		try {
-			setIsSubmitting(true);
-
-			// Login and get token
-			await login(email, password);
-
-			// Verify the token was properly saved
-			const savedToken = localStorage.getItem('admin_token');
-			if (!savedToken) {
-				throw new Error('Failed to save authentication token');
-			}
-
-			// Verify authentication state is updated
-			await checkAuth();
-
-			// Navigate only after successful authentication
-			navigate('/dashboard');
+			const { token } = await auth.login({ email, password });
+			localStorage.setItem('token', token);
+			checkAuth();
+			navigate('/watchlist');
 		} catch (err) {
-			console.error('Login error:', err);
-			setError(
-				err instanceof Error ? err.message : 'Invalid email or password'
-			);
-
-			// Clear any potentially corrupted token
-			localStorage.removeItem('admin_token');
-		} finally {
-			setIsSubmitting(false);
+			// Extract the specific error message from the response if available
+			if (err instanceof Error) {
+				setError(err.message);
+			} else if (typeof err === 'object' && err !== null && 'message' in err) {
+				setError(err.message as string);
+			} else {
+				setError('Invalid email or password');
+			}
 		}
 	};
 
 	return (
-		<div
-			style={{
-				display: 'flex',
-				justifyContent: 'center',
-				alignItems: 'center',
-				height: '100vh',
-				backgroundColor: 'var(--background-light)',
-			}}
-		>
-			<div className='admin-card' style={{ width: '400px', maxWidth: '90%' }}>
-				<h1 style={{ marginBottom: '2rem', textAlign: 'center' }}>
-					PairFlix Admin
-				</h1>
+		<LoginContainer maxWidth='sm'>
+			<LoginCard>
+				<CardContent>
+					<form onSubmit={handleSubmit}>
+						<H2 gutterBottom>Login to PairFlix</H2>
+						{error && <ErrorText gutterBottom>{error}</ErrorText>}
 
-				{error && <div className='alert alert-error'>{error}</div>}
+						<InputGroup fullWidth>
+							<Input
+								type='email'
+								placeholder='Email'
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								required
+								fullWidth
+							/>
+						</InputGroup>
 
-				<form onSubmit={handleSubmit}>
-					<div className='form-group'>
-						<label htmlFor='email'>Email</label>
-						<input
-							type='email'
-							id='email'
-							className='form-control'
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							disabled={isSubmitting}
-							autoComplete='email'
-						/>
-					</div>
+						<InputGroup fullWidth>
+							<Input
+								type='password'
+								placeholder='Password'
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								required
+								fullWidth
+							/>
+						</InputGroup>
 
-					<div className='form-group'>
-						<label htmlFor='password'>Password</label>
-						<input
-							type='password'
-							id='password'
-							className='form-control'
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							disabled={isSubmitting}
-							autoComplete='current-password'
-						/>
-					</div>
-
-					<button
-						type='submit'
-						className='btn btn-primary'
-						style={{ width: '100%' }}
-						disabled={isSubmitting}
-					>
-						{isSubmitting ? 'Logging in...' : 'Log In'}
-					</button>
-				</form>
-			</div>
-		</div>
+						<Button type='submit' variant='primary' fullWidth>
+							Login
+						</Button>
+					</form>
+				</CardContent>
+			</LoginCard>
+		</LoginContainer>
 	);
 };
+
+export default LoginPage;
