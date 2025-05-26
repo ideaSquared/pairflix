@@ -68,6 +68,13 @@ router.put(
 	adminController.moderateWatchlistEntry
 );
 router.get('/matches', adminController.getAllMatches);
+router.get('/content', adminController.getAllContent);
+router.get('/content/:contentId/reports', adminController.getContentReports);
+router.put('/content/:contentId', adminController.updateContent);
+router.put('/content/:contentId/flag', adminController.flagContent);
+router.put('/content/:contentId/approve', adminController.approveContent);
+router.put('/content/:contentId/remove', adminController.removeContent);
+router.put('/reports/:reportId/dismiss', adminController.dismissReport);
 
 // System monitoring routes
 router.get('/system-metrics', adminController.getSystemMetrics);

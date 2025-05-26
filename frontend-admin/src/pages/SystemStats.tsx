@@ -120,13 +120,11 @@ const SystemStats: React.FC = () => {
 		const fetchStats = async () => {
 			try {
 				setIsLoading(true);
-				setError(null);
-
-				const response = await admin.getSystemStats();
-				setStats(response as SystemStats);
-			} catch (err) {
-				console.error('Error fetching system stats:', err);
-				setError('Failed to fetch system statistics. Please try again.');
+				const response = await admin.system.getStats();
+				setStats(response);
+			} catch (error) {
+				console.error('Error fetching system stats:', error);
+				setError('Failed to fetch system statistics');
 			} finally {
 				setIsLoading(false);
 			}

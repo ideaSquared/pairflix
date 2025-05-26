@@ -32,18 +32,16 @@ const LoginPage: React.FC = () => {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
-			const { token } = await auth.login({ email, password });
-			localStorage.setItem('token', token);
-			checkAuth();
-			navigate('/watchlist');
+			const response = await auth.login({ email, password });
+			localStorage.setItem('token', response.token);
+			localStorage.setItem('user', JSON.stringify(response.user));
+			await checkAuth();
+			navigate('/dashboard');
 		} catch (err) {
-			// Extract the specific error message from the response if available
 			if (err instanceof Error) {
 				setError(err.message);
-			} else if (typeof err === 'object' && err !== null && 'message' in err) {
-				setError(err.message as string);
 			} else {
-				setError('Invalid email or password');
+				setError('Login failed. Please check your credentials and try again.');
 			}
 		}
 	};
@@ -53,7 +51,7 @@ const LoginPage: React.FC = () => {
 			<LoginCard>
 				<CardContent>
 					<form onSubmit={handleSubmit}>
-						<H2 gutterBottom>Login to PairFlix</H2>
+						<H2 gutterBottom>Admin Login</H2>
 						{error && <ErrorText gutterBottom>{error}</ErrorText>}
 
 						<InputGroup fullWidth>

@@ -180,28 +180,34 @@ const SystemStatsContent: React.FC = () => {
 													Node Version
 												</TableCell>
 												<TableCell>
-													{statsData.application.nodeVersion}
+													{statsData.application?.nodeVersion || 'N/A'}
 												</TableCell>
 											</tr>
 											<tr>
 												<TableCell style={{ fontWeight: 'bold' }}>
 													App Version
 												</TableCell>
-												<TableCell>{statsData.application.version}</TableCell>
+												<TableCell>
+													{statsData.application?.version || 'N/A'}
+												</TableCell>
 											</tr>
 											<tr>
 												<TableCell style={{ fontWeight: 'bold' }}>
 													Process Uptime
 												</TableCell>
 												<TableCell>
-													{formatDuration(statsData.application.uptime)}
+													{statsData.application?.uptime
+														? formatDuration(statsData.application.uptime)
+														: 'N/A'}
 												</TableCell>
 											</tr>
 											<tr>
 												<TableCell style={{ fontWeight: 'bold' }}>
 													Process ID
 												</TableCell>
-												<TableCell>{statsData.application.pid}</TableCell>
+												<TableCell>
+													{statsData.application?.pid || 'N/A'}
+												</TableCell>
 											</tr>
 										</TableBody>
 									</Table>

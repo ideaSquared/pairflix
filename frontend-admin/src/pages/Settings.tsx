@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { Button } from '../components/common/Button';
 import { Loading } from '../components/common/Loading';
 import { H1 } from '../components/common/Typography';
-import { admin } from '../services/api';
+import { admin, AppSettings as ApiAppSettings } from '../services/api';
 
 const SettingsContainer = styled.div`
 	max-width: 800px;
@@ -116,11 +116,11 @@ const Settings: React.FC = () => {
 				setIsLoading(true);
 				setError(null);
 
-				const response = await admin.getAppSettings();
-				setSettings(response.settings);
-			} catch (err) {
-				console.error('Error fetching settings:', err);
-				setError('Failed to fetch application settings. Please try again.');
+				const response = await admin.settings.get();
+				setSettings(response.settings as AppSettings);
+			} catch (error) {
+				console.error('Error fetching app settings:', error);
+				setError('Failed to fetch app settings');
 			} finally {
 				setIsLoading(false);
 			}
@@ -137,14 +137,17 @@ const Settings: React.FC = () => {
 			setError(null);
 			setSuccessMessage(null);
 
-			await admin.updateAppSettings(settings);
-			setSuccessMessage('Settings saved successfully!');
+			// Convert our local settings to the API's expected format
+			const apiSettings = { ...settings } as unknown as ApiAppSettings;
+
+			await admin.settings.update(apiSettings);
+			setSuccessMessage('Settings updated successfully');
 
 			// Clear success message after 3 seconds
 			setTimeout(() => setSuccessMessage(null), 3000);
-		} catch (err) {
-			console.error('Error saving settings:', err);
-			setError('Failed to save settings. Please try again.');
+		} catch (error) {
+			console.error('Error updating app settings:', error);
+			setError('Failed to update app settings');
 		} finally {
 			setIsSaving(false);
 		}

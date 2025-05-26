@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * Handle API errors in a consistent way
  */
@@ -27,8 +29,7 @@ export const handleApiError = (
 	return new Error(defaultMessage);
 };
 
-export const BASE_URL =
-	(import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Common interfaces used across multiple services
 export interface WatchlistEntry {
@@ -109,7 +110,7 @@ export interface UserPreferences {
 }
 
 export interface PaginatedResponse<T> {
-	logs: T[];
+	data: T[];
 	pagination: {
 		total: number;
 		limit: number;
@@ -119,7 +120,10 @@ export interface PaginatedResponse<T> {
 }
 
 // Common fetch utility function with authentication
-export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+export const fetchWithAuth = async <T>(
+	url: string,
+	options: RequestInit = {}
+): Promise<T> => {
 	const headers = new Headers({
 		'Content-Type': 'application/json',
 		...Object.fromEntries(Object.entries(options.headers || {})),
@@ -148,7 +152,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 						`Request failed with status ${response.status}`
 				);
 			} catch (jsonError) {
-				// If we can't parse the error as JSON, use status text
 				throw new Error(
 					`Request failed with status ${response.status} ${response.statusText}`
 				);

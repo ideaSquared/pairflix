@@ -1,8 +1,9 @@
-// This file is a facade that re-exports everything from the modular api directory
-// We maintain this file for backward compatibility with existing imports
+// This file has been deprecated in favor of using the modular api directory directly
+// Please import from '@/services/api/index' instead
 
-import api from './api/index';
+console.warn(
+	'api.ts is deprecated. Please import from @/services/api/index instead.'
+);
 
-// Re-export everything
 export * from './api/index';
-export default api;
+export { default } from './api/index';

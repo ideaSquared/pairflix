@@ -79,13 +79,13 @@ const UserManagement: React.FC = () => {
 				setIsLoading(true);
 				setError(null);
 
-				const response = await admin.getUsers({
+				const response = await admin.users.getAll({
 					limit: 10,
 					offset: 0,
 				});
 
 				// Process the users data
-				const processedUsers = response.users.map((user: any) => ({
+				const processedUsers = response.data.map((user: any) => ({
 					...user,
 					id: user.user_id || user.id,
 				}));

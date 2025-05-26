@@ -3,8 +3,8 @@ import styled from 'styled-components';
 import { Card } from '../../../../components/common/Card';
 import { Flex } from '../../../../components/common/Layout';
 import { Typography } from '../../../../components/common/Typography';
+import UserManagementContent from '../../../../features/user-management/UserManagementContent';
 import ContentModerationContent from '../content/ContentModerationContent';
-import UserManagementContent from '../content/UserManagementContent';
 import { PageHeader } from '../shared/PageHeader';
 
 // Tab styles

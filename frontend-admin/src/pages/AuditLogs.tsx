@@ -66,10 +66,19 @@ interface AuditLog {
 	created_at: string;
 }
 
+const ITEMS_PER_PAGE = 50;
+
 const AuditLogs: React.FC = () => {
 	const [logs, setLogs] = useState<AuditLog[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [totalPages, setTotalPages] = useState(0);
+	const [page, setPage] = useState(1);
+	const [dateRange, setDateRange] = useState<{
+		startDate?: string;
+		endDate?: string;
+	}>({});
+	const [selectedSource, setSelectedSource] = useState<string | null>(null);
 
 	useEffect(() => {
 		const fetchLogs = async () => {
@@ -77,12 +86,16 @@ const AuditLogs: React.FC = () => {
 				setIsLoading(true);
 				setError(null);
 
-				const response = await admin.getAuditLogs({
-					limit: 50,
-					offset: 0,
+				const response = await admin.audit.getLogs({
+					limit: ITEMS_PER_PAGE,
+					offset: (page - 1) * ITEMS_PER_PAGE,
+					...(dateRange.startDate && { startDate: dateRange.startDate }),
+					...(dateRange.endDate && { endDate: dateRange.endDate }),
+					...(selectedSource && { source: selectedSource }),
 				});
 
-				setLogs(response.logs || []);
+				setLogs(response.data);
+				setTotalPages(Math.ceil(response.pagination.total / ITEMS_PER_PAGE));
 			} catch (err) {
 				console.error('Error fetching audit logs:', err);
 				setError('Failed to fetch audit logs. Please try again.');
@@ -92,7 +105,7 @@ const AuditLogs: React.FC = () => {
 		};
 
 		fetchLogs();
-	}, []);
+	}, [page, dateRange, selectedSource]);
 
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleString();

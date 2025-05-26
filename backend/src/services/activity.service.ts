@@ -38,6 +38,9 @@ export enum ActivityType {
 	FEATURE_USED = 'FEATURE_USED',
 	SYSTEM_CONFIG = 'SYSTEM_CONFIG',
 	SYSTEM_MAINTENANCE = 'SYSTEM_MAINTENANCE',
+
+	// Content moderation activities
+	CONTENT_MODERATION = 'CONTENT_MODERATION',
 }
 
 /**
