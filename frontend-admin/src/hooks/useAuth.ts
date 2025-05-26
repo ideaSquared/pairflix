@@ -1,20 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as authApi from '../services/api';
+import * as api from '../services/api';
 
 interface AuthUser {
 	user_id: string;
 	email: string;
 	username: string;
 	role: string;
-	preferences?: {
-		theme: 'light' | 'dark';
-		viewStyle: 'list' | 'grid';
-		emailNotifications: boolean;
-		autoArchiveDays: number;
-		favoriteGenres: string[];
-	};
 }
 
 export function useAuth() {
@@ -28,7 +21,28 @@ export function useAuth() {
 		error,
 	} = useQuery<AuthUser>({
 		queryKey: ['auth'],
-		queryFn: authApi.auth.getCurrentUser,
+		queryFn: async () => {
+			const token = localStorage.getItem('token');
+			if (!token) {
+				throw new Error('Authentication required');
+			}
+
+			// Validate the token
+			const isValid = await api.auth.validateToken();
+			if (!isValid) {
+				localStorage.removeItem('token');
+				localStorage.removeItem('user');
+				throw new Error('Authentication required');
+			}
+
+			// Return the cached user data
+			const userData = localStorage.getItem('user');
+			if (!userData) {
+				throw new Error('Authentication required');
+			}
+
+			return JSON.parse(userData);
+		},
 		retry: (failureCount, error) => {
 			if (
 				error instanceof Error &&
@@ -46,10 +60,9 @@ export function useAuth() {
 	});
 
 	const logout = async () => {
-		// Call the server-side logout endpoint to record in audit logs
-		await authApi.auth.logout();
-
-		// Update local state
+		// Clear local storage and invalidate queries
+		localStorage.removeItem('token');
+		localStorage.removeItem('user');
 		queryClient.setQueryData(['auth'], null);
 		queryClient.invalidateQueries();
 		navigate('/login');

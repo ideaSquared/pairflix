@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { ActivityLog } from '../models/ActivityLog';
 import AuditLog from '../models/AuditLog';
+import Content from '../models/Content';
+import ContentReport from '../models/ContentReport';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
@@ -59,7 +61,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 		const totalCount = await AuditLog.count({ where });
 
 		return res.status(200).json({
-			logs,
+			data: logs,
 			pagination: {
 				total: totalCount,
 				limit,
@@ -1747,6 +1749,294 @@ export const validateAdminToken = async (req: Request, res: Response) => {
 	}
 };
 
+/**
+ * Get all content items with filtering and pagination
+ */
+export const getAllContent = async (req: Request, res: Response) => {
+	try {
+		const limit = parseInt(req.query.limit as string, 10) || 10;
+		const offset = parseInt(req.query.offset as string, 10) || 0;
+		const search = req.query.search as string;
+		const type = req.query.type as 'movie' | 'show' | 'episode';
+		const status = req.query.status as string;
+		const sortBy = req.query.sortBy as string;
+		const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+
+		// Build query conditions
+		const where: any = {};
+		if (search) {
+			where.title = { [Op.iLike]: `%${search}%` };
+		}
+		if (type) {
+			where.type = type;
+		}
+		if (status) {
+			where.status = status;
+		}
+
+		// Determine sort order
+		const order: any[] = [];
+		if (sortBy) {
+			order.push([sortBy, sortOrder.toUpperCase()]);
+		} else {
+			order.push(['reported_count', 'DESC']);
+		}
+
+		const content = await Content.findAll({
+			where,
+			order,
+			limit,
+			offset,
+			attributes: [
+				'id',
+				'title',
+				'type',
+				'status',
+				'reported_count',
+				'created_at',
+				'updated_at', // Fixed: changed from last_updated to updated_at
+			],
+		});
+
+		// Get total count for pagination
+		const totalCount = await Content.count({ where });
+
+		// Audit log
+		await auditLogService.info('Retrieved all content', 'admin-controller', {
+			adminId: req.user?.user_id,
+			filters: { search, type, status, sortBy, sortOrder },
+			pagination: { limit, offset },
+		});
+
+		return res.status(200).json({
+			content,
+			pagination: {
+				total: totalCount,
+				limit,
+				offset,
+				hasMore: offset + content.length < totalCount,
+			},
+		});
+	} catch (error) {
+		console.error('Error fetching content:', error);
+		await auditLogService.error('Failed to fetch content', 'admin-controller', {
+			userId: req.user?.user_id,
+			error: error instanceof Error ? error.message : 'Unknown error',
+		});
+		return res.status(500).json({ error: 'Failed to fetch content' });
+	}
+};
+
+/**
+ * Get reports for a specific content item
+ */
+export const getContentReports = async (req: Request, res: Response) => {
+	try {
+		const { contentId } = req.params;
+		const reports = await ContentReport.findAll({
+			where: { content_id: contentId },
+			include: [
+				{
+					model: User,
+					attributes: ['username'],
+					as: 'user',
+				},
+			],
+			order: [['created_at', 'DESC']],
+		});
+
+		return res.status(200).json({ reports });
+	} catch (error) {
+		console.error('Error fetching content reports:', error);
+		return res.status(500).json({ error: 'Failed to fetch reports' });
+	}
+};
+
+/**
+ * Update content details
+ */
+export const updateContent = async (req: Request, res: Response) => {
+	try {
+		const { contentId } = req.params;
+		const { title, status } = req.body;
+
+		const content = await Content.findByPk(contentId);
+		if (!content) {
+			return res.status(404).json({ error: 'Content not found' });
+		}
+
+		// Store original values for audit log
+		const originalValues = {
+			title: content.title,
+			status: content.status,
+		};
+
+		// Update content
+		if (title) content.title = title;
+		if (status) content.status = status;
+		await content.save();
+
+		// Audit log
+		await auditLogService.warn('Updated content', 'admin-controller', {
+			adminId: req.user?.user_id,
+			contentId,
+			changes: {
+				title: { from: originalValues.title, to: content.title },
+				status: { from: originalValues.status, to: content.status },
+			},
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Content updated successfully',
+			content,
+		});
+	} catch (error) {
+		console.error('Error updating content:', error);
+		return res.status(500).json({ error: 'Failed to update content' });
+	}
+};
+
+/**
+ * Flag content for review
+ */
+export const flagContent = async (req: Request, res: Response) => {
+	try {
+		const { contentId } = req.params;
+
+		const content = await Content.findByPk(contentId);
+		if (!content) {
+			return res.status(404).json({ error: 'Content not found' });
+		}
+
+		content.status = 'flagged';
+		await content.save();
+
+		// Audit log
+		await auditLogService.warn(
+			'Flagged content for review',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				contentId,
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'Content flagged for review',
+		});
+	} catch (error) {
+		console.error('Error flagging content:', error);
+		return res.status(500).json({ error: 'Failed to flag content' });
+	}
+};
+
+/**
+ * Approve content
+ */
+export const approveContent = async (req: Request, res: Response) => {
+	try {
+		const { contentId } = req.params;
+
+		const content = await Content.findByPk(contentId);
+		if (!content) {
+			return res.status(404).json({ error: 'Content not found' });
+		}
+
+		content.status = 'active';
+		await content.save();
+
+		// Audit log
+		await auditLogService.info('Approved content', 'admin-controller', {
+			adminId: req.user?.user_id,
+			contentId,
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Content approved successfully',
+		});
+	} catch (error) {
+		console.error('Error approving content:', error);
+		return res.status(500).json({ error: 'Failed to approve content' });
+	}
+};
+
+/**
+ * Remove content
+ */
+export const removeContent = async (req: Request, res: Response) => {
+	try {
+		const { contentId } = req.params;
+		const { reason } = req.body;
+
+		const content = await Content.findByPk(contentId);
+		if (!content) {
+			return res.status(404).json({ error: 'Content not found' });
+		}
+
+		content.status = 'removed';
+		content.removal_reason = reason;
+		await content.save();
+
+		// Audit log
+		await auditLogService.warn('Removed content', 'admin-controller', {
+			adminId: req.user?.user_id,
+			contentId,
+			reason,
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Content removed successfully',
+		});
+	} catch (error) {
+		console.error('Error removing content:', error);
+		return res.status(500).json({ error: 'Failed to remove content' });
+	}
+};
+
+/**
+ * Dismiss a content report
+ */
+export const dismissReport = async (req: Request, res: Response) => {
+	try {
+		const { reportId } = req.params;
+
+		const report = await ContentReport.findByPk(reportId);
+		if (!report) {
+			return res.status(404).json({ error: 'Report not found' });
+		}
+
+		// Mark report as dismissed
+		report.status = 'dismissed';
+		await report.save();
+
+		// Update reported_count on the content
+		const content = await Content.findByPk(report.content_id);
+		if (content && content.reported_count > 0) {
+			content.reported_count -= 1;
+			await content.save();
+		}
+
+		// Audit log
+		await auditLogService.info('Dismissed content report', 'admin-controller', {
+			adminId: req.user?.user_id,
+			reportId,
+			contentId: report.content_id,
+		});
+
+		return res.status(200).json({
+			success: true,
+			message: 'Report dismissed successfully',
+		});
+	} catch (error) {
+		console.error('Error dismissing report:', error);
+		return res.status(500).json({ error: 'Failed to dismiss report' });
+	}
+};
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -1781,4 +2071,12 @@ export const adminController = {
 	clearCache: clearCache, // Explicitly assign the function
 	adminLogin,
 	validateAdminToken,
+	// Content management functions
+	getAllContent,
+	getContentReports,
+	updateContent,
+	flagContent,
+	approveContent,
+	removeContent,
+	dismissReport,
 };

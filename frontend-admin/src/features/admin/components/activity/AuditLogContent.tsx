@@ -77,11 +77,11 @@ const AuditLogContent: React.FC = () => {
 				setError(null);
 
 				// Get log sources for filter dropdown
-				const sourcesData = await admin.getLogSources();
+				const sourcesData = await admin.audit.getSources();
 				setSources(sourcesData.sources);
 
 				// Get audit log statistics
-				const statsData = await admin.getAuditLogStats();
+				const statsData = await admin.audit.getStats();
 				setStats(statsData.stats);
 
 				// Get logs with current filters
@@ -132,14 +132,34 @@ const AuditLogContent: React.FC = () => {
 			if (startDate) params.startDate = startDate;
 			if (endDate) params.endDate = endDate;
 
-			if (selectedLevel) {
-				response = await admin.getAuditLogsByLevel(selectedLevel, params);
-			} else {
-				response = await admin.getAuditLogs(params);
-			}
+			try {
+				if (selectedLevel) {
+					response = await admin.audit.getByLevel(selectedLevel, params);
+				} else {
+					response = await admin.audit.getLogs(params);
+				}
 
-			setLogs(response.logs);
-			setTotalCount(response.pagination.total);
+				// Check if response and response.data exist
+				if (response && response.data) {
+					setLogs(response.data);
+					if (response.pagination) {
+						setTotalCount(response.pagination.total);
+					} else {
+						setTotalCount(0);
+					}
+				} else {
+					// Handle case where response.data is undefined
+					console.error('Invalid API response format:', response);
+					setLogs([]);
+					setTotalCount(0);
+					setError('Failed to load logs: Invalid response format from API');
+				}
+			} catch (apiErr) {
+				console.error('API error:', apiErr);
+				setLogs([]);
+				setTotalCount(0);
+				throw apiErr;
+			}
 		} catch (err) {
 			setError(
 				'Failed to load logs: ' +
@@ -172,11 +192,11 @@ const AuditLogContent: React.FC = () => {
 			setError(null);
 			setSuccessMessage(null);
 
-			const result = await admin.runLogRotation();
+			const result = await admin.audit.rotate();
 			setSuccessMessage(result.message);
 
 			// Refresh stats after rotation
-			const statsData = await admin.getAuditLogStats();
+			const statsData = await admin.audit.getStats();
 			setStats(statsData.stats);
 
 			// Reload logs

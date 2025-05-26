@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { ActivityLog } from '../models/ActivityLog';
 import AppSettings from '../models/AppSettings';
 import AuditLog from '../models/AuditLog';
+import Content from '../models/Content';
+import ContentReport from '../models/ContentReport';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
@@ -9,6 +11,13 @@ import { ActivityType } from '../services/activity.service';
 import { auditLogService } from '../services/audit.service';
 import { settingsService } from '../services/settings.service';
 import sequelize from './connection';
+
+// Helper function for creating past dates
+const pastDate = (daysAgo: number): Date => {
+	const date = new Date();
+	date.setDate(date.getDate() - daysAgo);
+	return date;
+};
 
 export async function seedDatabase() {
 	if (process.env.NODE_ENV !== 'development') {
@@ -25,8 +34,10 @@ export async function seedDatabase() {
 		await User.destroy({ where: {} });
 		await AppSettings.destroy({ where: {} });
 		await AuditLog.destroy({ where: {} });
+		await Content.destroy({ where: {} });
+		await ContentReport.destroy({ where: {} });
 
-		// Create test users first so we can associate the settings creation with the admin
+		// Create test users with default preferences
 		const password = await bcrypt.hash('1234', 10);
 		const defaultPreferences = {
 			theme: 'dark' as const,
@@ -557,6 +568,148 @@ export async function seedDatabase() {
 					count: 12,
 				},
 				created_at: pastDate(2),
+			}),
+		]);
+
+		// Sample content items with indices
+		const contentIndex = {
+			matrix: 0,
+			breakingBad: 1,
+			strangerThings: 2,
+			inception: 3,
+			gameOfThrones: 4,
+		} as const;
+
+		const contentItems = [
+			{
+				title: 'The Matrix',
+				type: 'movie' as const,
+				status: 'active' as const,
+				tmdb_id: 603,
+				reported_count: 0,
+			},
+			{
+				title: 'Breaking Bad',
+				type: 'show' as const,
+				status: 'active' as const,
+				tmdb_id: 1396,
+				reported_count: 2,
+			},
+			{
+				title: 'Stranger Things',
+				type: 'show' as const,
+				status: 'pending' as const,
+				tmdb_id: 66732,
+				reported_count: 0,
+			},
+			{
+				title: 'Inception',
+				type: 'movie' as const,
+				status: 'flagged' as const,
+				tmdb_id: 27205,
+				reported_count: 3,
+			},
+			{
+				title: 'Game of Thrones',
+				type: 'show' as const,
+				status: 'removed' as const,
+				tmdb_id: 1399,
+				reported_count: 5,
+				removal_reason: 'Content violates community guidelines',
+			},
+		] as const;
+
+		const createdContent = (await Promise.all(
+			contentItems.map(item => Content.create(item))
+		)) as Content[];
+
+		// Validate that all content was created
+		if (
+			createdContent.length !== contentItems.length ||
+			createdContent.some(c => !c)
+		) {
+			throw new Error('Failed to create all content items');
+		}
+
+		// Create sample content reports
+		const reports = [
+			{
+				content_id: createdContent[contentIndex.breakingBad]!.id,
+				user_id: user1.user_id,
+				reason: 'Inappropriate content',
+				details: 'Contains excessive violence',
+				status: 'pending' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.breakingBad]!.id,
+				user_id: user2.user_id,
+				reason: 'Age rating concern',
+				details: 'Content may not be suitable for the specified age group',
+				status: 'pending' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.inception]!.id,
+				user_id: user1.user_id,
+				reason: 'Misleading description',
+				details: 'Plot summary is inaccurate',
+				status: 'pending' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.inception]!.id,
+				user_id: user3.user_id,
+				reason: 'Wrong categorization',
+				details: 'Should be categorized as sci-fi',
+				status: 'pending' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.inception]!.id,
+				user_id: user2.user_id,
+				reason: 'Technical issue',
+				details: 'Video playback issues',
+				status: 'pending' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.gameOfThrones]!.id,
+				user_id: user1.user_id,
+				reason: 'Inappropriate content',
+				details: 'Extremely graphic content',
+				status: 'resolved' as const,
+			},
+			{
+				content_id: createdContent[contentIndex.gameOfThrones]!.id,
+				user_id: user2.user_id,
+				reason: 'Age restriction',
+				details: 'Content needs higher age rating',
+				status: 'resolved' as const,
+			},
+		] as const;
+
+		await Promise.all(reports.map(report => ContentReport.create(report)));
+
+		// Create activity logs for content moderation
+		await Promise.all([
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.CONTENT_MODERATION,
+				context: 'system',
+				metadata: {
+					action: 'flag_content',
+					content_id: createdContent[contentIndex.inception]!.id,
+					title: createdContent[contentIndex.inception]!.title,
+				},
+				created_at: new Date(),
+			}),
+			ActivityLog.create({
+				user_id: adminUser.user_id,
+				action: ActivityType.CONTENT_MODERATION,
+				context: 'system',
+				metadata: {
+					action: 'remove_content',
+					content_id: createdContent[contentIndex.gameOfThrones]!.id,
+					title: createdContent[contentIndex.gameOfThrones]!.title,
+					reason: 'Content violates community guidelines',
+				},
+				created_at: new Date(),
 			}),
 		]);
 

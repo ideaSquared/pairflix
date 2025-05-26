@@ -15,7 +15,7 @@ const AdminLayout = React.lazy(
 	() => import('../features/admin/components/AdminLayout')
 );
 const UserManagementContent = React.lazy(
-	() => import('../features/admin/components/content/UserManagementContent')
+	() => import('../features/user-management/UserManagementContent')
 );
 const ContentModeration = React.lazy(
 	() => import('../features/admin/components/content/ContentModerationContent')

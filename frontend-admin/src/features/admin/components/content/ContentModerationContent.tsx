@@ -35,7 +35,7 @@ type ContentItem = {
 	reported_count: number;
 	tmdb_id: string;
 	created_at: string;
-	last_updated: string;
+	updated_at: string; // Changed from last_updated to updated_at
 	poster_path?: string;
 };
 
@@ -157,12 +157,12 @@ const ContentModerationContent: React.FC = () => {
 		}
 	}, [errorMessage]);
 
-	const fetchContentItems = async () => {
+	const fetchContentItems = async (retryCount = 0) => {
 		try {
 			setIsLoading(true);
 
 			// Call the admin API
-			const response = await admin.getContent({
+			const response = await admin.content.getAll({
 				limit: 10, // items per page
 				offset: (page - 1) * 10, // calculate offset based on page number
 				...(search ? { search } : {}),
@@ -172,13 +172,52 @@ const ContentModerationContent: React.FC = () => {
 				...(sortOrder ? { sortOrder } : {}),
 			});
 
-			setContentItems(response.content);
-			setTotalPages(Math.ceil(response.pagination.total / 10));
+			if (response && response.content) {
+				setContentItems(response.content);
+				if (response.pagination) {
+					setTotalPages(Math.ceil(response.pagination.total / 10));
+				}
+			} else {
+				throw new Error('Unexpected response format from server');
+			}
 		} catch (error) {
 			console.error('Error fetching content items:', error);
-			setErrorMessage('Failed to fetch content. Please try again.');
+
+			// Retry logic for network issues (up to 2 retries)
+			if (retryCount < 2) {
+				setErrorMessage('Connection issue, retrying...');
+				setTimeout(() => {
+					fetchContentItems(retryCount + 1);
+				}, 1500);
+				return;
+			}
+
+			// More descriptive error messages based on error type
+			if (error instanceof TypeError && error.message.includes('fetch')) {
+				setErrorMessage(
+					'Network error: Unable to connect to the API. Please check your connection.'
+				);
+			} else if (
+				error instanceof Error &&
+				(error as any).response?.status === 401
+			) {
+				setErrorMessage('Authorization error: Please log in again.');
+			} else if (
+				error instanceof Error &&
+				(error as any).response?.status === 403
+			) {
+				setErrorMessage(
+					'Permission denied: You do not have access to content management.'
+				);
+			} else {
+				setErrorMessage(
+					'Failed to fetch content. Please try again or contact support.'
+				);
+			}
 		} finally {
-			setIsLoading(false);
+			if (retryCount === 0 || retryCount >= 2) {
+				setIsLoading(false);
+			}
 		}
 	};
 
@@ -214,10 +253,7 @@ const ContentModerationContent: React.FC = () => {
 		if (!contentToRemove) return;
 
 		try {
-			// Call the admin API to remove the content
-			await admin.removeContent(contentToRemove.id, removalReason);
-
-			// Update content in local state
+			await admin.content.remove(contentToRemove.id, removalReason);
 			setContentItems(
 				contentItems.map((item) =>
 					item.id === contentToRemove.id ? { ...item, status: 'removed' } : item
@@ -234,13 +270,11 @@ const ContentModerationContent: React.FC = () => {
 
 	const saveContentChanges = async (updatedContent: ContentItem) => {
 		try {
-			// Call the admin API to update the content
-			await admin.updateContent(updatedContent.id, {
+			await admin.content.update(updatedContent.id, {
 				title: updatedContent.title,
 				status: updatedContent.status,
 			});
 
-			// Update content in local state
 			setContentItems(
 				contentItems.map((item) =>
 					item.id === updatedContent.id ? updatedContent : item
@@ -262,8 +296,7 @@ const ContentModerationContent: React.FC = () => {
 		setReports([]);
 
 		try {
-			// Fetch reports for this content
-			const response = await admin.getContentReports(content.id);
+			const response = await admin.content.getReports(content.id);
 			setReports(response.reports);
 			setShowReportsModal(true);
 		} catch (error) {
@@ -274,21 +307,16 @@ const ContentModerationContent: React.FC = () => {
 
 	const dismissReport = async (reportId: string) => {
 		try {
-			// Call the admin API to dismiss the report
-			await admin.dismissReport(reportId);
+			await admin.content.dismissReport(reportId);
 
-			// Update reports in local state
 			setReports(reports.filter((report) => report.id !== reportId));
 
-			// Update reported count in the content item
 			if (contentToReview) {
 				const updatedContent = {
 					...contentToReview,
 					reported_count: contentToReview.reported_count - 1,
 				};
 				setContentToReview(updatedContent);
-
-				// Also update in the main content list
 				setContentItems(
 					contentItems.map((item) =>
 						item.id === updatedContent.id ? updatedContent : item
@@ -305,10 +333,8 @@ const ContentModerationContent: React.FC = () => {
 
 	const approveContent = async (content: ContentItem) => {
 		try {
-			// Call the admin API to approve the content
-			await admin.approveContent(content.id);
+			await admin.content.approve(content.id);
 
-			// Update content in local state
 			setContentItems(
 				contentItems.map((item) =>
 					item.id === content.id ? { ...item, status: 'active' } : item
@@ -323,10 +349,8 @@ const ContentModerationContent: React.FC = () => {
 
 	const flagContent = async (content: ContentItem) => {
 		try {
-			// Call the admin API to flag the content
-			await admin.flagContent(content.id);
+			await admin.content.flag(content.id);
 
-			// Update content in local state
 			setContentItems(
 				contentItems.map((item) =>
 					item.id === content.id ? { ...item, status: 'flagged' } : item
@@ -439,7 +463,7 @@ const ContentModerationContent: React.FC = () => {
 						<option value='title'>Title</option>
 						<option value='reported_count'>Report Count</option>
 						<option value='created_at'>Created Date</option>
-						<option value='last_updated'>Last Updated</option>
+						<option value='updated_at'>Last Updated</option>
 					</Select>
 				</FilterItem>
 
@@ -512,7 +536,7 @@ const ContentModerationContent: React.FC = () => {
 													{new Date(content.created_at).toLocaleDateString()}
 												</TableCell>
 												<TableCell>
-													{new Date(content.last_updated).toLocaleDateString()}
+													{new Date(content.updated_at).toLocaleDateString()}
 												</TableCell>
 												<TableCell>
 													<Flex gap='xs'>

@@ -159,7 +159,7 @@ const UserActivityContent: React.FC = () => {
 			if (startDate) params.startDate = startDate;
 			if (endDate) params.endDate = endDate;
 
-			const response = await admin.getUserActivities(params);
+			const response = await admin.activity.getUserActivities(params);
 
 			if (response && Array.isArray(response.activities)) {
 				setActivities(response.activities);

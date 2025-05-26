@@ -5,6 +5,10 @@ import type { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '../styles/ThemeProvider';
 
+// Set up environment variables that would normally be provided by Vite
+process.env.VITE_API_URL = 'http://localhost:3000';
+process.env.NODE_ENV = 'test';
+
 // Mock window.matchMedia which is not available in Jest environment
 window.matchMedia =
 	window.matchMedia ||
@@ -15,6 +19,30 @@ window.matchMedia =
 			removeListener: jest.fn(),
 		};
 	};
+
+// Mock Vite's import.meta.env and export it for other modules
+const viteEnv = {
+	VITE_API_URL: process.env.VITE_API_URL,
+	MODE: 'test',
+	DEV: true,
+	PROD: false,
+	SSR: false,
+	BASE_URL: '/',
+	VITE_USER_NODE_ENV: 'test',
+};
+
+// Define import.meta globally for modules that use it directly
+Object.defineProperty(global, 'import', {
+	value: {
+		meta: {
+			env: viteEnv,
+		},
+	},
+	writable: false,
+});
+
+// Export Vite mock for modules that import it explicitly
+export const viteMock = { env: viteEnv };
 
 // Create a fresh query client for each test
 const createTestQueryClient = () =>
@@ -39,15 +67,17 @@ function customRender(
 ) {
 	const queryClient = createTestQueryClient();
 
-	const AllProviders = ({ children }: { children: React.ReactNode }) => (
-		<BrowserRouter>
+	function Wrapper({ children }: { children: React.ReactNode }) {
+		return (
 			<QueryClientProvider client={queryClient}>
-				<ThemeProvider>{children}</ThemeProvider>
+				<ThemeProvider>
+					<BrowserRouter>{children}</BrowserRouter>
+				</ThemeProvider>
 			</QueryClientProvider>
-		</BrowserRouter>
-	);
+		);
+	}
 
-	return render(ui, { wrapper: AllProviders, ...options });
+	return render(ui, { wrapper: Wrapper, ...options });
 }
 
 // Re-export everything from testing-library

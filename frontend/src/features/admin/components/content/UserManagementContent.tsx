@@ -275,7 +275,7 @@ const UserManagementContent: React.FC = () => {
 
 		try {
 			// Fetch activity for this user
-			const response = await admin.getUserActivities({ userId: user.id });
+			const response = await admin.activity.getUserActivities({ userId: user.id });
 			setUserActivity(response.activities || []);
 			setShowActivityModal(true);
 		} catch (error) {

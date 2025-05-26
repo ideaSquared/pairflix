@@ -1,55 +1,49 @@
-import { fetchWithAuth } from './utils';
+/// <reference types="vite/client" />
+import { BASE_URL, fetchWithAuth } from './utils';
 
-interface LoginCredentials {
+interface LoginResponse {
+	token: string;
+	user: {
+		id: string;
+		email: string;
+		role: string;
+	};
+}
+
+interface AdminLoginParams {
 	email: string;
 	password: string;
 }
 
 export const auth = {
-	login: async (credentials: LoginCredentials) => {
+	async login(params: AdminLoginParams): Promise<LoginResponse> {
+		const response = await fetch(`${BASE_URL}/api/admin/login`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(params),
+		});
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.error || error.message || 'Login failed');
+		}
+
+		return response.json();
+	},
+
+	async validateToken(): Promise<boolean> {
 		try {
-			const response = await fetch(
-				`${(import.meta as any).env.VITE_API_URL || 'http://localhost:3000'}/api/auth/login`,
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify(credentials),
-				}
-			);
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.error || 'Invalid email or password');
-			}
-
-			if (data.token) {
-				localStorage.setItem('token', data.token);
-			}
-
-			return data;
+			await fetchWithAuth(`${BASE_URL}/api/admin/validate-token`);
+			return true;
 		} catch (error) {
-			throw error;
+			return false;
 		}
 	},
 
-	getCurrentUser: async () => {
-		return fetchWithAuth('/api/auth/me');
-	},
-
-	logout: async () => {
-		try {
-			// Call the logout endpoint to record the event in audit logs
-			await fetchWithAuth('/api/auth/logout', {
-				method: 'POST',
-			});
-		} catch (error) {
-			// If there's an error logging out, we still want to clear local storage
-			console.error('Error logging out:', error);
-		}
-		// Remove token from localStorage regardless of server response
+	logout(): void {
 		localStorage.removeItem('token');
+		localStorage.removeItem('user');
 	},
 };

@@ -437,15 +437,6 @@ export const admin = {
 		return fetchWithAuth('/api/admin/system-metrics');
 	},
 
-	getUserActivityStats: async (params: { days?: number } = {}) => {
-		const queryParams = new URLSearchParams();
-		if (params.days) queryParams.append('days', params.days.toString());
-
-		return fetchWithAuth(
-			`/api/admin/user-activity-stats?${queryParams.toString()}`
-		);
-	},
-
 	// Content management methods
 	getContent: async (
 		params: {
@@ -529,41 +520,59 @@ export const admin = {
 		});
 	},
 
-	getUserActivities: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			action?: string;
-			userId?: string;
-			startDate?: string;
-			endDate?: string;
-		} = {}
-	): Promise<{
-		activities: any[];
-		pagination: {
-			total: number;
-			limit: number;
-			offset: number;
-			hasMore: boolean;
-		};
-	}> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.action) queryParams.append('action', params.action);
-		if (params.startDate) queryParams.append('startDate', params.startDate);
-		if (params.endDate) queryParams.append('endDate', params.endDate);
+	// Activity tracking methods
+	activity: {
+		getUserActivities: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				action?: string;
+				userId?: string;
+				startDate?: string;
+				endDate?: string;
+			} = {}
+		): Promise<{
+			activities: any[];
+			pagination: {
+				total: number;
+				limit: number;
+				offset: number;
+				hasMore: boolean;
+			};
+		}> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.action) queryParams.append('action', params.action);
+			if (params.startDate) queryParams.append('startDate', params.startDate);
+			if (params.endDate) queryParams.append('endDate', params.endDate);
 
-		// For the admin dashboard showing ALL activities across the site
-		if (!params.userId || params.userId === 'undefined') {
+			// For the admin dashboard showing ALL activities across the site
+			if (!params.userId || params.userId === 'undefined') {
+				return fetchWithAuth(
+					`/api/admin/all-activities?${queryParams.toString()}`
+				);
+			}
+
+			// When looking at a specific user's activities
 			return fetchWithAuth(
-				`/api/admin/all-activities?${queryParams.toString()}`
+				`/api/activity/user/${params.userId}?${queryParams.toString()}`
+			);
+		},
+
+		getStats: async (params: { days?: number } = {}) => {
+			const queryParams = new URLSearchParams();
+			if (params.days) queryParams.append('days', params.days.toString());
+
+			return fetchWithAuth(
+				`/api/admin/user-activity-stats?${queryParams.toString()}`
 			);
 		}
+	},
 
-		// When looking at a specific user's activities
-		return fetchWithAuth(
-			`/api/activity/user/${params.userId}?${queryParams.toString()}`
-		);
+	// Keeping the old method for backwards compatibility
+	getUserActivities: async (params = {}) => {
+		console.warn('Warning: admin.getUserActivities is deprecated. Please use admin.activity.getUserActivities instead.');
+		return admin.activity.getUserActivities(params);
 	},
 };

@@ -1,11 +1,12 @@
-import { fetchWithAuth, PaginatedResponse } from './utils';
+import { BASE_URL, fetchWithAuth, PaginatedResponse } from './utils';
 
+// Core interfaces
 export interface AuditLog {
 	log_id: string;
 	level: 'info' | 'warn' | 'error' | 'debug';
 	message: string;
 	source: string;
-	context: any;
+	context: Record<string, unknown>;
 	created_at: string;
 }
 
@@ -71,7 +72,7 @@ export interface SystemStats {
 		};
 		process: {
 			uptime: number;
-			memoryUsage: any;
+			memoryUsage: Record<string, number>;
 			nodeVersion: string;
 			pid: number;
 		};
@@ -89,7 +90,7 @@ export interface AdminUser {
 	preferences: {
 		theme: 'light' | 'dark';
 		emailNotifications: boolean;
-		[key: string]: any;
+		[key: string]: unknown;
 	};
 }
 
@@ -138,432 +139,479 @@ export interface AppSettings {
 	};
 }
 
+// Admin API endpoints organized by feature
 export const admin = {
 	// Audit log methods
-	getAuditLogs: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			source?: string;
-			startDate?: string;
-			endDate?: string;
-		} = {}
-	): Promise<PaginatedResponse<AuditLog>> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.source) queryParams.append('source', params.source);
-		if (params.startDate) queryParams.append('startDate', params.startDate);
-		if (params.endDate) queryParams.append('endDate', params.endDate);
+	audit: {
+		getLogs: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				source?: string;
+				startDate?: string;
+				endDate?: string;
+			} = {}
+		): Promise<PaginatedResponse<AuditLog>> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.source) queryParams.append('source', params.source);
+			if (params.startDate) queryParams.append('startDate', params.startDate);
+			if (params.endDate) queryParams.append('endDate', params.endDate);
 
-		return fetchWithAuth(`/api/admin/audit-logs?${queryParams.toString()}`);
+			return fetchWithAuth(`/api/admin/audit-logs?${queryParams.toString()}`);
+		},
+
+		getByLevel: async (
+			level: string,
+			params: {
+				limit?: number;
+				offset?: number;
+				source?: string;
+				startDate?: string;
+				endDate?: string;
+			} = {}
+		): Promise<PaginatedResponse<AuditLog>> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.source) queryParams.append('source', params.source);
+			if (params.startDate) queryParams.append('startDate', params.startDate);
+			if (params.endDate) queryParams.append('endDate', params.endDate);
+
+			return fetchWithAuth(
+				`/api/admin/audit-logs/${level}?${queryParams.toString()}`
+			);
+		},
+
+		getSources: async (): Promise<{ sources: string[] }> => {
+			return fetchWithAuth('/api/admin/audit-logs-sources');
+		},
+
+		getStats: async (): Promise<{ stats: AuditLogStats }> => {
+			return fetchWithAuth('/api/admin/audit-logs-stats');
+		},
+
+		rotate: async (customRetention?: {
+			info?: number;
+			warn?: number;
+			error?: number;
+			debug?: number;
+		}): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth('/api/admin/audit-logs-rotation', {
+				method: 'POST',
+				body: JSON.stringify({
+					retentionDays: customRetention,
+				}),
+			});
+		},
+
+		createTest: async (data: { level: string; message: string }) => {
+			return fetchWithAuth('/api/admin/audit-logs/test', {
+				method: 'POST',
+				body: JSON.stringify(data),
+			});
+		},
 	},
 
-	getAuditLogsByLevel: async (
-		level: string,
-		params: {
-			limit?: number;
-			offset?: number;
-			source?: string;
-			startDate?: string;
-			endDate?: string;
-		} = {}
-	): Promise<PaginatedResponse<AuditLog>> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.source) queryParams.append('source', params.source);
-		if (params.startDate) queryParams.append('startDate', params.startDate);
-		if (params.endDate) queryParams.append('endDate', params.endDate);
-
-		return fetchWithAuth(
-			`/api/admin/audit-logs/${level}?${queryParams.toString()}`
-		);
-	},
-
-	getLogSources: async (): Promise<{ sources: string[] }> => {
-		return fetchWithAuth('/api/admin/audit-logs-sources');
-	},
-
-	getAuditLogStats: async (): Promise<{ stats: AuditLogStats }> => {
-		return fetchWithAuth('/api/admin/audit-logs-stats');
-	},
-
-	runLogRotation: async (customRetention?: {
-		info?: number;
-		warn?: number;
-		error?: number;
-		debug?: number;
-	}): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth('/api/admin/audit-logs-rotation', {
-			method: 'POST',
-			body: JSON.stringify({
-				retentionDays: customRetention,
-			}),
-		});
-	},
-
-	createTestLog: async (data: { level: string; message: string }) => {
-		return fetchWithAuth('/api/admin/audit-logs/test', {
-			method: 'POST',
-			body: JSON.stringify(data),
-		});
-	},
-
-	// Dashboard stats methods
-	getDashboardStats: async (): Promise<{ stats: DashboardStats }> => {
-		return fetchWithAuth('/api/admin/dashboard-stats');
+	// Dashboard methods
+	dashboard: {
+		getStats: async (): Promise<{ stats: DashboardStats }> => {
+			return fetchWithAuth('/api/admin/dashboard-stats');
+		},
 	},
 
 	// User management methods
-	getUsers: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			search?: string;
-			status?: string;
-			role?: string;
-			sortBy?: string;
-			sortOrder?: 'asc' | 'desc';
-		} = {}
-	): Promise<{
-		users: AdminUser[];
-		pagination: {
-			total: number;
-			limit: number;
-			offset: number;
-			hasMore: boolean;
-		};
-	}> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.search) queryParams.append('search', params.search);
-		if (params.status) queryParams.append('status', params.status);
-		if (params.role) queryParams.append('role', params.role);
-		if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-		if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+	users: {
+		getAll: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				search?: string;
+				status?: string;
+				role?: string;
+				sortBy?: string;
+				sortOrder?: 'asc' | 'desc';
+			} = {}
+		): Promise<{
+			users: AdminUser[];
+			pagination: {
+				total: number;
+				limit: number;
+				offset: number;
+				hasMore: boolean;
+			};
+		}> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.search) queryParams.append('search', params.search);
+			if (params.status) queryParams.append('status', params.status);
+			if (params.role) queryParams.append('role', params.role);
+			if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+			if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-		return fetchWithAuth(`/api/admin/users?${queryParams.toString()}`);
-	},
+			return fetchWithAuth(`/api/admin/users?${queryParams.toString()}`);
+		},
 
-	getUser: async (userId: string): Promise<{ user: AdminUser }> => {
-		return fetchWithAuth(`/api/admin/users/${userId}`);
-	},
+		getOne: async (userId: string): Promise<{ user: AdminUser }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`);
+		},
 
-	createUser: async (userData: {
-		username: string;
-		email: string;
-		password: string;
-		role: string;
-		status: string;
-	}): Promise<{ user: AdminUser; message: string }> => {
-		return fetchWithAuth('/api/admin/users', {
-			method: 'POST',
-			body: JSON.stringify(userData),
-		});
-	},
-
-	updateUser: async (
-		userId: string,
-		updates: {
-			username?: string;
-			email?: string;
-			password?: string;
-			role?: string;
-			status?: string;
-		}
-	): Promise<{ user: AdminUser; message: string }> => {
-		return fetchWithAuth(`/api/admin/users/${userId}`, {
-			method: 'PUT',
-			body: JSON.stringify(updates),
-		});
-	},
-
-	deleteUser: async (
-		userId: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/users/${userId}`, {
-			method: 'DELETE',
-		});
-	},
-
-	changeUserStatus: async (
-		userId: string,
-		status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned',
-		reason?: string
-	): Promise<{
-		success: boolean;
-		message: string;
-		user: AdminUser;
-	}> => {
-		return fetchWithAuth(`/api/admin/users/${userId}/status`, {
-			method: 'PUT',
-			body: JSON.stringify({ status, reason }),
-		});
-	},
-
-	resetUserPassword: async (
-		userId: string
-	): Promise<{
-		success: boolean;
-		message: string;
-		newPassword: string;
-		user: {
-			user_id: string;
+		create: async (userData: {
 			username: string;
 			email: string;
-		};
-	}> => {
-		return fetchWithAuth(`/api/admin/users/${userId}/reset-password`, {
-			method: 'POST',
-		});
-	},
+			password: string;
+			role: string;
+			status: string;
+		}): Promise<{ user: AdminUser; message: string }> => {
+			return fetchWithAuth('/api/admin/users', {
+				method: 'POST',
+				body: JSON.stringify(userData),
+			});
+		},
 
-	exportUsersAsCsv: async (
-		params: {
-			role?: string;
-			status?: string;
-		} = {}
-	): Promise<Blob> => {
-		const queryParams = new URLSearchParams();
-		if (params.role) queryParams.append('role', params.role);
-		if (params.status) queryParams.append('status', params.status);
-
-		// Use fetch directly for blob response
-		const token = localStorage.getItem('token');
-		const headers = new Headers({
-			'Content-Type': 'application/json',
-		});
-
-		if (token) {
-			headers.set('Authorization', `Bearer ${token}`);
-		}
-
-		const response = await fetch(
-			`${(import.meta as any).env.VITE_API_URL || 'http://localhost:3000'}/api/admin/users-csv?${queryParams.toString()}`,
-			{ headers }
-		);
-
-		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.error || error.message || 'An error occurred');
-		}
-
-		return response.blob();
-	},
-
-	// System stats methods
-	getSystemStats: async (): Promise<{ [key: string]: any }> => {
-		return fetchWithAuth('/api/admin/system-stats');
-	},
-
-	// App settings methods
-	getAppSettings: async (): Promise<{
-		settings: AppSettings;
-		fromCache?: boolean;
-		lastUpdated?: Date;
-	}> => {
-		return fetchWithAuth('/api/admin/settings');
-	},
-
-	updateAppSettings: async (
-		settings: AppSettings
-	): Promise<{ settings: AppSettings; message: string }> => {
-		return fetchWithAuth('/api/admin/settings', {
-			method: 'PUT',
-			body: JSON.stringify({ settings }),
-		});
-	},
-
-	// Content management methods
-	getAllWatchlistEntries: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			userId?: string;
-			status?: string;
-			mediaType?: string;
-		} = {}
-	) => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.userId) queryParams.append('userId', params.userId);
-		if (params.status) queryParams.append('status', params.status);
-		if (params.mediaType) queryParams.append('mediaType', params.mediaType);
-
-		return fetchWithAuth(
-			`/api/admin/watchlist-entries?${queryParams.toString()}`
-		);
-	},
-
-	moderateWatchlistEntry: async (params: {
-		entryId: string;
-		action: 'flag' | 'remove' | 'approve';
-		reason?: string;
-	}) => {
-		return fetchWithAuth(
-			`/api/admin/watchlist-entries/${params.entryId}/moderate`,
-			{
-				method: 'PUT',
-				body: JSON.stringify({
-					action: params.action,
-					reason: params.reason,
-				}),
+		update: async (
+			userId: string,
+			updates: {
+				username?: string;
+				email?: string;
+				password?: string;
+				role?: string;
+				status?: string;
 			}
-		);
-	},
+		): Promise<{ user: AdminUser; message: string }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`, {
+				method: 'PUT',
+				body: JSON.stringify(updates),
+			});
+		},
 
-	getAllMatches: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			userId?: string;
-			status?: string;
-		} = {}
-	) => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.userId) queryParams.append('userId', params.userId);
-		if (params.status) queryParams.append('status', params.status);
+		delete: async (
+			userId: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`, {
+				method: 'DELETE',
+			});
+		},
 
-		return fetchWithAuth(`/api/admin/matches?${queryParams.toString()}`);
+		changeStatus: async (
+			userId: string,
+			status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned',
+			reason?: string
+		): Promise<{
+			success: boolean;
+			message: string;
+			user: AdminUser;
+		}> => {
+			return fetchWithAuth(`/api/admin/users/${userId}/status`, {
+				method: 'PUT',
+				body: JSON.stringify({ status, reason }),
+			});
+		},
+
+		resetPassword: async (
+			userId: string
+		): Promise<{
+			success: boolean;
+			message: string;
+			newPassword: string;
+			user: {
+				user_id: string;
+				username: string;
+				email: string;
+			};
+		}> => {
+			return fetchWithAuth(`/api/admin/users/${userId}/reset-password`, {
+				method: 'POST',
+			});
+		},
+
+		exportCsv: async (
+			params: {
+				role?: string;
+				status?: string;
+			} = {}
+		): Promise<Blob> => {
+			const queryParams = new URLSearchParams();
+			if (params.role) queryParams.append('role', params.role);
+			if (params.status) queryParams.append('status', params.status);
+
+			const response = await fetch(
+				`${BASE_URL}/api/admin/users-csv?${queryParams.toString()}`,
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem('token')}`,
+					},
+				}
+			);
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || error.message || 'An error occurred');
+			}
+
+			return response.blob();
+		},
 	},
 
 	// System monitoring methods
-	getSystemMetrics: async () => {
-		return fetchWithAuth('/api/admin/system-metrics');
+	system: {
+		getStats: async (): Promise<SystemStats> => {
+			return fetchWithAuth('/api/admin/system-stats');
+		},
+
+		getMetrics: async () => {
+			return fetchWithAuth('/api/admin/system-metrics');
+		},
 	},
 
-	getUserActivityStats: async (params: { days?: number } = {}) => {
-		const queryParams = new URLSearchParams();
-		if (params.days) queryParams.append('days', params.days.toString());
+	// Settings management
+	settings: {
+		get: async (): Promise<{
+			settings: AppSettings;
+			fromCache?: boolean;
+			lastUpdated?: Date;
+		}> => {
+			return fetchWithAuth('/api/admin/settings');
+		},
 
-		return fetchWithAuth(
-			`/api/admin/user-activity-stats?${queryParams.toString()}`
-		);
+		update: async (
+			settings: AppSettings
+		): Promise<{ settings: AppSettings; message: string }> => {
+			return fetchWithAuth('/api/admin/settings', {
+				method: 'PUT',
+				body: JSON.stringify({ settings }),
+			});
+		},
 	},
 
 	// Content management methods
-	getContent: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			search?: string;
-			type?: string;
-			status?: string;
-			sortBy?: string;
-			sortOrder?: 'asc' | 'desc';
-		} = {}
-	): Promise<{
-		content: any[];
-		pagination: {
-			total: number;
-			limit: number;
-			offset: number;
-			hasMore: boolean;
-		};
-	}> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.search) queryParams.append('search', params.search);
-		if (params.type) queryParams.append('type', params.type);
-		if (params.status) queryParams.append('status', params.status);
-		if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-		if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+	content: {
+		getAll: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				search?: string;
+				type?: string;
+				status?: string;
+				sortBy?: string;
+				sortOrder?: 'asc' | 'desc';
+			} = {}
+		): Promise<{
+			content: any[];
+			pagination: {
+				total: number;
+				limit: number;
+				offset: number;
+				hasMore: boolean;
+			};
+		}> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.search) queryParams.append('search', params.search);
+			if (params.type) queryParams.append('type', params.type);
+			if (params.status) queryParams.append('status', params.status);
+			if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+			if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-		return fetchWithAuth(`/api/admin/content?${queryParams.toString()}`);
+			return fetchWithAuth(`/api/admin/content?${queryParams.toString()}`);
+		},
+
+		remove: async (
+			contentId: string,
+			reason: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/content/${contentId}/remove`, {
+				method: 'PUT',
+				body: JSON.stringify({ reason }),
+			});
+		},
+
+		update: async (
+			contentId: string,
+			updates: {
+				title?: string;
+				status?: string;
+			}
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/content/${contentId}`, {
+				method: 'PUT',
+				body: JSON.stringify(updates),
+			});
+		},
+
+		getReports: async (contentId: string): Promise<{ reports: any[] }> => {
+			return fetchWithAuth(`/api/admin/content/${contentId}/reports`);
+		},
+
+		dismissReport: async (
+			reportId: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/reports/${reportId}/dismiss`, {
+				method: 'PUT',
+			});
+		},
+
+		approve: async (
+			contentId: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/content/${contentId}/approve`, {
+				method: 'PUT',
+			});
+		},
+
+		flag: async (
+			contentId: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/content/${contentId}/flag`, {
+				method: 'PUT',
+			});
+		},
 	},
 
-	removeContent: async (
-		contentId: string,
-		reason: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/content/${contentId}/remove`, {
-			method: 'PUT',
-			body: JSON.stringify({ reason }),
-		});
-	},
+	// Activity tracking
+	activity: {
+		getUserActivities: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				action?: string;
+				userId?: string;
+				startDate?: string;
+				endDate?: string;
+			} = {}
+		): Promise<{
+			activities: any[];
+			pagination: {
+				total: number;
+				limit: number;
+				offset: number;
+				hasMore: boolean;
+			};
+		}> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.action) queryParams.append('action', params.action);
+			if (params.startDate) queryParams.append('startDate', params.startDate);
+			if (params.endDate) queryParams.append('endDate', params.endDate);
 
-	updateContent: async (
-		contentId: string,
-		updates: {
-			title?: string;
-			status?: string;
-		}
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/content/${contentId}`, {
-			method: 'PUT',
-			body: JSON.stringify(updates),
-		});
-	},
+			const endpoint =
+				!params.userId || params.userId === 'undefined'
+					? '/api/admin/all-activities'
+					: `/api/activity/user/${params.userId}`;
 
-	getContentReports: async (contentId: string): Promise<{ reports: any[] }> => {
-		return fetchWithAuth(`/api/admin/content/${contentId}/reports`);
-	},
+			return fetchWithAuth(`${endpoint}?${queryParams.toString()}`);
+		},
 
-	dismissReport: async (
-		reportId: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/reports/${reportId}/dismiss`, {
-			method: 'PUT',
-		});
-	},
+		getStats: async (params: { days?: number } = {}) => {
+			const queryParams = new URLSearchParams();
+			if (params.days) queryParams.append('days', params.days.toString());
 
-	approveContent: async (
-		contentId: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/content/${contentId}/approve`, {
-			method: 'PUT',
-		});
-	},
-
-	flagContent: async (
-		contentId: string
-	): Promise<{ success: boolean; message: string }> => {
-		return fetchWithAuth(`/api/admin/content/${contentId}/flag`, {
-			method: 'PUT',
-		});
-	},
-
-	getUserActivities: async (
-		params: {
-			limit?: number;
-			offset?: number;
-			action?: string;
-			userId?: string;
-			startDate?: string;
-			endDate?: string;
-		} = {}
-	): Promise<{
-		activities: any[];
-		pagination: {
-			total: number;
-			limit: number;
-			offset: number;
-			hasMore: boolean;
-		};
-	}> => {
-		const queryParams = new URLSearchParams();
-		if (params.limit) queryParams.append('limit', params.limit.toString());
-		if (params.offset) queryParams.append('offset', params.offset.toString());
-		if (params.action) queryParams.append('action', params.action);
-		if (params.startDate) queryParams.append('startDate', params.startDate);
-		if (params.endDate) queryParams.append('endDate', params.endDate);
-
-		// For the admin dashboard showing ALL activities across the site
-		if (!params.userId || params.userId === 'undefined') {
 			return fetchWithAuth(
-				`/api/admin/all-activities?${queryParams.toString()}`
+				`/api/admin/user-activity-stats?${queryParams.toString()}`
 			);
-		}
+		},
+	},
 
-		// When looking at a specific user's activities
-		return fetchWithAuth(
-			`/api/activity/user/${params.userId}?${queryParams.toString()}`
-		);
+	// Deprecated: User management methods (to be removed in future versions)
+	deprecated_users: {
+		getAll: async (
+			params: {
+				limit?: number;
+				offset?: number;
+				search?: string;
+				status?: string;
+				role?: string;
+				sortBy?: string;
+				sortOrder?: 'asc' | 'desc';
+			} = {}
+		): Promise<PaginatedResponse<AdminUser>> => {
+			const queryParams = new URLSearchParams();
+			if (params.limit) queryParams.append('limit', params.limit.toString());
+			if (params.offset) queryParams.append('offset', params.offset.toString());
+			if (params.search) queryParams.append('search', params.search);
+			if (params.status) queryParams.append('status', params.status);
+			if (params.role) queryParams.append('role', params.role);
+			if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+			if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+			return fetchWithAuth(`/api/admin/users?${queryParams.toString()}`);
+		},
+
+		getOne: async (userId: string): Promise<{ user: AdminUser }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`);
+		},
+
+		create: async (userData: {
+			username: string;
+			email: string;
+			password: string;
+			role: string;
+			status: string;
+		}): Promise<{ user: AdminUser; message: string }> => {
+			return fetchWithAuth('/api/admin/users', {
+				method: 'POST',
+				body: JSON.stringify(userData),
+			});
+		},
+
+		update: async (
+			userId: string,
+			updates: {
+				username?: string;
+				email?: string;
+				password?: string;
+				role?: string;
+				status?: string;
+			}
+		): Promise<{ user: AdminUser; message: string }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`, {
+				method: 'PUT',
+				body: JSON.stringify(updates),
+			});
+		},
+
+		delete: async (
+			userId: string
+		): Promise<{ success: boolean; message: string }> => {
+			return fetchWithAuth(`/api/admin/users/${userId}`, {
+				method: 'DELETE',
+			});
+		},
+
+		changeStatus: async (
+			userId: string,
+			status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned',
+			reason?: string
+		): Promise<{
+			success: boolean;
+			message: string;
+			user: AdminUser;
+		}> => {
+			return fetchWithAuth(`/api/admin/users/${userId}/status`, {
+				method: 'PUT',
+				body: JSON.stringify({ status, reason }),
+			});
+		},
+
+		resetPassword: async (
+			userId: string
+		): Promise<{
+			success: boolean;
+			message: string;
+			newPassword: string;
+			user: {
+				user_id: string;
+				username: string;
+				email: string;
+			};
+		}> => {
+			return fetchWithAuth(`/api/admin/users/${userId}/reset-password`, {
+				method: 'POST',
+			});
+		},
 	},
 };

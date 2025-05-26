@@ -1,20 +1,20 @@
+// Core admin API functionalities
 import { admin } from './admin';
 import { auth } from './auth';
 import { fetchWithAuth } from './utils';
 
-// Re-export the AppSettings type from admin
-export type { AppSettings } from './admin';
+// Export type definitions
+export type * from './admin';
+export type * from './auth';
+export type * from './utils';
 
-// Export individual services
+// Export core functionalities
 export { admin, auth, fetchWithAuth };
 
-// Export types from utils
-export * from './utils';
-
-// Create and export a default api object that combines all services
+// Default export of the complete API surface
 const api = {
-	auth,
 	admin,
-};
+	auth,
+} as const;
 
 export default api;
