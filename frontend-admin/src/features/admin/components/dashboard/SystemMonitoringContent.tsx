@@ -169,9 +169,12 @@ const SystemMonitoringContent: React.FC = () => {
 			// Transform the data to the format expected by the UI if needed
 			const formattedData = {
 				cpu: {
+					// Use more reliable container-friendly CPU metrics with fallbacks
 					usage:
-						(data.system?.cpu?.loadAvg?.[0] * 100) / data.system?.cpu?.cores ||
-						0,
+						data.system?.cpu?.usagePercent ||
+						// Fallback calculation, but ensure core count is at least 1
+						((data.system?.cpu?.loadAvg?.[0] || 0) * 100) /
+							Math.max(1, data.system?.cpu?.cores || 1),
 					loadAvg: data.system?.cpu?.loadAvg || [0, 0, 0],
 					cores: data.system?.cpu?.cores || 1,
 					model: data.system?.cpu?.model || 'Unknown',
@@ -200,7 +203,12 @@ const SystemMonitoringContent: React.FC = () => {
 					transmitted: data.system?.process?.memoryUsage?.external || 0,
 				},
 				process: {
-					uptime: Math.floor((data.system?.process?.uptime || 0) / 3600), // Convert seconds to hours
+					// Track uptime in a more container-friendly way
+					// Keep the hour conversion but add minimum time for better display
+					uptime: Math.max(
+						0.1,
+						Math.floor((data.system?.process?.uptime || 0) / 3600)
+					),
 					nodeVersion: data.system?.process?.nodeVersion || 'Unknown',
 					pid: data.system?.process?.pid || 0,
 				},
