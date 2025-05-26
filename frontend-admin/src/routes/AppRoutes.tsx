@@ -20,9 +20,7 @@ const UserManagementContent = React.lazy(
 const ContentModeration = React.lazy(
 	() => import('../features/admin/components/content/ContentModerationContent')
 );
-const SystemMonitoring = React.lazy(
-	() => import('../features/admin/components/dashboard/SystemMonitoringContent')
-);
+const SystemMonitoring = React.lazy(() => import('../pages/SystemMonitoring'));
 const ActivityManagement = React.lazy(
 	() => import('../features/admin/components/ActivityManagement')
 );
