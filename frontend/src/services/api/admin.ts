@@ -567,12 +567,14 @@ export const admin = {
 			return fetchWithAuth(
 				`/api/admin/user-activity-stats?${queryParams.toString()}`
 			);
-		}
+		},
 	},
 
 	// Keeping the old method for backwards compatibility
 	getUserActivities: async (params = {}) => {
-		console.warn('Warning: admin.getUserActivities is deprecated. Please use admin.activity.getUserActivities instead.');
+		console.warn(
+			'Warning: admin.getUserActivities is deprecated. Please use admin.activity.getUserActivities instead.'
+		);
 		return admin.activity.getUserActivities(params);
 	},
 };
