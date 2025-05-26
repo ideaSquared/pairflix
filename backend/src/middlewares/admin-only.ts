@@ -1,12 +1,13 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { auditLogService } from '../services/audit.service';
+import { AuthenticatedRequest } from '../types';
 
 /**
  * Middleware to restrict access to admin users only
  * Must be called after authentication middleware
  */
 export const adminOnlyMiddleware = (
-	req: Request,
+	req: AuthenticatedRequest,
 	res: Response,
 	next: NextFunction
 ) => {

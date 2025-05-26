@@ -51,7 +51,14 @@ const SystemStatsContent: React.FC = () => {
 			setIsLoading(true);
 			setError(null);
 
-			const data = await adminStatsService.getSystemStats();
+			// Get system stats from the service
+			const data = await adminStatsService.getSystemStats(true);
+
+			// Check if data is available and set it to state
+			if (!data) {
+				throw new Error('Failed to retrieve system statistics data');
+			}
+
 			setStatsData(data);
 		} catch (err) {
 			setError(
@@ -306,8 +313,8 @@ const SystemStatsContent: React.FC = () => {
 													Connections
 												</TableCell>
 												<TableCell>
-													{statsData.database.connections.current} /{' '}
-													{statsData.database.connections.max}
+													{statsData.database?.connections?.current || 'N/A'} /{' '}
+													{statsData.database?.connections?.max || 'N/A'}
 												</TableCell>
 											</tr>
 											<tr>
@@ -315,7 +322,9 @@ const SystemStatsContent: React.FC = () => {
 													Avg. Query Time
 												</TableCell>
 												<TableCell>
-													{statsData.database.performance.avgQueryTime} ms
+													{statsData.database?.performance?.avgQueryTime ||
+														'N/A'}{' '}
+													ms
 												</TableCell>
 											</tr>
 											<tr>
@@ -323,7 +332,7 @@ const SystemStatsContent: React.FC = () => {
 													Slow Queries (24h)
 												</TableCell>
 												<TableCell>
-													{statsData.database.performance.slowQueries}
+													{statsData.database?.performance?.slowQueries || 0}
 												</TableCell>
 											</tr>
 										</TableBody>
@@ -348,28 +357,39 @@ const SystemStatsContent: React.FC = () => {
 											</tr>
 										</TableHead>
 										<TableBody>
-											{statsData.dependencies.map((dep: any) => (
-												<tr key={dep.name}>
-													<TableCell>{dep.name}</TableCell>
-													<TableCell>{dep.currentVersion}</TableCell>
-													<TableCell>{dep.latestVersion}</TableCell>
-													<TableCell>
-														<span
-															style={{
-																color:
-																	dep.status === 'up-to-date'
-																		? 'var(--color-success)'
-																		: dep.status === 'outdated'
-																			? 'var(--color-warning)'
-																			: 'var(--color-error)',
-																fontWeight: 'bold',
-															}}
-														>
-															{dep.status}
-														</span>
+											{statsData.dependencies ? (
+												statsData.dependencies.map((dep: any) => (
+													<tr key={dep.name}>
+														<TableCell>{dep.name}</TableCell>
+														<TableCell>{dep.currentVersion}</TableCell>
+														<TableCell>{dep.latestVersion}</TableCell>
+														<TableCell>
+															<span
+																style={{
+																	color:
+																		dep.status === 'up-to-date'
+																			? 'var(--color-success)'
+																			: dep.status === 'outdated'
+																				? 'var(--color-warning)'
+																				: 'var(--color-error)',
+																	fontWeight: 'bold',
+																}}
+															>
+																{dep.status}
+															</span>
+														</TableCell>
+													</tr>
+												))
+											) : (
+												<tr>
+													<TableCell
+														colSpan={4}
+														style={{ textAlign: 'center' }}
+													>
+														No dependency information available
 													</TableCell>
 												</tr>
-											))}
+											)}
 										</TableBody>
 									</Table>
 								</TableContainer>
@@ -392,7 +412,7 @@ const SystemStatsContent: React.FC = () => {
 											</tr>
 										</TableHead>
 										<TableBody>
-											{statsData.events.length === 0 ? (
+											{!statsData.events || statsData.events.length === 0 ? (
 												<tr>
 													<TableCell
 														colSpan={4}

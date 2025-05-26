@@ -35,23 +35,24 @@ const MainContent = styled.main`
 	background-color: ${({ theme }) => theme.colors.background.primary};
 `;
 
-const NavItem = styled(Link)<{ active?: boolean }>`
+// Change 'active' prop to '$active' to prevent it from being passed to the DOM
+const NavItem = styled(Link)<{ $active?: boolean }>`
 	display: flex;
 	align-items: center;
 	padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
 	margin-bottom: ${({ theme }) => theme.spacing.xs};
 	border-radius: ${({ theme }) => theme.borderRadius.sm};
-	color: ${({ theme, active }) =>
-		active ? theme.colors.primary : theme.colors.text.primary};
-	background-color: ${({ theme, active }) =>
-		active ? `${theme.colors.primary}20` : 'transparent'};
+	color: ${({ theme, $active }) =>
+		$active ? theme.colors.primary : theme.colors.text.primary};
+	background-color: ${({ theme, $active }) =>
+		$active ? `${theme.colors.primary}20` : 'transparent'};
 	text-decoration: none;
-	font-weight: ${({ active }) => (active ? '600' : '400')};
+	font-weight: ${({ $active }) => ($active ? '600' : '400')};
 	transition: all 0.2s ease-in-out;
 
 	&:hover {
-		background-color: ${({ theme, active }) =>
-			active ? `${theme.colors.primary}30` : theme.colors.background.hover};
+		background-color: ${({ theme, $active }) =>
+			$active ? `${theme.colors.primary}30` : theme.colors.background.hover};
 	}
 
 	svg,
@@ -88,32 +89,32 @@ const AdminLayout: React.FC = () => {
 			<SidebarContainer>
 				<H3>Admin Dashboard</H3>
 				<Flex direction='column' gap='sm'>
-					<NavItem to='/' active={isActive('/')}>
+					<NavItem to='/' $active={isActive('/')}>
 						<i className='fas fa-tachometer-alt'></i> Dashboard
 					</NavItem>
 
 					<NavSectionTitle>Management</NavSectionTitle>
-					<NavItem to='/users' active={isActive('/users')}>
+					<NavItem to='/users' $active={isActive('/users')}>
 						<i className='fas fa-users'></i> Users
 					</NavItem>
-					<NavItem to='/content' active={isActive('/content')}>
+					<NavItem to='/content' $active={isActive('/content')}>
 						<i className='fas fa-film'></i> Content
 					</NavItem>
-					<NavItem to='/activity' active={isActive('/activity')}>
+					<NavItem to='/activity' $active={isActive('/activity')}>
 						<i className='fas fa-chart-line'></i> Activity
 					</NavItem>
-					<NavItem to='/logs' active={isActive('/logs')}>
+					<NavItem to='/logs' $active={isActive('/logs')}>
 						<i className='fas fa-clipboard-list'></i> Audit Logs
 					</NavItem>
 
 					<NavSectionTitle>System</NavSectionTitle>
-					<NavItem to='/monitoring' active={isActive('/monitoring')}>
+					<NavItem to='/monitoring' $active={isActive('/monitoring')}>
 						<i className='fas fa-heartbeat'></i> Monitoring
 					</NavItem>
-					<NavItem to='/stats' active={isActive('/stats')}>
+					<NavItem to='/stats' $active={isActive('/stats')}>
 						<i className='fas fa-chart-bar'></i> Statistics
 					</NavItem>
-					<NavItem to='/settings' active={isActive('/settings')}>
+					<NavItem to='/settings' $active={isActive('/settings')}>
 						<i className='fas fa-cog'></i> Settings
 					</NavItem>
 				</Flex>

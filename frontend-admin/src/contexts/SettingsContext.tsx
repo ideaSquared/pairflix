@@ -42,7 +42,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 		try {
 			setIsLoading(true);
 			setError(null);
-			const response = await admin.getAppSettings();
+			const response = await admin.settings.get();
 			setSettings(response.settings);
 
 			// Log cache info for debugging
@@ -68,7 +68,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 		try {
 			setIsLoading(true);
 			setError(null);
-			const response = await admin.updateAppSettings(newSettings);
+			const response = await admin.settings.update(newSettings);
 			setSettings(response.settings);
 		} catch (err) {
 			const errorMessage =
