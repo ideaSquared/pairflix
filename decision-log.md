@@ -2,89 +2,29 @@
 
 ## Architectural Decisions
 
-1. **Decision:** Adopt a monorepo structure with separate frontend and backend
-
-   - **Context:** Need to organize code for a full-stack application with shared types
-   - **Alternatives Considered:**
-     - Polyrepo (separate repositories) - More independence but harder to keep in sync
-     - Single codebase without separation - Simpler but less maintainable
-   - **Rationale:** Monorepo provides the best balance of separation of concerns while maintaining project cohesion
-
-2. **Decision:** Use React with TypeScript for frontend
-
-   - **Context:** Need a robust UI framework with type safety
-   - **Alternatives Considered:**
-     - Vue.js - Good alternative but smaller ecosystem
-     - Angular - More opinionated but steeper learning curve
-   - **Rationale:** React offers the best combination of flexibility, ecosystem support, and performance for this application
-
-3. **Decision:** Implement Node.js/Express backend with TypeScript
-
-   - **Context:** Need a lightweight, flexible backend that shares language with frontend
-   - **Alternatives Considered:**
-     - NestJS - More structured but additional complexity
-     - FastAPI (Python) - Different language ecosystem
-   - **Rationale:** Express with TypeScript offers the right balance of structure and flexibility
-
-4. **Decision:** Use PostgreSQL with Sequelize ORM
-
-   - **Context:** Need a robust relational database with JSON support
-   - **Alternatives Considered:**
-     - MongoDB - Document store, less structured
-     - Prisma ORM - Newer but less mature than Sequelize
-   - **Rationale:** PostgreSQL provides the best combination of relational integrity and flexible data types
-
-5. **Decision:** Implement JWT authentication
-   - **Context:** Need secure, stateless authentication for a small-scale app
-   - **Alternatives Considered:**
-     - Session-based auth - Requires more server resources
-     - OAuth - Overkill for a private two-user application
-   - **Rationale:** JWT offers the right balance of security and simplicity for this use case
+| Date       | Decision                  | Context                                                               | Options Considered                                                                                                                                   | Selected Option                             | Reasoning                                                                                                             | Implementation Notes                                                                                                               | Future Considerations                                                                                                           | References                                           |
+| ---------- | ------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 2025-05-27 | Monorepo Structure        | Need to organize code for a full-stack application with shared types  | 1. Polyrepo - More independence, harder sync<br>2. Single codebase - Simpler but less maintainable<br>3. Monorepo - Balanced approach                | Monorepo with separate frontend and backend | 1. Provides separation of concerns<br>2. Maintains project cohesion<br>3. Enables shared types                        | 1. Created separate backend/ and frontend/ directories<br>2. Shared types in common location                                       | 1. May need to consider build pipeline optimization<br>2. Consider workspace tools if project grows                             | Modern JS architecture patterns                      |
+| 2025-05-27 | React with TypeScript     | Need a robust UI framework with type safety                           | 1. Vue.js - Good but smaller ecosystem<br>2. Angular - More opinionated, steeper learning<br>3. React - Flexible with large ecosystem                | React with TypeScript                       | 1. Best flexibility and ecosystem<br>2. Strong TypeScript integration<br>3. Performance suitable for this application | 1. Set up React with strict TypeScript config<br>2. Implemented component-based architecture                                       | 1. Monitor bundle size as app grows<br>2. Consider code splitting for larger features                                           | React documentation<br>TypeScript best practices     |
+| 2025-05-27 | Node.js/Express Backend   | Need lightweight, flexible backend that shares language with frontend | 1. NestJS - More structured but complex<br>2. FastAPI (Python) - Different ecosystem<br>3. Express - Lightweight and flexible                        | Node.js/Express with TypeScript             | 1. Shared language with frontend<br>2. Right balance of structure and flexibility<br>3. Large ecosystem of middleware | 1. Created MVC structure<br>2. Added TypeScript interfaces<br>3. Set up middleware pipeline                                        | 1. May need to improve structure as app grows<br>2. Consider performance optimizations                                          | Express best practices<br>Node.js design patterns    |
+| 2025-05-27 | PostgreSQL with Sequelize | Need robust relational database with JSON support                     | 1. MongoDB - Document store, less structured<br>2. Prisma ORM - Newer but less mature<br>3. PostgreSQL/Sequelize - Mature and reliable               | PostgreSQL with Sequelize ORM               | 1. Best relational integrity<br>2. Flexible data types (JSONB)<br>3. Mature ORM with TypeScript support               | 1. Created models with TypeScript definitions<br>2. Set up migrations and seeders<br>3. Implemented transaction support            | 1. Monitor query performance<br>2. Consider connection pooling optimization<br>3. May need database sharding for scale          | PostgreSQL documentation<br>Sequelize best practices |
+| 2025-05-27 | JWT Authentication        | Need secure, stateless authentication for small-scale app             | 1. Session-based auth - More server resources<br>2. OAuth - Overkill for two-user app<br>3. JWT - Stateless and lightweight                          | JWT authentication                          | 1. Stateless approach fits app scale<br>2. Simpler implementation<br>3. Good security with proper implementation      | 1. Implemented in auth.controller.ts<br>2. Added JWT middleware<br>3. Created token refresh mechanism                              | 1. Consider token rotation for long-term security<br>2. May need to implement rate limiting<br>3. Monitor for token size issues | OWASP security guidelines<br>JWT best practices      |
+| 2025-05-27 | Database Index Strategy   | Users experience slow response times when filtering large watchlists  | 1. Composite indexes - Fast reads, high write overhead<br>2. Single-column indexes - Balanced approach<br>3. No indexes - No overhead but poor reads | Single-column indexes on common fields      | 1. Read-heavy pattern<br>2. Acceptable write overhead<br>3. PostgreSQL planner works well with multiple indexes       | 1. Added indexes on user_id, tmdb_id, media_type, status<br>2. Modified WatchlistEntry.ts model<br>3. Updated watchlist.service.ts | 1. Monitor query performance<br>2. Consider composite indexes if needed<br>3. Add caching if issues persist                     | PostgreSQL indexing documentation<br>Issue #42       |
 
 ## Trade-offs
 
-- **API Integration:** Prioritized TMDb API over alternatives due to rich metadata and simpler integration, accepting the rate limit constraints
-- **User Management:** Chose manual user setup over registration flow, trading flexibility for simplicity in a two-user application
-- **Data Architecture:** Selected a normalized database schema over NoSQL approach, prioritizing data integrity over schema flexibility
-- **Feature Scope:** Focused on core matching functionality first, deferring advanced features like activity feed to later phases
-
-## Changes Implemented
-
-The implementation follows the structure outlined in the project files:
-
-### Backend
-
-- Created controllers for auth, match, search, user, and watchlist functionality
-- Implemented service layer with business logic separation
-- Set up database models and connections
-- Added middleware for authentication and error handling
-- Developed comprehensive test suite
-
-### Frontend
-
-- Built component library with common UI elements
-- Implemented feature-based architecture (auth, watchlist, match)
-- Created responsive layouts and typography system
-- Developed API service layer for backend communication
-- Implemented authentication flow with token management
+| Date       | Decision          | Context                             | Options Considered                                                           | Selected Option                   | Reasoning                                                                                               | Implementation Notes                                                                            | Future Considerations                                                                               | References                  |
+| ---------- | ----------------- | ----------------------------------- | ---------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------- |
+| 2025-05-27 | API Integration   | Need external movie/TV data source  | 1. TMDb API<br>2. OMDB API<br>3. Custom database                             | TMDb API                          | 1. Rich metadata<br>2. Simple integration<br>3. Active maintenance                                      | 1. Created tmdb.service.ts<br>2. Implemented caching layer                                      | 1. Monitor rate limits<br>2. Consider fallback sources                                              | TMDb API documentation      |
+| 2025-05-27 | User Management   | User account approach for small app | 1. Full registration flow<br>2. OAuth providers<br>3. Manual setup           | Manual user setup                 | 1. Simpler for two-user app<br>2. Less security overhead<br>3. Faster implementation                    | 1. Added admin-only user creation<br>2. Simplified onboarding                                   | 1. May need to expand if user base grows<br>2. Consider adding self-registration later              | User management patterns    |
+| 2025-05-27 | Data Architecture | Database schema design approach     | 1. NoSQL document approach<br>2. Normalized relational<br>3. Hybrid approach | Normalized database schema        | 1. Data integrity is priority<br>2. Relationships are well-defined<br>3. Query patterns are predictable | 1. Created related models<br>2. Defined foreign key constraints<br>3. Set up model associations | 1. May need denormalization for performance<br>2. Consider view materialization for complex queries | Database design patterns    |
+| 2025-05-27 | Feature Scope     | Initial feature priorities          | 1. All features at once<br>2. Core matching only<br>3. Phased approach       | Core matching functionality first | 1. Delivers core value faster<br>2. Allows feedback on core experience<br>3. Reduces initial complexity | 1. Implemented matching algorithm<br>2. Built watchlist management<br>3. Created basic UI       | 1. Plan for activity feed in phase 2<br>2. Consider recommendation engine later                     | Agile development practices |
 
 ## Uncertainty Notes
 
-- **TMDb API Reliability:** Confidence level: Medium
-
-  - External API dependency may change or have downtime
-  - Mitigation: Implement caching and fallback mechanisms
-
-- **Performance with Large Watchlists:** Confidence level: Medium
-
-  - Match algorithm efficiency may decrease with very large watchlists
-  - Mitigation: Implement pagination and optimize database queries
-
-- **User Experience Design:** Confidence level: High
-
-  - Simple two-user model reduces complexity
-  - Validation through user testing will confirm assumptions
-
-- **Security Model:** Confidence level: High
-  - JWT implementation follows best practices
-  - Limited user base reduces attack surface
+| Date       | Uncertainty Area                  | Confidence Level | Description                                                        | Mitigation Strategy                                                                      |
+| ---------- | --------------------------------- | ---------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| 2025-05-27 | TMDb API Reliability              | Medium           | External API dependency may change or have downtime                | 1. Implement caching<br>2. Create fallback mechanisms<br>3. Monitor API status           |
+| 2025-05-27 | Performance with Large Watchlists | Medium           | Match algorithm efficiency may decrease with very large watchlists | 1. Implement pagination<br>2. Optimize database queries<br>3. Add results caching        |
+| 2025-05-27 | User Experience Design            | High             | Simple two-user model reduces complexity                           | 1. Conduct user testing<br>2. Gather feedback regularly<br>3. Iterate on UX issues       |
+| 2025-05-27 | Security Model                    | High             | JWT implementation follows best practices                          | 1. Regular security audits<br>2. Keep dependencies updated<br>3. Follow OWASP guidelines |
