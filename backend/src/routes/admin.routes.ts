@@ -18,14 +18,14 @@ router.post('/login', adminLogin);
 // Protected admin routes (require authentication)
 router.get(
 	'/validate-token',
-	authenticateToken,
-	adminOnlyMiddleware,
+	authenticateToken as express.RequestHandler,
+	adminOnlyMiddleware as express.RequestHandler,
 	validateAdminToken
 );
 
 // Apply auth middleware to all other admin routes
-router.use(authenticateToken);
-router.use(adminOnlyMiddleware);
+router.use(authenticateToken as express.RequestHandler);
+router.use(adminOnlyMiddleware as express.RequestHandler);
 
 // Settings routes
 router.get('/settings', getAppSettings);
