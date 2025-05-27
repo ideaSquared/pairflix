@@ -7,7 +7,7 @@ PairFlix follows a modern full-stack architecture with clear separation of conce
 ```
 ┌─────────────────┐       ┌────────────────┐      ┌────────────────┐
 │                 │       │                │      │                │
-│  React Frontend ├───────►  Express API   ├──────►  PostgreSQL    │
+│  Client & Admin ├───────►  Express API   ├──────►  PostgreSQL    │
 │  (TypeScript)   │◄───────┤  (TypeScript) │◄──────┤  Database     │
 │                 │       │                │      │                │
 └────────┬────────┘       └────────┬───────┘      └────────────────┘
@@ -20,9 +20,9 @@ PairFlix follows a modern full-stack architecture with clear separation of conce
 └─────────────────┘       └────────────────┘
 ```
 
-## Frontend Architecture
+## Client Architecture
 
-The React frontend follows a feature-based architecture that organizes code by domain rather than by technical concerns:
+The React-based client applications follow a feature-based architecture that organizes code by domain rather than by technical concerns:
 
 ### Key Components
 

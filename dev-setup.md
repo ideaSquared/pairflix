@@ -20,7 +20,7 @@ This guide will help you set up the PairFlix project for local development.
 
 2. Environment Variables:
 
-   Create `.env` files for both frontend and backend:
+   Create `.env` files for both client apps and the backend:
 
    **Backend (.env in backend/ directory):**
 
@@ -39,7 +39,14 @@ This guide will help you set up the PairFlix project for local development.
    TMDB_API_KEY=your_tmdb_api_key
    ```
 
-   **Frontend (.env in frontend/ directory):**
+   **Client App (.env in app.client/ directory):**
+
+   ```
+   VITE_API_URL=http://localhost:8000/api/v1
+   VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
+   ```
+
+   **Admin App (.env in app.admin/ directory):**
 
    ```
    VITE_API_URL=http://localhost:8000/api/v1
@@ -55,8 +62,9 @@ This guide will help you set up the PairFlix project for local development.
    This will start:
 
    - PostgreSQL database on port 5432
-   - Backend API server on port 8000
-   - Frontend development server on port 3000
+   - Backend API server on port 3000
+   - Client app on port 5173
+   - Admin app on port 5174
 
 4. Database Initialization:
 
@@ -81,10 +89,18 @@ npm install
 npm run dev
 ```
 
-**Frontend:**
+**Client App:**
 
 ```bash
-cd frontend
+cd app.client
+npm install
+npm run dev
+```
+
+**Admin App:**
+
+```bash
+cd app.admin
 npm install
 npm run dev
 ```
@@ -100,10 +116,19 @@ npm test:watch     # Run tests in watch mode
 npm test:coverage  # Run tests with coverage report
 ```
 
-**Frontend Tests:**
+**Client App Tests:**
 
 ```bash
-cd frontend
+cd app.client
+npm test           # Run all tests
+npm test:watch     # Run tests in watch mode
+npm test:coverage  # Run tests with coverage report
+```
+
+**Admin App Tests:**
+
+```bash
+cd app.admin
 npm test           # Run all tests
 npm test:watch     # Run tests in watch mode
 npm test:coverage  # Run tests with coverage report
@@ -120,8 +145,14 @@ npm run lint       # Check for linting issues
 npm run lint:fix   # Fix linting issues
 npm run format     # Format code with Prettier
 
-# Frontend
-cd frontend
+# Client App
+cd app.client
+npm run lint       # Check for linting issues
+npm run lint:fix   # Fix linting issues
+npm run format     # Format code with Prettier
+
+# Admin App
+cd app.admin
 npm run lint       # Check for linting issues
 npm run lint:fix   # Fix linting issues
 npm run format     # Format code with Prettier
@@ -178,7 +209,7 @@ To use it:
 2. **API Connection Issues**
 
    - Check that backend is running: `docker-compose ps`
-   - Verify API URL in frontend `.env`
+   - Verify API URL in client and admin app `.env` files
    - Check CORS settings if modifying API origins
 
 3. **Docker Issues**

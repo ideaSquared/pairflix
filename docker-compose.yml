@@ -14,20 +14,20 @@ services:
       - ./backend:/app
       - /app/node_modules
 
-  frontend:
-    build: ./frontend
+  app.client:
+    build: ./app.client
     ports:
       - '5173:5173'
     environment:
       - VITE_API_URL=http://localhost:3000
     volumes:
-      - ./frontend:/app
+      - ./app.client:/app
       - /app/node_modules
     depends_on:
       - backend
 
-  admin:
-    build: ./frontend-admin
+  app.admin:
+    build: ./app.admin
     ports:
       - '5174:5174'
     environment:
@@ -35,7 +35,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend-admin:/app
+      - ./app.admin:/app
       - /app/node_modules
 
   db:

@@ -7,9 +7,17 @@ services:
       - NODE_ENV=development
     command: npm run dev
 
-  frontend:
+  app.client:
     volumes:
-      - ./frontend:/app
+      - ./app.client:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --host
+
+  app.admin:
+    volumes:
+      - ./app.admin:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
