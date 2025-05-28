@@ -455,6 +455,31 @@ export class SettingsService {
 				process.env.ENABLE_MATCHING.toLowerCase() === 'true';
 		}
 
+		// Additional environment variable overrides
+		if (process.env.SMTP_SERVER && result.email) {
+			result.email.smtpServer = process.env.SMTP_SERVER;
+		}
+
+		if (process.env.SMTP_PORT && result.email) {
+			result.email.smtpPort = parseInt(process.env.SMTP_PORT, 10);
+		}
+
+		if (process.env.SMTP_USERNAME && result.email) {
+			result.email.smtpUsername = process.env.SMTP_USERNAME;
+		}
+
+		if (process.env.SMTP_PASSWORD && result.email) {
+			result.email.smtpPassword = process.env.SMTP_PASSWORD;
+		}
+
+		if (process.env.EMAIL_SENDER && result.email) {
+			result.email.senderEmail = process.env.EMAIL_SENDER;
+		}
+
+		if (process.env.EMAIL_SENDER_NAME && result.email) {
+			result.email.senderName = process.env.EMAIL_SENDER_NAME;
+		}
+
 		return result;
 	}
 

@@ -14,6 +14,11 @@ describe('authenticateUser', () => {
 			email: 'test@example.com',
 			username: 'testuser',
 			password_hash: 'hashedPassword',
+			role: 'user',
+			status: 'active',
+			preferences: { theme: 'dark' },
+			last_login: null,
+			save: jest.fn().mockResolvedValue(true),
 		};
 
 		(User.findOne as jest.Mock).mockResolvedValue(mockUser);
@@ -28,10 +33,14 @@ describe('authenticateUser', () => {
 				user_id: mockUser.user_id,
 				email: mockUser.email,
 				username: mockUser.username,
+				role: mockUser.role,
+				status: mockUser.status,
+				preferences: mockUser.preferences,
 			},
 			expect.any(String),
 			{ expiresIn: '7d' }
 		);
+		expect(mockUser.save).toHaveBeenCalled();
 	});
 
 	it('should throw an error for non-existent user', async () => {
