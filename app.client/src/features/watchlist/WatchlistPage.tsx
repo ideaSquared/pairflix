@@ -267,29 +267,38 @@ const WatchlistPage: React.FC = () => {
 		return Array.from(tags).sort();
 	}, [entries]);
 
-	// Enhanced filtering to include tag filtering
+	// Enhanced filtering to include tag filtering with stable sort order
 	const filteredEntries = useMemo(() => {
-		return entries.filter((entry: unknown): entry is WatchlistEntry => {
-			if (!entry || typeof entry !== 'object') return false;
+		const filtered = entries.filter(
+			(entry: unknown): entry is WatchlistEntry => {
+				if (!entry || typeof entry !== 'object') return false;
 
-			const castEntry = entry as Partial<WatchlistEntry>;
-			if (!castEntry.entry_id || !castEntry.title) {
-				console.warn('Invalid entry found:', entry);
-				return false;
+				const castEntry = entry as Partial<WatchlistEntry>;
+				if (!castEntry.entry_id || !castEntry.title) {
+					console.warn('Invalid entry found:', entry);
+					return false;
+				}
+
+				// First filter by search query
+				const matchesSearch = castEntry.title
+					.toLowerCase()
+					.includes(searchQuery.toLowerCase());
+
+				// Then filter by selected tags
+				const matchesTags =
+					selectedTags.length === 0 ||
+					(castEntry.tags &&
+						selectedTags.some((tag) => castEntry.tags?.includes(tag)));
+
+				return matchesSearch && !!matchesTags;
 			}
+		);
 
-			// First filter by search query
-			const matchesSearch = castEntry.title
-				.toLowerCase()
-				.includes(searchQuery.toLowerCase());
-
-			// Then filter by selected tags
-			const matchesTags =
-				selectedTags.length === 0 ||
-				(castEntry.tags &&
-					selectedTags.some((tag) => castEntry.tags?.includes(tag)));
-
-			return matchesSearch && !!matchesTags;
+		// Apply a stable sort to maintain consistent order regardless of status changes
+		// Sort by entry_id to ensure stable positioning
+		return [...filtered].sort((a, b) => {
+			// First sort by title alphabetically
+			return a.title.localeCompare(b.title);
 		});
 	}, [entries, searchQuery, selectedTags]);
 
