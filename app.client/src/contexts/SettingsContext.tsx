@@ -1,29 +1,59 @@
 import React, {
 	createContext,
 	ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useState,
 } from 'react';
-import { admin, AppSettings } from '../services/api';
+import { admin } from '../services/api';
+
+// Simple app settings interface with user preferences
+interface AppSettings {
+	general: {
+		siteName: string;
+		siteDescription: string;
+	};
+	preferences: {
+		theme: 'light' | 'dark';
+	};
+	features: {
+		enableNotifications: boolean;
+	};
+	security: {
+		sessionTimeout: number; // session timeout in minutes
+	};
+}
 
 interface SettingsContextType {
-	settings: AppSettings | null;
+	settings: AppSettings;
 	isLoading: boolean;
 	error: string | null;
 	refreshSettings: () => Promise<void>;
-	updateSettings: (newSettings: AppSettings) => Promise<void>;
 }
 
-const defaultSettings: SettingsContextType = {
-	settings: null,
-	isLoading: true,
-	error: null,
-	refreshSettings: async () => {},
-	updateSettings: async () => {},
+const defaultSettings: AppSettings = {
+	general: {
+		siteName: 'PairFlix',
+		siteDescription: 'Find your perfect movie match',
+	},
+	preferences: {
+		theme: 'dark',
+	},
+	features: {
+		enableNotifications: true,
+	},
+	security: {
+		sessionTimeout: 30, // default session timeout in minutes
+	},
 };
 
-const SettingsContext = createContext<SettingsContextType>(defaultSettings);
+const SettingsContext = createContext<SettingsContextType>({
+	settings: defaultSettings,
+	isLoading: false,
+	error: null,
+	refreshSettings: async () => {},
+});
 
 export const useSettings = () => useContext(SettingsContext);
 
@@ -34,18 +64,38 @@ interface SettingsProviderProps {
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 	children,
 }) => {
-	const [settings, setSettings] = useState<AppSettings | null>(null);
+	const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	const fetchSettings = async (): Promise<void> => {
+	// Function to fetch settings from the API
+	const fetchSettings = useCallback(async (): Promise<void> => {
 		try {
 			setIsLoading(true);
 			setError(null);
-			const response = await admin.getAppSettings();
-			setSettings(response.settings);
 
-			// Log cache info for debugging
+			const response = await admin.getAppSettings();
+
+			// Map the admin settings to our client settings structure
+			const adminSettings = response.settings;
+
+			setSettings({
+				general: {
+					siteName: adminSettings.general.siteName,
+					siteDescription: adminSettings.general.siteDescription,
+				},
+				preferences: {
+					// Admin settings doesn't have preferences at root level - use general preferences instead
+					theme: adminSettings.general.maintenanceMode ? 'light' : 'dark', // Default to dark theme
+				},
+				features: {
+					enableNotifications: adminSettings.features.enableNotifications,
+				},
+				security: {
+					sessionTimeout: adminSettings.security.sessionTimeout,
+				},
+			});
+
 			if (response.fromCache) {
 				console.log(
 					'Settings loaded from cache. Last updated:',
@@ -53,41 +103,23 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 				);
 			}
 		} catch (err) {
-			const errorMessage =
+			console.error('Error loading settings:', err);
+			setError(
 				err instanceof Error
 					? err.message
-					: 'Failed to load application settings';
-			setError(errorMessage);
-			console.error('Error loading settings:', errorMessage);
+					: 'Failed to load application settings'
+			);
+			// Fall back to default settings on error
+			setSettings(defaultSettings);
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, []);
 
-	const updateSettings = async (newSettings: AppSettings): Promise<void> => {
-		try {
-			setIsLoading(true);
-			setError(null);
-			const response = await admin.updateAppSettings(newSettings);
-			setSettings(response.settings);
-		} catch (err) {
-			const errorMessage =
-				err instanceof Error
-					? err.message
-					: 'Failed to update application settings';
-			setError(errorMessage);
-			console.error('Error updating settings:', errorMessage);
-			throw err;
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
+	// Fetch settings when component mounts
 	useEffect(() => {
 		fetchSettings();
-		// We only want to fetch settings once on initial load
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [fetchSettings]);
 
 	return (
 		<SettingsContext.Provider
@@ -96,7 +128,6 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 				isLoading,
 				error,
 				refreshSettings: fetchSettings,
-				updateSettings,
 			}}
 		>
 			{children}

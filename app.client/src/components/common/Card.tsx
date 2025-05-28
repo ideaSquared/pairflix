@@ -114,6 +114,12 @@ const CardContainer = styled.div.attrs<CardContainerProps>((props) => ({
       outline-offset: 2px;
     }
   `}
+
+	/* Responsive adjustments for mobile */
+  @media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		padding: ${({ theme }) => theme?.spacing?.md || '12px'};
+		margin-bottom: ${({ theme }) => theme?.spacing?.sm || '8px'};
+	}
 `;
 
 const StatsCardContent = styled.div`
@@ -126,6 +132,11 @@ const StatsValue = styled(Typography)`
 		${({ theme }) => theme?.typography?.fontSize?.xl || '24px'} * 1.5
 	);
 	font-weight: ${({ theme }) => theme?.typography?.fontWeight?.bold || '700'};
+
+	/* Responsive font size for mobile */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		font-size: ${({ theme }) => theme?.typography?.fontSize?.xl || '24px'};
+	}
 `;
 
 const StatsCaption = styled(Typography)`
@@ -198,12 +209,24 @@ export const CardTitle = styled.h3`
 	font-size: ${({ theme }) => theme?.typography?.fontSize?.lg || '18px'};
 	font-weight: ${({ theme }) => theme?.typography?.fontWeight?.bold || '700'};
 	color: ${({ theme }) => theme?.colors?.text?.primary || '#000'};
+
+	/* Responsive font size for mobile */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		font-size: ${({ theme }) => theme?.typography?.fontSize?.md || '16px'};
+		margin: 0 0 ${({ theme }) => theme?.spacing?.sm || '8px'};
+	}
 `;
 
 export const CardContent = styled.div<{ noPadding?: boolean }>`
 	padding: ${({ noPadding, theme }) =>
 		noPadding ? '0' : theme?.spacing?.md || '12px'};
 	color: ${({ theme }) => theme?.colors?.text?.primary || '#000'};
+
+	/* Responsive padding for mobile */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		padding: ${({ noPadding, theme }) =>
+			noPadding ? '0' : theme?.spacing?.sm || '8px'};
+	}
 `;
 
 export const CardHeader = styled.div`
@@ -211,6 +234,11 @@ export const CardHeader = styled.div`
 	border-bottom: 1px solid ${({ theme }) => theme?.colors?.border || '#e0e0e0'};
 	color: ${({ theme }) => theme?.colors?.text?.primary || '#000'};
 	font-weight: ${({ theme }) => theme?.typography?.fontWeight?.medium || '500'};
+
+	/* Responsive padding for mobile */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		padding: ${({ theme }) => theme?.spacing?.sm || '8px'};
+	}
 `;
 
 export const CardFooter = styled.div`
@@ -218,6 +246,11 @@ export const CardFooter = styled.div`
 	border-top: 1px solid ${({ theme }) => theme?.colors?.border || '#e0e0e0'};
 	background: ${({ theme }) =>
 		theme?.colors?.background?.secondary || '#f5f5f5'};
+
+	/* Responsive padding for mobile */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
+		padding: ${({ theme }) => theme?.spacing?.sm || '8px'};
+	}
 `;
 
 export const CardMedia = styled.div<{ aspectRatio?: string }>`
@@ -235,7 +268,15 @@ export const CardGrid = styled.div`
 	gap: ${({ theme }) => theme?.spacing?.md || '12px'};
 	padding: ${({ theme }) => theme?.spacing?.md || '12px'} 0;
 
+	/* More refined responsive grid */
+	@media (max-width: ${({ theme }) => theme?.breakpoints?.md || '768px'}) {
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		gap: ${({ theme }) => theme?.spacing?.sm || '8px'};
+	}
+
 	@media (max-width: ${({ theme }) => theme?.breakpoints?.sm || '576px'}) {
 		grid-template-columns: 1fr;
+		gap: ${({ theme }) => theme?.spacing?.sm || '8px'};
+		padding: ${({ theme }) => theme?.spacing?.sm || '8px'} 0;
 	}
 `;

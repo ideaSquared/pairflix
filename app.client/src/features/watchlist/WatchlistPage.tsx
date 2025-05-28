@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardGrid } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
-import { Container, Flex } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
+import TagFilter from '../../components/common/TagFilter';
+import TagInput from '../../components/common/TagInput';
 import { H1, H3, Typography } from '../../components/common/Typography';
-import Layout from '../../components/layout/Layout';
+import Layout, { Container, Flex } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	user as userService,
@@ -68,9 +69,37 @@ const RelativeCard = styled(CardContent)`
 	position: relative;
 `;
 
+// Update the GridContainer for better space utilization across various screen sizes
+const GridContainer = styled(CardGrid)`
+	margin-top: ${({ theme }) => theme.spacing.lg};
+	display: grid;
+	grid-template-columns: repeat(
+		auto-fill,
+		minmax(280px, 1fr)
+	); // Base size adjusted
+	gap: ${({ theme }) => theme.spacing.md};
+
+	/* Better utilization of screen space across different devices */
+	@media (min-width: 1200px) {
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	}
+
+	/* For larger screens, allow even more cards per row */
+	@media (min-width: 1600px) {
+		grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+	}
+
+	/* For extra large screens, maximize content density */
+	@media (min-width: 2000px) {
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	}
+`;
+
+// Enhanced List View item styling
 const ListViewItem = styled(WatchlistCard)`
 	display: flex;
 	margin-bottom: ${({ theme }) => theme.spacing.md};
+	width: 100%;
 
 	${RelativeCard} {
 		flex: 1;
@@ -92,12 +121,19 @@ const ListViewItem = styled(WatchlistCard)`
 	}
 `;
 
-const GridContainer = styled(CardGrid)`
-	margin-top: ${({ theme }) => theme.spacing.lg};
-`;
-
+// Updated list container for better width utilization
 const ListContainer = styled.div`
 	margin-top: ${({ theme }) => theme.spacing.lg};
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const TabsContainer = styled(Flex)`
+	margin-bottom: ${({ theme }) => theme.spacing.md};
+	border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+	padding-bottom: ${({ theme }) => theme.spacing.sm};
 `;
 
 type PreferenceResponse = {
@@ -110,6 +146,27 @@ type PreferenceResponse = {
 	};
 };
 
+const TagsSection = styled.div`
+	margin-top: ${({ theme }) => theme.spacing.md};
+	padding-top: ${({ theme }) => theme.spacing.sm};
+	border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const TagsContainer = styled.div`
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	margin-top: 0.5rem;
+`;
+
+const Tag = styled.span`
+	background: ${({ theme }) => theme.colors.primary};
+	color: white;
+	padding: 0.15rem 0.4rem;
+	border-radius: ${({ theme }) => theme.borderRadius.sm};
+	font-size: ${({ theme }) => theme.fontSizes.sm};
+`;
+
 const WatchlistPage: React.FC = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
@@ -118,6 +175,8 @@ const WatchlistPage: React.FC = () => {
 	const [viewStyle, setViewStyle] = useState(
 		user?.preferences?.viewStyle || 'grid'
 	);
+	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [isEditingTags, setIsEditingTags] = useState<string | null>(null);
 
 	const preferenceMutation = useMutation<
 		PreferenceResponse,
@@ -187,15 +246,57 @@ const WatchlistPage: React.FC = () => {
 		updateMutation.mutate({ id: entryId, updates: { status } });
 	};
 
+	const handleTagsChange = (entryId: string, tags: string[]) => {
+		updateMutation.mutate({ id: entryId, updates: { tags } });
+		setIsEditingTags(null); // Close tag editor after saving
+	};
+
 	const handleViewStyleChange = (newViewStyle: 'grid' | 'list') => {
 		setViewStyle(newViewStyle); // Update local state immediately
 		preferenceMutation.mutate(newViewStyle); // Update server-side preference
 	};
 
+	// Extract all unique tags from entries
+	const allTags = useMemo(() => {
+		const tags = new Set<string>();
+		entries.forEach((entry: any) => {
+			if (entry.tags && Array.isArray(entry.tags)) {
+				entry.tags.forEach((tag: string) => tags.add(tag));
+			}
+		});
+		return Array.from(tags).sort();
+	}, [entries]);
+
+	// Enhanced filtering to include tag filtering
+	const filteredEntries = useMemo(() => {
+		return entries.filter((entry: unknown): entry is WatchlistEntry => {
+			if (!entry || typeof entry !== 'object') return false;
+
+			const castEntry = entry as Partial<WatchlistEntry>;
+			if (!castEntry.entry_id || !castEntry.title) {
+				console.warn('Invalid entry found:', entry);
+				return false;
+			}
+
+			// First filter by search query
+			const matchesSearch = castEntry.title
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase());
+
+			// Then filter by selected tags
+			const matchesTags =
+				selectedTags.length === 0 ||
+				(castEntry.tags &&
+					selectedTags.some((tag) => castEntry.tags?.includes(tag)));
+
+			return matchesSearch && !!matchesTags;
+		});
+	}, [entries, searchQuery, selectedTags]);
+
 	if (isLoading) {
 		return (
-			<Layout>
-				<Container>
+			<Layout fullWidth>
+				<Container fluid centered>
 					<Typography>Loading your watchlist...</Typography>
 				</Container>
 			</Layout>
@@ -204,8 +305,8 @@ const WatchlistPage: React.FC = () => {
 
 	if (error) {
 		return (
-			<Layout>
-				<Container>
+			<Layout fullWidth>
+				<Container fluid centered>
 					<Typography color='error'>
 						Error loading watchlist:{' '}
 						{error instanceof Error ? error.message : 'Unknown error'}
@@ -214,18 +315,6 @@ const WatchlistPage: React.FC = () => {
 			</Layout>
 		);
 	}
-
-	const filteredEntries = entries.filter(
-		(entry: unknown): entry is WatchlistEntry => {
-			if (!entry || typeof entry !== 'object') return false;
-			const castEntry = entry as Partial<WatchlistEntry>;
-			if (!castEntry.entry_id || !castEntry.title) {
-				console.warn('Invalid entry found:', entry);
-				return false;
-			}
-			return castEntry.title.toLowerCase().includes(searchQuery.toLowerCase());
-		}
-	);
 
 	const renderWatchlistItem = (entry: WatchlistEntry) => {
 		const commonContent = (
@@ -269,6 +358,47 @@ const WatchlistPage: React.FC = () => {
 						Notes: {entry.notes}
 					</Typography>
 				)}
+
+				{/* Tags display and management */}
+				<TagsSection>
+					{isEditingTags === entry.entry_id ? (
+						<>
+							<Typography variant='body2' gutterBottom>
+								Manage Tags:
+							</Typography>
+							<TagInput
+								tags={entry.tags || []}
+								onChange={(tags) => handleTagsChange(entry.entry_id, tags)}
+								placeholder='Add tags...'
+							/>
+							<Button
+								onClick={() => setIsEditingTags(null)}
+								style={{ marginTop: '0.5rem' }}
+							>
+								Done
+							</Button>
+						</>
+					) : (
+						<>
+							<Flex justifyContent='space-between' alignItems='center'>
+								<Typography variant='body2'>Tags:</Typography>
+								<Button
+									variant='text'
+									onClick={() => setIsEditingTags(entry.entry_id)}
+								>
+									Edit Tags
+								</Button>
+							</Flex>
+							<TagsContainer>
+								{entry.tags && entry.tags.length > 0 ? (
+									entry.tags.map((tag, idx) => <Tag key={idx}>{tag}</Tag>)
+								) : (
+									<Typography variant='caption'>No tags added</Typography>
+								)}
+							</TagsContainer>
+						</>
+					)}
+				</TagsSection>
 			</>
 		);
 
@@ -285,8 +415,8 @@ const WatchlistPage: React.FC = () => {
 
 	// Fixed mismatched JSX tags and syntax errors.
 	return (
-		<Layout>
-			<Container>
+		<Layout fullWidth>
+			<Container fluid centered>
 				<H1 gutterBottom>My Watchlist</H1>
 
 				<Card accentColor='#69c176'>
@@ -308,26 +438,37 @@ const WatchlistPage: React.FC = () => {
 						</Flex>
 
 						{activeTab === 'list' && (
-							<InputGroup>
-								<Flex gap='md' alignItems='center'>
-									<Input
-										type='text'
-										placeholder='Search your watchlist...'
-										value={searchQuery}
-										onChange={(e) => setSearchQuery(e.target.value)}
-										fullWidth
+							<>
+								<InputGroup>
+									<Flex gap='md' alignItems='center'>
+										<Input
+											type='text'
+											placeholder='Search your watchlist...'
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
+											fullWidth
+										/>
+										<Select
+											value={viewStyle}
+											onChange={(e) =>
+												handleViewStyleChange(e.target.value as 'grid' | 'list')
+											}
+										>
+											<option value='grid'>Grid View</option>
+											<option value='list'>List View</option>
+										</Select>
+									</Flex>
+								</InputGroup>
+
+								{/* Tag filter when we have tags */}
+								{allTags.length > 0 && (
+									<TagFilter
+										tags={allTags}
+										selectedTags={selectedTags}
+										onChange={setSelectedTags}
 									/>
-									<Select
-										value={viewStyle}
-										onChange={(e) =>
-											handleViewStyleChange(e.target.value as 'grid' | 'list')
-										}
-									>
-										<option value='grid'>Grid View</option>
-										<option value='list'>List View</option>
-									</Select>
-								</Flex>
-							</InputGroup>
+								)}
+							</>
 						)}
 					</CardContent>
 				</Card>
@@ -344,14 +485,20 @@ const WatchlistPage: React.FC = () => {
 							</ListContainer>
 						)}
 
-						{filteredEntries.length === 0 && searchQuery && (
-							<Typography>No matches found for "{searchQuery}"</Typography>
-						)}
-						{filteredEntries.length === 0 && !searchQuery && (
-							<Typography>
-								Your watchlist is empty. Add some titles to get started!
-							</Typography>
-						)}
+						{filteredEntries.length === 0 &&
+							(searchQuery || selectedTags.length > 0) && (
+								<Typography>
+									No matches found{searchQuery ? ` for "${searchQuery}"` : ''}
+									{selectedTags.length > 0 ? ` with selected tags` : ''}
+								</Typography>
+							)}
+						{filteredEntries.length === 0 &&
+							!searchQuery &&
+							selectedTags.length === 0 && (
+								<Typography>
+									Your watchlist is empty. Add some titles to get started!
+								</Typography>
+							)}
 					</>
 				) : (
 					<SearchMedia />

@@ -159,6 +159,7 @@ The application implements a centralized settings management system that provide
 - **Settings Service**: Core service for retrieving and updating application settings
 - **Environment Variable Integration**: Security-focused approach for sensitive settings
 - **Admin Dashboard**: Interface for adjusting application settings
+- **Client Settings Integration**: Client app consumes admin-configured settings
 
 ### Settings Architecture
 
@@ -166,6 +167,7 @@ The application implements a centralized settings management system that provide
 2. **Memory Cache**: Settings are cached in-memory with TTL to reduce database load
 3. **Environment Override**: Environment variables can override database settings
 4. **Sensitive Data Handling**: Sensitive fields (passwords, API keys) are never stored in DB
+5. **Cross-App Integration**: Client app loads settings via admin API
 
 ### Settings Organization
 
@@ -176,6 +178,15 @@ Settings are organized into logical sections:
 - **Email**: SMTP configuration for transactional emails
 - **Media**: File upload rules and content management settings
 - **Features**: Feature flags for enabling/disabling application capabilities
+
+### Admin-Client Settings Flow
+
+1. Administrators configure application settings through the admin interface
+2. Settings are saved to the database via the admin API
+3. Client application fetches these settings on initialization
+4. Client maps the full admin settings to its simplified structure
+5. Default fallback values are used if API fetch fails
+6. Settings are refreshable via the provided context API
 
 ### Environment Configuration
 

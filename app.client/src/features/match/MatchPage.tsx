@@ -4,10 +4,9 @@ import styled from 'styled-components';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent } from '../../components/common/Card';
-import { Container, Flex, Grid } from '../../components/common/Layout';
 import { Select, SelectGroup } from '../../components/common/Select';
 import { H1, H2, Typography } from '../../components/common/Typography';
-import Layout from '../../components/layout/Layout';
+import Layout, { Container, Flex, Grid } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	ContentMatch,
@@ -16,10 +15,11 @@ import {
 	watchlist,
 } from '../../services/api';
 import InviteUser from './InviteUser';
+import Recommendations from './Recommendations';
 
 const PosterContainer = styled.div`
 	flex-shrink: 0;
-	width: 200px;
+	width: 150px; // Reduced from 200px for better space utilization
 
 	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
 		width: 100%;
@@ -118,6 +118,55 @@ const getStatusText = (status: string): string => {
 	}
 };
 
+const MatchesGrid = styled(Grid)`
+	// Dynamic grid columns based on screen size
+	display: grid;
+	grid-template-columns: 1fr 2fr; // Left column 1/3, right column 2/3
+
+	// Adjust for different screen sizes
+	@media (max-width: ${({ theme }) => theme.breakpoints.xl}) {
+		grid-template-columns: 1fr 1.5fr; // Less difference on smaller screens
+	}
+
+	@media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+		grid-template-columns: 1fr; // Stack vertically on mobile
+		gap: ${({ theme }) => theme.spacing.md};
+	}
+`;
+
+const MatchCard = styled(Card).attrs(() => ({
+	variant: 'primary' as const,
+}))`
+	margin-bottom: ${({ theme }) => theme.spacing.md};
+	width: 100%;
+`;
+
+const ContentMatchCard = styled(Card).attrs(() => ({
+	variant: 'primary' as const,
+}))`
+	margin-bottom: ${({ theme }) => theme.spacing.md};
+	width: 100%;
+
+	${CardContent} {
+		padding: ${({ theme }) => theme.spacing.md};
+	}
+`;
+
+const FiltersContainer = styled(Flex)`
+	margin-bottom: ${({ theme }) => theme.spacing.md};
+	flex-wrap: wrap;
+
+	// Make filters more compact on smaller screens
+	@media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+		gap: ${({ theme }) => theme.spacing.xs};
+
+		${SelectGroup} {
+			flex: 1;
+			min-width: 120px;
+		}
+	}
+`;
+
 const MatchPage: React.FC = () => {
 	const queryClient = useQueryClient();
 	const { user } = useAuth();
@@ -191,8 +240,10 @@ const MatchPage: React.FC = () => {
 
 	if (isUserLoading || isContentLoading) {
 		return (
-			<Layout>
-				<Typography>Loading...</Typography>
+			<Layout fullWidth>
+				<Container fluid>
+					<Typography>Loading...</Typography>
+				</Container>
 			</Layout>
 		);
 	}
@@ -205,11 +256,11 @@ const MatchPage: React.FC = () => {
 	);
 
 	return (
-		<Layout>
-			<Container>
+		<Layout fullWidth>
+			<Container fluid>
 				<H1 gutterBottom>Matches</H1>
 
-				<Grid columns={2} gap='lg'>
+				<MatchesGrid gap='xl'>
 					<div>
 						<InviteUser
 							onSuccess={() => queryClient.invalidateQueries(['matches'])}
@@ -224,7 +275,7 @@ const MatchPage: React.FC = () => {
 							<NoMatches>No pending match requests</NoMatches>
 						) : (
 							pendingMatches.map((match) => (
-								<Card key={match.match_id} variant='primary'>
+								<MatchCard key={match.match_id} variant='primary'>
 									<CardContent>
 										<Typography>From: {match.user1?.email}</Typography>
 										<Flex gap='sm'>
@@ -258,7 +309,7 @@ const MatchPage: React.FC = () => {
 											</Button>
 										</Flex>
 									</CardContent>
-								</Card>
+								</MatchCard>
 							))
 						)}
 
@@ -271,7 +322,7 @@ const MatchPage: React.FC = () => {
 							<NoMatches>No active matches yet</NoMatches>
 						) : (
 							activeMatches.map((match) => (
-								<Card key={match.match_id} variant='secondary'>
+								<MatchCard key={match.match_id} variant='primary'>
 									<CardContent>
 										<Typography>
 											Matched with:{' '}
@@ -280,7 +331,7 @@ const MatchPage: React.FC = () => {
 												: match.user1?.email}
 										</Typography>
 									</CardContent>
-								</Card>
+								</MatchCard>
 							))
 						)}
 					</div>
@@ -292,7 +343,7 @@ const MatchPage: React.FC = () => {
 								`(${filteredAndSortedMatches.length})`}
 						</H2>
 
-						<Flex gap='sm' wrap='wrap'>
+						<FiltersContainer gap='sm'>
 							<SelectGroup>
 								<Select
 									value={mediaTypeFilter}
@@ -328,7 +379,7 @@ const MatchPage: React.FC = () => {
 									<option value='recent'>Recently Added</option>
 								</Select>
 							</SelectGroup>
-						</Flex>
+						</FiltersContainer>
 
 						{filteredAndSortedMatches.length === 0 ? (
 							<NoMatches>
@@ -336,7 +387,7 @@ const MatchPage: React.FC = () => {
 							</NoMatches>
 						) : (
 							filteredAndSortedMatches.map((match) => (
-								<Card key={match.tmdb_id}>
+								<ContentMatchCard key={match.tmdb_id}>
 									<CardContent>
 										<Flex gap='lg'>
 											<PosterContainer>
@@ -384,11 +435,14 @@ const MatchPage: React.FC = () => {
 											</ContentInfo>
 										</Flex>
 									</CardContent>
-								</Card>
+								</ContentMatchCard>
 							))
 						)}
+
+						{/* New Recommendations section: only show when there's an active match */}
+						{activeMatches.length > 0 && <Recommendations />}
 					</div>
-				</Grid>
+				</MatchesGrid>
 			</Container>
 		</Layout>
 	);

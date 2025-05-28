@@ -4,8 +4,8 @@ import styled from 'styled-components';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent } from '../../components/common/Card';
 import { Input, InputGroup } from '../../components/common/Input';
-import { Container } from '../../components/common/Layout';
 import { ErrorText, H2 } from '../../components/common/Typography';
+import { Container } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
 

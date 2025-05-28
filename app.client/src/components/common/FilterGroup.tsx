@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Flex, Grid } from '../layout/Layout';
 import { Button } from './Button';
 import { Card, CardContent } from './Card';
-import { Flex, Grid } from './Layout';
 import { H2 } from './Typography';
 
 interface FilterGroupProps {

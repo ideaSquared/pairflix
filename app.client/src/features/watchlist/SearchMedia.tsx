@@ -14,7 +14,7 @@ const PosterImage = styled.img`
 	max-width: ${({ $isListView }: { $isListView?: boolean }) =>
 		$isListView ? '150px' : '100%'};
 	height: ${({ $isListView }: { $isListView?: boolean }) =>
-		$isListView ? '225px' : '375px'};
+		$isListView ? '225px' : '300px'}; // Reduced height for better proportions
 	object-fit: cover;
 	border-radius: ${({ theme }) => theme.borderRadius.sm};
 `;
@@ -28,7 +28,9 @@ const Overview = styled(Typography).attrs({ variant: 'body2' })`
 	margin: ${({ theme }) => theme.spacing.sm} 0;
 `;
 
-const ListViewItem = styled(Card)`
+const ListViewItem = styled(Card).attrs({
+	variant: 'primary',
+})`
 	display: flex;
 	margin-bottom: ${({ theme }) => theme.spacing.md};
 
@@ -53,10 +55,59 @@ const ListViewItem = styled(Card)`
 
 const GridContainer = styled(CardGrid)`
 	margin-top: ${({ theme }) => theme.spacing.lg};
+	display: grid;
+	grid-template-columns: repeat(
+		auto-fill,
+		minmax(280px, 1fr)
+	); // Base size adjusted
+	gap: ${({ theme }) => theme.spacing.md};
+
+	/* Better utilization of screen space across different devices */
+	@media (min-width: 1200px) {
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	}
+
+	/* For larger screens, allow even more cards per row */
+	@media (min-width: 1600px) {
+		grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+	}
+
+	/* For extra large screens, maximize content density */
+	@media (min-width: 2000px) {
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	}
 `;
 
 const ListContainer = styled.div`
 	margin-top: ${({ theme }) => theme.spacing.lg};
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const EnhancedListViewItem = styled(ListViewItem)`
+	width: 100%;
+
+	.content {
+		flex: 3;
+	}
+
+	.actions {
+		flex: 1;
+		justify-content: flex-end;
+	}
+
+	@media (max-width: ${({ theme }) => theme.breakpoints.md}) {
+		${CardContent} {
+			flex-direction: column;
+
+			.actions {
+				padding-left: 0;
+				padding-top: ${({ theme }) => theme.spacing.md};
+			}
+		}
+	}
 `;
 
 const SearchMedia: React.FC = () => {
@@ -128,13 +179,13 @@ const SearchMedia: React.FC = () => {
 		);
 
 		return viewStyle === 'grid' ? (
-			<Card key={result.id}>
+			<Card key={result.id} variant='primary'>
 				<CardContent>{commonContent}</CardContent>
 			</Card>
 		) : (
-			<ListViewItem key={result.id}>
+			<EnhancedListViewItem key={result.id} variant='primary'>
 				<CardContent>{commonContent}</CardContent>
-			</ListViewItem>
+			</EnhancedListViewItem>
 		);
 	};
 

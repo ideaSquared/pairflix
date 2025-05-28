@@ -1,10 +1,10 @@
 import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 import React from 'react';
 import styled from 'styled-components';
+import { Flex } from '../layout/Layout';
 import { Button } from './Button';
 import { Card, CardContent } from './Card';
 import { ErrorBoundary } from './ErrorBoundary';
-import { Flex } from './Layout';
 import { H2, Typography } from './Typography';
 
 interface QueryErrorBoundaryProps {

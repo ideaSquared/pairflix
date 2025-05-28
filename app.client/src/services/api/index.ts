@@ -1,3 +1,4 @@
+import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
 import { matches } from './matches';
@@ -6,11 +7,23 @@ import { user } from './user';
 import { fetchWithAuth } from './utils';
 import { watchlist } from './watchlist';
 
-// Re-export the AppSettings type from admin
+// Re-export the Activity type from activity
+export type { Activity } from './activity';
+
+// Re-export types from admin
 export type { AppSettings } from './admin';
 
 // Export individual services
-export { admin, auth, fetchWithAuth, matches, search, user, watchlist };
+export {
+	activity,
+	admin,
+	auth,
+	fetchWithAuth,
+	matches,
+	search,
+	user,
+	watchlist,
+};
 
 // Export types from utils
 export * from './utils';
@@ -22,6 +35,7 @@ const api = {
 	search,
 	watchlist,
 	matches,
+	activity,
 	admin,
 };
 

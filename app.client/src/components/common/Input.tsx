@@ -48,6 +48,18 @@ export const Input = styled.input<InputProps>`
 		cursor: not-allowed;
 		opacity: 0.6;
 	}
+
+	/* Mobile optimizations */
+	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+		padding: calc(${({ theme }) => theme.spacing.sm} * 0.8)
+			${({ theme }) => theme.spacing.sm};
+		font-size: ${({ theme }) => theme.typography.fontSize.sm};
+		/* Increase tap target size for better mobile usability */
+		min-height: 44px;
+
+		/* Ensure 100% width on mobile for all inputs */
+		width: 100%;
+	}
 `;
 
 export const InputLabel = styled.label`
@@ -56,6 +68,10 @@ export const InputLabel = styled.label`
 	color: ${({ theme }) => theme.colors.text.primary};
 	font-size: ${({ theme }) => theme.typography.fontSize.sm};
 	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+
+	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+		margin-bottom: calc(${({ theme }) => theme.spacing.xs} * 0.8);
+	}
 `;
 
 export const InputError = styled.span`
@@ -70,4 +86,9 @@ export const InputGroup = styled.div<{ fullWidth?: boolean }>`
 	flex-direction: column;
 	width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
 	margin-bottom: ${({ theme }) => theme.spacing.md};
+
+	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+		width: 100%; /* Force full width on mobile */
+		margin-bottom: ${({ theme }) => theme.spacing.sm};
+	}
 `;

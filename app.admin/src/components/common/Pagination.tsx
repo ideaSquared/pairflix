@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
+import { Flex } from '../layout/Layout';
 import { Button } from './Button';
-import { Flex } from './Layout';
 import { Typography } from './Typography';
 
 interface PaginationProps {
