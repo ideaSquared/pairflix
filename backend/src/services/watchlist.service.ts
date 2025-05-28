@@ -65,15 +65,39 @@ export const updateWatchlistEntry = async (
 	body: any,
 	user: any
 ) => {
-	const [updated] = await WatchlistEntry.update(body, {
+	console.log('Updating watchlist entry:', {
+		entry_id,
+		body,
+		userId: user.user_id,
+	});
+
+	// First, check if the entry exists before attempting to update
+	const existingEntry = await WatchlistEntry.findOne({
 		where: { entry_id, user_id: user.user_id },
 	});
-	if (!updated) {
+
+	if (!existingEntry) {
+		console.error(`Entry not found: ${entry_id} for user: ${user.user_id}`);
 		throw new Error('Entry not found');
 	}
 
-	const entry = await WatchlistEntry.findByPk(entry_id);
+	// Proceed with update
+	const [updated] = await WatchlistEntry.update(body, {
+		where: { entry_id, user_id: user.user_id },
+	});
+
+	if (!updated) {
+		console.error(`Failed to update entry: ${entry_id}`);
+		throw new Error('Failed to update entry');
+	}
+
+	// Retrieve the updated entry
+	const entry = await WatchlistEntry.findOne({
+		where: { entry_id, user_id: user.user_id },
+	});
+
 	if (!entry) {
+		console.error(`Entry not found after update: ${entry_id}`);
 		throw new Error('Entry not found after update');
 	}
 

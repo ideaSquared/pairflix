@@ -20,7 +20,7 @@ const TagFilterButton = styled.button<{ $active: boolean }>`
 			props.$active ? props.theme.colors.primary : props.theme.colors.border};
 	border-radius: ${(props) => props.theme.borderRadius.sm};
 	padding: 0.25rem 0.75rem;
-	font-size: ${(props) => props.theme.fontSizes.sm};
+	font-size: ${(props) => props.theme.typography?.fontSize?.sm || '0.875rem'};
 	cursor: pointer;
 	transition: all 0.2s ease;
 
@@ -33,7 +33,7 @@ const TagFilterButton = styled.button<{ $active: boolean }>`
 
 	@media (max-width: 768px) {
 		padding: 0.15rem 0.5rem;
-		font-size: ${(props) => props.theme.fontSizes.xs};
+		font-size: ${(props) => props.theme.typography?.fontSize?.xs || '0.75rem'};
 	}
 `;
 
@@ -42,7 +42,7 @@ const ClearButton = styled.button`
 	color: ${(props) => props.theme.colors.text.secondary};
 	border: none;
 	padding: 0.25rem 0.5rem;
-	font-size: ${(props) => props.theme.fontSizes.sm};
+	font-size: ${(props) => props.theme.typography?.fontSize?.sm || '0.875rem'};
 	cursor: pointer;
 	text-decoration: underline;
 
@@ -51,7 +51,7 @@ const ClearButton = styled.button`
 	}
 
 	@media (max-width: 768px) {
-		font-size: ${(props) => props.theme.fontSizes.xs};
+		font-size: ${(props) => props.theme.typography?.fontSize?.xs || '0.75rem'};
 	}
 `;
 

@@ -11,10 +11,11 @@ const TagInputContainer = styled.div`
 const TagInputField = styled.div`
 	display: flex;
 	align-items: center;
-	border: 1px solid ${(props) => props.theme.colors.border};
-	border-radius: ${(props) => props.theme.borderRadius.sm};
+	border: 1px solid ${(props) => props.theme.colors?.border || '#d0d0d0'};
+	border-radius: ${(props) => props.theme.borderRadius?.sm || '4px'};
 	padding: 0.5rem;
-	background: ${(props) => props.theme.colors.background.primary};
+	background: ${(props) =>
+		props.theme.colors?.background?.primary || '#ffffff'};
 	margin-bottom: 0.5rem;
 `;
 
@@ -23,11 +24,11 @@ const Input = styled.input`
 	border: none;
 	outline: none;
 	background: transparent;
-	font-size: ${(props) => props.theme.fontSizes.md};
-	color: ${(props) => props.theme.colors.text.primary};
+	font-size: ${(props) => props.theme.typography?.fontSize?.md || '1rem'};
+	color: ${(props) => props.theme.colors?.text?.primary || '#000'};
 
 	&::placeholder {
-		color: ${(props) => props.theme.colors.text.secondary};
+		color: ${(props) => props.theme.colors?.text?.secondary || '#666'};
 	}
 `;
 
@@ -41,11 +42,11 @@ const TagsContainer = styled.div`
 const Tag = styled.div`
 	display: flex;
 	align-items: center;
-	background: ${(props) => props.theme.colors.primary};
+	background: ${(props) => props.theme.colors?.primary || '#4853db'};
 	color: white;
-	border-radius: ${(props) => props.theme.borderRadius.sm};
+	border-radius: ${(props) => props.theme.borderRadius?.sm || '4px'};
 	padding: 0.25rem 0.5rem;
-	font-size: ${(props) => props.theme.fontSizes.sm};
+	font-size: ${(props) => props.theme.typography?.fontSize?.sm || '0.875rem'};
 	user-select: none;
 `;
 
@@ -57,7 +58,7 @@ const RemoveTagButton = styled.button`
 	cursor: pointer;
 	font-weight: bold;
 	padding: 0 0.25rem;
-	font-size: ${(props) => props.theme.fontSizes.sm};
+	font-size: ${(props) => props.theme.typography?.fontSize?.sm || '0.875rem'};
 
 	&:hover {
 		opacity: 0.8;
@@ -69,8 +70,8 @@ const RemoveTagButton = styled.button`
 `;
 
 const HelperText = styled.p`
-	color: ${(props) => props.theme.colors.text.secondary};
-	font-size: ${(props) => props.theme.fontSizes.sm};
+	color: ${(props) => props.theme.colors?.text?.secondary || '#666'};
+	font-size: ${(props) => props.theme.typography?.fontSize?.sm || '0.875rem'};
 	margin: 0.25rem 0;
 `;
 

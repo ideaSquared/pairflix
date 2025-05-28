@@ -11,6 +11,7 @@ interface WatchlistEntryCreationAttributes {
 	status: WatchlistEntryInterface['status'];
 	rating?: number;
 	notes?: string;
+	tags?: string[];
 }
 
 class WatchlistEntry extends Model<
@@ -24,6 +25,7 @@ class WatchlistEntry extends Model<
 	declare status: WatchlistEntryInterface['status'];
 	declare rating?: number;
 	declare notes?: string;
+	declare tags?: string[];
 	declare created_at: Date;
 	declare updated_at: Date;
 
@@ -76,6 +78,11 @@ class WatchlistEntry extends Model<
 				notes: {
 					type: DataTypes.TEXT,
 					allowNull: true,
+				},
+				tags: {
+					type: DataTypes.ARRAY(DataTypes.STRING),
+					allowNull: true,
+					defaultValue: [],
 				},
 				created_at: {
 					type: DataTypes.DATE,

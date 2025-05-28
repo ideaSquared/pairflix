@@ -103,28 +103,29 @@ const getVariantStyles = (variant?: TypographyVariant) => {
 
 export const Typography = styled.p<TypographyProps>`
 	margin: 0;
-	color: ${({ color, theme }) => color || theme.colors.text.primary};
+	color: ${({ color, theme }) =>
+		color || theme.colors?.text?.primary || '#1a1a1a'};
 	text-align: ${({ align = 'left' }) => align};
 	margin-bottom: ${({ gutterBottom, theme }) =>
-		gutterBottom ? theme.spacing.md : 0};
+		gutterBottom ? theme.spacing?.md || '1rem' : 0};
 	${({ variant }) => getVariantStyles(variant)}
 
 	/* Responsive margin-bottom for mobile */
-	@media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
+	@media (max-width: ${({ theme }) => theme.breakpoints?.sm || '600px'}) {
 		margin-bottom: ${({ gutterBottom, theme }) =>
-			gutterBottom ? theme.spacing.sm : 0};
+			gutterBottom ? theme.spacing?.sm || '0.5rem' : 0};
 	}
 
 	a {
-		color: ${({ theme }) => theme.colors.primary};
+		color: ${({ theme }) => theme.colors?.primary || '#4853db'};
 		text-decoration: none;
-		font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+		font-weight: ${({ theme }) => theme.typography?.fontWeight?.medium || 500};
 		&:hover {
 			text-decoration: underline;
-			color: ${({ theme }) => theme.colors.primaryHover};
+			color: ${({ theme }) => theme.colors?.primaryHover || '#3942b5'};
 		}
 		&:focus-visible {
-			outline: 2px solid ${({ theme }) => theme.colors.primary};
+			outline: 2px solid ${({ theme }) => theme.colors?.primary || '#4853db'};
 			outline-offset: 2px;
 		}
 	}

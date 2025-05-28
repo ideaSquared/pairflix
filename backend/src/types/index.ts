@@ -24,6 +24,7 @@ export interface WatchlistEntry {
 		| 'active';
 	rating?: number;
 	notes?: string;
+	tags?: string[];
 	created_at: Date;
 	updated_at: Date;
 	tmdb_status?: string;

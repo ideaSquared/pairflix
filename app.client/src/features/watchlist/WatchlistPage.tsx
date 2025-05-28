@@ -160,11 +160,11 @@ const TagsContainer = styled.div`
 `;
 
 const Tag = styled.span`
-	background: ${({ theme }) => theme.colors.primary};
+	background: ${({ theme }) => theme.colors?.primary || '#4853db'};
 	color: white;
 	padding: 0.15rem 0.4rem;
-	border-radius: ${({ theme }) => theme.borderRadius.sm};
-	font-size: ${({ theme }) => theme.fontSizes.sm};
+	border-radius: ${({ theme }) => theme.borderRadius?.sm || '4px'};
+	font-size: ${({ theme }) => theme.typography?.fontSize?.sm || '0.875rem'};
 `;
 
 const WatchlistPage: React.FC = () => {
@@ -247,8 +247,19 @@ const WatchlistPage: React.FC = () => {
 	};
 
 	const handleTagsChange = (entryId: string, tags: string[]) => {
-		updateMutation.mutate({ id: entryId, updates: { tags } });
-		setIsEditingTags(null); // Close tag editor after saving
+		try {
+			// Properly format the tags before sending to the API
+			updateMutation.mutate({
+				id: entryId,
+				updates: {
+					tags: tags.length > 0 ? tags : [], // Ensure we always send an array, even if empty
+				},
+			});
+			setIsEditingTags(null); // Close tag editor after saving
+		} catch (error) {
+			console.error('Error updating tags:', error);
+			// Keep the tag editor open if there was an error
+		}
 	};
 
 	const handleViewStyleChange = (newViewStyle: 'grid' | 'list') => {

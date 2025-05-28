@@ -159,7 +159,7 @@ interface FlexProps {
 export const Flex = styled.div<FlexProps>`
 	display: flex;
 	flex-direction: ${({ direction = 'row' }) => direction};
-	gap: ${({ gap = 'md', theme }) => theme.spacing[gap]};
+	gap: ${({ gap = 'md', theme }) => theme.spacing?.[gap] || '1rem'};
 	align-items: ${({ alignItems = 'stretch' }) => alignItems};
 	justify-content: ${({ justifyContent = 'start' }) => justifyContent};
 	flex-wrap: ${({ wrap = 'nowrap' }) => wrap};
@@ -176,7 +176,9 @@ export const Flex = styled.div<FlexProps>`
 		flex-direction: ${({ mobileDirection, direction = 'row' }) =>
 			mobileDirection || (direction === 'row' ? 'column' : direction)};
 		gap: ${({ mobileGap, gap = 'md', theme }) =>
-			theme.spacing[mobileGap || (gap === 'lg' || gap === 'xl' ? 'md' : gap)]};
+			theme.spacing?.[
+				mobileGap || (gap === 'lg' || gap === 'xl' ? 'md' : gap)
+			] || '1rem'};
 
 		/* Common pattern: Row on desktop becomes column on mobile */
 		${({ direction }) =>
