@@ -26,6 +26,10 @@ jest.mock('../services/activity.service', () => ({
 	activityService: {
 		logActivity: jest.fn().mockResolvedValue({}),
 	},
+	ActivityType: {
+		USER_PROFILE_UPDATE: 'USER_PROFILE_UPDATE',
+		USER_PREFERENCES_UPDATE: 'USER_PREFERENCES_UPDATE',
+	},
 }));
 
 describe('User Controller', () => {

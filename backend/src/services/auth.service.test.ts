@@ -15,8 +15,8 @@ describe('authenticateUser', () => {
 			username: 'testuser',
 			password_hash: 'hashedPassword',
 			role: 'user',
-			status: 'active',
-			preferences: { theme: 'dark' },
+			status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+			preferences: { theme: 'dark' as 'dark' | 'light' },
 			last_login: null,
 			save: jest.fn().mockResolvedValue(true),
 		};

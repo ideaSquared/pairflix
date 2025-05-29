@@ -11,13 +11,13 @@ export const mockRequest = (overrides: Partial<Request> = {}) => {
 			email: 'test@example.com',
 			username: 'testuser',
 			role: 'user', // Adding the role property
-			status: 'active', // Adding the required status property
+			status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended', // Adding the properly typed status property
 			preferences: {
-				theme: 'dark',
-				viewStyle: 'grid',
+				theme: 'dark' as 'dark' | 'light',
+				viewStyle: 'grid' as 'grid' | 'list',
 				emailNotifications: true,
 				autoArchiveDays: 30,
-				favoriteGenres: [],
+				favoriteGenres: [] as string[],
 			},
 		},
 		...overrides,

@@ -13,10 +13,24 @@ jest.mock('../services/match.service', () => ({
 	updateMatchStatusService: jest.fn(),
 }));
 
+// Mock the audit service
+jest.mock('../services/audit.service', () => ({
+	auditLogService: {
+		info: jest.fn().mockResolvedValue({}),
+		error: jest.fn().mockResolvedValue({}),
+	},
+}));
+
 // Mock the activity service
 jest.mock('../services/activity.service', () => ({
 	activityService: {
 		logActivity: jest.fn().mockResolvedValue({}),
+	},
+	ActivityType: {
+		MATCH_CREATE: 'MATCH_CREATE',
+		MATCH_UPDATE: 'MATCH_UPDATE',
+		MATCH_ACCEPTED: 'MATCH_ACCEPTED',
+		MATCH_DECLINED: 'MATCH_DECLINED',
 	},
 }));
 

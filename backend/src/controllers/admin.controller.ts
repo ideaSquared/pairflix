@@ -25,50 +25,11 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 	try {
 		const limit = parseInt(req.query.limit as string, 10) || 100;
 		const offset = parseInt(req.query.offset as string, 10) || 0;
-		const source = req.query.source as string;
-		const startDate = req.query.startDate as string;
-		const endDate = req.query.endDate as string;
 
-		// Build query conditions
-		const where: any = {};
+		// Use the auditLogService to get logs
+		const logs = await auditLogService.getRecentLogs(limit, offset);
 
-		// Filter by source if provided
-		if (source) {
-			where.source = source;
-		}
-
-		// Filter by date range if provided
-		if (startDate || endDate) {
-			where.created_at = {};
-
-			if (startDate) {
-				where.created_at[Op.gte] = new Date(startDate);
-			}
-
-			if (endDate) {
-				where.created_at[Op.lte] = new Date(endDate);
-			}
-		}
-
-		const logs = await AuditLog.findAll({
-			where,
-			order: [['created_at', 'DESC']],
-			limit,
-			offset,
-		});
-
-		// Get total count for pagination
-		const totalCount = await AuditLog.count({ where });
-
-		return res.status(200).json({
-			data: logs,
-			pagination: {
-				total: totalCount,
-				limit,
-				offset,
-				hasMore: offset + logs.length < totalCount,
-			},
-		});
+		return res.status(200).json({ logs });
 	} catch (error) {
 		console.error('Error fetching audit logs:', error);
 		return res.status(500).json({ error: 'Failed to fetch audit logs' });
@@ -92,50 +53,15 @@ export const getAuditLogsByLevel = async (req: Request, res: Response) => {
 
 		const limit = parseInt(req.query.limit as string, 10) || 100;
 		const offset = parseInt(req.query.offset as string, 10) || 0;
-		const source = req.query.source as string;
-		const startDate = req.query.startDate as string;
-		const endDate = req.query.endDate as string;
 
-		// Build query conditions
-		const where: any = { level };
-
-		// Filter by source if provided
-		if (source) {
-			where.source = source;
-		}
-
-		// Filter by date range if provided
-		if (startDate || endDate) {
-			where.created_at = {};
-
-			if (startDate) {
-				where.created_at[Op.gte] = new Date(startDate);
-			}
-
-			if (endDate) {
-				where.created_at[Op.lte] = new Date(endDate);
-			}
-		}
-
-		const logs = await AuditLog.findAll({
-			where,
-			order: [['created_at', 'DESC']],
+		// Use the auditLogService to get logs by level
+		const logs = await auditLogService.getLogsByLevel(
+			level as LogLevel,
 			limit,
-			offset,
-		});
+			offset
+		);
 
-		// Get total count for pagination
-		const totalCount = await AuditLog.count({ where });
-
-		return res.status(200).json({
-			logs,
-			pagination: {
-				total: totalCount,
-				limit,
-				offset,
-				hasMore: offset + logs.length < totalCount,
-			},
-		});
+		return res.status(200).json({ logs });
 	} catch (error) {
 		console.error('Error fetching audit logs by level:', error);
 		return res.status(500).json({ error: 'Failed to fetch audit logs' });

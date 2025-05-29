@@ -1,15 +1,39 @@
-import * as authService from '../services/auth.service';
+import { authenticateUser } from '../services/auth.service';
 import {
 	mockRequest,
 	mockResponse,
 	resetMocks,
 } from '../tests/controller-helpers';
+import { AuthenticatedRequest } from '../types';
 import { getCurrentUser, login } from './auth.controller';
 
 // Mock the auth service
-jest.mock('../services/auth.service', () => ({
-	authenticateUser: jest.fn(),
+jest.mock('../services/auth.service', () => {
+	return {
+		authenticateUser: jest.fn(),
+	};
+});
+
+// Mock the audit service
+jest.mock('../services/audit.service', () => ({
+	auditLogService: {
+		info: jest.fn().mockResolvedValue({}),
+		warn: jest.fn().mockResolvedValue({}),
+	},
 }));
+
+// Mock jwt
+jest.mock('jsonwebtoken', () => ({
+	verify: jest.fn().mockReturnValue({
+		user_id: 'test-user-id',
+		email: 'test@example.com',
+		username: 'testuser',
+		preferences: {},
+	}),
+}));
+
+// Mock process.env
+process.env.JWT_SECRET = 'test-secret';
 
 describe('Auth Controller', () => {
 	beforeEach(() => {
@@ -23,16 +47,14 @@ describe('Auth Controller', () => {
 				body: { email: 'test@example.com', password: 'password123' },
 			});
 			const res = mockResponse();
-			const mockToken = 'valid-jwt-token';
-
-			// Mock the authenticateUser service to return a token
-			(authService.authenticateUser as jest.Mock).mockResolvedValue(mockToken);
+			const mockToken = 'valid-jwt-token'; // Mock the authenticateUser service to return a token
+			(authenticateUser as jest.Mock).mockResolvedValue(mockToken);
 
 			// Act
 			await login(req, res);
 
 			// Assert
-			expect(authService.authenticateUser).toHaveBeenCalledWith(
+			expect(authenticateUser).toHaveBeenCalledWith(
 				'test@example.com',
 				'password123'
 			);
@@ -45,11 +67,9 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: { email: 'wrong@example.com', password: 'wrongpassword' },
 			});
-			const res = mockResponse();
-
-			// Mock the authenticateUser service to throw an error
+			const res = mockResponse(); // Mock the authenticateUser service to throw an error
 			const errorMessage = 'Invalid credentials';
-			(authService.authenticateUser as jest.Mock).mockRejectedValue(
+			(authenticateUser as jest.Mock).mockRejectedValue(
 				new Error(errorMessage)
 			);
 
@@ -57,7 +77,7 @@ describe('Auth Controller', () => {
 			await login(req, res);
 
 			// Assert
-			expect(authService.authenticateUser).toHaveBeenCalledWith(
+			expect(authenticateUser).toHaveBeenCalledWith(
 				'wrong@example.com',
 				'wrongpassword'
 			);
@@ -70,11 +90,9 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: { email: 'test@example.com', password: 'password123' },
 			});
-			const res = mockResponse();
-
-			// Mock the authenticateUser service to throw a non-Error object
-			(authService.authenticateUser as jest.Mock).mockRejectedValue(
-				'Unknown error'
+			const res = mockResponse(); // Mock the authenticateUser service to throw a non-Error object
+			(authenticateUser as jest.Mock).mockRejectedValue(
+				{ notAnError: true } // Use a plain object that is not an instance of Error
 			);
 
 			// Act
@@ -104,13 +122,14 @@ describe('Auth Controller', () => {
 					autoArchiveDays: 30,
 					favoriteGenres: [] as string[],
 				},
+				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
 			};
 
 			const req = mockRequest({ user: mockUser });
 			const res = mockResponse();
 
 			// Act
-			await getCurrentUser(req, res);
+			await getCurrentUser(req as unknown as AuthenticatedRequest, res);
 
 			// Assert
 			expect(res.json).toHaveBeenCalledWith(mockUser);
@@ -125,7 +144,7 @@ describe('Auth Controller', () => {
 			const res = mockResponse();
 
 			// Act
-			await getCurrentUser(req, res);
+			await getCurrentUser(req as unknown as AuthenticatedRequest, res);
 
 			// Assert
 			expect(res.status).toHaveBeenCalledWith(500);

@@ -174,6 +174,8 @@ describe('AdminController', () => {
 					user_id: 'test-user',
 					email: 'test@example.com',
 					username: 'testuser',
+					role: 'admin',
+					status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
 					preferences: {
 						theme: 'light' as const,
 						viewStyle: 'list' as const,

@@ -2,8 +2,8 @@
 import { Request, Response } from 'express';
 import { activityService } from '../services/activity.service';
 import { mockRequest, mockResponse } from '../tests/controller-helpers';
-import { AuthenticatedRequest } from '../types';
 import { activityController } from './activity.controller';
+import { AuthenticatedRequest } from '../types';
 
 // Mock activity service
 jest.mock('../services/activity.service', () => ({
