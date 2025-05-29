@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
 import {
 	mockRequest,
@@ -24,12 +26,7 @@ jest.mock('../services/audit.service', () => ({
 
 // Mock jwt
 jest.mock('jsonwebtoken', () => ({
-	verify: jest.fn().mockReturnValue({
-		user_id: 'test-user-id',
-		email: 'test@example.com',
-		username: 'testuser',
-		preferences: {},
-	}),
+	verify: jest.fn(),
 }));
 
 // Mock process.env
@@ -38,6 +35,15 @@ process.env.JWT_SECRET = 'test-secret';
 describe('Auth Controller', () => {
 	beforeEach(() => {
 		resetMocks();
+		jest.clearAllMocks();
+
+		// Reset jwt.verify mock to a default implementation
+		(jwt.verify as jest.Mock).mockReturnValue({
+			user_id: 'test-user-id',
+			email: 'test@example.com',
+			username: 'testuser',
+			preferences: {},
+		});
 	});
 
 	describe('login', () => {
@@ -45,10 +51,20 @@ describe('Auth Controller', () => {
 			// Arrange
 			const req = mockRequest({
 				body: { email: 'test@example.com', password: 'password123' },
+				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 			const mockToken = 'valid-jwt-token'; // Mock the authenticateUser service to return a token
 			(authenticateUser as jest.Mock).mockResolvedValue(mockToken);
+
+			// Ensure jwt.verify returns the expected decoded token
+			(jwt.verify as jest.Mock).mockReturnValue({
+				user_id: 'test-user-id',
+				email: 'test@example.com',
+				username: 'testuser',
+				preferences: {},
+			});
 
 			// Act
 			await login(req, res);
@@ -58,14 +74,18 @@ describe('Auth Controller', () => {
 				'test@example.com',
 				'password123'
 			);
+			expect(jwt.verify).toHaveBeenCalledWith(mockToken, 'test-secret');
 			expect(res.json).toHaveBeenCalledWith({ token: mockToken });
 			expect(res.status).not.toHaveBeenCalled(); // Should not call status for success cases
+			expect(auditLogService.info).toHaveBeenCalledTimes(2); // Two audit log calls
 		});
 
 		it('should return 401 when credentials are invalid', async () => {
 			// Arrange
 			const req = mockRequest({
 				body: { email: 'wrong@example.com', password: 'wrongpassword' },
+				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse(); // Mock the authenticateUser service to throw an error
 			const errorMessage = 'Invalid credentials';
@@ -83,17 +103,19 @@ describe('Auth Controller', () => {
 			);
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(res.json).toHaveBeenCalledWith({ error: errorMessage });
+			expect(auditLogService.info).toHaveBeenCalledTimes(1); // Only one info call for attempt
+			expect(auditLogService.warn).toHaveBeenCalledTimes(1); // One warn call for failed login
 		});
 
 		it('should return 500 when an unknown error occurs', async () => {
 			// Arrange
 			const req = mockRequest({
 				body: { email: 'test@example.com', password: 'password123' },
+				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse(); // Mock the authenticateUser service to throw a non-Error object
-			(authenticateUser as jest.Mock).mockRejectedValue(
-				{ notAnError: true } // Use a plain object that is not an instance of Error
-			);
+			(authenticateUser as jest.Mock).mockRejectedValue('string error'); // Not an Error instance
 
 			// Act
 			await login(req, res);
@@ -103,6 +125,8 @@ describe('Auth Controller', () => {
 			expect(res.json).toHaveBeenCalledWith({
 				error: 'Unknown error occurred',
 			});
+			expect(auditLogService.info).toHaveBeenCalledTimes(1); // Only one info call for attempt
+			expect(auditLogService.warn).toHaveBeenCalledTimes(1); // One warn call for failed login
 		});
 	});
 

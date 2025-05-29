@@ -22,7 +22,10 @@ describe('ActivityService', () => {
 				log_id: '123',
 				user_id: 'user123',
 				action: ActivityType.WATCHLIST_ADD,
+				context: 'watchlist',
 				metadata: { tmdbId: 550, mediaType: 'movie' },
+				ip_address: null,
+				user_agent: null,
 				created_at: new Date(),
 			};
 
@@ -37,7 +40,10 @@ describe('ActivityService', () => {
 			expect(ActivityLog.create).toHaveBeenCalledWith({
 				user_id: 'user123',
 				action: ActivityType.WATCHLIST_ADD,
+				context: 'watchlist',
 				metadata: { tmdbId: 550, mediaType: 'movie' },
+				ip_address: null,
+				user_agent: null,
 			});
 			expect(result).toEqual(mockActivity);
 		});
@@ -56,7 +62,7 @@ describe('ActivityService', () => {
 
 			expect(ActivityLog.create).toHaveBeenCalled();
 			expect(console.error).toHaveBeenCalled();
-			expect(result).toBeNull();
+			expect(result).toBeUndefined();
 		});
 	});
 
