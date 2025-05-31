@@ -30,6 +30,13 @@ class WatchlistEntry extends Model<
 	declare updated_at: Date;
 
 	static initialize(sequelize: any): ModelStatic<WatchlistEntry> {
+		if (!sequelize || typeof sequelize.define !== 'function') {
+			throw new Error(
+				'Invalid Sequelize instance provided to WatchlistEntry.initialize(). ' +
+					'Make sure the Sequelize instance is properly configured.'
+			);
+		}
+
 		return WatchlistEntry.init(
 			{
 				entry_id: {

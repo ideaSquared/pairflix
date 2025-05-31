@@ -22,18 +22,29 @@ export const errorHandler = (
 		timestamp: new Date(),
 	};
 
+	// Use a more robust check for empty messages
+	const errorMessage =
+		err.message && err.message.trim() ? err.message : 'Unknown server error';
+
 	// Log to audit log
-	auditLogService.error(
-		err.message || 'Unknown server error',
-		'server-error',
-		context
-	);
+	auditLogService.error(errorMessage, 'server-error', context);
 
 	// Don't include stack traces in production
 	const errorResponse =
 		process.env.NODE_ENV === 'production'
-			? { error: err.message || 'Internal Server Error' }
-			: { error: err.message, stack: err.stack };
+			? {
+					error:
+						errorMessage === 'Unknown server error'
+							? 'Internal Server Error'
+							: errorMessage,
+				}
+			: {
+					error:
+						errorMessage === 'Unknown server error'
+							? 'Internal Server Error'
+							: errorMessage,
+					stack: err.stack,
+				};
 
 	// Send error response to client
 	res.status(500).json(errorResponse);

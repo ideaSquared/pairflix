@@ -17,7 +17,7 @@ export function initializeTestModels() {
 	WatchlistEntry.initialize(mockSequelize);
 
 	// Set up associations
-	initializeModels();
+	initializeModels(mockSequelize);
 
 	return {
 		User,

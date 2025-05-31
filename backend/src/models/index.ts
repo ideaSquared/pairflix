@@ -9,52 +9,73 @@ import User from './User';
 import WatchlistEntry from './WatchlistEntry';
 
 export function initializeModels(sequelize: Sequelize) {
-	// Initialize models that don't depend on other models first
-	User.initialize(sequelize);
-	WatchlistEntry.initialize(sequelize);
-	AppSettings.initialize(sequelize);
-	Content.initialize(sequelize);
+	// Validate sequelize instance
+	if (!sequelize || typeof sequelize.define !== 'function') {
+		throw new Error(
+			'Invalid Sequelize instance provided to initializeModels(). ' +
+				'Make sure the Sequelize instance is properly configured.'
+		);
+	}
 
-	// Then initialize models that depend on those
-	Match.initialize(sequelize);
-	ActivityLog.initialize(sequelize);
-	AuditLog.initialize(sequelize);
-	ContentReport.initialize(sequelize);
+	try {
+		// Initialize models that don't depend on other models first
+		User.initialize(sequelize);
+		WatchlistEntry.initialize(sequelize);
+		AppSettings.initialize(sequelize);
+		Content.initialize(sequelize);
 
-	// Set up associations after all models are initialized
-	Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
-	Match.belongsTo(User, { as: 'user2', foreignKey: 'user2_id' });
-	User.hasMany(Match, { as: 'initiatedMatches', foreignKey: 'user1_id' });
-	User.hasMany(Match, { as: 'receivedMatches', foreignKey: 'user2_id' });
+		// Then initialize models that depend on those
+		Match.initialize(sequelize);
+		ActivityLog.initialize(sequelize);
+		AuditLog.initialize(sequelize);
+		ContentReport.initialize(sequelize);
 
-	WatchlistEntry.belongsTo(User, {
-		foreignKey: 'user_id',
-		as: 'watchlistUser',
-	});
-	User.hasMany(WatchlistEntry, {
-		foreignKey: 'user_id',
-		as: 'watchlistEntries',
-	});
+		// Set up associations after all models are initialized
+		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
+		Match.belongsTo(User, { as: 'user2', foreignKey: 'user2_id' });
+		User.hasMany(Match, { as: 'initiatedMatches', foreignKey: 'user1_id' });
+		User.hasMany(Match, { as: 'receivedMatches', foreignKey: 'user2_id' });
 
-	ActivityLog.belongsTo(User, { foreignKey: 'user_id', as: 'activityUser' });
-	User.hasMany(ActivityLog, { foreignKey: 'user_id', as: 'userActivities' });
+		WatchlistEntry.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'watchlistUser',
+		});
+		User.hasMany(WatchlistEntry, {
+			foreignKey: 'user_id',
+			as: 'watchlistEntries',
+		});
 
-	// Content and ContentReport associations
-	ContentReport.belongsTo(Content, {
-		foreignKey: 'content_id',
-		as: 'reportedContent',
-	});
-	Content.hasMany(ContentReport, { foreignKey: 'content_id', as: 'reports' });
+		ActivityLog.belongsTo(User, { foreignKey: 'user_id', as: 'activityUser' });
+		User.hasMany(ActivityLog, { foreignKey: 'user_id', as: 'userActivities' });
 
-	ContentReport.belongsTo(User, { foreignKey: 'user_id', as: 'reportingUser' });
-	User.hasMany(ContentReport, { foreignKey: 'user_id', as: 'contentReports' });
+		// Content and ContentReport associations
+		ContentReport.belongsTo(Content, {
+			foreignKey: 'content_id',
+			as: 'reportedContent',
+		});
+		Content.hasMany(ContentReport, { foreignKey: 'content_id', as: 'reports' });
 
-	// Add association between Match and WatchlistEntry
-	Match.belongsTo(WatchlistEntry, {
-		foreignKey: 'entry_id',
-		as: 'watchlistEntry',
-	});
-	WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+		ContentReport.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'reportingUser',
+		});
+		User.hasMany(ContentReport, {
+			foreignKey: 'user_id',
+			as: 'contentReports',
+		});
+
+		// Add association between Match and WatchlistEntry
+		Match.belongsTo(WatchlistEntry, {
+			foreignKey: 'entry_id',
+			as: 'watchlistEntry',
+		});
+		WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+	} catch (error) {
+		console.error('Error initializing models:', error);
+		throw new Error(
+			`Failed to initialize models: ${error instanceof Error ? error.message : 'Unknown error'}`
+		);
+	}
 }
 
 export default {

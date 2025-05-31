@@ -29,6 +29,13 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 	declare updated_at: Date;
 
 	static initialize(sequelize: Sequelize) {
+		if (!sequelize || typeof sequelize.define !== 'function') {
+			throw new Error(
+				'Invalid Sequelize instance provided to Content.initialize(). ' +
+					'Make sure the Sequelize instance is properly configured.'
+			);
+		}
+
 		return Content.init(
 			{
 				id: {

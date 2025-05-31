@@ -52,6 +52,13 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare updated_at: Date;
 
 	static initialize(sequelize: any): ModelStatic<User> {
+		if (!sequelize || typeof sequelize.define !== 'function') {
+			throw new Error(
+				'Invalid Sequelize instance provided to User.initialize(). ' +
+					'Make sure the Sequelize instance is properly configured.'
+			);
+		}
+
 		return User.init(
 			{
 				user_id: {
