@@ -1,0 +1,40 @@
+{
+	"name": "@pairflix/components",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "vite build && tsc --emitDeclarationOnly",
+		"dev": "vite build --watch"
+	},
+	"peerDependencies": {
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0",
+		"styled-components": "^5.3.10"
+	},
+	"dependencies": {
+		"react-icons": "^5.5.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.1.0",
+		"@types/react": "^18.2.6",
+		"@types/react-dom": "^18.2.4",
+		"@types/styled-components": "^5.1.26",
+		"@vitejs/plugin-react": "^4.0.0",
+		"typescript": "^5.0.4",
+		"vite": "^4.3.5"
+	}
+}
