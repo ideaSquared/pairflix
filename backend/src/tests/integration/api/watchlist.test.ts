@@ -3,6 +3,7 @@ import WatchlistEntry from '../../../models/WatchlistEntry';
 import { WatchStatus } from '../../../types'; // Updated import path
 import { TestFixtures } from '../fixtures';
 import IntegrationTestSetup from '../setup';
+import jwt from 'jsonwebtoken';
 
 describe('Watchlist API Integration Tests', () => {
 	const testSetup = IntegrationTestSetup.getInstance();
@@ -12,6 +13,15 @@ describe('Watchlist API Integration Tests', () => {
 	let testUser;
 	const TEST_USER_ID = 'test-user-id'; // Consistent user ID to use throughout tests
 
+	// Helper function to generate our own token for testing
+	const generateTestToken = (user: any) => {
+		return jwt.sign(
+			{ user_id: user.user_id },
+			'test_jwt_secret',
+			{ expiresIn: '1h' }
+		);
+	};
+
 	beforeAll(async () => {
 		// Initialize the test environment
 		await testSetup.init();
@@ -20,18 +30,20 @@ describe('Watchlist API Integration Tests', () => {
 
 		// Create a consistent test user
 		testUser = {
-			id: TEST_USER_ID,
+			user_id: TEST_USER_ID,
 			email: 'test@example.com',
 			username: 'testuser',
-			role: 'user'
+			role: 'user',
 		};
-		
+
 		// Generate token with consistent user data
-		userToken = testSetup.generateAuthToken(testUser);
-		
+		// Use our direct token generation to avoid setup issues
+		userToken = generateTestToken(testUser);
+		console.log('Generated token:', userToken); // Debug
+
 		// Configure auth middleware to expect this test user
 		testSetup.setTestUser(testUser);
-		
+
 		// Create mock user data to match what's set in the testAuthMiddleware
 		user = testUser;
 	});
@@ -57,7 +69,9 @@ describe('Watchlist API Integration Tests', () => {
 
 			// Override WatchlistEntry.findAll to return our test entries
 			// Use type assertion to tell TypeScript to treat the mocks as Sequelize models
-			jest.spyOn(WatchlistEntry, 'findAll').mockResolvedValueOnce(userEntries as unknown as Model[]);
+			jest
+				.spyOn(WatchlistEntry, 'findAll')
+				.mockResolvedValueOnce(userEntries as unknown as Model[]);
 
 			const response = await requestClient
 				.get('/api/watchlist')
@@ -75,14 +89,16 @@ describe('Watchlist API Integration Tests', () => {
 				'test-user-id',
 				'partner-id'
 			);
-			
+
 			// Create filtered entries with status 'want_to_watch'
-			const filteredEntries = userEntries.filter(entry => 
-				entry.status === WatchStatus.WANT_TO_WATCH
+			const filteredEntries = userEntries.filter(
+				entry => entry.status === WatchStatus.WANT_TO_WATCH
 			);
 
 			// Override WatchlistEntry.findAll to return filtered entries
-			jest.spyOn(WatchlistEntry, 'findAll').mockResolvedValueOnce(filteredEntries as unknown as Model[]);
+			jest
+				.spyOn(WatchlistEntry, 'findAll')
+				.mockResolvedValueOnce(filteredEntries as unknown as Model[]);
 
 			const response = await requestClient
 				.get('/api/watchlist?status=want_to_watch')
@@ -127,7 +143,9 @@ describe('Watchlist API Integration Tests', () => {
 			jest.spyOn(WatchlistEntry, 'findOne').mockResolvedValueOnce(null);
 
 			// Override WatchlistEntry.create to return our mock entry
-			jest.spyOn(WatchlistEntry, 'create').mockResolvedValueOnce(createdEntry as unknown as Model);
+			jest
+				.spyOn(WatchlistEntry, 'create')
+				.mockResolvedValueOnce(createdEntry as unknown as Model);
 
 			const response = await requestClient
 				.post('/api/watchlist')
@@ -173,7 +191,9 @@ describe('Watchlist API Integration Tests', () => {
 			};
 
 			// Override WatchlistEntry.findOne to return an existing entry
-			jest.spyOn(WatchlistEntry, 'findOne').mockResolvedValueOnce(existingEntry as unknown as Model);
+			jest
+				.spyOn(WatchlistEntry, 'findOne')
+				.mockResolvedValueOnce(existingEntry as unknown as Model);
 
 			const response = await requestClient
 				.post('/api/watchlist')
@@ -226,12 +246,15 @@ describe('Watchlist API Integration Tests', () => {
 			};
 
 			// Override WatchlistEntry.findByPk to return our test entry
-			jest.spyOn(WatchlistEntry, 'findByPk')
+			jest
+				.spyOn(WatchlistEntry, 'findByPk')
 				.mockResolvedValueOnce(entry as unknown as Model)
 				.mockResolvedValueOnce(updatedEntry as unknown as Model);
 
 			// Override WatchlistEntry.update to succeed
-			jest.spyOn(WatchlistEntry, 'update').mockResolvedValueOnce([1, [updatedEntry]] as any);
+			jest
+				.spyOn(WatchlistEntry, 'update')
+				.mockResolvedValueOnce([1, [updatedEntry]] as any);
 
 			const response = await requestClient
 				.put(`/api/watchlist/${entry.entry_id}`)
@@ -275,11 +298,13 @@ describe('Watchlist API Integration Tests', () => {
 			// Mock the partner entry to have a different user_id
 			const modifiedPartnerEntry = {
 				...partnerEntry,
-				user_id: partnerId // Different from test-user-id
+				user_id: partnerId, // Different from test-user-id
 			};
 
 			// Override WatchlistEntry.findByPk to return the partner's entry
-			jest.spyOn(WatchlistEntry, 'findByPk').mockResolvedValueOnce(modifiedPartnerEntry as unknown as Model);
+			jest
+				.spyOn(WatchlistEntry, 'findByPk')
+				.mockResolvedValueOnce(modifiedPartnerEntry as unknown as Model);
 
 			const updates = {
 				status: WatchStatus.WATCHED,
@@ -317,8 +342,10 @@ describe('Watchlist API Integration Tests', () => {
 			}
 
 			// Override WatchlistEntry.findByPk to return our test entry
-			jest.spyOn(WatchlistEntry, 'findByPk').mockResolvedValueOnce(entry as unknown as Model);
-			
+			jest
+				.spyOn(WatchlistEntry, 'findByPk')
+				.mockResolvedValueOnce(entry as unknown as Model);
+
 			// Override WatchlistEntry.destroy to succeed
 			jest.spyOn(WatchlistEntry, 'destroy').mockResolvedValueOnce(1);
 
@@ -358,11 +385,13 @@ describe('Watchlist API Integration Tests', () => {
 			// Mock the partner entry to have a different user_id
 			const modifiedPartnerEntry = {
 				...partnerEntry,
-				user_id: partnerId // Different from test-user-id
+				user_id: partnerId, // Different from test-user-id
 			};
 
 			// Override WatchlistEntry.findByPk to return the partner's entry
-			jest.spyOn(WatchlistEntry, 'findByPk').mockResolvedValueOnce(modifiedPartnerEntry as unknown as Model);
+			jest
+				.spyOn(WatchlistEntry, 'findByPk')
+				.mockResolvedValueOnce(modifiedPartnerEntry as unknown as Model);
 
 			const response = await requestClient
 				.delete(`/api/watchlist/${partnerEntry.entry_id}`)
@@ -386,7 +415,9 @@ describe('Watchlist API Integration Tests', () => {
 			);
 
 			// Override WatchlistEntry.findAll for stats query
-			jest.spyOn(WatchlistEntry, 'findAll').mockResolvedValueOnce(userEntries as unknown as Model[]);
+			jest
+				.spyOn(WatchlistEntry, 'findAll')
+				.mockResolvedValueOnce(userEntries as unknown as Model[]);
 
 			const response = await requestClient
 				.get('/api/watchlist/stats')

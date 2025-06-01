@@ -1,4 +1,3 @@
-import { Model, FindOptions } from 'sequelize';
 import ActivityLog from '../../models/ActivityLog';
 import AppSettings from '../../models/AppSettings';
 import AuditLog from '../../models/AuditLog';
@@ -198,7 +197,10 @@ export class TestFixtures {
 	/**
 	 * Create watchlist entries for test users
 	 */
-	static async createWatchlistEntries(userId: string = TEST_USER_ID, partnerId: string = TEST_PARTNER_ID) {
+	static async createWatchlistEntries(
+		userId: string = TEST_USER_ID,
+		partnerId: string = TEST_PARTNER_ID
+	) {
 		await this.ensureModelsInitialized();
 
 		const { movie1, movie2, tvShow } = await this.createContent();
