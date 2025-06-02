@@ -1,9 +1,10 @@
+import { Button, Flex, Modal, Typography } from '@pairflix/components'
 import React from 'react';
 import styled from 'styled-components';
-import { Button } from '../../../../../components/common/Button';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { Typography } from '../../../../../components/common/Typography';
+;
+;
+;
+;
 import { User } from './types';
 
 // Styled component for password display

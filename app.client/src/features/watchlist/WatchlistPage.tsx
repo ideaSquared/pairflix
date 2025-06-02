@@ -1,15 +1,24 @@
+import {
+	Badge,
+	Button,
+	Card,
+	CardContent,
+	CardGrid,
+	Flex,
+	H1,
+	H3,
+	Input,
+	InputGroup,
+	Select,
+	SelectGroup,
+	Typography,
+} from '@pairflix/components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent, CardGrid } from '../../components/common/Card';
-import { Input, InputGroup } from '../../components/common/Input';
-import { Select, SelectGroup } from '../../components/common/Select';
 import TagFilter from '../../components/common/TagFilter';
 import TagInput from '../../components/common/TagInput';
-import { H1, H3, Typography } from '../../components/common/Typography';
-import Layout, { Container, Flex } from '../../components/layout/Layout';
+import Layout, { Container } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	user as userService,
@@ -345,12 +354,10 @@ const WatchlistPage: React.FC = () => {
 					</Badge>{' '}
 					{entry.title}
 				</H3>
-
 				{/* {entry.tmdb_status && (
 					<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
-				)} */}
-
-				<SelectGroup>
+				)} */}{' '}
+				<SelectGroup fullWidth>
 					<Select
 						value={entry.status}
 						onChange={(e) =>
@@ -372,13 +379,11 @@ const WatchlistPage: React.FC = () => {
 						<option value='finished'>Finished</option>
 					</Select>
 				</SelectGroup>
-
 				{entry.notes && (
 					<Typography variant='body2' gutterBottom>
 						Notes: {entry.notes}
 					</Typography>
 				)}
-
 				{/* Tags display and management */}
 				<TagsSection>
 					{isEditingTags === entry.entry_id ? (
@@ -423,11 +428,19 @@ const WatchlistPage: React.FC = () => {
 		);
 
 		return viewStyle === 'grid' ? (
-			<WatchlistCard key={entry.entry_id} status={entry.status}>
+			<WatchlistCard
+				key={entry.entry_id}
+				status={entry.status}
+				data-testid={`movie-item-${entry.entry_id}`}
+			>
 				<RelativeCard>{commonContent}</RelativeCard>
 			</WatchlistCard>
 		) : (
-			<ListViewItem key={entry.entry_id} status={entry.status}>
+			<ListViewItem
+				key={entry.entry_id}
+				status={entry.status}
+				data-testid={`movie-item-${entry.entry_id}`}
+			>
 				<RelativeCard>{commonContent}</RelativeCard>
 			</ListViewItem>
 		);

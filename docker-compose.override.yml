@@ -6,22 +6,41 @@ services:
     environment:
       - NODE_ENV=development
     command: npm run dev
-
   app.client:
+    build:
+      context: .
+      dockerfile: ./app.client/Dockerfile.dev
     volumes:
-      - ./app.client:/app
-      - /app/node_modules
+      - ./app.client:/app/app.client
+      - ./lib.components:/app/lib.components
+      - /app/app.client/node_modules
+      - /app/lib.components/node_modules
     environment:
       - NODE_ENV=development
     command: npm run dev -- --host
 
   app.admin:
+    build:
+      context: .
+      dockerfile: ./app.admin/Dockerfile.dev
     volumes:
-      - ./app.admin:/app
-      - /app/node_modules
+      - ./app.admin:/app/app.admin
+      - ./lib.components:/app/lib.components
+      - /app/app.admin/node_modules
+      - /app/lib.components/node_modules
     environment:
       - NODE_ENV=development
     command: npm run dev -- --host
+  # Add component library service for development
+  lib.components:
+    image: node:20-alpine
+    volumes:
+      - ./lib.components:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - NODE_ENV=development
+    command: npm run dev -- --watch
 
   db:
     ports:

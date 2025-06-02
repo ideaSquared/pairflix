@@ -16,6 +16,14 @@ export const matches = {
 		return fetchWithAuth('/api/matches');
 	},
 
+	// Add create method
+	create: async (userId: string) => {
+		return fetchWithAuth('/api/matches', {
+			method: 'POST',
+			body: JSON.stringify({ user2_id: userId }),
+		});
+	},
+
 	request: async (email: string) => {
 		return fetchWithAuth('/api/matches/request', {
 			method: 'POST',

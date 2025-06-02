@@ -1,8 +1,6 @@
+import { Button, Flex, Typography } from '@pairflix/components';
 import React from 'react';
 import styled from 'styled-components';
-import { Flex } from '../layout/Layout';
-import { Button } from './Button';
-import { Typography } from './Typography';
 
 interface PaginationProps {
 	page?: number; // Keep for backward compatibility

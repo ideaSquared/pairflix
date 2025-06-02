@@ -1,9 +1,13 @@
+import {
+	Button,
+	Card,
+	CardContent,
+	Flex,
+	Grid,
+	H2,
+} from '@pairflix/components';
 import React from 'react';
 import styled from 'styled-components';
-import { Flex, Grid } from '../layout/Layout';
-import { Button } from './Button';
-import { Card, CardContent } from './Card';
-import { H2 } from './Typography';
 
 interface FilterGroupProps {
 	title?: string;

@@ -1,7 +1,8 @@
+import { H1, Loading } from '@pairflix/components'
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Loading } from '../components/common/Loading';
-import { H1 } from '../components/common/Typography';
+;
+;
 import { admin } from '../services/api';
 
 const LogGrid = styled.div`

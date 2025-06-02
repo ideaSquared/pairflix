@@ -1,14 +1,15 @@
+import {
+	Badge,
+	Button,
+	Flex,
+	Modal,
+	Select,
+	Textarea,
+	Typography,
+} from '@pairflix/components';
 import React from 'react';
-import { Badge } from '../../../../../components/common/Badge';
-import { Button } from '../../../../../components/common/Button';
-import { Input } from '../../../../../components/common/Input';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { Select } from '../../../../../components/common/Select';
-import { Typography } from '../../../../../components/common/Typography';
 import { User, UserStatus } from './types';
 import { getBadgeVariant } from './utils';
-
 interface ChangeStatusModalProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -75,9 +76,8 @@ const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
 					>
 						Reason for Change (optional)
 					</label>
-					<Input
+					<Textarea
 						id='status-reason'
-						as='textarea'
 						rows={3}
 						value={statusChangeReason}
 						onChange={(e) => setStatusChangeReason(e.target.value)}

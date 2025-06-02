@@ -1,7 +1,8 @@
+import { Button, H1, Typography } from '@pairflix/components'
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '../../../components/common/Button';
-import { H1, Typography } from '../../../components/common/Typography';
+;
+;
 import AdminDashboardContent from './dashboard/AdminDashboardContent';
 import SystemMonitoringContent from './dashboard/SystemMonitoringContent';
 import SystemStatsContent from './dashboard/SystemStatsContent';

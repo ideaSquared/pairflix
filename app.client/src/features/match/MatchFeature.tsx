@@ -1,7 +1,8 @@
+import { Card, CardContent, H2, Typography } from '@pairflix/components'
 import React from 'react';
 import styled from 'styled-components';
-import { Card, CardContent } from '../../components/common/Card';
-import { H2, Typography } from '../../components/common/Typography';
+;
+;
 import { useFeatureFlag } from '../../hooks/useFeatureFlag';
 
 const MatchContainer = styled.div`

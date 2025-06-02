@@ -1,10 +1,11 @@
+import { Badge, Card, CardContent, H2, Loading, Typography } from '@pairflix/components'
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import styled from 'styled-components';
-import { Badge } from '../../components/common/Badge';
-import { Card, CardContent } from '../../components/common/Card';
-import { Loading } from '../../components/common/Loading';
-import { H2, Typography } from '../../components/common/Typography';
+;
+;
+;
+;
 import { matches } from '../../services/api/matches';
 
 const RecommendationsContainer = styled.div`

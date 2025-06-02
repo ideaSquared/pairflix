@@ -1,9 +1,10 @@
+import { Button, Card, CardContent, ErrorText, H3, Input, InputGroup } from '@pairflix/components'
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent } from '../../components/common/Card';
-import { Input, InputGroup } from '../../components/common/Input';
-import { ErrorText, H3 } from '../../components/common/Typography';
+;
+;
+;
+;
 import { matches, user } from '../../services/api';
 
 interface Props {

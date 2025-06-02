@@ -6,6 +6,7 @@ import React, {
 	useState,
 } from 'react';
 import { admin, AppSettings } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 interface SettingsContextType {
 	settings: AppSettings | null;
@@ -34,8 +35,9 @@ interface SettingsProviderProps {
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 	children,
 }) => {
+	const { isAuthenticated } = useAuth();
 	const [settings, setSettings] = useState<AppSettings | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
+	const [isLoading, setIsLoading] = useState(false); // Start as false since we might not need to load
 	const [error, setError] = useState<string | null>(null);
 
 	const fetchSettings = async (): Promise<void> => {
@@ -83,11 +85,17 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 		}
 	};
 
+	// Only fetch settings when authenticated
 	useEffect(() => {
-		fetchSettings();
-		// We only want to fetch settings once on initial load
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+		if (isAuthenticated) {
+			fetchSettings();
+		} else {
+			// Reset settings when not authenticated
+			setSettings(null);
+			setError(null);
+			setIsLoading(false);
+		}
+	}, [isAuthenticated]);
 
 	return (
 		<SettingsContext.Provider

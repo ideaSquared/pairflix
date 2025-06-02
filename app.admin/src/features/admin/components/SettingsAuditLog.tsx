@@ -1,12 +1,16 @@
+import {
+	Alert,
+	Card,
+	CardContent,
+	Flex,
+	H2,
+	H3,
+	Loading,
+	Typography,
+} from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Alert } from '../../../components/common/Alert';
-import { Card, CardContent } from '../../../components/common/Card';
-import { Flex } from '../../../components/common/Layout';
-import { Loading } from '../../../components/common/Loading';
-import { H2, H3, Typography } from '../../../components/common/Typography';
 import { admin } from '../../../services/api';
-
 type AuditLogEntry = {
 	log_id: string;
 	level: 'info' | 'warn' | 'error' | 'debug';
@@ -69,7 +73,6 @@ const SettingsAuditLog: React.FC = () => {
 	const [logs, setLogs] = useState<AuditLogEntry[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
 	useEffect(() => {
 		const fetchSettingsAuditLogs = async () => {
 			try {
@@ -77,14 +80,14 @@ const SettingsAuditLog: React.FC = () => {
 				setError(null);
 
 				// Filter logs that are related to settings changes
-				const response = await admin.getAuditLogs({
+				const response = await admin.audit.getLogs({
 					source: 'admin-controller',
 					limit: 20,
 				});
 
 				// Filter logs to only include those related to settings
-				const settingsLogs = response.logs.filter(
-					(log) =>
+				const settingsLogs = (response.data || []).filter(
+					(log: AuditLogEntry) =>
 						log.message.toLowerCase().includes('settings') ||
 						(log.context && log.context.changes)
 				);

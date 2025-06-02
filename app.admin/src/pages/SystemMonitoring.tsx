@@ -1,5 +1,6 @@
+import { H1, Typography } from '@pairflix/components'
 import React from 'react';
-import { H1, Typography } from '../components/common/Typography';
+;
 import { SystemMonitoring as SystemMonitoringContent } from '../features/admin';
 
 const SystemMonitoring: React.FC = () => {

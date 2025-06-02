@@ -1,9 +1,10 @@
+import { Button, Flex, Modal, Select, Typography } from '@pairflix/components'
 import React from 'react';
-import { Button } from '../../../../../components/common/Button';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { Select } from '../../../../../components/common/Select';
-import { Typography } from '../../../../../components/common/Typography';
+;
+;
+;
+;
+;
 import { User, UserRole, UserStatus } from './types';
 
 interface EditUserModalProps {

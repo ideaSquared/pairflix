@@ -1,20 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { Alert } from '../../../../components/common/Alert';
-import { Button } from '../../../../components/common/Button';
-import { Card, CardContent } from '../../../../components/common/Card';
-import { Grid } from '../../../../components/common/Layout';
-import { Loading } from '../../../../components/common/Loading';
 import {
+	Alert,
+	Button,
+	Card,
+	CardContent,
+	Grid,
+	H3,
+	Loading,
 	Table,
 	TableBody,
 	TableCell,
 	TableContainer,
 	TableHead,
 	TableHeaderCell,
-} from '../../../../components/common/Table';
-import { H3 } from '../../../../components/common/Typography';
+} from '@pairflix/components';
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { adminStatsService } from '../../../../services/adminStats.service';
+import { SystemStats } from '../../../../services/api/admin';
 
 // Styled components
 const Section = styled.section`
@@ -32,12 +34,56 @@ const StatsTable = styled(Card)`
 	overflow: hidden;
 `;
 
+interface SystemEvent {
+	type: string;
+	description: string;
+	timestamp: string;
+	status: 'success' | 'warning' | 'error';
+}
+
+interface Dependency {
+	name: string;
+	currentVersion: string;
+	latestVersion: string;
+	status: 'up-to-date' | 'outdated' | 'critical';
+}
+
+interface ExtendedSystemStats extends SystemStats {
+	events?: SystemEvent[];
+	dependencies?: Dependency[];
+	application?: {
+		nodeVersion: string;
+		version: string;
+		uptime: number;
+		pid: number;
+	};
+	environment?: Record<string, string>;
+	database: SystemStats['database'] & {
+		status?: 'connected' | 'disconnected';
+		type?: string;
+		version?: string;
+		connections?: {
+			current: number;
+			max: number;
+		};
+		performance?: {
+			avgQueryTime: number;
+			slowQueries: number;
+		};
+	};
+	system: SystemStats['system'] & {
+		hostname?: string;
+		platform?: string;
+		arch?: string;
+	};
+}
+
 /**
  * SystemStatsContent component provides detailed system statistics
  * for the UnifiedDashboard's System Details tab
  */
 const SystemStatsContent: React.FC = () => {
-	const [statsData, setStatsData] = useState<any>(null);
+	const [statsData, setStatsData] = useState<ExtendedSystemStats | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -169,7 +215,7 @@ const SystemStatsContent: React.FC = () => {
 													Server Uptime
 												</TableCell>
 												<TableCell>
-													{formatDuration(statsData.system.uptime)}
+													{formatDuration(statsData.system.os.uptime)}
 												</TableCell>
 											</tr>
 										</TableBody>

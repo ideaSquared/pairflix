@@ -20,7 +20,8 @@
 		"types": ["jest", "node", "@testing-library/jest-dom"],
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@/*": ["src/*"],
+			"@pairflix/components": ["../lib.components/src"]
 		}
 	},
 	"include": ["src"],

@@ -1,10 +1,8 @@
+import { Card, Container, Flex, H1, Typography } from '@pairflix/components';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
-import { Card } from '../common/Card';
-import { Container, Flex } from '../common/Layout';
-import { H1, Typography } from '../common/Typography';
 
 const Header = styled(Card)`
 	margin: 0;

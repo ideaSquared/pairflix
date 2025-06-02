@@ -1,0 +1,47 @@
+# First stage: Build the component library
+FROM node:20-alpine AS component-builder
+
+WORKDIR /app
+
+# Copy the component library files
+COPY lib.components/package*.json ./lib.components/
+COPY lib.components/tsconfig*.json ./lib.components/
+COPY lib.components/vite.config.ts ./lib.components/
+COPY lib.components/src/ ./lib.components/src/
+
+# Install lib.components dependencies and build
+WORKDIR /app/lib.components
+RUN npm install
+RUN npm run build
+
+# Second stage: Build the app with the component library
+FROM node:20-alpine AS app
+
+WORKDIR /app
+
+# Copy app source
+COPY app.client/ ./app.client/
+
+# Create a temporary package.json without the problematic dependency
+WORKDIR /app/app.client
+RUN grep -v "@pairflix/components" package.json > temp-package.json && \
+    mv temp-package.json package.json
+
+# Install dependencies from npm registry
+RUN npm install
+
+# Create the directory structure for the local package
+RUN mkdir -p ./node_modules/@pairflix/components
+
+# Copy the built component library from builder stage
+COPY --from=component-builder /app/lib.components/dist ./node_modules/@pairflix/components/dist
+COPY --from=component-builder /app/lib.components/package.json ./node_modules/@pairflix/components/
+
+# Restore original package.json to maintain proper dependency information
+COPY app.client/package.json ./
+
+EXPOSE 5173
+ENV HOST=0.0.0.0
+ENV PORT=5173
+
+CMD ["npm", "run", "dev", "--", "--host"]

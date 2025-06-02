@@ -15,19 +15,25 @@ services:
       - /app/node_modules
 
   app.client:
-    build: ./app.client
+    build:
+      context: .
+      dockerfile: ./app.client/Dockerfile
     ports:
       - '5173:5173'
     environment:
       - VITE_API_URL=http://localhost:3000
     volumes:
-      - ./app.client:/app
-      - /app/node_modules
+      - ./app.client:/app/app.client
+      - ./lib.components:/app/lib.components
+      - /app/app.client/node_modules
+      - /app/lib.components/node_modules
     depends_on:
       - backend
 
   app.admin:
-    build: ./app.admin
+    build:
+      context: .
+      dockerfile: ./app.admin/Dockerfile
     ports:
       - '5174:5174'
     environment:
@@ -35,8 +41,10 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./app.admin:/app
-      - /app/node_modules
+      - ./app.admin:/app/app.admin
+      - ./lib.components:/app/lib.components
+      - /app/app.admin/node_modules
+      - /app/lib.components/node_modules
 
   db:
     image: postgres:15-alpine

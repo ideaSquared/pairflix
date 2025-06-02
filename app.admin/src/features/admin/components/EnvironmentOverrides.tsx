@@ -1,11 +1,12 @@
+import { Alert, Button, Card, CardContent, Flex, Grid, H2, H3, Tabs, Typography } from '@pairflix/components'
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Alert } from '../../../components/common/Alert';
-import { Button } from '../../../components/common/Button';
-import { Card, CardContent } from '../../../components/common/Card';
-import { Flex, Grid } from '../../../components/common/Layout';
-import { Tabs } from '../../../components/common/Tabs';
-import { H2, H3, Typography } from '../../../components/common/Typography';
+;
+;
+;
+;
+;
+;
 import { useSettings } from '../../../contexts/SettingsContext';
 import { AppSettings } from '../../../services/api';
 

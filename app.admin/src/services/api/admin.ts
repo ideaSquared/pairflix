@@ -79,6 +79,31 @@ export interface SystemStats {
 	};
 }
 
+export interface SystemMetrics {
+	cpu: {
+		usage: number;
+		loadAverage: number[];
+	};
+	memory: {
+		total: number;
+		used: number;
+		free: number;
+		usagePercentage: number;
+	};
+	disk: {
+		total: number;
+		used: number;
+		free: number;
+		usagePercentage: number;
+	};
+	network: {
+		bytesIn: number;
+		bytesOut: number;
+		connectionsPerSecond: number;
+	};
+	timestamp: string;
+}
+
 export interface AdminUser {
 	user_id: string;
 	username: string;
@@ -137,6 +162,59 @@ export interface AppSettings {
 		enableNotifications: boolean;
 		enableActivityFeed: boolean;
 	};
+}
+
+export interface ActivityStats {
+	totalActivities: number;
+	last24Hours: number;
+	lastWeek: number;
+	activityByType: Array<{
+		action: string;
+		count: number;
+	}>;
+	activityByDate: Array<{
+		date: string;
+		count: number;
+	}>;
+	mostActiveUsers: Array<{
+		user_id: string;
+		user?: {
+			username: string;
+			email: string;
+		};
+		count: number;
+	}>;
+}
+
+export interface ActivityAnalytics {
+	timeRange: {
+		days: number;
+		startDate: Date;
+		endDate: Date;
+	};
+	popularActivities: Array<{
+		action: string;
+		count: number;
+	}>;
+	timeline: Array<{
+		date: string;
+		count: number;
+	}>;
+	contextStats: Array<{
+		label: string;
+		count: number;
+	}>;
+	actionStats: Array<{
+		label: string;
+		count: number;
+	}>;
+	userPatterns: Array<{
+		user_id: string;
+		username: string;
+		mostFrequentActivity: string;
+		mostActiveTime: string;
+		activityCount: number;
+	}>;
 }
 
 // Admin API endpoints organized by feature

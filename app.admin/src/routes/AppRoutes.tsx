@@ -1,8 +1,6 @@
+import { Loading } from '@pairflix/components';
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { Loading } from '../components/common/Loading';
-import MaintenanceMode from '../components/common/MaintenanceMode';
-import TestComponent from '../components/common/TestComponent';
 import { useSettings } from '../contexts/SettingsContext';
 import LoginPage from '../features/auth/LoginPage';
 import { useAuth } from '../hooks/useAuth';
@@ -38,16 +36,21 @@ const AdminSettings = React.lazy(
 const AdminRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => {
 	const { isAuthenticated, isLoading, user } = useAuth();
 
+	// Add debug logging to understand auth state
+	console.log("Auth state:", { isAuthenticated, isLoading, userRole: user?.role });
+	
 	if (isLoading) {
 		return <Loading message='Checking authentication...' />;
 	}
 
 	if (!isAuthenticated) {
+		console.log("Not authenticated, redirecting to login");
 		return <Navigate to='/login' replace />;
 	}
 
 	// Ensure user has admin role
 	if (user?.role !== 'admin') {
+		console.log("User is not admin, redirecting to login");
 		return <Navigate to='/login' replace />;
 	}
 
@@ -58,17 +61,11 @@ const AppRoutes: React.FC = () => {
 	const { settings } = useSettings();
 	const { user } = useAuth();
 
-	// Show maintenance mode for non-admin users when enabled
-	if (settings?.general?.maintenanceMode && user?.role !== 'admin') {
-		return <MaintenanceMode />;
-	}
-
 	return (
 		<Suspense fallback={<Loading message='Loading page...' />}>
 			<Routes>
 				{/* Public routes */}
 				<Route path='/login' element={<LoginPage />} />
-				<Route path='/test' element={<TestComponent />} />
 
 				{/* Admin routes - all nested under the AdminLayout */}
 				<Route path='/' element={<AdminRoute element={<AdminLayout />} />}>

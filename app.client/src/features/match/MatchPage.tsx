@@ -1,11 +1,17 @@
+import {
+	Badge,
+	Button,
+	Card,
+	CardContent,
+	H1,
+	H2,
+	Select,
+	SelectGroup,
+	Typography,
+} from '@pairflix/components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent } from '../../components/common/Card';
-import { Select, SelectGroup } from '../../components/common/Select';
-import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout, { Container, Flex, Grid } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -16,7 +22,6 @@ import {
 } from '../../services/api';
 import InviteUser from './InviteUser';
 import Recommendations from './Recommendations';
-
 const PosterContainer = styled.div`
 	flex-shrink: 0;
 	width: 150px; // Reduced from 200px for better space utilization
@@ -344,7 +349,7 @@ const MatchPage: React.FC = () => {
 						</H2>
 
 						<FiltersContainer gap='sm'>
-							<SelectGroup>
+							<SelectGroup fullWidth={false}>
 								<Select
 									value={mediaTypeFilter}
 									onChange={(e) =>
@@ -357,7 +362,7 @@ const MatchPage: React.FC = () => {
 								</Select>
 							</SelectGroup>
 
-							<SelectGroup>
+							<SelectGroup fullWidth={false}>
 								<Select
 									value={statusFilter}
 									onChange={(e) =>
@@ -370,7 +375,7 @@ const MatchPage: React.FC = () => {
 								</Select>
 							</SelectGroup>
 
-							<SelectGroup>
+							<SelectGroup fullWidth={false}>
 								<Select
 									value={sortBy}
 									onChange={(e) => setSortBy(e.target.value as typeof sortBy)}

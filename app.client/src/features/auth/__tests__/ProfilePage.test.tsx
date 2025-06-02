@@ -96,7 +96,9 @@ describe('ProfilePage', () => {
 		render(<ProfilePage />);
 
 		// Fill in the new username
-		const usernameInput = screen.getByPlaceholderText('New Username');
+		const usernameInput = screen.getByPlaceholderText(
+			'New Username'
+		) as HTMLInputElement;
 		await user.type(usernameInput, 'newusername');
 
 		// Submit the form
@@ -130,7 +132,9 @@ describe('ProfilePage', () => {
 		render(<ProfilePage />);
 
 		// Fill in an invalid username (too short)
-		const usernameInput = screen.getByPlaceholderText('New Username');
+		const usernameInput = screen.getByPlaceholderText(
+			'New Username'
+		) as HTMLInputElement;
 		await user.type(usernameInput, 'ab');
 
 		// Submit the form
@@ -150,10 +154,15 @@ describe('ProfilePage', () => {
 		const user = userEvent.setup();
 		render(<ProfilePage />);
 
-		// Fill in an invalid email
-		const emailInput = screen.getByPlaceholderText('New Email');
-		const passwordInput = screen.getAllByPlaceholderText('Current Password')[0];
+		// Find the inputs with proper type assertions
+		const emailInput = screen.getByPlaceholderText(
+			'New Email'
+		) as HTMLInputElement;
+		const passwordInput = screen.getAllByPlaceholderText(
+			'Current Password'
+		)[0] as HTMLInputElement;
 
+		// Type in values
 		await user.type(emailInput, 'invalid-email');
 		await user.type(passwordInput, 'password123');
 
@@ -182,13 +191,16 @@ describe('ProfilePage', () => {
 		const user = userEvent.setup();
 		render(<ProfilePage />);
 
-		// Get password fields
-		const currentPasswordInput =
-			screen.getAllByPlaceholderText('Current Password')[1]; // Second one is for password update
-		const newPasswordInput = screen.getByPlaceholderText('New Password');
+		// Get password fields with proper type assertions
+		const currentPasswordInput = screen.getAllByPlaceholderText(
+			'Current Password'
+		)[1] as HTMLInputElement;
+		const newPasswordInput = screen.getByPlaceholderText(
+			'New Password'
+		) as HTMLInputElement;
 		const confirmPasswordInput = screen.getByPlaceholderText(
 			'Confirm New Password'
-		);
+		) as HTMLInputElement;
 
 		// Fill in passwords
 		await user.type(currentPasswordInput, 'oldpassword');
@@ -217,13 +229,16 @@ describe('ProfilePage', () => {
 		const user = userEvent.setup();
 		render(<ProfilePage />);
 
-		// Get password fields
-		const currentPasswordInput =
-			screen.getAllByPlaceholderText('Current Password')[1];
-		const newPasswordInput = screen.getByPlaceholderText('New Password');
+		// Get password fields with proper type assertions
+		const currentPasswordInput = screen.getAllByPlaceholderText(
+			'Current Password'
+		)[1] as HTMLInputElement;
+		const newPasswordInput = screen.getByPlaceholderText(
+			'New Password'
+		) as HTMLInputElement;
 		const confirmPasswordInput = screen.getByPlaceholderText(
 			'Confirm New Password'
-		);
+		) as HTMLInputElement;
 
 		// Fill in passwords with non-matching confirmation
 		await user.type(currentPasswordInput, 'oldpassword');
@@ -245,13 +260,16 @@ describe('ProfilePage', () => {
 		const user = userEvent.setup();
 		render(<ProfilePage />);
 
-		// Get password fields
-		const currentPasswordInput =
-			screen.getAllByPlaceholderText('Current Password')[1];
-		const newPasswordInput = screen.getByPlaceholderText('New Password');
+		// Get password fields with proper type assertions
+		const currentPasswordInput = screen.getAllByPlaceholderText(
+			'Current Password'
+		)[1] as HTMLInputElement;
+		const newPasswordInput = screen.getByPlaceholderText(
+			'New Password'
+		) as HTMLInputElement;
 		const confirmPasswordInput = screen.getByPlaceholderText(
 			'Confirm New Password'
-		);
+		) as HTMLInputElement;
 
 		// Fill in passwords with short password
 		await user.type(currentPasswordInput, 'oldpassword');
@@ -273,11 +291,14 @@ describe('ProfilePage', () => {
 
 	it('allows updating theme preference', async () => {
 		const user = userEvent.setup();
-		render(<ProfilePage />);
-
-		// Find the theme dropdown by looking for its neighbor label text
+		render(<ProfilePage />); // Find the theme dropdown by looking for its neighbor label text
 		const themeText = screen.getByText('Theme');
 		const themeRow = themeText.closest('.preference-row');
+
+		// Assert that we found the preference row
+		if (!themeRow) {
+			throw new Error('Could not find preference row for theme selection');
+		}
 
 		// Now find the select element within this row
 		const themeDropdown = within(themeRow as HTMLElement).getByRole('combobox');
@@ -331,8 +352,12 @@ describe('ProfilePage', () => {
 		render(<ProfilePage />);
 
 		// Fill in the new email and password
-		const emailInput = screen.getByPlaceholderText('New Email');
-		const passwordInput = screen.getAllByPlaceholderText('Current Password')[0];
+		const emailInput = screen.getByPlaceholderText(
+			'New Email'
+		) as HTMLInputElement;
+		const passwordInput = screen.getAllByPlaceholderText(
+			'Current Password'
+		)[0] as HTMLInputElement;
 
 		await user.type(emailInput, 'new@example.com');
 		await user.type(passwordInput, 'password');

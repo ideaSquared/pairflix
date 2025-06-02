@@ -68,17 +68,17 @@ const StyledInput = styled.input<StyledInputProps>`
 	color: ${({ theme }) => theme.colors.text.primary || '#000000'};
 	border: 1px solid
 		${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.border || '#e0e0e0'};
 	border-radius: ${({ theme }) => theme.borderRadius.sm || '4px'};
-	${({ $size }) => getInputPadding($size)};
-	width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
-	height: ${({ $size }) => getInputHeight($size)};
+	${({ $size }) => getInputPadding($size ?? 'medium')};
+	width: ${({ $fullWidth }) => ($fullWidth ?? false ? '100%' : 'auto')};
+	height: ${({ $size }) => getInputHeight($size ?? 'medium')};
 	font-size: ${({ theme, $size }) =>
-		$size === 'small'
+		($size ?? 'medium') === 'small'
 			? theme.typography.fontSize.sm || '14px'
-			: $size === 'large'
+			: ($size ?? 'medium') === 'large'
 			? theme.typography.fontSize.lg || '18px'
 			: theme.typography.fontSize.md || '16px'};
 	transition: all 0.2s ease-in-out;
@@ -93,7 +93,7 @@ const StyledInput = styled.input<StyledInputProps>`
 
 	&:hover:not(:disabled) {
 		border-color: ${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.primary || '#0077cc'};
 	}
@@ -101,12 +101,12 @@ const StyledInput = styled.input<StyledInputProps>`
 	&:focus {
 		outline: none;
 		border-color: ${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.primary || '#0077cc'};
 		box-shadow: 0 0 0 2px
 			${({ $error, theme }) =>
-				$error
+				$error ?? false
 					? `${theme.colors.text.error || '#f44336'}40`
 					: `${theme.colors.primary || '#0077cc'}40`};
 	}
@@ -114,7 +114,7 @@ const StyledInput = styled.input<StyledInputProps>`
 	&:focus-visible {
 		outline: 2px solid
 			${({ $error, theme }) =>
-				$error
+				$error ?? false
 					? theme.colors.text.error || '#f44336'
 					: theme.colors.primary || '#0077cc'};
 		outline-offset: 2px;
@@ -141,20 +141,21 @@ export const InputLabel = styled.label<{
 	display: block;
 	margin-bottom: ${({ theme }) => theme.spacing.xs || '4px'};
 	color: ${({ theme, $error }) =>
-		$error
+		$error ?? false
 			? theme.colors.text.error || '#f44336'
 			: theme.colors.text.primary || '#000000'};
 	font-size: ${({ theme }) => theme.typography.fontSize.sm || '14px'};
 	font-weight: ${({ theme }) => theme.typography.fontWeight.medium || '500'};
 
 	${({ $required, theme }) =>
-		$required &&
-		`
+		$required ?? false
+			? `
 		&:after {
 			content: " *";
 			color: ${theme.colors.text.error || '#f44336'};
 		}
-	`}
+	`
+			: ''}
 
 	@media (max-width: ${({ theme }) => theme.breakpoints.sm || '576px'}) {
 		margin-bottom: calc(${({ theme }) => theme.spacing.xs || '4px'} * 0.8);
@@ -215,12 +216,17 @@ export const Input: React.FC<InputFieldProps> = ({
 	size,
 	...props
 }) => {
-	const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+	const inputId =
+		id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
 	return (
 		<InputGroup fullWidth={fullWidth}>
 			{label && (
-				<InputLabel htmlFor={inputId} $error={error} $required={required}>
+				<InputLabel
+					htmlFor={inputId}
+					$error={error ?? false}
+					$required={required ?? false}
+				>
 					{label}
 				</InputLabel>
 			)}
@@ -229,13 +235,13 @@ export const Input: React.FC<InputFieldProps> = ({
 			)}
 			<StyledInput
 				id={inputId}
-				$error={error}
-				$fullWidth={fullWidth}
-				$size={size}
+				$error={error ?? false}
+				$fullWidth={fullWidth ?? false}
+				$size={size ?? 'medium'}
 				$startAdornment={startAdornment}
 				$endAdornment={endAdornment}
-				aria-invalid={error}
-				aria-required={required}
+				aria-invalid={error ?? false}
+				aria-required={required ?? false}
 				required={required}
 				{...props}
 			/>

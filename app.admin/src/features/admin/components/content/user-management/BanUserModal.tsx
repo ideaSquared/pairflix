@@ -1,9 +1,11 @@
+import {
+	Button,
+	Flex,
+	Modal,
+	Textarea,
+	Typography,
+} from '@pairflix/components';
 import React from 'react';
-import { Button } from '../../../../../components/common/Button';
-import { Input } from '../../../../../components/common/Input';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { Typography } from '../../../../../components/common/Typography';
 import { User } from './types';
 
 interface BanUserModalProps {
@@ -39,9 +41,8 @@ const BanUserModal: React.FC<BanUserModalProps> = ({
 				>
 					Reason for Ban
 				</label>
-				<Input
+				<Textarea
 					id='ban-reason'
-					as='textarea'
 					rows={3}
 					value={banReason}
 					onChange={(e) => setBanReason(e.target.value)}

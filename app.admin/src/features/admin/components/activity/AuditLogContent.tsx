@@ -1,26 +1,16 @@
+import { Alert, Badge, Button, Card, CardContent, FilterGroup, FilterItem, Grid, Input, Pagination, Select, Table, TableActionButton, TableBody, TableCell, TableContainer, TableHead, TableHeaderCell } from '@pairflix/components'
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Alert } from '../../../../components/common/Alert';
-import { Badge } from '../../../../components/common/Badge';
-import { Button } from '../../../../components/common/Button';
-import { Card, CardContent } from '../../../../components/common/Card';
-import {
-	FilterGroup,
-	FilterItem,
-} from '../../../../components/common/FilterGroup';
-import { Input } from '../../../../components/common/Input';
-import { Grid } from '../../../../components/common/Layout';
-import { Pagination } from '../../../../components/common/Pagination';
-import { Select } from '../../../../components/common/Select';
-import {
-	Table,
-	TableActionButton,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableHeaderCell,
-} from '../../../../components/common/Table';
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
 import { admin } from '../../../../services/api';
 import { AuditLog, AuditLogStats } from '../../../../services/api/admin';
 

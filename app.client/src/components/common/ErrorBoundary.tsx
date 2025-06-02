@@ -1,9 +1,13 @@
+import {
+	Button,
+	Card,
+	CardContent,
+	Flex,
+	H2,
+	Typography,
+} from '@pairflix/components';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
-import { Flex } from '../layout/Layout';
-import { Button } from './Button';
-import { Card, CardContent } from './Card';
-import { H2, Typography } from './Typography';
 
 interface Props {
 	children: ReactNode;

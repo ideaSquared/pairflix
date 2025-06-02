@@ -1,10 +1,9 @@
+import { Card, H1, Typography } from '@pairflix/components';
 import React, { ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import type { Theme } from '../../styles/theme';
-import { Card } from '../common/Card';
-import { H1, Typography } from '../common/Typography';
 
 // ======== Layout Utility Components ========
 

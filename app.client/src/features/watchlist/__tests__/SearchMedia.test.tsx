@@ -96,9 +96,15 @@ describe('SearchMedia', () => {
 			expect(screen.getByText('Test Movie')).toBeInTheDocument();
 		});
 
-		// Find and click the Add to Watchlist button for the movie
-		const addButtons = screen.getAllByText('Add to Watchlist');
-		fireEvent.click(addButtons[0]); // First button should be for Test Movie
+		// Find and click the Add to Watchlist button for the movie using a more reliable query
+		const addButtons = await screen.findAllByRole('button', {
+			name: /add to watchlist/i,
+		});
+		if (addButtons[0]) {
+			fireEvent.click(addButtons[0]);
+		} else {
+			throw new Error('Add to Watchlist button not found');
+		}
 
 		// Verify API call to add to watchlist
 		await waitFor(() => {
@@ -126,8 +132,10 @@ describe('SearchMedia', () => {
 		);
 		fireEvent.change(searchInput, { target: { value: 'test query' } });
 
-		// Check for loading state
-		expect(screen.getByText('Loading...')).toBeInTheDocument();
+		// Check for loading state using waitFor to ensure element exists
+		await waitFor(() => {
+			expect(screen.getByText('Loading...')).toBeInTheDocument();
+		});
 
 		// Eventually, results should be displayed
 		await waitFor(() => {

@@ -1,15 +1,12 @@
+import { Button, Flex, H3, Input, InputError, InputLabel, Modal } from '@pairflix/components'
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { FiUser } from 'react-icons/fi';
 import styled from 'styled-components';
-import { Button } from '../../../../../components/common/Button';
-import {
-	Input,
-	InputError,
-	InputLabel,
-} from '../../../../../components/common/Input';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { H3 } from '../../../../../components/common/Typography';
+;
+;
+;
+;
+;
 import { UserRole, UserStatus } from './types';
 
 const FormGroup = styled.div`

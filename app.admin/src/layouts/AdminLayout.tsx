@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { H3 } from '../components/common/Typography';
+import { H3 } from '@pairflix/components';
 import { useAuth } from '../hooks/useAuth';
 import { Theme } from '../styles/theme';
 

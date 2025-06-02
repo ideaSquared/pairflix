@@ -1,6 +1,6 @@
+import { ErrorBoundary } from '@pairflix/components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
 import QueryErrorBoundary from './components/common/QueryErrorBoundary';
 import SessionManager from './components/common/SessionManager';
 import { SettingsProvider } from './contexts/SettingsContext';

@@ -1,8 +1,9 @@
+import { Container, Flex, H3 } from '@pairflix/components'
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { Container, Flex } from '../../../components/common/Layout';
-import { H3 } from '../../../components/common/Typography';
+;
+;
 import { Theme } from '../../../styles/theme';
 
 const AdminContainer = styled(Container)`

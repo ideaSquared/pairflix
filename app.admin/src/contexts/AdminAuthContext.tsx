@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiService } from '../services/api.service';
+import { auth } from '../services/api';
 
 // Constants for consistent token storage
 export const ADMIN_TOKEN_KEY = 'admin_token';
@@ -7,7 +7,7 @@ export const ADMIN_TOKEN_KEY = 'admin_token';
 type AdminUser = {
 	id: string;
 	email: string;
-	name: string;
+	name?: string; // Making this optional since it might not be returned by the API
 	role: string;
 };
 
@@ -39,7 +39,6 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({
 }) => {
 	const [user, setUser] = useState<AdminUser | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
-
 	// Function to verify authentication status with the server
 	const checkAuthStatus = async (): Promise<boolean> => {
 		try {
@@ -51,10 +50,21 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({
 
 			// Validate token with the API
 			console.log('Validating admin token with API');
-			const userData = await apiService.get('/api/admin/validate-token');
-			console.log('Token validated successfully:', userData);
-			setUser(userData);
-			return true;
+			const isValid = await auth.validateToken();
+
+			if (isValid) {
+				// Since validateToken only returns a boolean, we need to get the user data separately
+				// This could be enhanced to have validateToken return user data as well
+				const userData = await fetch(`${window.location.origin}/api/admin/me`, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}).then((res) => res.json());
+				console.log('Token validated successfully:', userData);
+				setUser(userData);
+				return true;
+			}
+			return false;
 		} catch (error) {
 			// Clear invalid token
 			console.error('Auth check error:', error);
@@ -76,12 +86,11 @@ export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({
 
 		initAuth();
 	}, []);
-
 	const login = async (email: string, password: string) => {
 		setIsLoading(true);
 		try {
 			console.log('Attempting login for:', email);
-			const data = await apiService.post('/api/admin/login', {
+			const data = await auth.login({
 				email,
 				password,
 			});

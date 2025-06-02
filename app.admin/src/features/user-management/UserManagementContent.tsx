@@ -1,19 +1,14 @@
+import { Button, Card, CardContent, CardHeader } from '@pairflix/components';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent, CardHeader } from '../../components/common/Card';
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableHeaderCell,
-	TableRow,
-} from '../../components/common/Table';
 import api from '../../services/api';
 import { AdminUser } from '../../services/api/admin';
 import UserActionsMenu from './UserActionsMenu';
+// Import DataTable components
+import { DataTable, TableColumn } from '@pairflix/components';
+
+// Define a type that extends AdminUser and satisfies Record<string, unknown>
+type AdminUserRecord = AdminUser & Record<string, unknown>;
 
 // Custom notification component
 const NotificationContainer = styled.div`
@@ -99,125 +94,189 @@ const LoadingIndicator = styled.div`
 	justify-content: center;
 	align-items: center;
 	height: 200px;
+	width: 100%;
 `;
 
 const UserManagementContent = () => {
+	// State for users, pagination, loading, modal, and notifications
 	const [users, setUsers] = useState<AdminUser[]>([]);
-	const [loading, setLoading] = useState(true);
 	const [pagination, setPagination] = useState<PaginationInfo>({
 		total: 0,
 		limit: 10,
 		offset: 0,
 		hasMore: false,
 	});
+	const [loading, setLoading] = useState(true);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [notifications, setNotifications] = useState<Notification[]>([]);
+	const [notificationCounter, setNotificationCounter] = useState(0);
 
-	// Helper function for notifications
+	// Load users on mount and when pagination changes
+	useEffect(() => {
+		const fetchUsers = async () => {
+			setLoading(true);
+			try {
+				const response = await api.admin.users.getAll({
+					limit: pagination.limit,
+					offset: pagination.offset,
+				});
+				setUsers(response.users);
+				setPagination({
+					total: response.pagination.total,
+					limit: response.pagination.limit,
+					offset: response.pagination.offset,
+					hasMore: response.pagination.hasMore,
+				});
+			} catch (error) {
+				console.error('Failed to fetch users:', error);
+				addNotification('Failed to load users.', 'error');
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchUsers();
+	}, [pagination.offset, pagination.limit]);
+
+	// Add notification
 	const addNotification = (message: string, type: 'success' | 'error') => {
-		const id = Date.now();
-		setNotifications((prev) => [...prev, { id, message, type }]);
-
-		// Auto remove after 5 seconds
+		const id = notificationCounter + 1;
+		setNotificationCounter(id);
+		const notification = {
+			id,
+			message,
+			type,
+		};
+		setNotifications((prev) => [...prev, notification]);
 		setTimeout(() => {
-			setNotifications((prev) =>
-				prev.filter((notification) => notification.id !== id)
-			);
+			setNotifications((prev) => prev.filter((n) => n.id !== id));
 		}, 5000);
 	};
 
-	const fetchUsers = async () => {
-		try {
-			const response = await api.admin.users.getAll({
-				limit: pagination.limit,
-				offset: pagination.offset,
-			});
-
-			if (response && response.users) {
-				setUsers(response.users);
-				if (response.pagination) {
-					setPagination(response.pagination);
-				}
-			} else {
-				console.error('Unexpected API response structure:', response);
-				addNotification('Unexpected data format from server', 'error');
-			}
-		} catch (error) {
-			addNotification('Failed to fetch users', 'error');
-			console.error('Error fetching users:', error);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchUsers();
-	}, [pagination.limit, pagination.offset]);
-
-	const handleStatusChange = async (
-		userId: string,
-		newStatus: AdminUser['status'],
-		reason?: string
-	) => {
-		try {
-			await api.admin.users.changeStatus(userId, newStatus, reason);
-			await fetchUsers();
-			addNotification('User status updated successfully', 'success');
-		} catch (error) {
-			addNotification('Failed to update user status', 'error');
-			console.error('Error updating user status:', error);
-		}
-	};
-
-	const handleDeleteUser = async (userId: string) => {
-		try {
-			await api.admin.users.delete(userId);
-			await fetchUsers();
-			addNotification('User deleted successfully', 'success');
-		} catch (error) {
-			addNotification('Failed to delete user', 'error');
-			console.error('Error deleting user:', error);
-		}
-	};
-
-	const handleResetPassword = async (userId: string) => {
-		try {
-			const response = await api.admin.users.resetPassword(userId);
-			addNotification(
-				`Password reset successfully. New password: ${response.newPassword}`,
-				'success'
-			);
-		} catch (error) {
-			addNotification('Failed to reset password', 'error');
-			console.error('Error resetting password:', error);
-		}
-	};
-
+	// Handle page change
 	const handlePageChange = (newOffset: number) => {
 		setPagination((prev) => ({
 			...prev,
 			offset: newOffset,
 		}));
 	};
-
-	const handleLimitChange = (newLimit: number) => {
-		setPagination((prev) => ({
-			...prev,
-			limit: newLimit,
-			offset: 0, // Reset to first page when changing page size
-		}));
+	// Handle user status change
+	const handleStatusChange = async (
+		userId: string,
+		status: AdminUser['status']
+	) => {
+		try {
+			await api.admin.users.changeStatus(userId, status);
+			// Update the user in the local state
+			setUsers((prev) =>
+				prev.map((user) =>
+					user.user_id === userId ? { ...user, status } : user
+				)
+			);
+			addNotification(`User status changed to ${status}.`, 'success');
+		} catch (error) {
+			console.error('Failed to change user status:', error);
+			addNotification('Failed to change user status.', 'error');
+		}
 	};
+
+	// Handle user deletion
+	const handleDeleteUser = async (userId: string) => {
+		try {
+			await api.admin.users.delete(userId);
+			// Remove the user from local state
+			setUsers((prev) => prev.filter((user) => user.user_id !== userId));
+			addNotification('User deleted successfully.', 'success');
+		} catch (error) {
+			console.error('Failed to delete user:', error);
+			addNotification('Failed to delete user.', 'error');
+		}
+	};
+
+	// Handle password reset
+	const handleResetPassword = async (userId: string) => {
+		try {
+			await api.admin.users.resetPassword(userId);
+			addNotification('Password reset email sent.', 'success');
+		} catch (error) {
+			console.error('Failed to reset password:', error);
+			addNotification('Failed to send password reset email.', 'error');
+		}
+	};
+	// Create a new user
+	const handleCreateUser = async (userData: {
+		username: string;
+		email: string;
+		password: string;
+		role: string;
+	}) => {
+		try {
+			const response = await api.admin.users.create({
+				...userData,
+				status: 'active' as AdminUser['status'],
+			});
+			setUsers((prev) => [response.user, ...prev]);
+			setIsCreateModalOpen(false);
+			addNotification('User created successfully.', 'success');
+		} catch (error) {
+			console.error('Failed to create user:', error);
+			addNotification('Failed to create user.', 'error');
+		}
+	};
+	// Define columns with type safety
+	const columns: TableColumn<AdminUserRecord>[] = [
+		{
+			key: 'username',
+			header: 'Username',
+		},
+		{
+			key: 'email',
+			header: 'Email',
+		},
+		{
+			key: 'role',
+			header: 'Role',
+		},
+		{
+			key: 'status',
+			header: 'Status',
+		},
+		{
+			key: 'created_at',
+			header: 'Created At',
+			render: (created_at) =>
+				new Date(created_at as string).toLocaleDateString(),
+		},
+	];
+
+	// Define row actions for the DataTable
+	const renderActions = (user: AdminUserRecord) => (
+		<UserActionsMenu
+			user={user}
+			onStatusChange={handleStatusChange}
+			onDelete={handleDeleteUser}
+			onResetPassword={handleResetPassword}
+		/>
+	);
 
 	return (
 		<PageContainer>
+			{/* Notifications */}
+			<NotificationContainer>
+				{notifications.map((notification) => (
+					<NotificationItem key={notification.id} type={notification.type}>
+						{notification.message}
+					</NotificationItem>
+				))}
+			</NotificationContainer>
+
 			<Card>
 				<CardHeader>
 					<PageHeader>
 						<PageTitle>User Management</PageTitle>
 						<Button
 							variant='primary'
-							onClick={() => {
-								/* TODO: Implement create user dialog */
-							}}
+							onClick={() => setIsCreateModalOpen(true)}
 						>
 							Create User
 						</Button>
@@ -228,81 +287,45 @@ const UserManagementContent = () => {
 						<LoadingIndicator>Loading users...</LoadingIndicator>
 					) : (
 						<>
-							<TableContainer>
-								<Table>
-									<TableHead>
-										<TableRow>
-											<TableHeaderCell>Username</TableHeaderCell>
-											<TableHeaderCell>Email</TableHeaderCell>
-											<TableHeaderCell>Role</TableHeaderCell>
-											<TableHeaderCell>Status</TableHeaderCell>
-											<TableHeaderCell>Created At</TableHeaderCell>
-											<TableHeaderCell>Actions</TableHeaderCell>
-										</TableRow>
-									</TableHead>
-									<TableBody>
-										{users.length > 0 ? (
-											users.map((user) => (
-												<TableRow key={user.user_id}>
-													<TableCell>{user.username}</TableCell>
-													<TableCell>{user.email}</TableCell>
-													<TableCell>{user.role}</TableCell>
-													<TableCell>{user.status}</TableCell>
-													<TableCell>
-														{new Date(user.created_at).toLocaleDateString()}
-													</TableCell>
-													<TableCell>
-														<UserActionsMenu
-															user={user}
-															onStatusChange={handleStatusChange}
-															onDelete={handleDeleteUser}
-															onResetPassword={handleResetPassword}
-														/>
-													</TableCell>
-												</TableRow>
-											))
-										) : (
-											<TableRow>
-												<TableCell colSpan={6} align='center'>
-													No users found
-												</TableCell>
-											</TableRow>
-										)}
-									</TableBody>
-								</Table>
-							</TableContainer>
-
+							{' '}
+							<DataTable<AdminUserRecord>
+								columns={columns}
+								data={users as AdminUserRecord[]}
+								emptyMessage='No users found'
+								getRowId={(row) => row.user_id}
+								rowActions={renderActions}
+								minWidth='1000px'
+								aria-label='User management table'
+								stickyHeader
+							/>
+							{/* Pagination controls */}
 							<PaginationContainer>
 								<PaginationInfo>
-									Showing {Math.min(pagination.offset + 1, pagination.total)} to{' '}
-									{Math.min(
-										pagination.offset + pagination.limit,
-										pagination.total
-									)}{' '}
+									Showing {pagination.offset + 1} to{' '}
+									{Math.min(pagination.offset + users.length, pagination.total)}{' '}
 									of {pagination.total} users
 								</PaginationInfo>
 								<PaginationButtons>
+									{' '}
 									<Button
 										variant='secondary'
 										size='small'
-										disabled={pagination.offset === 0}
 										onClick={() =>
 											handlePageChange(
 												Math.max(0, pagination.offset - pagination.limit)
 											)
 										}
+										disabled={pagination.offset === 0}
 									>
 										Previous
 									</Button>
 									<Button
 										variant='secondary'
 										size='small'
-										disabled={
-											pagination.offset + pagination.limit >= pagination.total
-										}
 										onClick={() =>
 											handlePageChange(pagination.offset + pagination.limit)
 										}
+										disabled={!pagination.hasMore}
 									>
 										Next
 									</Button>
@@ -313,14 +336,7 @@ const UserManagementContent = () => {
 				</CardContent>
 			</Card>
 
-			{/* Notifications */}
-			<NotificationContainer>
-				{notifications.map((notification) => (
-					<NotificationItem key={notification.id} type={notification.type}>
-						{notification.message}
-					</NotificationItem>
-				))}
-			</NotificationContainer>
+			{/* Create user modal would go here */}
 		</PageContainer>
 	);
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import Layout from '../../components/layout/Layout';
 import ActivityFeed from './ActivityFeed';
 
 const PageContainer = styled.div`
@@ -38,16 +39,18 @@ const Description = styled.p`
 
 const ActivityPage: React.FC = () => {
 	return (
-		<PageContainer>
-			<PageHeader>
-				<Title>Activity Feed</Title>
-				<Description>
-					See what your partner has been watching and their recent activity.
-				</Description>
-			</PageHeader>
+		<Layout>
+			<PageContainer>
+				<PageHeader>
+					<Title>Activity Feed</Title>
+					<Description>
+						See what your partner has been watching and their recent activity.
+					</Description>
+				</PageHeader>
 
-			<ActivityFeed limit={30} />
-		</PageContainer>
+				<ActivityFeed limit={30} />
+			</PageContainer>
+		</Layout>
 	);
 };
 

@@ -1,14 +1,15 @@
+import {
+	Badge,
+	Button,
+	Flex,
+	Modal,
+	Select,
+	Textarea,
+	Typography,
+} from '@pairflix/components';
 import React from 'react';
-import { Badge } from '../../../../../components/common/Badge';
-import { Button } from '../../../../../components/common/Button';
-import { Input } from '../../../../../components/common/Input';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import { Select } from '../../../../../components/common/Select';
-import { Typography } from '../../../../../components/common/Typography';
 import { User, UserRole } from './types';
 import { getRoleBadgeVariant } from './utils';
-
 interface ChangeRoleModalProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -73,9 +74,8 @@ const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({
 					>
 						Reason for Change (optional)
 					</label>
-					<Input
+					<Textarea
 						id='role-reason'
-						as='textarea'
 						rows={3}
 						value={roleChangeReason}
 						onChange={(e) => setRoleChangeReason(e.target.value)}

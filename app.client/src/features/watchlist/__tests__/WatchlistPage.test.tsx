@@ -1,6 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import { user as userApi, watchlist } from '../../../services/api';
 import {
+	act,
 	fireEvent,
 	render,
 	screen,
@@ -141,7 +142,6 @@ describe('WatchlistPage', () => {
 			});
 		}
 	});
-
 	it('allows changing entry status', async () => {
 		render(<WatchlistPage />);
 
@@ -150,28 +150,23 @@ describe('WatchlistPage', () => {
 			expect(screen.getByText('My Watchlist')).toBeInTheDocument();
 		});
 
-		// Find the container that has the movie title
-		const movieTitle = screen.getByText('Test Movie');
-		// Get the parent container that should contain both the title and the select
-		const movieContainer = movieTitle.closest('div');
+		// Find the container that has the movie title and select
+		const movieElement = screen.getByTestId('movie-item-1');
+		expect(movieElement).toBeInTheDocument();
 
-		if (movieContainer) {
-			// Find the select within this container
-			const selects = within(
-				movieContainer.parentElement as HTMLElement
-			).getAllByRole('combobox');
-			const select = selects[0]; // Get the first select
+		const movieSelect = within(movieElement).getByRole('combobox');
+		expect(movieSelect).toBeInTheDocument();
+		// Change the status
+		await act(async () => {
+			fireEvent.change(movieSelect, { target: { value: 'finished' } });
+		});
 
-			// Change the status
-			fireEvent.change(select, { target: { value: 'finished' } });
-
-			// Wait for the update to be called
-			await waitFor(() => {
-				expect(watchlist.update).toHaveBeenCalledWith('1', {
-					status: 'finished',
-				});
+		// Wait for the update to be called
+		await waitFor(() => {
+			expect(watchlist.update).toHaveBeenCalledWith('1', {
+				status: 'finished',
 			});
-		}
+		});
 	});
 
 	it('switches between list and search tabs', async () => {

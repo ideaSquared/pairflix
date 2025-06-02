@@ -1,5 +1,8 @@
 /// <reference types="vite/client" />
 
+// Constants for consistent token storage
+export const ADMIN_TOKEN_KEY = 'admin_token';
+
 /**
  * Handle API errors in a consistent way
  */
@@ -128,8 +131,7 @@ export const fetchWithAuth = async <T>(
 		'Content-Type': 'application/json',
 		...Object.fromEntries(Object.entries(options.headers || {})),
 	});
-
-	const token = localStorage.getItem('token');
+	const token = localStorage.getItem(ADMIN_TOKEN_KEY);
 	if (token) {
 		headers.set('Authorization', `Bearer ${token}`);
 	}

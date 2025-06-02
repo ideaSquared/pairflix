@@ -1,11 +1,12 @@
+import { Badge, Button, Card, CardContent, CardGrid, ErrorText, H3, Input, InputGroup, Typography } from '@pairflix/components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent, CardGrid } from '../../components/common/Card';
-import { Input, InputGroup } from '../../components/common/Input';
-import { ErrorText, H3, Typography } from '../../components/common/Typography';
+;
+;
+;
+;
+;
 import { useAuth } from '../../hooks/useAuth';
 import { search, SearchResult, watchlist } from '../../services/api';
 

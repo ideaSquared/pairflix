@@ -1,10 +1,7 @@
+import { Button, H1, Loading } from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '../components/common/Button';
-import { Loading } from '../components/common/Loading';
-import { H1 } from '../components/common/Typography';
 import { admin } from '../services/api';
-
 // Simple styled component for user cards
 const UserGrid = styled.div`
 	display: grid;
@@ -63,7 +60,7 @@ interface User {
 	username: string;
 	email: string;
 	role: 'admin' | 'user' | 'moderator';
-	status: 'active' | 'suspended' | 'banned' | 'pending';
+	status: 'active' | 'suspended' | 'banned' | 'pending' | 'inactive';
 	created_at: string;
 	last_login?: string;
 }
@@ -78,16 +75,15 @@ const UserManagement: React.FC = () => {
 			try {
 				setIsLoading(true);
 				setError(null);
-
 				const response = await admin.users.getAll({
 					limit: 10,
 					offset: 0,
 				});
 
 				// Process the users data
-				const processedUsers = response.data.map((user: any) => ({
+				const processedUsers = response.users.map((user) => ({
 					...user,
-					id: user.user_id || user.id,
+					id: user.user_id || user.user_id,
 				}));
 
 				setUsers(processedUsers);

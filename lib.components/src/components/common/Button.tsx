@@ -88,7 +88,13 @@ const getSizeStyles = (size: ButtonSize = 'medium') => {
 	return sizes[size];
 };
 
-export const Button = styled.button<ButtonProps>`
+interface StyledButtonProps {
+	$variant: ButtonVariant;
+	$size: ButtonSize;
+	$fullWidth: boolean;
+}
+
+const StyledButton = styled.button<StyledButtonProps>`
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -98,11 +104,11 @@ export const Button = styled.button<ButtonProps>`
 	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
 	cursor: pointer;
 	transition: all 0.2s ease-in-out;
-	width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
+	width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 	gap: ${({ theme }) => theme.spacing.xs};
 
-	${({ variant }) => getVariantStyles(variant)}
-	${({ size }) => getSizeStyles(size)}
+	${({ $variant }) => getVariantStyles($variant)}
+	${({ $size }) => getSizeStyles($size)}
 
     &:disabled {
 		background: ${({ theme }) => theme.colors.secondary};
@@ -115,3 +121,26 @@ export const Button = styled.button<ButtonProps>`
 		outline-offset: 2px;
 	}
 `;
+
+export const Button: React.FC<
+	ButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>
+> = ({
+	variant = 'primary',
+	size = 'medium',
+	fullWidth = false,
+	disabled = false,
+	children,
+	...props
+}) => {
+	return (
+		<StyledButton
+			$variant={variant}
+			$size={size}
+			$fullWidth={fullWidth}
+			disabled={disabled}
+			{...props}
+		>
+			{children}
+		</StyledButton>
+	);
+};

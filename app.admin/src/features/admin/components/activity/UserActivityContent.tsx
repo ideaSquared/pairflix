@@ -1,18 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { Alert } from '../../../../components/common/Alert';
-import { Badge } from '../../../../components/common/Badge';
-import { Button } from '../../../../components/common/Button';
-import { Card, CardContent } from '../../../../components/common/Card';
 import {
+	Alert,
+	Badge,
+	Button,
+	Card,
+	CardContent,
 	FilterGroup,
 	FilterItem,
-} from '../../../../components/common/FilterGroup';
-import { Input } from '../../../../components/common/Input';
-import { Grid } from '../../../../components/common/Layout';
-import { Pagination } from '../../../../components/common/Pagination';
-import { Select } from '../../../../components/common/Select';
-import {
+	Grid,
+	H3,
+	Input,
+	Pagination,
+	Select,
 	Table,
 	TableActionButton,
 	TableBody,
@@ -20,10 +18,12 @@ import {
 	TableContainer,
 	TableHead,
 	TableHeaderCell,
-} from '../../../../components/common/Table';
-import { H3 } from '../../../../components/common/Typography';
+} from '@pairflix/components';
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { adminStatsService } from '../../../../services/adminStats.service';
 import { admin } from '../../../../services/api';
+import { ActivityStats } from '../../../../services/api/admin';
 
 // Styled components
 const StatsGrid = styled(Grid)`
@@ -41,7 +41,6 @@ const SectionHeader = styled(H3)`
 	margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
-// Add styled table row that can be highlighted
 const TableRow = styled.tr<{ isToday?: boolean }>`
 	background-color: ${({ isToday, theme }) =>
 		isToday ? `${theme.colors.primary}10` : 'transparent'};
@@ -51,26 +50,14 @@ const TableRow = styled.tr<{ isToday?: boolean }>`
 	}
 `;
 
+// Interface for individual activity entries
 interface Activity {
 	id: string;
 	user_id: string;
 	action: string;
-	metadata: Record<string, any>; // Changed from 'details' to 'metadata'
+	metadata: Record<string, any>;
 	created_at: string;
 	username?: string;
-}
-
-interface ActivityStats {
-	totalActivities: number;
-	activityByType: { action: string; count: number }[];
-	mostActiveUsers: {
-		user_id: string;
-		user?: { username: string };
-		count: number;
-	}[];
-	activityByDay: { date: string; count: number }[];
-	last24Hours?: number; // Added this property to fix TypeScript error
-	lastWeek?: number; // Also adding lastWeek for completeness
 }
 
 const UserActivityContent: React.FC = () => {
@@ -100,22 +87,8 @@ const UserActivityContent: React.FC = () => {
 				const activityData =
 					await adminStatsService.getUserActivityStats(timeRange);
 
-				// Process the response data to adapt it to our component's expected structure
-				const processedStats = {
-					...activityData,
-					// Calculate total activities using the pagination total from API or use a calculated sum
-					totalActivities:
-						totalCount ||
-						activityData.activityByType?.reduce(
-							(sum: number, item: { count: number }) =>
-								sum + Number(item.count),
-							0
-						) ||
-						activityData.lastWeek ||
-						0,
-				};
-
-				setStats(processedStats);
+				// Process the response data
+				setStats(activityData);
 
 				// Get activities with current filters
 				await fetchActivities();
@@ -181,6 +154,23 @@ const UserActivityContent: React.FC = () => {
 		}
 	};
 
+	// Format date for display
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString);
+		const today = new Date();
+
+		// Check if the activity date is today
+		const isToday = date.toDateString() === today.toDateString();
+
+		// Format: "May 20, 2025, 2:35 PM (Today)" or just the regular date
+		return isToday ? `${date.toLocaleString()} (Today)` : date.toLocaleString();
+	};
+
+	// Handle time range change for stats
+	const handleTimeRangeChange = (days: 7 | 14 | 30) => {
+		setTimeRange(days);
+	};
+
 	// Find and count today's activities
 	const findTodayActivities = (): number => {
 		if (!activities || activities.length === 0) return 0;
@@ -206,23 +196,7 @@ const UserActivityContent: React.FC = () => {
 		setPage(1);
 	};
 
-	// Format date for display
-	const formatDate = (dateString: string) => {
-		const date = new Date(dateString);
-		const today = new Date();
-
-		// Check if the activity date is today
-		const isToday = date.toDateString() === today.toDateString();
-
-		// Format: "May 20, 2025, 2:35 PM (Today)" or just the regular date
-		return isToday ? `${date.toLocaleString()} (Today)` : date.toLocaleString();
-	};
-
-	// Handle time range change for stats
-	const handleTimeRangeChange = (days: 7 | 14 | 30) => {
-		setTimeRange(days);
-	};
-
+	// Render
 	return (
 		<>
 			{/* Stats Cards */}

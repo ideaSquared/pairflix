@@ -1,5 +1,5 @@
 import React from 'react';
-import { H1 } from '../components/common/Typography';
+import { H1 } from '@pairflix/components';
 
 const ActivityManagement: React.FC = () => {
 	return (

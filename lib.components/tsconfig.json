@@ -6,16 +6,16 @@
 		"module": "ESNext",
 		"skipLibCheck": true,
 		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
-		"noEmit": true,
+		"noEmit": false,
 		"jsx": "react-jsx",
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"declaration": true,
 		"declarationDir": "dist",
 		"outDir": "dist",
+		"emitDeclarationOnly": true,
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["src/*"]

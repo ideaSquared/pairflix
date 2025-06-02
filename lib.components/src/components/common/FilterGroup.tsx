@@ -13,24 +13,24 @@ export interface FilterGroupContextType {
 }
 
 export interface FilterGroupProps {
-	title?: string;
+	title?: string | undefined;
 	children: React.ReactNode;
 	onApply: () => void;
 	onClear: () => void;
-	actionComponent?: React.ReactNode;
-	defaultExpanded?: boolean;
-	fullWidth?: boolean;
-	disabled?: boolean;
-	'aria-label'?: string;
+	actionComponent?: React.ReactNode | undefined;
+	defaultExpanded?: boolean | undefined;
+	fullWidth?: boolean | undefined;
+	disabled?: boolean | undefined;
+	'aria-label'?: string | undefined;
 }
 
 export interface FilterItemProps {
 	label: string;
 	children: React.ReactNode;
-	helpText?: string;
-	required?: boolean;
-	error?: string;
-	fullWidth?: boolean;
+	helpText?: string | undefined;
+	required?: boolean | undefined;
+	error?: string | undefined;
+	fullWidth?: boolean | undefined;
 }
 
 // Context
@@ -40,10 +40,13 @@ const FilterGroupContext = createContext<FilterGroupContextType>({
 });
 
 // Styled Components
-const FilterGroupCard = styled(Card)<{ fullWidth?: boolean }>`
-	margin-bottom: ${({ theme }: { theme: Theme }) => theme.spacing.lg};
-	width: ${({ fullWidth }: { fullWidth?: boolean }) =>
-		fullWidth ? '100%' : 'auto'};
+interface FilterGroupCardProps {
+	$fullWidth?: boolean;
+}
+
+const FilterGroupCard = styled(Card)<FilterGroupCardProps>`
+	margin-bottom: ${({ theme }) => theme.spacing.lg};
+	width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 `;
 
 const FiltersGrid = styled.div`
@@ -65,43 +68,49 @@ const FilterHeader = styled(Flex)`
 `;
 
 const FilterActions = styled(Flex)`
-	margin-top: ${({ theme }: { theme: Theme }) => theme.spacing.md};
+	margin-top: ${({ theme }) => theme.spacing.md};
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${({ theme }: { theme: Theme }) => theme.spacing.sm};
+	gap: ${({ theme }) => theme.spacing.sm};
 `;
 
-const FilterContainer = styled.div<{ fullWidth?: boolean }>`
-	width: ${({ fullWidth }: { fullWidth?: boolean }) =>
-		fullWidth ? '100%' : 'auto'};
+interface FilterContainerProps {
+	$fullWidth?: boolean | undefined;
+}
+
+const FilterContainer = styled.div<FilterContainerProps>`
+	width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
 `;
 
 const FilterContent = styled.div<{ isExpanded: boolean }>`
-	max-height: ${({ isExpanded }: { isExpanded: boolean }) =>
-		isExpanded ? '2000px' : '0'};
-	opacity: ${({ isExpanded }: { isExpanded: boolean }) =>
-		isExpanded ? '1' : '0'};
+	max-height: ${({ isExpanded }) => (isExpanded ? '2000px' : '0')};
+	opacity: ${({ isExpanded }) => (isExpanded ? '1' : '0')};
 	overflow: hidden;
 	transition: max-height 0.3s ease-in-out, opacity 0.2s ease-in-out;
 	will-change: max-height, opacity;
 `;
 
-const FilterLabel = styled.label<{ required?: boolean }>`
-	display: block;
-	font-size: ${({ theme }: { theme: Theme }) => theme.typography.fontSize.sm};
-	font-weight: ${({ theme }: { theme: Theme }) =>
-		theme.typography.fontWeight.medium};
-	margin-bottom: ${({ theme }: { theme: Theme }) => theme.spacing.xs};
-	color: ${({ theme }: { theme: Theme }) => theme.colors.text.secondary};
+interface FilterLabelProps {
+	$required?: boolean | undefined;
+}
 
-	${({ required, theme }: { required?: boolean; theme: Theme }) =>
-		required &&
-		`
+const FilterLabel = styled.label<FilterLabelProps>`
+	display: block;
+	font-size: ${({ theme }) => theme.typography.fontSize.sm};
+	font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+	margin-bottom: ${({ theme }) => theme.spacing.xs};
+	color: ${({ theme }) => theme.colors.text.secondary};
+
+	${({ $required, theme }) =>
+		$required
+			? `
     &:after {
-      content: '*';      color: ${theme.colors.text.error};
+      content: '*';
+      color: ${theme.colors.text.error};
       margin-left: 4px;
     }
-  `}
+  `
+			: ''}
 `;
 
 const HelpText = styled.p`
@@ -143,7 +152,7 @@ export const FilterGroup: React.FC<FilterGroupProps> = ({
 	return (
 		<FilterGroupContext.Provider value={{ isDirty, setIsDirty }}>
 			<FilterGroupCard
-				fullWidth={fullWidth}
+				$fullWidth={fullWidth}
 				data-testid='filter-group'
 				variant='outlined'
 			>
@@ -206,19 +215,21 @@ export const FilterItem: React.FC<FilterItemProps> = ({
 		setIsDirty(true);
 	};
 
+	// Fix: Use DOM onChange attribute properly
+	const containerProps = {
+		$fullWidth: fullWidth || false,
+		'data-testid': 'filter-item',
+	};
+
 	return (
-		<FilterContainer
-			fullWidth={fullWidth}
-			onChange={handleChange}
-			data-testid='filter-item'
-		>
-			<FilterLabel htmlFor={`filter-${label}`} required={required}>
+		<div {...containerProps} onChange={handleChange}>
+			<FilterLabel htmlFor={`filter-${label}`} $required={required || false}>
 				{label}
 			</FilterLabel>
 			{children}
 			{helpText && <HelpText>{helpText}</HelpText>}
 			{error && <ErrorText role='alert'>{error}</ErrorText>}
-		</FilterContainer>
+		</div>
 	);
 };
 

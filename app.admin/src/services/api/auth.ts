@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { BASE_URL, fetchWithAuth } from './utils';
+import { BASE_URL, ADMIN_TOKEN_KEY, fetchWithAuth } from './utils';
 
 interface LoginResponse {
 	token: string;
@@ -32,12 +32,27 @@ export const auth = {
 
 		return response.json();
 	},
-
 	async validateToken(): Promise<boolean> {
-		try {
-			await fetchWithAuth(`${BASE_URL}/api/admin/validate-token`);
+		try {			const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+			if (!token) {
+				return false;
+			}
+			
+			const response = await fetch(`${BASE_URL}/api/admin/validate-token`, {
+				method: 'GET',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+			
+			if (!response.ok) {
+				console.log('Token validation failed:', response.status);
+				return false;
+			}
+			
 			return true;
 		} catch (error) {
+			console.error('Token validation error:', error);
 			return false;
 		}
 	},

@@ -1,6 +1,6 @@
+import { Button } from '@pairflix/components';
 import React, { KeyboardEvent, useState } from 'react';
 import styled from 'styled-components';
-import { Button } from './Button';
 
 const TagInputContainer = styled.div`
 	display: flex;

@@ -1,13 +1,11 @@
+import { Button, FilterGroup, FilterItem, Flex, Input, Select } from '@pairflix/components'
 import React from 'react';
 import { FiUserPlus } from 'react-icons/fi';
-import { Button } from '../../../../../components/common/Button';
-import {
-	FilterGroup,
-	FilterItem,
-} from '../../../../../components/common/FilterGroup';
-import { Input } from '../../../../../components/common/Input';
-import { Flex } from '../../../../../components/common/Layout';
-import { Select } from '../../../../../components/common/Select';
+;
+;
+;
+;
+;
 import { UserManagementFilters } from './types';
 import { IconStyle } from './utils';
 

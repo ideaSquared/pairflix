@@ -17,7 +17,8 @@
 		"jsx": "react-jsx",
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@/*": ["src/*"],
+			"@pairflix/components": ["../lib.components/src"]
 		}
 	},
 	"include": ["src"],

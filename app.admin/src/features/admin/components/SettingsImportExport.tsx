@@ -1,13 +1,16 @@
+import {
+	Alert,
+	Button,
+	Card,
+	CardContent,
+	Flex,
+	H2,
+	Typography,
+} from '@pairflix/components';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Alert } from '../../../components/common/Alert';
-import { Button } from '../../../components/common/Button';
-import { Card, CardContent } from '../../../components/common/Card';
-import { Flex } from '../../../components/common/Layout';
-import { H2, Typography } from '../../../components/common/Typography';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { AppSettings } from '../../../services/api';
-
 const Container = styled.div`
 	margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
@@ -167,9 +170,7 @@ const SettingsImportExport: React.FC = () => {
 							</Typography>
 						</div>
 						<FileUploadLabel>
-							<Button as='span' variant='secondary'>
-								Import Settings
-							</Button>
+							<Button variant='secondary'>Import Settings</Button>
 							<StyledInput type='file' accept='.json' onChange={handleImport} />
 						</FileUploadLabel>
 					</Flex>

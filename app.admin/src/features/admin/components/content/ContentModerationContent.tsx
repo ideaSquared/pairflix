@@ -1,33 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import { Badge, Button, Card, FilterGroup, FilterItem, Flex, H4, Input, Loading, Modal, Pagination, Select, Table, TableActionButton, TableBody, TableCell, TableContainer, TableHead, TableHeaderCell, TableRow, Typography } from '@pairflix/components'
+import { Textarea } from '@pairflix/components';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Badge } from '../../../../components/common/Badge';
-import { Button } from '../../../../components/common/Button';
-import { Card } from '../../../../components/common/Card';
-import {
-	FilterGroup,
-	FilterItem,
-} from '../../../../components/common/FilterGroup';
-import { Input } from '../../../../components/common/Input';
-import { Flex } from '../../../../components/common/Layout';
-import { Loading } from '../../../../components/common/Loading';
-import { Modal } from '../../../../components/common/Modal';
-import { Pagination } from '../../../../components/common/Pagination';
-import { Select } from '../../../../components/common/Select';
-import {
-	Table,
-	TableActionButton,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableHeaderCell,
-	TableRow,
-} from '../../../../components/common/Table';
-import { H4, Typography } from '../../../../components/common/Typography';
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
 import { admin } from '../../../../services/api';
+import type { Theme } from '../../../../styles/theme';
 
-// Types for content items
-type ContentItem = {
+interface StyledComponent {
+	theme: Theme;
+}
+
+// Types for content items and reports
+interface ContentItem {
 	id: string;
 	title: string;
 	type: 'movie' | 'show' | 'episode';
@@ -35,66 +30,33 @@ type ContentItem = {
 	reported_count: number;
 	tmdb_id: string;
 	created_at: string;
-	updated_at: string; // Changed from last_updated to updated_at
+	updated_at: string;
 	poster_path?: string;
-};
+}
+
+interface ReportItem {
+	id: string;
+	user_name: string;
+	reason: string;
+	details?: string;
+	created_at: string;
+}
 
 // Styled components
-const SearchContainer = styled.div`
+const SearchContainer = styled.div<StyledComponent>`
 	margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
-const ContentTypeBadge = styled(Badge)<{ contentType: string }>`
+const ContentTypeBadge = styled(Badge)<{ contentType: string; theme: Theme }>`
 	text-transform: capitalize;
 `;
 
-const getContentTypeVariant = (
-	type: string
-): 'error' | 'warning' | 'info' | 'success' | 'default' => {
-	switch (type) {
-		case 'movie':
-			return 'info';
-		case 'show':
-			return 'success';
-		case 'episode':
-			return 'warning';
-		default:
-			return 'default';
-	}
-};
-
-const getStatusBadgeVariant = (
-	status: string
-): 'error' | 'warning' | 'info' | 'success' | 'default' => {
-	switch (status) {
-		case 'active':
-			return 'success';
-		case 'pending':
-			return 'warning';
-		case 'flagged':
-			return 'error';
-		case 'removed':
-			return 'default';
-		default:
-			return 'info';
-	}
-};
-
-// Modified LargeModal component without referencing ModalContent
-const LargeModal = styled(Modal)`
-	& > div > div {
-		max-width: 800px;
-	}
-`;
-
-// Define Typography variant for headings
 const SubHeading = styled(Typography)`
 	font-size: 1.25rem;
 	font-weight: 600;
-	margin-bottom: ${({ theme }) => theme.spacing.sm};
+	margin-bottom: ${({ theme }: StyledComponent) => theme.spacing.sm};
 `;
 
-// Create a styled Card component that accepts style props
 const StyledCard = styled(Card)`
 	margin-bottom: 10px;
 	padding: 15px;
@@ -127,7 +89,7 @@ const ContentModerationContent: React.FC = () => {
 	const [contentToReview, setContentToReview] = useState<ContentItem | null>(
 		null
 	);
-	const [reports, setReports] = useState<any[]>([]);
+	const [reports, setReports] = useState<ReportItem[]>([]);
 
 	// Success/Error message states
 	const [successMessage, setSuccessMessage] = useState('');
@@ -221,21 +183,25 @@ const ContentModerationContent: React.FC = () => {
 		}
 	};
 
-	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
 		setSearch(e.target.value);
-		setPage(1); // Reset to first page on search
-	};
-
-	const applyFilters = () => {
-		setPage(1); // Reset to first page when applying filters
-	};
-
-	const clearFilters = () => {
-		setTypeFilter('');
-		setStatusFilter('');
-		setSortBy('reported_count');
-		setSortOrder('desc');
 		setPage(1);
+	};
+
+	const handleTypeFilterChange = (e: ChangeEvent<HTMLSelectElement>) => {
+		setTypeFilter(e.target.value);
+	};
+
+	const handleStatusFilterChange = (e: ChangeEvent<HTMLSelectElement>) => {
+		setStatusFilter(e.target.value);
+	};
+
+	const handleSortByChange = (e: ChangeEvent<HTMLSelectElement>) => {
+		setSortBy(e.target.value);
+	};
+
+	const handleSortOrderChange = (e: ChangeEvent<HTMLSelectElement>) => {
+		setSortOrder(e.target.value as 'asc' | 'desc');
 	};
 
 	const handleEditContent = (content: ContentItem) => {
@@ -247,48 +213,6 @@ const ContentModerationContent: React.FC = () => {
 		setContentToRemove(content);
 		setRemovalReason('');
 		setShowRemoveModal(true);
-	};
-
-	const confirmRemoveContent = async () => {
-		if (!contentToRemove) return;
-
-		try {
-			await admin.content.remove(contentToRemove.id, removalReason);
-			setContentItems(
-				contentItems.map((item) =>
-					item.id === contentToRemove.id ? { ...item, status: 'removed' } : item
-				)
-			);
-			setShowRemoveModal(false);
-			setContentToRemove(null);
-			setSuccessMessage(`Content "${contentToRemove.title}" has been removed`);
-		} catch (error) {
-			console.error('Error removing content:', error);
-			setErrorMessage('Failed to remove content. Please try again.');
-		}
-	};
-
-	const saveContentChanges = async (updatedContent: ContentItem) => {
-		try {
-			await admin.content.update(updatedContent.id, {
-				title: updatedContent.title,
-				status: updatedContent.status,
-			});
-
-			setContentItems(
-				contentItems.map((item) =>
-					item.id === updatedContent.id ? updatedContent : item
-				)
-			);
-			setShowEditModal(false);
-			setContentToEdit(null);
-			setSuccessMessage(
-				`Content "${updatedContent.title}" updated successfully`
-			);
-		} catch (error) {
-			console.error('Error updating content:', error);
-			setErrorMessage('Failed to update content. Please try again.');
-		}
 	};
 
 	const handleReviewReports = async (content: ContentItem) => {
@@ -308,8 +232,9 @@ const ContentModerationContent: React.FC = () => {
 	const dismissReport = async (reportId: string) => {
 		try {
 			await admin.content.dismissReport(reportId);
-
-			setReports(reports.filter((report) => report.id !== reportId));
+			setReports(
+				reports.filter((report: ReportItem) => report.id !== reportId)
+			);
 
 			if (contentToReview) {
 				const updatedContent = {
@@ -318,7 +243,7 @@ const ContentModerationContent: React.FC = () => {
 				};
 				setContentToReview(updatedContent);
 				setContentItems(
-					contentItems.map((item) =>
+					contentItems.map((item: ContentItem) =>
 						item.id === updatedContent.id ? updatedContent : item
 					)
 				);
@@ -401,6 +326,92 @@ const ContentModerationContent: React.FC = () => {
 		);
 	};
 
+	const applyFilters = () => {
+		setPage(1); // Reset to first page when applying filters
+	};
+
+	const clearFilters = () => {
+		setTypeFilter('');
+		setStatusFilter('');
+		setSortBy('reported_count');
+		setSortOrder('desc');
+		setPage(1);
+	};
+
+	const saveContentChanges = async (updatedContent: ContentItem) => {
+		try {
+			await admin.content.update(updatedContent.id, {
+				title: updatedContent.title,
+				status: updatedContent.status,
+			});
+
+			setContentItems(
+				contentItems.map((item: ContentItem) =>
+					item.id === updatedContent.id ? updatedContent : item
+				)
+			);
+			setShowEditModal(false);
+			setContentToEdit(null);
+			setSuccessMessage(
+				`Content "${updatedContent.title}" updated successfully`
+			);
+		} catch (error) {
+			console.error('Error updating content:', error);
+			setErrorMessage('Failed to update content. Please try again.');
+		}
+	};
+
+	const confirmRemoveContent = async () => {
+		if (!contentToRemove) return;
+
+		try {
+			await admin.content.remove(contentToRemove.id, removalReason);
+			setContentItems(
+				contentItems.map((item: ContentItem) =>
+					item.id === contentToRemove.id ? { ...item, status: 'removed' } : item
+				)
+			);
+			setShowRemoveModal(false);
+			setContentToRemove(null);
+			setSuccessMessage(`Content "${contentToRemove.title}" has been removed`);
+		} catch (error) {
+			console.error('Error removing content:', error);
+			setErrorMessage('Failed to remove content. Please try again.');
+		}
+	};
+
+	const getContentTypeVariant = (
+		type: string
+	): 'error' | 'warning' | 'info' | 'success' | 'default' => {
+		switch (type) {
+			case 'movie':
+				return 'info';
+			case 'show':
+				return 'success';
+			case 'episode':
+				return 'warning';
+			default:
+				return 'default';
+		}
+	};
+
+	const getStatusBadgeVariant = (
+		status: string
+	): 'error' | 'warning' | 'info' | 'success' | 'default' => {
+		switch (status) {
+			case 'active':
+				return 'success';
+			case 'pending':
+				return 'warning';
+			case 'flagged':
+				return 'error';
+			case 'removed':
+				return 'default';
+			default:
+				return 'info';
+		}
+	};
+
 	return (
 		<>
 			{renderSuccessMessage()}
@@ -430,7 +441,7 @@ const ContentModerationContent: React.FC = () => {
 				<FilterItem label='Type'>
 					<Select
 						value={typeFilter}
-						onChange={(e) => setTypeFilter(e.target.value)}
+						onChange={handleTypeFilterChange}
 						fullWidth
 					>
 						<option value=''>All Types</option>
@@ -443,7 +454,7 @@ const ContentModerationContent: React.FC = () => {
 				<FilterItem label='Status'>
 					<Select
 						value={statusFilter}
-						onChange={(e) => setStatusFilter(e.target.value)}
+						onChange={handleStatusFilterChange}
 						fullWidth
 					>
 						<option value=''>All Statuses</option>
@@ -455,11 +466,7 @@ const ContentModerationContent: React.FC = () => {
 				</FilterItem>
 
 				<FilterItem label='Sort By'>
-					<Select
-						value={sortBy}
-						onChange={(e) => setSortBy(e.target.value)}
-						fullWidth
-					>
+					<Select value={sortBy} onChange={handleSortByChange} fullWidth>
 						<option value='title'>Title</option>
 						<option value='reported_count'>Report Count</option>
 						<option value='created_at'>Created Date</option>
@@ -468,11 +475,7 @@ const ContentModerationContent: React.FC = () => {
 				</FilterItem>
 
 				<FilterItem label='Sort Order'>
-					<Select
-						value={sortOrder}
-						onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-						fullWidth
-					>
+					<Select value={sortOrder} onChange={handleSortOrderChange} fullWidth>
 						<option value='asc'>Ascending</option>
 						<option value='desc'>Descending</option>
 					</Select>
@@ -505,7 +508,7 @@ const ContentModerationContent: React.FC = () => {
 											</TableCell>
 										</TableRow>
 									) : (
-										contentItems.map((content) => (
+										contentItems.map((content: ContentItem) => (
 											<TableRow key={content.id}>
 												<TableCell>{content.title}</TableCell>
 												<TableCell>
@@ -623,10 +626,9 @@ const ContentModerationContent: React.FC = () => {
 						style={{ display: 'block', marginBottom: '8px' }}
 					>
 						Reason for Removal
-					</label>
-					<Input
+					</label>{' '}
+					<Textarea
 						id='removal-reason'
-						as='textarea'
 						rows={3}
 						value={removalReason}
 						onChange={(e) => setRemovalReason(e.target.value)}
@@ -766,7 +768,7 @@ const ContentModerationContent: React.FC = () => {
 							<>
 								<div style={{ marginBottom: '20px' }}>
 									<SubHeading gutterBottom>Reports</SubHeading>
-									{reports.map((report) => (
+									{reports.map((report: ReportItem) => (
 										<StyledCard key={report.id}>
 											<Flex justifyContent='space-between' alignItems='start'>
 												<div>

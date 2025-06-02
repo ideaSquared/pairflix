@@ -1,0 +1,24 @@
+{
+	"name": "pairflix-monorepo",
+	"private": true,
+	"version": "1.0.0",
+	"scripts": {
+		"dev:client": "cd app.client && npm run dev",
+		"dev:admin": "cd app.admin && npm run dev",
+		"dev:backend": "cd backend && npm run dev",
+		"build:all": "npm run build:components && npm run build:client && npm run build:admin && npm run build:backend",
+		"build:client": "cd app.client && npm run build",
+		"build:admin": "cd app.admin && npm run build",
+		"build:backend": "cd backend && npm run build",
+		"build:components": "cd lib.components && npm run build"
+	},
+	"workspaces": [
+		"app.client",
+		"app.admin",
+		"backend",
+		"lib.components"
+	],
+	"devDependencies": {
+		"concurrently": "^8.2.2"
+	}
+}

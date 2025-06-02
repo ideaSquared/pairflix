@@ -1,5 +1,11 @@
 // Admin statistics service for frontend
 import { fetchWithAuth } from './api';
+import {
+	ActivityStats,
+	DashboardStats,
+	SystemMetrics,
+	SystemStats,
+} from './api/admin';
 
 /**
  * AdminStatsService - A centralized service for admin statistics
@@ -8,10 +14,10 @@ import { fetchWithAuth } from './api';
  */
 export class AdminStatsService {
 	private cache = {
-		dashboardStats: null as any,
-		systemMetrics: null as any,
-		systemStats: null as any,
-		activityStats: null as any,
+		dashboardStats: null as DashboardStats | null,
+		systemMetrics: null as SystemMetrics | null,
+		systemStats: null as SystemStats | null,
+		activityStats: null as ActivityStats | null,
 		lastFetched: {
 			dashboardStats: 0,
 			systemMetrics: 0,
@@ -50,7 +56,7 @@ export class AdminStatsService {
 	/**
 	 * Get dashboard statistics (overview)
 	 */
-	async getDashboardStats(forceRefresh = false): Promise<any> {
+	async getDashboardStats(forceRefresh = false): Promise<DashboardStats> {
 		if (
 			!forceRefresh &&
 			this.isCacheValid('dashboardStats') &&
@@ -59,14 +65,16 @@ export class AdminStatsService {
 			return this.cache.dashboardStats;
 		}
 
-		const response = await fetchWithAuth('/api/admin/dashboard-stats');
+		const response = await fetchWithAuth<{ stats: DashboardStats }>(
+			'/api/admin/dashboard-stats'
+		);
 		return this.updateCache('dashboardStats', response.stats);
 	}
 
 	/**
 	 * Get system metrics
 	 */
-	async getSystemMetrics(forceRefresh = false): Promise<any> {
+	async getSystemMetrics(forceRefresh = false): Promise<SystemMetrics> {
 		if (
 			!forceRefresh &&
 			this.isCacheValid('systemMetrics') &&
@@ -75,14 +83,16 @@ export class AdminStatsService {
 			return this.cache.systemMetrics;
 		}
 
-		const response = await fetchWithAuth('/api/admin/system-metrics');
+		const response = await fetchWithAuth<{ metrics: SystemMetrics }>(
+			'/api/admin/system-metrics'
+		);
 		return this.updateCache('systemMetrics', response.metrics);
 	}
 
 	/**
 	 * Get detailed system statistics
 	 */
-	async getSystemStats(forceRefresh = false): Promise<any> {
+	async getSystemStats(forceRefresh = false): Promise<SystemStats> {
 		if (
 			!forceRefresh &&
 			this.isCacheValid('systemStats') &&
@@ -91,14 +101,18 @@ export class AdminStatsService {
 			return this.cache.systemStats;
 		}
 
-		const response = await fetchWithAuth('/api/admin/system-stats');
+		const response = await fetchWithAuth<SystemStats>(
+			'/api/admin/system-stats'
+		);
 		return this.updateCache('systemStats', response);
 	}
 
 	/**
 	 * Get user activity statistics
-	 */
-	async getUserActivityStats(days = 7, forceRefresh = false): Promise<any> {
+	 */ async getUserActivityStats(
+		days = 7,
+		forceRefresh = false
+	): Promise<ActivityStats> {
 		const cacheKey = 'activityStats';
 
 		if (
@@ -112,21 +126,20 @@ export class AdminStatsService {
 		const queryParams = new URLSearchParams();
 		if (days) queryParams.append('days', days.toString());
 
-		const response = await fetchWithAuth(
+		const response = await fetchWithAuth<{ stats: ActivityStats }>(
 			`/api/admin/user-activity-stats?${queryParams.toString()}`
 		);
-		return this.updateCache(cacheKey, response);
+		return this.updateCache(cacheKey, response.stats);
 	}
 
 	/**
 	 * Clear all cached data
-	 */
-	clearCache(): void {
+	 */ clearCache(): void {
 		this.cache = {
-			dashboardStats: null,
-			systemMetrics: null,
-			systemStats: null,
-			activityStats: null,
+			dashboardStats: null as DashboardStats | null,
+			systemMetrics: null as SystemMetrics | null,
+			systemStats: null as SystemStats | null,
+			activityStats: null as ActivityStats | null,
 			lastFetched: {
 				dashboardStats: 0,
 				systemMetrics: 0,

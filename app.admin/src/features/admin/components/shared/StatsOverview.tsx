@@ -1,3 +1,11 @@
+import {
+	Badge,
+	Card,
+	CardContent,
+	Grid,
+	H2,
+	Typography,
+} from '@pairflix/components';
 import React from 'react';
 import {
 	FaChartLine,
@@ -11,11 +19,9 @@ import {
 	FaUsers,
 } from 'react-icons/fa';
 import styled from 'styled-components';
-import { Badge } from '../../../../components/common/Badge';
-import { Card, CardContent } from '../../../../components/common/Card';
-import { Flex, Grid } from '../../../../components/common/Layout';
-import { H2, Typography } from '../../../../components/common/Typography';
+import { ActivityStats } from '../../../../services/api/admin';
 
+// Styled components
 const StatsCard = styled(Card)`
 	height: 100%;
 	transition:
@@ -32,57 +38,50 @@ const StatsCard = styled(Card)`
 const StatValue = styled.div`
 	font-size: 2rem;
 	font-weight: bold;
-	color: ${({ theme }) => theme.colors.primary};
-	margin: ${({ theme }) => theme.spacing.xs} 0;
+	margin: 0.5rem 0;
 `;
 
-const StatLabel = styled.div`
-	font-size: 0.9rem;
+const StatLabel = styled(Typography)`
 	color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
-const MetricLabel = styled.div`
-	font-size: 0.9rem;
-	color: ${({ theme }) => theme.colors.text.secondary};
-	margin-bottom: ${({ theme }) => theme.spacing.sm};
+const MetricLabel = styled(Typography)`
+	font-weight: bold;
+	margin-bottom: 0.5rem;
 `;
+
+interface FlexProps {
+	justifyContent?: string;
+	alignItems?: string;
+	children?: React.ReactNode;
+}
+
+const StyledFlex = styled.div<FlexProps>`
+	display: flex;
+	justify-content: ${({ justifyContent }) => justifyContent || 'flex-start'};
+	align-items: ${({ alignItems }) => alignItems || 'flex-start'};
+`;
+
+const Flex: React.FC<FlexProps> = ({ children, ...props }) => (
+	<StyledFlex {...props}>{children}</StyledFlex>
+);
 
 const StatIcon = styled.div`
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	background-color: ${({ theme }) =>
-		`${theme?.colors?.primary || '#3366ff'}20`};
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: ${({ theme }) => theme?.colors?.primary || '#3366ff'};
 	font-size: 1.5rem;
-	margin-right: ${({ theme }) => theme?.spacing?.md || '1rem'};
+	margin-right: 1rem;
+	color: ${({ theme }) => theme.colors.primary};
 `;
 
 const StatusIndicator = styled.div<{ status: 'good' | 'warning' | 'error' }>`
-	display: inline-block;
 	width: 12px;
 	height: 12px;
 	border-radius: 50%;
-	margin-right: ${({ theme }) => theme.spacing.xs};
-	background-color: ${({ theme, status }) => {
-		switch (status) {
-			case 'good':
-				return theme.colors.success;
-			case 'warning':
-				return theme.colors.warning;
-			case 'error':
-				return theme.colors.error;
-			default:
-				return theme.colors.text.secondary;
-		}
-	}};
-`;
-
-const StyledFlex = styled(Flex)`
-	margin-bottom: ${({ theme }) => theme.spacing.xs};
+	background-color: ${({ status, theme }) =>
+		status === 'good'
+			? theme.colors.success
+			: status === 'warning'
+				? theme.colors.warning
+				: theme.colors.error};
 `;
 
 // Helper functions for formatting
@@ -123,10 +122,39 @@ export type StatsCardType =
 	| 'memory'
 	| 'uptime';
 
+interface MetricsType {
+	users?: {
+		total: number;
+		active: number;
+		inactivePercentage: number;
+	};
+	content?: {
+		watchlistEntries: number;
+		matches: number;
+	};
+	activity?: {
+		last24Hours: number;
+		lastWeek: number;
+	};
+	system?: {
+		recentErrors: number;
+		memoryUsage: {
+			heapUsed: number;
+			heapTotal: number;
+		};
+		uptime: number;
+	};
+}
+
 interface MetricsCardProps {
 	type: StatsCardType;
-	metrics: any;
+	metrics: MetricsType;
 	icon?: string;
+}
+
+interface ActivityCardProps {
+	activityStats: ActivityStats;
+	timeRange: number;
 }
 
 // Helper function to check if a metrics object is valid
@@ -323,11 +351,6 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
 			return null;
 	}
 };
-
-interface ActivityCardProps {
-	activityStats: any;
-	timeRange: number;
-}
 
 // Unified activity card that can be reused across components
 export const ActivityCard: React.FC<ActivityCardProps> = ({

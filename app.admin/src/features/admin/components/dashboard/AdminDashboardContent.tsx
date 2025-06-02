@@ -1,11 +1,12 @@
+import { Button, Card, CardContent, Grid, H3, Loading, Typography } from '@pairflix/components'
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button } from '../../../../components/common/Button';
-import { Card, CardContent } from '../../../../components/common/Card';
-import { Grid } from '../../../../components/common/Layout';
-import { Loading } from '../../../../components/common/Loading';
-import { H3, Typography } from '../../../../components/common/Typography';
+;
+;
+;
+;
+;
 import { adminStatsService } from '../../../../services/adminStats.service';
 import { fetchWithAuth } from '../../../../services/api';
 import StatsOverview from '../shared/StatsOverview';

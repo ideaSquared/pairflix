@@ -1,13 +1,10 @@
+import { Button, Card, CardContent, Container, ErrorText, H2, Input, InputGroup } from '@pairflix/components'
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent } from '../../components/common/Card';
-import { Input, InputGroup } from '../../components/common/Input';
-import { Container } from '../../components/common/Layout';
-import { ErrorText, H2 } from '../../components/common/Typography';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
+import { ADMIN_TOKEN_KEY } from '../../services/api/utils';
 
 const LoginContainer = styled(Container)`
 	display: flex;
@@ -28,15 +25,27 @@ const LoginPage: React.FC = () => {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState('');
-
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
+			setError('');
 			const response = await auth.login({ email, password });
-			localStorage.setItem('token', response.token);
-			localStorage.setItem('user', JSON.stringify(response.user));
-			await checkAuth();
-			navigate('/dashboard');
+					// Store user data properly
+			localStorage.setItem(ADMIN_TOKEN_KEY, response.token);
+			localStorage.setItem('user', JSON.stringify({
+				user_id: response.user.id,
+				email: response.user.email,
+				username: response.user.email.split('@')[0], // Use email prefix as username if needed
+				role: response.user.role
+			}));
+			
+			// Update auth state
+			checkAuth();
+			
+			// Navigate after a short delay to ensure auth state is updated
+			setTimeout(() => {
+				navigate('/');
+			}, 100);
 		} catch (err) {
 			if (err instanceof Error) {
 				setError(err.message);

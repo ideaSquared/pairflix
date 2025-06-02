@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { H1 } from '../components/common/Typography';
+import { H1 } from '@pairflix/components';
 
 const NotFoundContainer = styled.div`
 	text-align: center;

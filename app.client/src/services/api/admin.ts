@@ -7,6 +7,7 @@ export interface AuditLog {
 	source: string;
 	context: any;
 	created_at: string;
+	[key: string]: unknown;
 }
 
 export interface AuditLogStats {
@@ -99,6 +100,9 @@ export interface AppSettings {
 		siteDescription: string;
 		maintenanceMode: boolean;
 		defaultUserRole: string;
+	};
+	preferences: {
+		theme: 'light' | 'dark';
 	};
 	security: {
 		sessionTimeout: number;

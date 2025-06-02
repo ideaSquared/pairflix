@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import React from 'react';
 import styled from 'styled-components';
-import { Loading } from '../../components/common/Loading';
+import { Loading } from '@pairflix/components';
 import api, { Activity } from '../../services/api';
 
 const FeedContainer = styled.div`

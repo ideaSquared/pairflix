@@ -1,3 +1,12 @@
+import {
+	Button,
+	Card,
+	CardContent,
+	Grid,
+	H3,
+	Loading,
+	Typography,
+} from '@pairflix/components';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
 	Area,
@@ -14,13 +23,7 @@ import {
 	YAxis,
 } from 'recharts';
 import styled from 'styled-components';
-import { Button } from '../../../../components/common/Button';
-import { Card, CardContent } from '../../../../components/common/Card';
-import { Grid } from '../../../../components/common/Layout';
-import { Loading } from '../../../../components/common/Loading';
-import { H3, Typography } from '../../../../components/common/Typography';
 import { adminStatsService } from '../../../../services/adminStats.service';
-
 // Styled components
 const RefreshButton = styled(Button)`
 	margin-bottom: ${({ theme }) => theme.spacing.md};
@@ -63,17 +66,6 @@ const MetricChart = styled.div`
 	height: 160px;
 	margin-top: ${({ theme }) => theme.spacing.md};
 `;
-
-// Alert severity types
-type AlertSeverity = 'warning' | 'critical' | 'info';
-
-// Alert interface
-interface SystemAlert {
-	severity: AlertSeverity;
-	message: string;
-	details: string;
-	timestamp: Date;
-}
 
 // Helper function to generate CPU usage history data
 const generateCpuHistoryData = (currentUsage: number) => {
@@ -148,6 +140,59 @@ const generateUserActivityData = (current: number, total: number) => {
 	return data;
 };
 
+// Types and interfaces
+type AlertSeverity = 'warning' | 'critical' | 'info';
+
+interface SystemAlert {
+	severity: AlertSeverity;
+	message: string;
+	details: string;
+	timestamp: Date;
+}
+
+interface DatabaseSize {
+	bytes: number;
+	megabytes: number;
+	usagePercent?: number; // Add this field
+}
+
+// System monitoring data interface
+interface SystemMonitoringData {
+	cpu: {
+		usage: number;
+		loadAvg: number[];
+		cores: number;
+		model: string;
+	};
+	memory: {
+		total: number;
+		used: number;
+		free: number;
+		usedPercent: number;
+	};
+	disk: {
+		total: number;
+		used: number;
+		free: number;
+		usedPercent: number;
+	};
+	network: {
+		received: number;
+		transmitted: number;
+	};
+	process: {
+		uptime: number;
+		nodeVersion: string;
+		pid: number;
+	};
+	connections: {
+		current: number;
+		peak24h: number;
+		total24h: number;
+	};
+	alerts: SystemAlert[];
+}
+
 const SystemMonitoringContent: React.FC = () => {
 	const [monitoringData, setMonitoringData] = useState<any>(null);
 	const [isLoading, setIsLoading] = useState(true);
@@ -166,37 +211,39 @@ const SystemMonitoringContent: React.FC = () => {
 			// Use our central stats service that connects to the backend
 			const data = await adminStatsService.getSystemStats(true); // Force refresh
 
-			// Transform the data to the format expected by the UI if needed
-			const formattedData = {
+			// Transform the data to match our local type structure
+			const formattedData: SystemMonitoringData = {
 				cpu: {
-					// Use more reliable container-friendly CPU metrics with fallbacks
-					usage:
-						data.system?.cpu?.usagePercent ||
-						// Fallback calculation, but ensure core count is at least 1
-						((data.system?.cpu?.loadAvg?.[0] || 0) * 100) /
-							Math.max(1, data.system?.cpu?.cores || 1),
-					loadAvg: data.system?.cpu?.loadAvg || [0, 0, 0],
+					// Use load average as CPU usage when usagePercent is not available
+					usage: Number(
+						data.system?.memory?.usagePercent ||
+							Math.min(
+								100,
+								((data.system?.os?.loadAvg?.[0] || 0) * 100) /
+									Math.max(1, data.system?.cpu?.cores || 1)
+							)
+					),
+					loadAvg: data.system?.os?.loadAvg || [0, 0, 0],
 					cores: data.system?.cpu?.cores || 1,
 					model: data.system?.cpu?.model || 'Unknown',
 				},
 				memory: {
 					total: data.system?.memory?.total || 0,
-					used: data.system?.memory?.total - data.system?.memory?.free || 0,
+					used: data.system?.memory?.total
+						? data.system.memory.total - data.system.memory.free
+						: 0,
 					free: data.system?.memory?.free || 0,
 					usedPercent: data.system?.memory?.usagePercent || 0,
 				},
 				disk: {
 					total: data.database?.size?.bytes || 0,
 					used: data.database?.size?.bytes
-						? (data.database.size.bytes * (data.database.storageUsage || 70)) /
-							100
+						? Math.floor((data.database.size.bytes * 70) / 100) // Use 70% as default storage usage
 						: 0,
 					free: data.database?.size?.bytes
-						? data.database.size.bytes -
-							(data.database.size?.bytes * (data.database.storageUsage || 70)) /
-								100
+						? Math.floor(data.database.size.bytes * 0.3) // Remaining 30%
 						: 0,
-					usedPercent: data.database?.storageUsage || 70,
+					usedPercent: 70, // Fixed default percentage
 				},
 				network: {
 					received: data.system?.process?.memoryUsage?.rss || 0,
@@ -216,7 +263,7 @@ const SystemMonitoringContent: React.FC = () => {
 					current: data.database?.activeUsers || 0,
 					peak24h: data.database?.totalUsers || 0,
 					total24h:
-						data.database?.connections?.total ||
+						data.database?.contentStats?.matches ||
 						Math.round(data.database?.totalUsers * 1.5) ||
 						0,
 				},

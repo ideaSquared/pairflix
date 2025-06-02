@@ -19,9 +19,19 @@ interface AppSettings {
 	};
 	features: {
 		enableNotifications: boolean;
+		enableUserProfiles: boolean;
+		enableMatching: boolean; // Added new feature flag
 	};
 	security: {
 		sessionTimeout: number; // session timeout in minutes
+		passwordPolicy: {
+			// Added missing property
+			minLength: number;
+			requireUppercase: boolean;
+			requireLowercase: boolean;
+			requireNumbers: boolean;
+			requireSpecialChars: boolean;
+		};
 	};
 }
 
@@ -42,9 +52,19 @@ const defaultSettings: AppSettings = {
 	},
 	features: {
 		enableNotifications: true,
+		enableUserProfiles: false, // Added missing property with default value
+		enableMatching: true, // Added with default value true
 	},
 	security: {
 		sessionTimeout: 30, // default session timeout in minutes
+		passwordPolicy: {
+			// Added missing property
+			minLength: 8,
+			requireUppercase: true,
+			requireLowercase: true,
+			requireNumbers: true,
+			requireSpecialChars: false,
+		},
 	},
 };
 
@@ -90,9 +110,12 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 				},
 				features: {
 					enableNotifications: adminSettings.features.enableNotifications,
+					enableUserProfiles: adminSettings.features.enableUserProfiles, // Added missing property
+					enableMatching: adminSettings.features.enableMatching, // Added new feature flag
 				},
 				security: {
 					sessionTimeout: adminSettings.security.sessionTimeout,
+					passwordPolicy: adminSettings.security.passwordPolicy, // Added missing property
 				},
 			});
 

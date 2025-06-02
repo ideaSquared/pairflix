@@ -1,9 +1,9 @@
+import { H1 } from '@pairflix/components';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../hooks/useAuth';
-import { H1 } from '../common/Typography';
 
 const HeaderContainer = styled.header`
 	display: flex;

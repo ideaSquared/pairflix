@@ -1,10 +1,11 @@
+import { Button, Card, CardContent, ErrorText, H2, Input, InputGroup } from '@pairflix/components'
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent } from '../../components/common/Card';
-import { Input, InputGroup } from '../../components/common/Input';
-import { ErrorText, H2 } from '../../components/common/Typography';
+;
+;
+;
+;
 import { Container } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';

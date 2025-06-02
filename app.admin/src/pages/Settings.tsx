@@ -1,8 +1,9 @@
+import { Button, H1, Loading } from '@pairflix/components'
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '../components/common/Button';
-import { Loading } from '../components/common/Loading';
-import { H1 } from '../components/common/Typography';
+;
+;
+;
 import { admin, AppSettings as ApiAppSettings } from '../services/api';
 
 const SettingsContainer = styled.div`

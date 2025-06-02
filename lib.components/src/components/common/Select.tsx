@@ -10,15 +10,14 @@ export interface SelectOption {
 
 export type SelectSize = 'small' | 'medium' | 'large';
 
-// Base props without HTML select props
 interface BaseSelectProps {
-	fullWidth?: boolean;
-	error?: boolean;
-	size?: SelectSize;
-	options?: SelectOption[];
-	label?: string;
-	helperText?: string;
-	required?: boolean;
+	fullWidth?: boolean | undefined;
+	error?: boolean | undefined;
+	size?: SelectSize | undefined;
+	options?: SelectOption[] | undefined;
+	label?: string | undefined;
+	helperText?: string | undefined;
+	required?: boolean | undefined;
 }
 
 // Main props including HTML select props, but omitting conflicting ones
@@ -28,9 +27,9 @@ export interface SelectProps
 
 // Props for styled components using transient props
 interface StyledSelectProps {
-	$fullWidth?: boolean;
-	$error?: boolean;
-	$size?: SelectSize;
+	$fullWidth?: boolean | undefined;
+	$error?: boolean | undefined;
+	$size?: SelectSize | undefined;
 }
 
 const getSelectPadding = (size: SelectSize = 'medium') => {
@@ -74,17 +73,17 @@ const StyledSelect = styled.select<StyledSelectProps>`
 	color: ${({ theme }) => theme.colors.text.primary || '#000000'};
 	border: 1px solid
 		${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.border || '#e0e0e0'};
 	border-radius: ${({ theme }) => theme.borderRadius.sm || '4px'};
-	${({ $size }) => getSelectPadding($size)};
-	width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
-	height: ${({ $size }) => getSelectHeight($size)};
+	${({ $size }) => getSelectPadding($size ?? 'medium')};
+	width: ${({ $fullWidth }) => ($fullWidth ?? false ? '100%' : 'auto')};
+	height: ${({ $size }) => getSelectHeight($size ?? 'medium')};
 	font-size: ${({ theme, $size }) =>
-		$size === 'small'
+		($size ?? 'medium') === 'small'
 			? theme.typography.fontSize.sm || '14px'
-			: $size === 'large'
+			: ($size ?? 'medium') === 'large'
 			? theme.typography.fontSize.lg || '18px'
 			: theme.typography.fontSize.md || '16px'};
 	cursor: pointer;
@@ -94,7 +93,7 @@ const StyledSelect = styled.select<StyledSelectProps>`
 
 	&:hover:not(:disabled) {
 		border-color: ${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.primary || '#0077cc'};
 	}
@@ -102,12 +101,12 @@ const StyledSelect = styled.select<StyledSelectProps>`
 	&:focus {
 		outline: none;
 		border-color: ${({ $error, theme }) =>
-			$error
+			$error ?? false
 				? theme.colors.text.error || '#f44336'
 				: theme.colors.primary || '#0077cc'};
 		box-shadow: 0 0 0 2px
 			${({ $error, theme }) =>
-				$error
+				$error ?? false
 					? `${theme.colors.text.error || '#f44336'}40`
 					: `${theme.colors.primary || '#0077cc'}40`};
 	}
@@ -115,7 +114,7 @@ const StyledSelect = styled.select<StyledSelectProps>`
 	&:focus-visible {
 		outline: 2px solid
 			${({ $error, theme }) =>
-				$error
+				$error ?? false
 					? theme.colors.text.error || '#f44336'
 					: theme.colors.primary || '#0077cc'};
 		outline-offset: 2px;
@@ -152,20 +151,21 @@ export const SelectLabel = styled.label<{
 	display: block;
 	margin-bottom: ${({ theme }) => theme.spacing.xs || '4px'};
 	color: ${({ theme, $error }) =>
-		$error
+		$error ?? false
 			? theme.colors.text.error || '#f44336'
 			: theme.colors.text.primary || '#000000'};
 	font-size: ${({ theme }) => theme.typography.fontSize.sm || '14px'};
 	font-weight: ${({ theme }) => theme.typography.fontWeight.medium || '500'};
 
 	${({ $required, theme }) =>
-		$required &&
-		`
+		$required ?? false
+			? `
 		&:after {
 			content: " *";
 			color: ${theme.colors.text.error || '#f44336'};
 		}
-	`}
+	`
+			: ''}
 
 	@media (max-width: ${({ theme }) => theme.breakpoints.sm || '576px'}) {
 		margin-bottom: calc(${({ theme }) => theme.spacing.xs || '4px'} * 0.8);
@@ -182,7 +182,7 @@ export const SelectError = styled.span`
 export const SelectGroup = styled.div<{ fullWidth?: boolean }>`
 	display: flex;
 	flex-direction: column;
-	width: ${({ fullWidth }) => (fullWidth ? '100%' : 'auto')};
+	width: ${({ fullWidth }) => (fullWidth ?? false ? '100%' : 'auto')};
 	margin-bottom: ${({ theme }) => theme.spacing.md || '12px'};
 
 	@media (max-width: ${({ theme }) => theme.breakpoints.sm || '576px'}) {
@@ -194,19 +194,20 @@ export const SelectGroup = styled.div<{ fullWidth?: boolean }>`
 /**
  * Select component with support for options, label, and error states
  */
-export const Select: React.FC<SelectProps> = ({
+export const Select = ({
 	label,
-	error,
+	error = false,
 	helperText,
-	required,
+	required = false,
 	fullWidth = false,
 	options = [],
 	id,
 	children,
-	size,
+	size = 'medium',
 	...props
-}) => {
-	const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
+}: SelectProps) => {
+	const selectId =
+		id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
 	return (
 		<SelectGroup fullWidth={fullWidth}>
@@ -220,7 +221,7 @@ export const Select: React.FC<SelectProps> = ({
 				$error={error}
 				$fullWidth={fullWidth}
 				$size={size}
-				aria-invalid={error}
+				aria-invalid={error ? 'true' : 'false'}
 				aria-required={required}
 				required={required}
 				{...props}

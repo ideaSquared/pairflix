@@ -1,18 +1,11 @@
+import { Button, Card, Flex, Modal, Table, TableBody, TableCell, TableContainer, TableHead, TableHeaderCell, TableRow, Typography } from '@pairflix/components'
 import React from 'react';
-import { Button } from '../../../../../components/common/Button';
-import { Card } from '../../../../../components/common/Card';
-import { Flex } from '../../../../../components/common/Layout';
-import { Modal } from '../../../../../components/common/Modal';
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableHeaderCell,
-	TableRow,
-} from '../../../../../components/common/Table';
-import { Typography } from '../../../../../components/common/Typography';
+;
+;
+;
+;
+;
+;
 import { User } from './types';
 
 interface UserActivityModalProps {

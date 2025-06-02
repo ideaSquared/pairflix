@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography } from '../../../../../components/common/Typography';
+import { Typography } from '@pairflix/components';
 
 interface MessageProps {
 	message: string;

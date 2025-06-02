@@ -1,18 +1,22 @@
+import {
+	Button,
+	Card,
+	CardContent,
+	H1,
+	H2,
+	Input,
+	Select,
+	Typography,
+} from '@pairflix/components';
 import { useMutation } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '../../components/common/Button';
-import { Card, CardContent } from '../../components/common/Card';
 import DocumentTitle from '../../components/common/DocumentTitle';
-import { Input } from '../../components/common/Input';
-import { Select } from '../../components/common/Select';
-import { H1, H2, Typography } from '../../components/common/Typography';
 import Layout from '../../components/layout/Layout';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../hooks/useAuth';
 import { user as userService } from '../../services/api';
 import { validatePassword } from '../../utils/passwordPolicy';
-
 // Define response types for API calls
 type ApiResponse = {
 	token: string;
@@ -84,7 +88,7 @@ const FormCard = styled(Card).attrs<StandardCardProps>((props) => ({
 		gap: ${({ theme }) => theme.spacing.md};
 	}
 
-	${Button} {
+	button {
 		margin-top: ${({ theme }) => theme.spacing.sm};
 	}
 `;
@@ -103,7 +107,7 @@ const PreferencesCard = styled(Card).attrs<StandardCardProps>((props) => ({
 			border-bottom: none;
 		}
 
-		${Select} {
+		select {
 			width: 150px;
 		}
 	}
