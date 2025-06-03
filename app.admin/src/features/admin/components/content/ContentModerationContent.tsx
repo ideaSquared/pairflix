@@ -1,19 +1,36 @@
-import { Badge, Button, Card, FilterGroup, FilterItem, Flex, H4, Input, Loading, Modal, Pagination, Select, Table, TableActionButton, TableBody, TableCell, TableContainer, TableHead, TableHeaderCell, TableRow, Typography } from '@pairflix/components'
-import { Textarea } from '@pairflix/components';
+import {
+	Badge,
+	Button,
+	Card,
+	FilterGroup,
+	FilterItem,
+	Flex,
+	H4,
+	Input,
+	Loading,
+	Modal,
+	Pagination,
+	Select,
+	Table,
+	TableActionButton,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TableHeaderCell,
+	TableRow,
+	Textarea,
+	Typography,
+} from '@pairflix/components';
 import React, { ChangeEvent, useEffect, useState } from 'react';
+import {
+	MdCheck,
+	MdDelete,
+	MdEdit,
+	MdFlag,
+	MdReportProblem,
+} from 'react-icons/md';
 import styled from 'styled-components';
-;
-;
-;
-;
-;
-;
-;
-;
-;
-;
-;
-;
 import { admin } from '../../../../services/api';
 import type { Theme } from '../../../../styles/theme';
 
@@ -547,7 +564,7 @@ const ContentModerationContent: React.FC = () => {
 															onClick={() => handleEditContent(content)}
 															title='Edit content'
 														>
-															<i className='fas fa-edit'></i>
+															<MdEdit />
 														</TableActionButton>
 
 														{content.status === 'pending' && (
@@ -556,7 +573,7 @@ const ContentModerationContent: React.FC = () => {
 																title='Approve content'
 																variant='primary'
 															>
-																<i className='fas fa-check'></i>
+																<MdCheck />
 															</TableActionButton>
 														)}
 
@@ -567,7 +584,7 @@ const ContentModerationContent: React.FC = () => {
 																	title='Flag content'
 																	variant='warning'
 																>
-																	<i className='fas fa-flag'></i>
+																	<MdFlag />
 																</TableActionButton>
 															)}
 
@@ -577,7 +594,7 @@ const ContentModerationContent: React.FC = () => {
 																title='Review reports'
 																variant='secondary'
 															>
-																<i className='fas fa-exclamation-circle'></i>
+																<MdReportProblem />
 															</TableActionButton>
 														)}
 
@@ -587,7 +604,7 @@ const ContentModerationContent: React.FC = () => {
 																onClick={() => handleRemoveContent(content)}
 																title='Remove content'
 															>
-																<i className='fas fa-trash'></i>
+																<MdDelete />
 															</TableActionButton>
 														)}
 													</Flex>

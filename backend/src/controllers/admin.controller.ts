@@ -27,9 +27,9 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 		const offset = parseInt(req.query.offset as string, 10) || 0;
 
 		// Use the auditLogService to get logs
-		const logs = await auditLogService.getRecentLogs(limit, offset);
+		const data = await auditLogService.getRecentLogs(limit, offset);
 
-		return res.status(200).json({ logs });
+		return res.status(200).json({ data });
 	} catch (error) {
 		console.error('Error fetching audit logs:', error);
 		return res.status(500).json({ error: 'Failed to fetch audit logs' });
@@ -55,13 +55,13 @@ export const getAuditLogsByLevel = async (req: Request, res: Response) => {
 		const offset = parseInt(req.query.offset as string, 10) || 0;
 
 		// Use the auditLogService to get logs by level
-		const logs = await auditLogService.getLogsByLevel(
+		const data = await auditLogService.getLogsByLevel(
 			level as LogLevel,
 			limit,
 			offset
 		);
 
-		return res.status(200).json({ logs });
+		return res.status(200).json({ data });
 	} catch (error) {
 		console.error('Error fetching audit logs by level:', error);
 		return res.status(500).json({ error: 'Failed to fetch audit logs' });

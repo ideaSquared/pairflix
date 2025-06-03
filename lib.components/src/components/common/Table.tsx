@@ -341,15 +341,15 @@ const TableActionButton = styled.button<TableActionButtonProps>`
 	background-color: ${({ variant, theme }) => {
 		switch (variant) {
 			case 'primary':
-				return theme.colors.primary.main;
+				return theme.colors.primary;
 			case 'secondary':
-				return theme.colors.secondary.main;
+				return theme.colors.secondary;
 			case 'warning':
-				return theme.colors.warning.main;
+				return theme.colors.text.warning;
 			case 'danger':
-				return theme.colors.error.main;
+				return theme.colors.text.error;
 			default:
-				return theme.colors.background.light;
+				return theme.colors.background.secondary;
 		}
 	}};
 	color: ${({ variant, theme }) => {
@@ -358,7 +358,7 @@ const TableActionButton = styled.button<TableActionButtonProps>`
 			case 'secondary':
 			case 'warning':
 			case 'danger':
-				return theme.colors.text.inverse;
+				return '#ffffff'; // White text for all colored buttons
 			default:
 				return theme.colors.text.primary;
 		}

@@ -1,9 +1,6 @@
-import { Card, Flex, Typography } from '@pairflix/components'
+import { Card, Flex, Typography } from '@pairflix/components';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-;
-;
-;
 import UserManagementContent from '../../../user-management/UserManagementContent';
 import ContentModerationContent from '../content/ContentModerationContent';
 import { PageHeader } from '../shared/PageHeader';
