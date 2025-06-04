@@ -1,4 +1,10 @@
-import { Button, Card, CardContent, CardHeader } from '@pairflix/components';
+import {
+	Button,
+	Card,
+	CardContent,
+	CardHeader,
+	CompactPagination,
+} from '@pairflix/components';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import api from '../../services/api';
@@ -73,7 +79,7 @@ const PageTitle = styled.h2`
 	margin: 0;
 `;
 
-const PaginationContainer = styled.div`
+const PaginationWrapper = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -82,11 +88,6 @@ const PaginationContainer = styled.div`
 
 const PaginationInfo = styled.div`
 	font-size: 14px;
-`;
-
-const PaginationButtons = styled.div`
-	display: flex;
-	gap: 8px;
 `;
 
 const LoadingIndicator = styled.div`
@@ -110,6 +111,7 @@ const UserManagementContent = () => {
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [notificationCounter, setNotificationCounter] = useState(0);
+	const [currentPage, setCurrentPage] = useState(1);
 
 	// Load users on mount and when pagination changes
 	useEffect(() => {
@@ -153,13 +155,19 @@ const UserManagementContent = () => {
 		}, 5000);
 	};
 
+	// Calculate total pages
+	const totalPages = Math.ceil(pagination.total / pagination.limit);
+
 	// Handle page change
-	const handlePageChange = (newOffset: number) => {
+	const handlePageChange = (newPage: number) => {
+		setCurrentPage(newPage);
+		const newOffset = (newPage - 1) * pagination.limit;
 		setPagination((prev) => ({
 			...prev,
 			offset: newOffset,
 		}));
 	};
+
 	// Handle user status change
 	const handleStatusChange = async (
 		userId: string,
@@ -299,38 +307,18 @@ const UserManagementContent = () => {
 								stickyHeader
 							/>
 							{/* Pagination controls */}
-							<PaginationContainer>
+							<PaginationWrapper>
 								<PaginationInfo>
 									Showing {pagination.offset + 1} to{' '}
 									{Math.min(pagination.offset + users.length, pagination.total)}{' '}
 									of {pagination.total} users
 								</PaginationInfo>
-								<PaginationButtons>
-									{' '}
-									<Button
-										variant='secondary'
-										size='small'
-										onClick={() =>
-											handlePageChange(
-												Math.max(0, pagination.offset - pagination.limit)
-											)
-										}
-										disabled={pagination.offset === 0}
-									>
-										Previous
-									</Button>
-									<Button
-										variant='secondary'
-										size='small'
-										onClick={() =>
-											handlePageChange(pagination.offset + pagination.limit)
-										}
-										disabled={!pagination.hasMore}
-									>
-										Next
-									</Button>
-								</PaginationButtons>
-							</PaginationContainer>
+								<CompactPagination
+									currentPage={currentPage}
+									totalPages={totalPages}
+									onPageChange={handlePageChange}
+								/>
+							</PaginationWrapper>
 						</>
 					)}
 				</CardContent>

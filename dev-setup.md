@@ -44,6 +44,7 @@ This guide will help you set up the PairFlix project for local development.
    ```
    VITE_API_URL=http://localhost:8000/api/v1
    VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
+   ADMIN_TOKEN_KEY=admin_token
    ```
 
    **Admin App (.env in app.admin/ directory):**
@@ -51,6 +52,7 @@ This guide will help you set up the PairFlix project for local development.
    ```
    VITE_API_URL=http://localhost:8000/api/v1
    VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
+   ADMIN_TOKEN_KEY=admin_token
    ```
 
 3. Start the development environment with Docker Compose:
@@ -66,6 +68,8 @@ This guide will help you set up the PairFlix project for local development.
    - Client app on port 5173
    - Admin app on port 5174
 
+   **Note:** The Docker build now uses multi-stage builds to build the component library before building the client and admin apps.
+
 4. Database Initialization:
 
    The database will be automatically set up with seeds for two users.
@@ -75,11 +79,55 @@ This guide will help you set up the PairFlix project for local development.
    - User 1: `user1@example.com` / `password123`
    - User 2: `user2@example.com` / `password123`
 
+## Component Library
+
+The project uses a shared component library located in `lib.components/`. This library provides standardized UI components used by both the client and admin applications.
+
+### Working with the Component Library
+
+1. **Component Library Changes:**
+
+   If you make changes to components in the library, you need to rebuild to see the changes in the apps:
+
+   ```bash
+   cd lib.components
+   npm run build
+   ```
+
+2. **Using Components from the Library:**
+
+   Import components using the path alias:
+
+   ```typescript
+   // In app.client or app.admin
+   import { Button, Card, DataTable } from '@lib.components';
+   ```
+
+3. **Adding New Components to the Library:**
+
+   Add new components to the library when they are reusable across applications:
+
+   ```bash
+   # Create component files in lib.components/src/components
+   # Export them in lib.components/src/index.ts
+   # Build the library
+   cd lib.components
+   npm run build
+   ```
+
 ## Development Workflow
 
 ### Running Without Docker
 
 If you prefer to run components without Docker:
+
+**Component Library:**
+
+```bash
+cd lib.components
+npm install
+npm run build
+```
 
 **Backend:**
 
@@ -213,8 +261,21 @@ To use it:
    - Check CORS settings if modifying API origins
 
 3. **Docker Issues**
+
    - Restart with fresh containers: `docker-compose down && docker-compose up`
    - Rebuild images: `docker-compose build --no-cache`
+
+4. **Component Library Issues**
+
+   - If changes to the component library aren't reflecting in the apps:
+
+     - Ensure you've built the library: `cd lib.components && npm run build`
+     - Check path aliases in tsconfig.json of the app
+     - Verify the component is properly exported in the library index.ts
+
+   - If Docker builds fail with npm errors related to `@pairflix/components`:
+     - The multi-stage Docker build should handle this automatically
+     - If issues persist, rebuild with no cache: `docker-compose build --no-cache`
 
 ### Getting Help
 

@@ -2,6 +2,7 @@ import {
 	Button,
 	Card,
 	CardContent,
+	ErrorBoundary,
 	Flex,
 	H2,
 	Typography,
@@ -9,7 +10,6 @@ import {
 import { useQueryErrorResetBoundary } from '@tanstack/react-query';
 import React from 'react';
 import styled from 'styled-components';
-import { ErrorBoundary } from './ErrorBoundary';
 
 interface QueryErrorBoundaryProps {
 	children: React.ReactNode;

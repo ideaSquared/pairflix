@@ -20,6 +20,11 @@ Most endpoints require authentication via a JWT token in the Authorization heade
 Authorization: Bearer <token>
 ```
 
+### Token Storage
+
+- Client app stores user tokens with key `token`
+- Admin app stores admin tokens with key `admin_token` for better security isolation
+
 ## Authentication Endpoints
 
 #### POST /api/auth/login
@@ -68,6 +73,55 @@ Returns the current authenticated user.
 #### POST /api/auth/logout
 
 Logs out the current user.
+
+**Response: 204 No Content**
+
+#### POST /api/auth/admin/login
+
+Authenticates an admin user and returns a JWT token.
+
+**Request Body:**
+
+```json
+{
+	"email": "admin@example.com",
+	"password": "admin_password"
+}
+```
+
+**Response: 200 OK**
+
+```json
+{
+	"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+	"user": {
+		"user_id": "123e4567-e89b-12d3-a456-426614174000",
+		"email": "admin@example.com",
+		"username": "admin",
+		"role": "admin"
+	}
+}
+```
+
+#### GET /api/auth/admin/me
+
+Returns the current authenticated admin user.
+
+**Response: 200 OK**
+
+```json
+{
+	"user_id": "123e4567-e89b-12d3-a456-426614174000",
+	"email": "admin@example.com",
+	"username": "admin",
+	"role": "admin",
+	"last_login": "2025-06-03T10:30:00.000Z"
+}
+```
+
+#### POST /api/auth/admin/logout
+
+Logs out the current admin user.
 
 **Response: 204 No Content**
 
@@ -1215,7 +1269,7 @@ X-RateLimit-Reset: 1609459200
 
 #### GET /api/admin/settings
 
-Returns all application settings.
+Returns all application settings. Requires valid admin authentication.
 
 **Query Parameters:**
 
@@ -1268,6 +1322,8 @@ Returns all application settings.
 	}
 }
 ```
+
+**Note:** Settings are cached and only loaded when a valid authentication token is present. The API will avoid making unnecessary database calls for unauthenticated users.
 
 #### GET /api/admin/settings/:key
 
@@ -1374,5 +1430,55 @@ Resets all settings to default values.
 	"success": true,
 	"message": "All settings reset to default values",
 	"settingsCount": 25
+}
+```
+
+#### POST /api/admin/settings/validate
+
+Validates the current settings configuration.
+
+**Response: 200 OK**
+
+```json
+{
+	"success": true,
+	"message": "Settings configuration validated successfully",
+	"issues": []
+}
+```
+
+**Response: 400 Bad Request** (if validation issues found)
+
+```json
+{
+	"success": false,
+	"message": "Settings configuration has issues",
+	"issues": [
+		{
+			"key": "email.smtpPort",
+			"message": "SMTP port must be a number between 1-65535"
+		}
+	]
+}
+```
+
+#### GET /api/admin/client-settings
+
+Returns a simplified subset of settings intended for client application use.
+
+**Response: 200 OK**
+
+```json
+{
+	"siteName": "PairFlix",
+	"theme": {
+		"primaryColor": "#1976d2",
+		"secondaryColor": "#dc004e",
+		"darkMode": true
+	},
+	"features": {
+		"enableNotifications": true,
+		"enableActivityFeed": true
+	}
 }
 ```

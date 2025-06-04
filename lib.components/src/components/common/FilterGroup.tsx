@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState } from 'react';
 import styled from 'styled-components';
 import { Theme } from '../../styles/theme';
-import { Button } from './Button';
-import { Card, CardContent } from './Card';
-import { Flex } from './Layout';
-import { H2 } from './Typography';
+import { Card, CardContent } from '../data-display/Card';
+import { Button } from '../inputs/Button';
+import { Flex } from '../layout/Box';
+import { H2 } from '../utility/Typography';
 
 // Types
 export interface FilterGroupContextType {

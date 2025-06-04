@@ -1,4 +1,4 @@
-import { H1, Loading } from '@pairflix/components';
+import { H1, Loading, Pagination } from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { admin } from '../services/api';
@@ -236,6 +236,10 @@ const AuditLogs: React.FC = () => {
 		setError(null);
 	};
 
+	const handlePageChange = (newPage: number) => {
+		setPage(newPage);
+	};
+
 	return (
 		<div>
 			<H1>Audit Logs</H1>
@@ -255,45 +259,57 @@ const AuditLogs: React.FC = () => {
 			{isLoading ? (
 				<Loading message='Loading audit logs...' />
 			) : (
-				<LogGrid>
-					{logs.length > 0 ? (
-						logs.map((log) => (
-							<LogEntry key={log.log_id}>
-								<div
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										marginBottom: '8px',
-									}}
-								>
-									<LogLevel level={log.level}>{log.level}</LogLevel>
-									<Timestamp>{formatDate(log.created_at)}</Timestamp>
-								</div>
-								<div style={{ marginBottom: '8px' }}>
-									<strong>Source:</strong> {log.source}
-								</div>
-								<div style={{ marginBottom: '8px' }}>{log.message}</div>
-								{log.context && (
+				<>
+					<LogGrid>
+						{logs.length > 0 ? (
+							logs.map((log) => (
+								<LogEntry key={log.log_id}>
 									<div
 										style={{
-											backgroundColor: 'rgba(0,0,0,0.03)',
-											padding: '8px',
-											borderRadius: '4px',
-											fontFamily: 'monospace',
-											fontSize: '0.875rem',
+											display: 'flex',
+											alignItems: 'center',
+											marginBottom: '8px',
 										}}
 									>
-										<pre style={{ margin: 0 }}>
-											{JSON.stringify(log.context, null, 2)}
-										</pre>
+										<LogLevel level={log.level}>{log.level}</LogLevel>
+										<Timestamp>{formatDate(log.created_at)}</Timestamp>
 									</div>
-								)}
-							</LogEntry>
-						))
-					) : (
-						<div>No audit logs found.</div>
+									<div style={{ marginBottom: '8px' }}>
+										<strong>Source:</strong> {log.source}
+									</div>
+									<div style={{ marginBottom: '8px' }}>{log.message}</div>
+									{log.context && (
+										<div
+											style={{
+												backgroundColor: 'rgba(0,0,0,0.03)',
+												padding: '8px',
+												borderRadius: '4px',
+												fontFamily: 'monospace',
+												fontSize: '0.875rem',
+											}}
+										>
+											<pre style={{ margin: 0 }}>
+												{JSON.stringify(log.context, null, 2)}
+											</pre>
+										</div>
+									)}
+								</LogEntry>
+							))
+						) : (
+							<div>No audit logs found.</div>
+						)}
+					</LogGrid>
+					{logs.length > 0 && totalPages > 0 && (
+						<div style={{ marginTop: '20px' }}>
+							<Pagination
+								currentPage={page}
+								totalPages={totalPages}
+								onPageChange={handlePageChange}
+								showPageNumbers
+							/>
+						</div>
 					)}
-				</LogGrid>
+				</>
 			)}
 		</div>
 	);
