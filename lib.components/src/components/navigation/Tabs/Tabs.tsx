@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from 'styled-components';
 
 export interface TabItem {
@@ -50,7 +50,7 @@ const TabButton = styled.button<{
 `;
 
 /**
- * Tabs component for navigation between different sections.
+ * Tabs component for navigating between different sections.
  * Supports horizontal and vertical layouts, icons, tooltips, and full accessibility.
  */
 export const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(

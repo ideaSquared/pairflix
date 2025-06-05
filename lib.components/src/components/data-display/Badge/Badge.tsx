@@ -14,7 +14,9 @@ export type BadgeVariant =
 
 export type BadgeSize = 'small' | 'medium' | 'large';
 
-export interface BadgeProps extends BaseComponentProps {
+export interface BadgeProps
+	extends BaseComponentProps,
+		Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
 	/**
 	 * The variant of the badge
 	 * @default 'default'

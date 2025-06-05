@@ -1,8 +1,3 @@
-import '@testing-library/jest-dom';
-
-// Make React available globally to avoid multiple instances issue
-import * as React from 'react';
-global.React = React;
-
-// This file configures Jest DOM matchers for your tests
-// It's imported by Jest automatically when running tests
+// Re-export the root setupTests to avoid duplication
+// This ensures any tools or scripts looking for setupTests in src/ will find it
+export * from '../setupTests';

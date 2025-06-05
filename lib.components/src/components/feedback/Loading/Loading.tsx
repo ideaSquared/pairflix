@@ -1,8 +1,8 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { Typography } from '../../../components/utility/Typography/Typography';
 import { BaseComponentProps } from '../../../types';
 import { Flex } from '../../layout';
-import { Typography } from '../../utility';
 
 const spin = keyframes`
     0% { transform: rotate(0deg); }

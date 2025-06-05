@@ -241,6 +241,26 @@ export const Modal: React.FC<ModalProps> = ({
 		}
 	}, [isOpen, initialFocusRef, finalFocusRef]);
 
+	// Handle body scroll locking
+	useEffect(() => {
+		if (!blockScrollOnMount) return;
+
+		if (isOpen) {
+			// Store original style
+			const originalStyle = window.getComputedStyle(document.body).overflow;
+			// Set overflow to hidden
+			document.body.style.overflow = 'hidden';
+
+			return () => {
+				// Restore original style when modal closes or component unmounts
+				document.body.style.overflow = originalStyle;
+			};
+		} else {
+			// Ensure overflow is reset when isOpen becomes false
+			document.body.style.overflow = '';
+		}
+	}, [isOpen, blockScrollOnMount]);
+
 	// Handle click outside
 	useEffect(() => {
 		if (!isOpen) return;
@@ -257,21 +277,10 @@ export const Modal: React.FC<ModalProps> = ({
 
 		document.addEventListener('mousedown', handleClickOutside);
 
-		// Prevent scrolling of the body when modal is open
-		if (blockScrollOnMount) {
-			const originalStyle = window.getComputedStyle(document.body).overflow;
-			document.body.style.overflow = 'hidden';
-
-			return () => {
-				document.removeEventListener('mousedown', handleClickOutside);
-				document.body.style.overflow = originalStyle;
-			};
-		}
-
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
-	}, [isOpen, onClose, closeOnBackdropClick, blockScrollOnMount]);
+	}, [isOpen, onClose, closeOnBackdropClick]);
 
 	// Don't render anything on the server or if not mounted yet or if modal is closed
 	if (!mounted || !isOpen) return null;

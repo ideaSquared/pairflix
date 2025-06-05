@@ -9,7 +9,7 @@ const config: Config.InitialOptions = {
 	testEnvironment: 'jsdom',
 
 	// Configure setup files to extend Jest with testing library
-	setupFilesAfterEnv: ['<rootDir>/setupTests.ts'],
+	setupFilesAfterEnv: ['<rootDir>/setupTests.tsx'],
 
 	// Handle non-TypeScript files and mocks
 	moduleNameMapper: {
