@@ -1,5 +1,5 @@
 // Navigation components barrel file
-// This will export components like Breadcrumb, Menu, Pagination, Tabs
-
-export * from './Pagination/index';
+export * from './Breadcrumb/Breadcrumb';
+export * from './Link/Link';
+export * from './Pagination';
 export * from './Tabs';

@@ -3,9 +3,8 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { ThemeProvider } from 'styled-components';
-import { TabItem, Tabs } from './Tabs';
+import { Tab, TabList, TabPanel, Tabs } from './Tabs';
 
-// Mock theme for styled-components
 const mockTheme = {
 	colors: {
 		primary: '#0077cc',
@@ -13,182 +12,227 @@ const mockTheme = {
 			200: '#e2e8f0',
 		},
 		white: '#ffffff',
+		text: {
+			primary: '#000000',
+		},
+		border: {
+			default: '#e0e0e0',
+		},
 	},
 	breakpoints: {
 		mobile: '@media (max-width: 768px)',
 	},
+	spacing: {
+		sm: '8px',
+		md: '16px',
+	},
+	typography: {
+		fontSize: {
+			md: '16px',
+		},
+	},
 };
 
 // Sample tabs data for testing
-const mockTabs: TabItem[] = [
+const mockTabs = [
 	{ id: 'tab1', label: 'Tab 1' },
 	{ id: 'tab2', label: 'Tab 2' },
 	{ id: 'tab3', label: 'Tab 3', disabled: true },
 	{ id: 'tab4', label: 'Tab 4', tooltip: 'Tab 4 tooltip' },
 ];
 
-// Helper function to render tabs with theme
-const renderWithTheme = (
-	props: Partial<React.ComponentProps<typeof Tabs>> = {}
-) => {
-	const defaultProps = {
-		tabs: mockTabs,
-		activeTab: 'tab1',
-		onChange: jest.fn(),
-	};
+// Test component with proper TypeScript props
+const TabsExample: React.FC<{
+	defaultValue?: string;
+	value?: string;
+	onChange?: (value: string) => void;
+	vertical?: boolean;
+}> = ({ defaultValue, value, onChange, vertical }) => (
+	<Tabs
+		defaultValue={defaultValue}
+		value={value}
+		onChange={onChange}
+		vertical={vertical}
+	>
+		<TabList>
+			<Tab value='tab1'>Tab 1</Tab>
+			<Tab value='tab2'>Tab 2</Tab>
+			<Tab value='tab3' disabled>
+				Tab 3
+			</Tab>
+			<Tab value='tab4'>Tab 4</Tab>
+		</TabList>
+		<TabPanel value='tab1'>Content 1</TabPanel>
+		<TabPanel value='tab2'>Content 2</TabPanel>
+		<TabPanel value='tab3'>Content 3</TabPanel>
+		<TabPanel value='tab4'>Content 4</TabPanel>
+	</Tabs>
+);
 
-	return render(
-		<ThemeProvider theme={mockTheme}>
-			<Tabs {...defaultProps} {...props} />
-		</ThemeProvider>
-	);
+// Helper function with proper types
+const renderWithTheme = (ui: React.ReactElement) => {
+	return render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 };
 
 describe('Tabs', () => {
-	it('renders all tabs correctly', () => {
-		renderWithTheme();
+	describe('Basic Rendering', () => {
+		it('renders all tabs and panels', () => {
+			renderWithTheme(<TabsExample />);
 
-		expect(screen.getByText('Tab 1')).toBeInTheDocument();
-		expect(screen.getByText('Tab 2')).toBeInTheDocument();
-		expect(screen.getByText('Tab 3')).toBeInTheDocument();
-		expect(screen.getByText('Tab 4')).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'Tab 1' })).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'Tab 2' })).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'Tab 3' })).toBeInTheDocument();
+
+			expect(screen.getByRole('tabpanel')).toBeInTheDocument();
+		});
+
+		it('renders with correct ARIA attributes', () => {
+			renderWithTheme(<TabsExample defaultValue='tab1' />);
+
+			const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
+			const panel1 = screen.getByRole('tabpanel');
+
+			expect(tab1).toHaveAttribute('aria-selected', 'true');
+			expect(tab1).toHaveAttribute('aria-controls', expect.any(String));
+			expect(panel1).toHaveAttribute('aria-labelledby', tab1.id);
+		});
+
+		it('applies custom className', () => {
+			const { container } = renderWithTheme(
+				<Tabs className='custom-tabs' defaultValue='tab1'>
+					<TabList>
+						<Tab value='tab1'>Tab 1</Tab>
+					</TabList>
+					<TabPanel value='tab1'>Content 1</TabPanel>
+				</Tabs>
+			);
+			expect(container.firstChild).toHaveClass('custom-tabs');
+		});
 	});
 
-	it('marks the active tab correctly', () => {
-		renderWithTheme({ activeTab: 'tab2' });
+	describe('Selection Behavior', () => {
+		it('selects first non-disabled tab by default', () => {
+			renderWithTheme(<TabsExample />);
 
-		const tab2 = screen.getByText('Tab 2').closest('button');
-		expect(tab2).toHaveAttribute('aria-selected', 'true');
+			const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
+			expect(tab1).toHaveAttribute('aria-selected', 'true');
+			expect(screen.getByText('Content 1')).toBeInTheDocument();
+		});
 
-		const tab1 = screen.getByText('Tab 1').closest('button');
-		expect(tab1).toHaveAttribute('aria-selected', 'false');
+		it('handles controlled selection', () => {
+			const handleChange = jest.fn();
+			renderWithTheme(<TabsExample value='tab2' onChange={handleChange} />);
+
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
+			expect(tab2).toHaveAttribute('aria-selected', 'true');
+			expect(screen.getByText('Content 2')).toBeInTheDocument();
+		});
+
+		it('handles uncontrolled selection with defaultValue', () => {
+			renderWithTheme(<TabsExample defaultValue='tab2' />);
+
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
+			expect(tab2).toHaveAttribute('aria-selected', 'true');
+			expect(screen.getByText('Content 2')).toBeInTheDocument();
+		});
+
+		it('calls onChange when tab is clicked', () => {
+			const handleChange = jest.fn();
+			renderWithTheme(<TabsExample onChange={handleChange} />);
+
+			fireEvent.click(screen.getByRole('tab', { name: 'Tab 2' }));
+			expect(handleChange).toHaveBeenCalledWith('tab2');
+		});
 	});
 
-	it('calls onChange when a tab is clicked', () => {
-		const handleChange = jest.fn();
-		renderWithTheme({ onChange: handleChange });
+	describe('Keyboard Navigation', () => {
+		it('supports arrow key navigation', () => {
+			renderWithTheme(<TabsExample defaultValue='tab1' />);
 
-		fireEvent.click(screen.getByText('Tab 2'));
-		expect(handleChange).toHaveBeenCalledWith('tab2');
+			const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
+
+			tab1.focus();
+			fireEvent.keyDown(tab1, { key: 'ArrowRight' });
+			expect(tab2).toHaveAttribute('aria-selected', 'true');
+		});
+
+		it('skips disabled tabs in keyboard navigation', () => {
+			const handleChange = jest.fn();
+			renderWithTheme(
+				<TabsExample defaultValue='tab2' onChange={handleChange} />
+			);
+
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
+			const tab4 = screen.getByRole('tab', { name: 'Tab 4' });
+
+			tab2.focus();
+			fireEvent.keyDown(tab2, { key: 'ArrowRight' });
+
+			// After pressing right from Tab 2, it should skip disabled Tab 3 and select Tab 4
+			expect(handleChange).toHaveBeenCalledWith('tab4');
+		});
+
+		it('supports Home and End keys', () => {
+			const handleChange = jest.fn();
+			renderWithTheme(
+				<TabsExample defaultValue='tab2' onChange={handleChange} />
+			);
+
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
+
+			tab2.focus();
+			fireEvent.keyDown(tab2, { key: 'Home' });
+			expect(handleChange).toHaveBeenCalledWith('tab1');
+
+			// Reset mock to test End key separately
+			handleChange.mockReset();
+			fireEvent.keyDown(tab2, { key: 'End' });
+			expect(handleChange).toHaveBeenCalledWith('tab4');
+		});
 	});
 
-	it('does not call onChange when a disabled tab is clicked', () => {
-		const handleChange = jest.fn();
-		renderWithTheme({ onChange: handleChange });
+	describe('Disabled State', () => {
+		it('prevents selection of disabled tabs', () => {
+			renderWithTheme(<TabsExample defaultValue='tab1' />);
 
-		fireEvent.click(screen.getByText('Tab 3'));
-		expect(handleChange).not.toHaveBeenCalled();
+			const tab3 = screen.getByRole('tab', { name: 'Tab 3' });
+			fireEvent.click(tab3);
+
+			expect(tab3).toHaveAttribute('aria-selected', 'false');
+			expect(screen.queryByText('Content 3')).not.toBeVisible();
+		});
+
+		it('applies correct styling to disabled tabs', () => {
+			renderWithTheme(<TabsExample />);
+
+			const disabledTab = screen.getByRole('tab', { name: 'Tab 3' });
+			expect(disabledTab).toBeDisabled();
+			expect(disabledTab).toHaveStyle({ cursor: 'not-allowed' });
+		});
 	});
 
-	it('renders tabs as disabled when specified', () => {
-		renderWithTheme();
+	describe('Vertical Layout', () => {
+		it('renders in vertical orientation', () => {
+			renderWithTheme(<TabsExample vertical />);
 
-		const disabledTab = screen.getByText('Tab 3').closest('button');
-		expect(disabledTab).toBeDisabled();
-	});
+			const tabList = screen.getByRole('tablist');
+			expect(tabList).toHaveStyle({ flexDirection: 'column' });
+		});
 
-	it('renders with tooltip when provided', () => {
-		renderWithTheme();
+		it('supports keyboard navigation in vertical mode', () => {
+			renderWithTheme(<TabsExample vertical defaultValue='tab1' />);
 
-		const tabWithTooltip = screen.getByText('Tab 4').closest('button');
-		expect(tabWithTooltip).toHaveAttribute('title', 'Tab 4 tooltip');
-	});
+			const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
+			const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
 
-	it('renders icons when provided', () => {
-		const tabsWithIcons: TabItem[] = [
-			{
-				id: 'tab1',
-				label: 'Tab 1',
-				icon: <span data-testid='icon-1'>🏠</span>,
-			},
-			{
-				id: 'tab2',
-				label: 'Tab 2',
-				icon: <span data-testid='icon-2'>📚</span>,
-			},
-		];
+			tab1.focus();
+			fireEvent.keyDown(tab1, { key: 'ArrowDown' });
+			expect(tab2).toHaveAttribute('aria-selected', 'true');
 
-		renderWithTheme({ tabs: tabsWithIcons });
-
-		expect(screen.getByTestId('icon-1')).toBeInTheDocument();
-		expect(screen.getByTestId('icon-2')).toBeInTheDocument();
-	});
-
-	it('renders in vertical layout when specified', () => {
-		const { container } = renderWithTheme({ vertical: true });
-
-		// Check if the TabsContainer has vertical styling
-		const tabContainer = container.firstChild;
-		expect(tabContainer).toHaveStyle('flex-direction: column');
-
-		// Vertical tabs should have right border but no bottom border
-		expect(tabContainer).toHaveStyle(
-			`border-right: 1px solid ${mockTheme.colors.gray[200]}`
-		);
-		expect(tabContainer).not.toHaveStyle(
-			`border-bottom: 1px solid ${mockTheme.colors.gray[200]}`
-		);
-	});
-
-	it('renders in horizontal layout by default', () => {
-		const { container } = renderWithTheme();
-
-		// Check if the TabsContainer has horizontal styling
-		const tabContainer = container.firstChild;
-		expect(tabContainer).toHaveStyle('flex-direction: row');
-
-		// Horizontal tabs should have bottom border but no right border
-		expect(tabContainer).toHaveStyle(
-			`border-bottom: 1px solid ${mockTheme.colors.gray[200]}`
-		);
-		expect(tabContainer).not.toHaveStyle(
-			`border-right: 1px solid ${mockTheme.colors.gray[200]}`
-		);
-	});
-
-	it('renders with full width when specified', () => {
-		const { container } = renderWithTheme({ fullWidth: true });
-
-		const tabContainer = container.firstChild;
-		expect(tabContainer).toHaveStyle('width: 100%');
-	});
-
-	it('renders with auto width by default', () => {
-		const { container } = renderWithTheme();
-
-		const tabContainer = container.firstChild;
-		expect(tabContainer).toHaveStyle('width: auto');
-	});
-
-	it('has correct accessibility attributes', () => {
-		renderWithTheme();
-
-		// Check tablist role
-		const tablist = screen.getByRole('tablist');
-		expect(tablist).toHaveAttribute('aria-label', 'Navigation tabs');
-
-		// Check tab roles and attributes
-		const tabs = screen.getAllByRole('tab');
-		expect(tabs).toHaveLength(4);
-
-		// Check first tab has correct aria attributes
-		const firstTab = screen.getByText('Tab 1').closest('button');
-		expect(firstTab).toHaveAttribute('aria-selected', 'true');
-		expect(firstTab).toHaveAttribute('aria-controls', 'tab1-panel');
-		expect(firstTab).toHaveAttribute('id', 'tab1-tab');
-
-		// Check second tab has correct aria attributes
-		const secondTab = screen.getByText('Tab 2').closest('button');
-		expect(secondTab).toHaveAttribute('aria-selected', 'false');
-		expect(secondTab).toHaveAttribute('aria-controls', 'tab2-panel');
-		expect(secondTab).toHaveAttribute('id', 'tab2-tab');
-	});
-
-	it('can be customized with className', () => {
-		const { container } = renderWithTheme({ className: 'custom-tabs' });
-
-		const tabContainer = container.firstChild;
-		expect(tabContainer).toHaveClass('custom-tabs');
+			fireEvent.keyDown(tab2, { key: 'ArrowUp' });
+			expect(tab1).toHaveAttribute('aria-selected', 'true');
+		});
 	});
 
 	it('forwards ref correctly', () => {
@@ -196,16 +240,29 @@ describe('Tabs', () => {
 
 		render(
 			<ThemeProvider theme={mockTheme}>
-				<Tabs tabs={mockTabs} activeTab='tab1' onChange={() => {}} ref={ref} />
+				<Tabs ref={ref} defaultValue='tab1'>
+					<TabList>
+						<Tab value='tab1'>Tab 1</Tab>
+					</TabList>
+					<TabPanel value='tab1'>Content 1</TabPanel>
+				</Tabs>
 			</ThemeProvider>
 		);
 
 		expect(ref.current).toBeInstanceOf(HTMLDivElement);
-		expect(ref.current?.getAttribute('role')).toBe('tablist');
 	});
 
 	it('allows custom aria-label', () => {
-		renderWithTheme({ ariaLabel: 'Custom Tab Navigation' });
+		render(
+			<ThemeProvider theme={mockTheme}>
+				<Tabs defaultValue='tab1'>
+					<TabList aria-label='Custom Tab Navigation'>
+						<Tab value='tab1'>Tab 1</Tab>
+					</TabList>
+					<TabPanel value='tab1'>Content 1</TabPanel>
+				</Tabs>
+			</ThemeProvider>
+		);
 
 		const tablist = screen.getByRole('tablist');
 		expect(tablist).toHaveAttribute('aria-label', 'Custom Tab Navigation');

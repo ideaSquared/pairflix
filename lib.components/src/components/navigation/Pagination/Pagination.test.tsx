@@ -1,7 +1,7 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\lib.components\src\components\navigation\Pagination\Pagination.test.tsx
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
+import * as React from 'react';
 import { ThemeProvider } from 'styled-components';
 import mockTheme from '../../../__mocks__/mockTheme';
 import Pagination, { CompactPagination, SimplePagination } from './Pagination';

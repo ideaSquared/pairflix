@@ -2,3 +2,4 @@
 // This exports components like Modal, Dialog, Drawer, Tooltip
 
 export * from './Modal';
+export * from './Tooltip';
