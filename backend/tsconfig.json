@@ -10,7 +10,9 @@
 		"forceConsistentCasingInFileNames": true,
 		"noUncheckedIndexedAccess": true,
 		"exactOptionalPropertyTypes": true,
-		"useUnknownInCatchVariables": true
+		"useUnknownInCatchVariables": true,
+		"composite": true,
+		"declaration": true
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules"]

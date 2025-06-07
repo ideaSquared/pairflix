@@ -1,0 +1,19 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./app.client" },
+    { "path": "./app.admin" },
+    { "path": "./backend" },
+    { "path": "./lib.components" }
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "useUnknownInCatchVariables": true
+  }
+}
