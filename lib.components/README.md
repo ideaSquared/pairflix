@@ -733,3 +733,32 @@ For questions, issues, or contributions:
 ---
 
 **Happy building! 🚀**
+
+## Components Missing Stories
+
+The following components need Storybook stories to be created:
+
+### Utility Components
+
+- **Typography** - Text components including H1-H6, Text, ErrorText, etc.
+- **ErrorBoundary** - Error handling component
+
+### Input Components
+
+- **Button** - Core interactive component
+- **Input** - Text input component
+- **FilterGroup** - Component for filtering interfaces
+
+### Feedback Components
+
+- **Toast** - Notification component
+
+### Overlay Components
+
+- **Tooltip** - Hover information component
+
+Creating stories for these components will help document their usage, showcase different prop configurations, and ensure visual consistency across the application.
+
+---
+
+**Happy building! 🚀**
