@@ -23,6 +23,7 @@
     "test:a11y": "jest --testNamePattern=\"accessibility|a11y|axe\" --verbose",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
