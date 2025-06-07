@@ -2,6 +2,7 @@
   "name": "pairflix-monorepo",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev:client": "cd app.client && npm run dev",
     "dev:admin": "cd app.admin && npm run dev",
@@ -35,9 +36,16 @@
     "lib.components"
   ],
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "concurrently": "^8.2.2",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-prettier": "^5.4.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.33.1"
   }
 }
