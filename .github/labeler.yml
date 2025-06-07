@@ -1,0 +1,10 @@
+client:
+  - 'app.client/**'
+admin:
+  - 'app.admin/**'
+backend:
+  - 'backend/**'
+components:
+  - 'lib.components/**'
+docs:
+  - 'docs/**'
