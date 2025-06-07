@@ -88,7 +88,7 @@ const CodeBlock = styled.pre`
 `;
 
 const meta: Meta<typeof Modal> = {
-	title: 'Components/Modal',
+	title: 'Overlay/Modal',
 	component: Modal,
 	tags: ['autodocs'],
 	decorators: [
