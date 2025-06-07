@@ -39,7 +39,7 @@
   "devDependencies": {
     "@axe-core/react": "^4.10.2",
     "@storybook/addon-docs": "^9.0.5",
-    "@storybook/addon-onboarding": "^9.0.5",
+    "@storybook/addon-onboarding": "^9.0.6",
     "@storybook/addon-webpack5-compiler-swc": "^3.0.0",
     "@storybook/react-webpack5": "^9.0.5",
     "@testing-library/jest-dom": "^6.6.3",
