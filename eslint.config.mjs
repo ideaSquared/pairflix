@@ -3,6 +3,9 @@
 
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import prettierPlugin from 'eslint-plugin-prettier';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 /**
@@ -57,8 +60,8 @@ export default [
       'lib.components/**/*.{ts,tsx}',
     ],
     plugins: {
-      react: require('eslint-plugin-react'),
-      'react-hooks': require('eslint-plugin-react-hooks'),
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     languageOptions: {
       parserOptions: {
@@ -83,7 +86,7 @@ export default [
       'prettier/prettier': 'error',
     },
     plugins: {
-      prettier: require('eslint-plugin-prettier'),
+      prettier: prettierPlugin,
     },
   },
   // Node/Backend specific (backend only)
