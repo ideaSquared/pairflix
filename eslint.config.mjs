@@ -6,6 +6,7 @@ import prettier from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /**
@@ -41,7 +42,7 @@ export default [
     rules: {
       // Common TypeScript rules from backend/app.client
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_' },
@@ -50,6 +51,29 @@ export default [
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-call': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // --- Industry Standard Rules ---
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all'],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-duplicate-imports': 'error',
+      'no-shadow': 'error',
+      'no-return-await': 'error',
+      'object-shorthand': ['error', 'always'],
+      'prefer-template': 'error',
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'dot-notation': 'error',
+      // TypeScript-specific
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
+      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/no-shadow': ['error'],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: false },
+      ],
     },
   },
   // React/Frontend overrides
@@ -62,6 +86,8 @@ export default [
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
+      // Add accessibility plugin if available
+      // 'jsx-a11y': jsxA11yPlugin, // Uncomment if installed
     },
     languageOptions: {
       parserOptions: {
@@ -77,6 +103,15 @@ export default [
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // --- React/JSX Industry Standard ---
+      'react/jsx-boolean-value': ['error', 'never'],
+      'react/self-closing-comp': 'error',
+      'react/jsx-key': 'error',
+      'react/prop-types': 'off',
+      // Accessibility (if plugin installed)
+      // 'jsx-a11y/alt-text': 'warn',
+      // 'jsx-a11y/anchor-is-valid': 'warn',
+      // 'jsx-a11y/no-autofocus': 'warn',
     },
   },
   // Prettier integration (all packages)
@@ -93,10 +128,13 @@ export default [
   {
     files: ['backend/**/*.ts'],
     languageOptions: {
-      env: {
-        node: true,
-        jest: true,
+      globals: {
+        ...globals.node,
+        ...globals.commonjs,
+        ...globals.jest,
       },
+      ecmaVersion: 2021,
+      sourceType: 'module',
     },
   },
   // Frontend env (client/admin/components)
@@ -107,10 +145,12 @@ export default [
       'lib.components/**/*.{ts,tsx}',
     ],
     languageOptions: {
-      env: {
-        browser: true,
-        es2021: true,
+      globals: {
+        ...globals.browser,
+        ...globals.jest,
       },
+      ecmaVersion: 2021,
+      sourceType: 'module',
     },
   },
 ];
