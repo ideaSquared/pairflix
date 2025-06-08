@@ -10,8 +10,8 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",
-		"lint": "eslint src/ --ext .ts --config .eslintrc.json",
-		"lint:fix": "eslint src/ --ext .ts --fix --config .eslintrc.json",
+		"lint": "eslint src/ --ext .ts",
+		"lint:fix": "eslint src/ --ext .ts --fix",
 		"format": "prettier --write \"src/**/*.{ts,js,json}\"",
 		"format:check": "prettier --check \"src/**/*.{ts,js,json}\""
 	},
