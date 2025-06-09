@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   CardContent,
+  Container,
   ErrorText,
   H2,
   Input,
@@ -10,7 +11,6 @@ import {
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Container } from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
 

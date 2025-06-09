@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   CardGrid,
+  Container,
   Flex,
   H1,
   H3,
@@ -18,7 +19,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import TagFilter from '../../components/common/TagFilter';
 import TagInput from '../../components/common/TagInput';
-import Layout, { Container } from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
   user as userService,

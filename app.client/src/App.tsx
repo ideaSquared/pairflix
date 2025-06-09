@@ -1,8 +1,7 @@
-import { ErrorBoundary } from '@pairflix/components';
+import { ErrorBoundary, QueryErrorBoundary } from '@pairflix/components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import QueryErrorBoundary from './components/common/QueryErrorBoundary';
-import SessionManager from './components/common/SessionManager';
+import AppSessionManager from './components/common/AppSessionManager';
 import Routes from './components/layout/Routes';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ThemeProvider } from './styles/ThemeProvider';
@@ -38,7 +37,7 @@ function App() {
               <ThemeProvider>
                 {' '}
                 {/* SessionManager enforces session timeout settings */}
-                <SessionManager />
+                <AppSessionManager />
                 <Routes />
               </ThemeProvider>
             </SettingsProvider>
