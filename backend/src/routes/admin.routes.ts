@@ -9,6 +9,7 @@ import {
 } from '../controllers/admin.controller';
 import { adminOnlyMiddleware } from '../middlewares/admin-only';
 import { authenticateToken } from '../middlewares/auth';
+import { strictRateLimit } from '../middlewares/rate-limiter';
 
 const router = express.Router();
 
@@ -34,12 +35,20 @@ router.post('/settings/clear-cache', clearCache);
 
 // User management routes
 router.get('/users', adminController.getUsers);
-router.post('/users', adminController.createUser);
+router.post('/users', strictRateLimit, adminController.createUser);
 router.get('/users/:userId', adminController.getUserById);
 router.put('/users/:userId', adminController.updateUser);
-router.delete('/users/:userId', adminController.deleteUser);
-router.put('/users/:userId/status', adminController.changeUserStatus);
-router.post('/users/:userId/reset-password', adminController.resetUserPassword);
+router.delete('/users/:userId', strictRateLimit, adminController.deleteUser);
+router.put(
+	'/users/:userId/status',
+	strictRateLimit,
+	adminController.changeUserStatus
+);
+router.post(
+	'/users/:userId/reset-password',
+	strictRateLimit,
+	adminController.resetUserPassword
+);
 router.get('/users-csv', adminController.exportUsersAsCsv);
 
 // Audit log routes
@@ -65,15 +74,28 @@ router.post('/audit-logs/test', adminController.createTestLog);
 router.get('/watchlist-entries', adminController.getAllWatchlistEntries);
 router.put(
 	'/watchlist-entries/:entryId/moderate',
+	strictRateLimit,
 	adminController.moderateWatchlistEntry
 );
 router.get('/matches', adminController.getAllMatches);
 router.get('/content', adminController.getAllContent);
 router.get('/content/:contentId/reports', adminController.getContentReports);
 router.put('/content/:contentId', adminController.updateContent);
-router.put('/content/:contentId/flag', adminController.flagContent);
-router.put('/content/:contentId/approve', adminController.approveContent);
-router.put('/content/:contentId/remove', adminController.removeContent);
+router.put(
+	'/content/:contentId/flag',
+	strictRateLimit,
+	adminController.flagContent
+);
+router.put(
+	'/content/:contentId/approve',
+	strictRateLimit,
+	adminController.approveContent
+);
+router.put(
+	'/content/:contentId/remove',
+	strictRateLimit,
+	adminController.removeContent
+);
 router.put('/reports/:reportId/dismiss', adminController.dismissReport);
 
 // System monitoring routes

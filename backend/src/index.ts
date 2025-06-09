@@ -5,6 +5,12 @@ import { initDatabase } from './db/connection';
 import { seedDatabase } from './db/seeders';
 import { authenticateToken } from './middlewares/auth';
 import { errorHandler } from './middlewares/error-handler';
+import {
+	adminRateLimit,
+	authRateLimit,
+	generalRateLimit,
+	searchRateLimit,
+} from './middlewares/rate-limiter';
 import { requestLogger } from './middlewares/request-logger';
 import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
@@ -65,6 +71,9 @@ app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
+// Global rate limiting (apply to all routes)
+app.use(generalRateLimit);
+
 // Debug middleware to log incoming requests
 app.use((req, res, next) => {
 	console.warn(`${req.method} ${req.url}`);
@@ -74,14 +83,14 @@ app.use((req, res, next) => {
 // Request audit logging middleware (before routes)
 app.use(requestLogger);
 
-// Routes
-app.use('/api/auth', authRoutes);
+// Routes with specific rate limiting
+app.use('/api/auth', authRateLimit, authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/search', authenticateToken, searchRoutes);
+app.use('/api/search', searchRateLimit, authenticateToken, searchRoutes);
 app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 app.use('/api/matches', authenticateToken, matchRoutes);
 app.use('/api/activity', authenticateToken, activityRoutes);
-app.use('/api/admin', adminRoutes); // Admin routes handle their own authentication
+app.use('/api/admin', adminRateLimit, adminRoutes); // Admin routes handle their own authentication
 
 // Global error handler middleware (after routes)
 app.use(errorHandler);
