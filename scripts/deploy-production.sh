@@ -143,7 +143,7 @@ fi
 echo "✅ All images found"
 
 # Create backup of current deployment (if exists)
-if docker-compose -f "${COMPOSE_FILE}" ps -q >/dev/null 2>&1; then
+if [[ -n "$(docker-compose -f "${COMPOSE_FILE}" ps -q)" ]]; then
   echo "📦 Creating backup of current deployment..."
   BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
   mkdir -p "${BACKUP_DIR}"
@@ -216,7 +216,7 @@ fi
 
 # Clean up old images (keep last 3 versions)
 echo "🧹 Cleaning up old images..."
-docker images | grep pairflix | awk '{print $1":"$2}' | tail -n +4 | xargs -r docker rmi || true
+docker images --format '{{.Repository}}:{{.Tag}} {{.CreatedAt}}' | grep pairflix | sort -k2 | head -n -3 | awk '{print $1}' | xargs -r docker rmi || true
 
 echo ""
 echo "🎉 Deployment successful!"
