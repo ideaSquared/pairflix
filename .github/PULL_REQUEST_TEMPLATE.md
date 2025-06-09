@@ -1,19 +1,48 @@
-# Description
+### 🚀 What’s New
 
-Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context.
+- ✨ Feature: Briefly describe new functionality or enhancement
+- 🐛 Fix: Briefly describe bug fix or issue resolution
+- 🛠️ Refactor: Briefly describe code improvements or restructuring
+- 📦 Dependency: Note any new or updated packages
+- 🧪 Test: Highlight new or updated tests
 
-Fixes #(issue)
+---
 
-## Checklist
+### 📝 Description
 
-- [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
+<!--
+Provide a summary of the changes, reasoning behind them, and any context needed.
+Include background info or design decisions if relevant.
+-->
 
-## Screenshots (if applicable)
+Fixes: #<issue-number> <!-- Optional: Link to related issue -->
 
-## Related Issues
+---
+
+### ✅ Checklist
+
+- [x] My code follows the style guidelines of this project
+- [x] I have performed a self-review of my code
+- [x] I have commented parts that are complex or non-obvious
+- [x] I have updated relevant documentation
+- [x] I have added or updated tests
+- [x] No new warnings or errors are introduced
+- [x] All tests pass locally
+
+---
+
+### 📸 Screenshots (if applicable)
+
+<!-- Include before/after UI, logs, or other visuals -->
+
+---
+
+### 🔗 Related Issues / PRs
+
+<!-- List any related issues, pull requests, or references -->
+
+---
+
+### ⚠️ Notes for Reviewers
+
+<!-- Highlight anything that needs extra attention, manual testing steps, or edge cases -->
