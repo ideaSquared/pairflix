@@ -1,4 +1,9 @@
+/// <reference types="vite/client" />
+import type { AdminUser } from './auth';
 import { BASE_URL, fetchWithAuth, PaginatedResponse } from './utils';
+
+// Re-export AdminUser from auth for convenience
+export type { AdminUser } from './auth';
 
 // Core interfaces
 export interface AuditLog {
@@ -102,21 +107,6 @@ export interface SystemMetrics {
     connectionsPerSecond: number;
   };
   timestamp: string;
-}
-
-export interface AdminUser {
-  user_id: string;
-  username: string;
-  email: string;
-  role: 'admin' | 'user' | 'moderator';
-  status: 'active' | 'inactive' | 'suspended' | 'banned' | 'pending';
-  created_at: string;
-  last_login?: string;
-  preferences: {
-    theme: 'light' | 'dark';
-    emailNotifications: boolean;
-    [key: string]: unknown;
-  };
 }
 
 export interface AppSettings {

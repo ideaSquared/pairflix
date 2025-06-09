@@ -61,7 +61,7 @@ interface User {
   email: string;
   role: 'admin' | 'user' | 'moderator';
   status: 'active' | 'suspended' | 'banned' | 'pending' | 'inactive';
-  created_at: string;
+  created_at?: string;
   last_login?: string;
 }
 
@@ -84,6 +84,13 @@ const UserManagement: React.FC = () => {
         const processedUsers = response.users.map(user => ({
           ...user,
           id: user.user_id || user.user_id,
+          role: user.role as 'admin' | 'user' | 'moderator',
+          status: user.status as
+            | 'active'
+            | 'suspended'
+            | 'banned'
+            | 'pending'
+            | 'inactive',
         }));
 
         setUsers(processedUsers);
