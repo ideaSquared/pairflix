@@ -7,24 +7,34 @@ import {
   Loading,
   Typography,
 } from '@pairflix/components';
-import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
+  ArcElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
   Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+} from 'chart.js';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Line, Pie } from 'react-chartjs-2';
 import styled from 'styled-components';
 import { adminStatsService } from '../../../../services/adminStats.service';
 import { SystemStats } from '../../../../services/api/admin';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 // Styled components
 const RefreshButton = styled(Button)`
   margin-bottom: ${({ theme }) => theme.spacing.md};
@@ -458,26 +468,45 @@ const SystemMonitoringContent: React.FC = () => {
                   <Typography>{monitoringData.cpu.cores}</Typography>
                 </Metric>
                 <MetricChart>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <AreaChart
-                      data={generateCpuHistoryData(monitoringData.cpu.usage)}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip
-                        formatter={value => [`${value}%`, 'CPU Usage']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="usage"
-                        stroke="#8884d8"
-                        fill="#8884d8"
-                        fillOpacity={0.3}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <Line
+                    data={{
+                      labels: generateCpuHistoryData(
+                        monitoringData.cpu.usage
+                      ).map(item => item.time),
+                      datasets: [
+                        {
+                          label: 'CPU Usage',
+                          data: generateCpuHistoryData(
+                            monitoringData.cpu.usage
+                          ).map(item => item.usage),
+                          borderColor: '#8884d8',
+                          backgroundColor: 'rgba(136, 132, 216, 0.3)',
+                          fill: true,
+                          tension: 0.1,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          max: 100,
+                        },
+                      },
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: context => `${context.parsed.y}% CPU Usage`,
+                          },
+                        },
+                      },
+                    }}
+                  />
                 </MetricChart>
               </CardContent>
             </StatsCard>
@@ -508,28 +537,46 @@ const SystemMonitoringContent: React.FC = () => {
                   </Typography>
                 </Metric>
                 <MetricChart>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <AreaChart
-                      data={generateMemoryHistoryData(
+                  <Line
+                    data={{
+                      labels: generateMemoryHistoryData(
                         monitoringData.memory.usedPercent
-                      )}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip
-                        formatter={value => [`${value}%`, 'Memory Usage']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="usage"
-                        stroke="#82ca9d"
-                        fill="#82ca9d"
-                        fillOpacity={0.3}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                      ).map(item => item.time),
+                      datasets: [
+                        {
+                          label: 'Memory Usage',
+                          data: generateMemoryHistoryData(
+                            monitoringData.memory.usedPercent
+                          ).map(item => item.usage),
+                          borderColor: '#82ca9d',
+                          backgroundColor: 'rgba(130, 202, 157, 0.3)',
+                          fill: true,
+                          tension: 0.1,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          max: 100,
+                        },
+                      },
+                      plugins: {
+                        legend: {
+                          display: false,
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: context =>
+                              `${context.parsed.y}% Memory Usage`,
+                          },
+                        },
+                      },
+                    }}
+                  />
                 </MetricChart>
               </CardContent>
             </StatsCard>
@@ -556,26 +603,33 @@ const SystemMonitoringContent: React.FC = () => {
                   </MetricValue>
                 </Metric>
                 <MetricChart>
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={generateDiskUsageData(
-                          monitoringData.disk.used,
-                          monitoringData.disk.free
-                        )}
-                        cx="50%"
-                        cy="50%"
-                        radius={70}
-                        startAngle={180}
-                        endAngle={0}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        <Cell fill="#8884d8" />
-                        <Cell fill="#82ca9d" />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <Pie
+                    data={{
+                      labels: generateDiskUsageData(
+                        monitoringData.disk.used,
+                        monitoringData.disk.free
+                      ).map(item => item.name),
+                      datasets: [
+                        {
+                          data: generateDiskUsageData(
+                            monitoringData.disk.used,
+                            monitoringData.disk.free
+                          ).map(item => item.value),
+                          backgroundColor: ['#8884d8', '#82ca9d'],
+                          borderWidth: 1,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'bottom' as const,
+                        },
+                      },
+                    }}
+                  />
                 </MetricChart>
               </CardContent>
             </StatsCard>
@@ -642,25 +696,42 @@ const SystemMonitoringContent: React.FC = () => {
                 </Metric>
               </Grid>
               <MetricChart>
-                <ResponsiveContainer>
-                  <LineChart
-                    data={generateUserActivityData(
+                <Line
+                  data={{
+                    labels: generateUserActivityData(
                       monitoringData.connections.current
-                    )}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      stroke="#ffc658"
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                    ).map(item => item.time),
+                    datasets: [
+                      {
+                        label: 'Active Users',
+                        data: generateUserActivityData(
+                          monitoringData.connections.current
+                        ).map(item => item.users),
+                        borderColor: '#ffc658',
+                        backgroundColor: 'rgba(255, 198, 88, 0.1)',
+                        tension: 0.1,
+                        pointBackgroundColor: '#ffc658',
+                        pointBorderColor: '#ffc658',
+                        pointRadius: 4,
+                        pointHoverRadius: 8,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                      },
+                    },
+                    plugins: {
+                      legend: {
+                        display: false,
+                      },
+                    },
+                  }}
+                />
               </MetricChart>
             </CardContent>
           </StatsCard>
