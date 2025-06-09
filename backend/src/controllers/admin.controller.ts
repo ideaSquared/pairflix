@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
@@ -552,8 +553,8 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 			return res.status(404).json({ error: 'User not found' });
 		}
 
-		// Generate random password (8 characters)
-		const newPassword = Math.random().toString(36).slice(-8);
+		// Generate random password (8 characters) using a cryptographically secure method
+		const newPassword = crypto.randomBytes(6).toString('base64').slice(0, 8);
 
 		// Hash the new password
 		const password_hash = await bcrypt.hash(newPassword, 10);
