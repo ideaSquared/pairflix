@@ -1,3 +1,4 @@
+import Match from '../models/Match';
 import {
 	mockRequest,
 	mockResponse,

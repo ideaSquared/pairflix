@@ -5,7 +5,7 @@ dotenv.config();
 const { TMDB_API_KEY } = process.env;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-interface TMDbResponse<T> {
+export interface TMDbResponse<T> {
 	results?: T[];
 	status_message?: string;
 }
