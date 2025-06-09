@@ -88,9 +88,9 @@ E2E tests verify complete user journeys through the application.
 
    ```typescript
    describe('AuthController', () => {
-   	it('should return 401 for invalid credentials', async () => {
-   		// Test implementation
-   	});
+     it('should return 401 for invalid credentials', async () => {
+       // Test implementation
+     });
    });
    ```
 
@@ -142,20 +142,20 @@ We use Mock Service Worker (MSW) to intercept and mock API requests:
 ```typescript
 // Example MSW setup
 rest.get('/api/v1/watchlist', (req, res, ctx) => {
-	return res(
-		ctx.status(200),
-		ctx.json({
-			entries: [
-				{
-					id: '123',
-					tmdbId: 550,
-					mediaType: 'movie',
-					status: 'to_watch',
-				},
-			],
-			total: 1,
-		})
-	);
+  return res(
+    ctx.status(200),
+    ctx.json({
+      entries: [
+        {
+          id: '123',
+          tmdbId: 550,
+          mediaType: 'movie',
+          status: 'to_watch',
+        },
+      ],
+      total: 1,
+    })
+  );
 });
 ```
 
@@ -176,10 +176,10 @@ Example test data factory:
 
 ```typescript
 const createUser = (overrides = {}) => ({
-	id: '123e4567-e89b-12d3-a456-426614174000',
-	username: 'testuser',
-	email: 'test@example.com',
-	...overrides,
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  username: 'testuser',
+  email: 'test@example.com',
+  ...overrides,
 });
 ```
 
