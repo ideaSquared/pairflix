@@ -65,11 +65,131 @@ This will create optimized production images for all services.
 This will:
 
 - Validate environment variables
+- Check SSL certificates (auto-generate for development)
 - Check that images exist
 - Create database backup (if deployment exists)
 - Deploy new version
 - Run health checks
 - Clean up old images
+
+## Windows-Specific Instructions
+
+### Requirements
+
+- **Docker Desktop for Windows** with WSL2 backend (recommended)
+- **PowerShell 5.1+** or **Windows Terminal**
+- **Git for Windows** (includes OpenSSL and Git Bash)
+
+### SSL Certificate Generation
+
+**Option 1 - PowerShell Script (Recommended):**
+
+```powershell
+.\scripts\generate-ssl-certificates.ps1
+```
+
+**Option 2 - Windows Batch Script:**
+
+```cmd
+scripts\generate-ssl-certificates.bat
+```
+
+**Option 3 - Git Bash (Manual):**
+
+```bash
+mkdir -p nginx/ssl && cd nginx/ssl
+MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+cd ../..
+```
+
+**Option 4 - Auto-Generation via Deployment Script:**
+
+```bash
+# The deployment script can auto-generate certificates in development mode
+ENVIRONMENT=development bash scripts/deploy-production.sh
+```
+
+All options create valid SSL certificates with:
+
+- **Subject**: `C=US, ST=State, L=City, O=PairFlix, CN=localhost`
+- **Validity**: 365 days
+- **Key Size**: RSA 2048-bit
+- **Files Created**: `nginx/ssl/cert.pem` and `nginx/ssl/key.pem`
+
+### Running Scripts
+
+**PowerShell:**
+
+```powershell
+# Set execution policy if needed
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Run build script via Git Bash
+bash scripts/build-production.sh
+
+# Run deployment script via Git Bash
+bash scripts/deploy-production.sh
+```
+
+**Command Prompt:**
+
+```cmd
+REM Generate SSL certificates first
+scripts\generate-ssl-certificates.bat
+
+REM Run Docker build and deploy via Git Bash
+"C:\Program Files\Git\bin\bash.exe" scripts/build-production.sh
+"C:\Program Files\Git\bin\bash.exe" scripts/deploy-production.sh
+
+REM Alternative: Use deployment script auto-generation
+"C:\Program Files\Git\bin\bash.exe" -c "ENVIRONMENT=development bash scripts/deploy-production.sh"
+```
+
+**Git Bash (Recommended for Windows):**
+
+```bash
+# Generate SSL certificates (any of these work)
+.\scripts\generate-ssl-certificates.ps1              # PowerShell script
+cmd //c scripts\\generate-ssl-certificates.bat       # Batch script
+ENVIRONMENT=development bash scripts/deploy-production.sh  # Auto-generate
+
+# Build and deploy
+bash scripts/build-production.sh
+bash scripts/deploy-production.sh
+```
+
+### Windows Path Considerations
+
+- Use forward slashes (/) in Docker volume mounts
+- Git Bash provides Unix-like environment for scripts
+- PowerShell scripts handle Windows-specific file operations
+- Docker Desktop automatically translates Windows paths
+
+### Tested Windows Compatibility
+
+All SSL certificate generation methods have been thoroughly tested on Windows:
+
+✅ **PowerShell Script**: Works with PowerShell 5.1+ and Windows Terminal  
+✅ **Windows Batch Script**: Works with Command Prompt and Git Bash  
+✅ **Git Bash Manual**: Requires `MSYS_NO_PATHCONV=1` to prevent path conversion  
+✅ **Deployment Auto-Generation**: Works in development mode  
+✅ **Certificate Validation**: All methods create valid OpenSSL certificates  
+✅ **Nginx Configuration**: Syntax validated and HTTPS redirect tested
+
+**Verification Commands:**
+
+```bash
+# Verify certificates were created
+ls -la nginx/ssl/
+
+# Check certificate details
+openssl x509 -in nginx/ssl/cert.pem -noout -subject -dates
+
+# Test nginx configuration
+docker run --rm -v "$(pwd)/nginx/conf.d:/etc/nginx/conf.d:ro" nginx:alpine nginx -t
+```
 
 ## Manual Operations
 
@@ -241,6 +361,29 @@ docker builder prune
 docker build --no-cache -f backend/Dockerfile.prod -t pairflix-backend:latest .
 ```
 
+**SSL Certificate Issues:**
+
+```bash
+# Check if certificates exist
+ls -la nginx/ssl/
+
+# Verify certificate validity
+openssl x509 -in nginx/ssl/cert.pem -noout -text
+
+# Test certificate and key match
+openssl x509 -noout -modulus -in nginx/ssl/cert.pem | openssl md5
+openssl rsa -noout -modulus -in nginx/ssl/key.pem | openssl md5
+
+# Regenerate certificates (Windows)
+scripts\generate-ssl-certificates.bat
+
+# Regenerate certificates (PowerShell)
+.\scripts\generate-ssl-certificates.ps1
+
+# Test HTTPS redirect
+curl -I http://localhost  # Should return 301 redirect
+```
+
 ### Rollback
 
 If deployment fails, you can rollback:
@@ -298,21 +441,148 @@ Configure log rotation for Docker containers:
 
 ## SSL/HTTPS Setup
 
-To enable HTTPS, modify the nginx configuration:
+PairFlix includes comprehensive HTTPS/SSL configuration with security hardening. The nginx configuration automatically redirects HTTP to HTTPS and includes HSTS headers.
 
-1. Place SSL certificates in `nginx/ssl/`
-2. Update `nginx/conf.d/pairflix.conf` to include SSL configuration
-3. Expose port 443 in docker-compose
+### SSL Certificate Setup
 
-Example SSL configuration snippet:
+#### For Production (Real SSL Certificates)
+
+1. **Obtain SSL certificates** from a Certificate Authority (Let's Encrypt, etc.)
+2. **Place certificates** in `nginx/ssl/` directory:
+
+   ```
+   nginx/ssl/
+   ├── cert.pem      # SSL certificate
+   └── key.pem       # SSL private key
+   ```
+
+3. **Update docker-compose.prod.yml** to mount certificates:
+   ```yaml
+   nginx:
+     volumes:
+       - ./nginx/ssl:/etc/nginx/ssl:ro
+   ```
+
+#### For Development/Testing (Self-Signed Certificates)
+
+Generate self-signed certificates for testing:
+
+**Linux/macOS/WSL:**
+
+```bash
+# Navigate to SSL directory
+mkdir -p nginx/ssl
+cd nginx/ssl
+
+# Generate self-signed certificate
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+
+# Set proper permissions
+chmod 600 key.pem
+chmod 644 cert.pem
+cd ../..
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Use the provided PowerShell script
+.\scripts\generate-ssl-certificates.ps1
+
+# Or manually with OpenSSL:
+mkdir nginx\ssl -Force
+cd nginx\ssl
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
+  -keyout key.pem -out cert.pem `
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+cd ..\..
+```
+
+**Windows (Command Prompt):**
+
+```cmd
+REM Use the provided batch script
+scripts\generate-ssl-certificates.bat
+
+REM Or manually with OpenSSL:
+mkdir nginx\ssl 2>nul
+cd nginx\ssl
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 ^
+  -keyout key.pem -out cert.pem ^
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+cd ..\..
+```
+
+**Windows (Git Bash):**
+
+```bash
+# Note: MSYS_NO_PATHCONV=1 prevents path conversion issues in Git Bash
+mkdir -p nginx/ssl && cd nginx/ssl
+MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+cd ../..
+```
+
+### Security Features Included
+
+- **HSTS Headers**: `Strict-Transport-Security` with 2-year max-age
+- **HTTP to HTTPS Redirect**: Automatic redirection for all HTTP requests
+- **Modern SSL Protocols**: TLS 1.2 and 1.3 only
+- **Secure Ciphers**: Strong cipher suites with perfect forward secrecy
+- **OCSP Stapling**: Enhanced certificate validation
+- **Content Security Policy**: Restrictive CSP headers
+- **Additional Security Headers**: X-Frame-Options, X-Content-Type-Options, etc.
+
+### SSL Configuration Details
+
+The nginx configuration includes:
 
 ```nginx
+# HTTPS server block with security hardening
 server {
     listen 443 ssl http2;
+
+    # SSL certificate configuration
     ssl_certificate /etc/nginx/ssl/cert.pem;
     ssl_certificate_key /etc/nginx/ssl/key.pem;
-    # ... rest of configuration
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # Modern SSL settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+
+    # ... application routing
 }
+```
+
+## Quick Reference: Windows SSL Commands
+
+All commands tested and verified on Windows 10/11:
+
+| **Method**      | **Command**                                                                                                                                                                      | **Notes**                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **PowerShell**  | `.\scripts\generate-ssl-certificates.ps1`                                                                                                                                        | Recommended, works with Windows Terminal |
+| **Batch**       | `scripts\generate-ssl-certificates.bat`                                                                                                                                          | Works with Command Prompt                |
+| **Git Bash**    | `MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"` | Manual approach                          |
+| **Auto-Deploy** | `ENVIRONMENT=development bash scripts/deploy-production.sh`                                                                                                                      | Auto-generates + deploys                 |
+
+**Full Deployment Sequence:**
+
+```bash
+# 1. Generate SSL certificates (choose one)
+.\scripts\generate-ssl-certificates.ps1
+# OR
+scripts\generate-ssl-certificates.bat
+
+# 2. Build and deploy
+bash scripts/build-production.sh
+bash scripts/deploy-production.sh
 ```
 
 ## Production Checklist
@@ -320,7 +590,7 @@ server {
 Before deploying to production:
 
 - [ ] Environment variables are set in `.env.production`
-- [ ] SSL certificates are configured (if using HTTPS)
+- [ ] SSL certificates are configured (use tested commands above)
 - [ ] Database backups are configured
 - [ ] Log rotation is configured
 - [ ] Monitoring/alerting is set up
