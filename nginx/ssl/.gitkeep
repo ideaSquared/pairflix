@@ -1,0 +1,14 @@
+# SSL certificates directory
+# Place your SSL certificate files here:
+# - cert.pem (SSL certificate)
+# - key.pem (SSL private key)
+#
+# For development/testing, generate self-signed certificates:
+#
+# Linux/macOS/WSL/Git Bash:
+# openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#   -keyout key.pem -out cert.pem \
+#   -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+#
+# Windows PowerShell:  ..\scripts\generate-ssl-certificates.ps1
+# Windows Batch:       ..\scripts\generate-ssl-certificates.bat 

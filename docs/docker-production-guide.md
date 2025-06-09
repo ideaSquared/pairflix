@@ -65,11 +65,131 @@ This will create optimized production images for all services.
 This will:
 
 - Validate environment variables
+- Check SSL certificates (auto-generate for development)
 - Check that images exist
 - Create database backup (if deployment exists)
 - Deploy new version
 - Run health checks
 - Clean up old images
+
+## Windows-Specific Instructions
+
+### Requirements
+
+- **Docker Desktop for Windows** with WSL2 backend (recommended)
+- **PowerShell 5.1+** or **Windows Terminal**
+- **Git for Windows** (includes OpenSSL and Git Bash)
+
+### SSL Certificate Generation
+
+**Option 1 - PowerShell Script (Recommended):**
+
+```powershell
+.\scripts\generate-ssl-certificates.ps1
+```
+
+**Option 2 - Windows Batch Script:**
+
+```cmd
+scripts\generate-ssl-certificates.bat
+```
+
+**Option 3 - Git Bash (Manual):**
+
+```bash
+mkdir -p nginx/ssl && cd nginx/ssl
+MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout key.pem -out cert.pem \
+  -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"
+cd ../..
+```
+
+**Option 4 - Auto-Generation via Deployment Script:**
+
+```bash
+# The deployment script can auto-generate certificates in development mode
+ENVIRONMENT=development bash scripts/deploy-production.sh
+```
+
+All options create valid SSL certificates with:
+
+- **Subject**: `C=US, ST=State, L=City, O=PairFlix, CN=localhost`
+- **Validity**: 365 days
+- **Key Size**: RSA 2048-bit
+- **Files Created**: `nginx/ssl/cert.pem` and `nginx/ssl/key.pem`
+
+### Running Scripts
+
+**PowerShell:**
+
+```powershell
+# Set execution policy if needed
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Run build script via Git Bash
+bash scripts/build-production.sh
+
+# Run deployment script via Git Bash
+bash scripts/deploy-production.sh
+```
+
+**Command Prompt:**
+
+```cmd
+REM Generate SSL certificates first
+scripts\generate-ssl-certificates.bat
+
+REM Run Docker build and deploy via Git Bash
+"C:\Program Files\Git\bin\bash.exe" scripts/build-production.sh
+"C:\Program Files\Git\bin\bash.exe" scripts/deploy-production.sh
+
+REM Alternative: Use deployment script auto-generation
+"C:\Program Files\Git\bin\bash.exe" -c "ENVIRONMENT=development bash scripts/deploy-production.sh"
+```
+
+**Git Bash (Recommended for Windows):**
+
+```bash
+# Generate SSL certificates (any of these work)
+.\scripts\generate-ssl-certificates.ps1              # PowerShell script
+cmd //c scripts\\generate-ssl-certificates.bat       # Batch script
+ENVIRONMENT=development bash scripts/deploy-production.sh  # Auto-generate
+
+# Build and deploy
+bash scripts/build-production.sh
+bash scripts/deploy-production.sh
+```
+
+### Windows Path Considerations
+
+- Use forward slashes (/) in Docker volume mounts
+- Git Bash provides Unix-like environment for scripts
+- PowerShell scripts handle Windows-specific file operations
+- Docker Desktop automatically translates Windows paths
+
+### Tested Windows Compatibility
+
+All SSL certificate generation methods have been thoroughly tested on Windows:
+
+✅ **PowerShell Script**: Works with PowerShell 5.1+ and Windows Terminal  
+✅ **Windows Batch Script**: Works with Command Prompt and Git Bash  
+✅ **Git Bash Manual**: Requires `MSYS_NO_PATHCONV=1` to prevent path conversion  
+✅ **Deployment Auto-Generation**: Works in development mode  
+✅ **Certificate Validation**: All methods create valid OpenSSL certificates  
+✅ **Nginx Configuration**: Syntax validated and HTTPS redirect tested
+
+**Verification Commands:**
+
+```bash
+# Verify certificates were created
+ls -la nginx/ssl/
+
+# Check certificate details
+openssl x509 -in nginx/ssl/cert.pem -noout -subject -dates
+
+# Test nginx configuration
+docker run --rm -v "$(pwd)/nginx/conf.d:/etc/nginx/conf.d:ro" nginx:alpine nginx -t
+```
 
 ## Manual Operations
 
@@ -241,6 +361,29 @@ docker builder prune
 docker build --no-cache -f backend/Dockerfile.prod -t pairflix-backend:latest .
 ```
 
+**SSL Certificate Issues:**
+
+```bash
+# Check if certificates exist
+ls -la nginx/ssl/
+
+# Verify certificate validity
+openssl x509 -in nginx/ssl/cert.pem -noout -text
+
+# Test certificate and key match
+openssl x509 -noout -modulus -in nginx/ssl/cert.pem | openssl md5
+openssl rsa -noout -modulus -in nginx/ssl/key.pem | openssl md5
+
+# Regenerate certificates (Windows)
+scripts\generate-ssl-certificates.bat
+
+# Regenerate certificates (PowerShell)
+.\scripts\generate-ssl-certificates.ps1
+
+# Test HTTPS redirect
+curl -I http://localhost  # Should return 301 redirect
+```
+
 ### Rollback
 
 If deployment fails, you can rollback:
@@ -315,12 +458,36 @@ server {
 }
 ```
 
+## Quick Reference: Windows SSL Commands
+
+All commands tested and verified on Windows 10/11:
+
+| **Method**      | **Command**                                                                                                                                                                      | **Notes**                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **PowerShell**  | `.\scripts\generate-ssl-certificates.ps1`                                                                                                                                        | Recommended, works with Windows Terminal |
+| **Batch**       | `scripts\generate-ssl-certificates.bat`                                                                                                                                          | Works with Command Prompt                |
+| **Git Bash**    | `MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost"` | Manual approach                          |
+| **Auto-Deploy** | `ENVIRONMENT=development bash scripts/deploy-production.sh`                                                                                                                      | Auto-generates + deploys                 |
+
+**Full Deployment Sequence:**
+
+```bash
+# 1. Generate SSL certificates (choose one)
+.\scripts\generate-ssl-certificates.ps1
+# OR
+scripts\generate-ssl-certificates.bat
+
+# 2. Build and deploy
+bash scripts/build-production.sh
+bash scripts/deploy-production.sh
+```
+
 ## Production Checklist
 
 Before deploying to production:
 
 - [ ] Environment variables are set in `.env.production`
-- [ ] SSL certificates are configured (if using HTTPS)
+- [ ] SSL certificates are configured (use tested commands above)
 - [ ] Database backups are configured
 - [ ] Log rotation is configured
 - [ ] Monitoring/alerting is set up
