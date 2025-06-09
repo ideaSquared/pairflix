@@ -617,8 +617,8 @@ export const createUser = async (req: Request, res: Response) => {
 				.json({ error: 'Username, email, and password are required' });
 		}
 
-		// Validate email format
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		// Validate email format - using a safer regex to prevent ReDoS attacks
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		if (!emailRegex.test(email)) {
 			return res.status(400).json({ error: 'Invalid email format' });
 		}
