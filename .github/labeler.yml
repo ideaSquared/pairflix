@@ -1,10 +1,21 @@
 client:
-  - 'app.client/**'
+  - changed-files:
+    - any-glob-to-any-file: 'app.client/**'
+
 admin:
-  - 'app.admin/**'
+  - changed-files:
+    - any-glob-to-any-file: 'app.admin/**'
+
 backend:
-  - 'backend/**'
+  - changed-files:
+    - any-glob-to-any-file: 'backend/**'
+
 components:
-  - 'lib.components/**'
+  - changed-files:
+    - any-glob-to-any-file: 'lib.components/**'
+
 docs:
-  - 'docs/**'
+  - changed-files:
+    - any-glob-to-any-file: 
+      - 'docs/*'
+      - '**/*.md'
