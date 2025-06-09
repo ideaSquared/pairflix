@@ -1,15 +1,19 @@
 client:
   - changed-files:
       - any-glob-to-any-file: 'app.client/**'
+
 admin:
   - changed-files:
       - any-glob-to-any-file: 'app.admin/**'
+
 backend:
   - changed-files:
       - any-glob-to-any-file: 'backend/**'
+
 components:
   - changed-files:
       - any-glob-to-any-file: 'lib.components/**'
+
 docs:
   - changed-files:
       - any-glob-to-any-file: 'docs/**'
