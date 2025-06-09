@@ -1,17 +1,17 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\frontend\src\services\api\user.ts
 import { fetchWithAuth } from './utils';
 
-interface PasswordUpdate {
+export interface PasswordUpdate {
   currentPassword: string;
   newPassword: string;
 }
 
-interface EmailUpdate {
+export interface EmailUpdate {
   email: string;
   password: string;
 }
 
-interface UpdateEmailResponse {
+export interface UpdateEmailResponse {
   message: string;
   user: {
     user_id: string;
@@ -21,7 +21,7 @@ interface UpdateEmailResponse {
   token: string;
 }
 
-interface UpdateUsernameResponse {
+export interface UpdateUsernameResponse {
   message: string;
   user: {
     user_id: string;

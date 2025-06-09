@@ -1,6 +1,6 @@
 import { fetchWithAuth } from './utils';
 
-interface LoginCredentials {
+export interface LoginCredentials {
   email: string;
   password: string;
 }

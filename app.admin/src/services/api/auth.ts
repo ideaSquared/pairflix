@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { ADMIN_TOKEN_KEY, BASE_URL } from './utils';
 
-interface LoginResponse {
+export interface LoginResponse {
   token: string;
   user: {
     id: string;
@@ -10,7 +10,7 @@ interface LoginResponse {
   };
 }
 
-interface AdminLoginParams {
+export interface AdminLoginParams {
   email: string;
   password: string;
 }

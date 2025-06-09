@@ -313,7 +313,9 @@ const ProfilePage: React.FC = () => {
       );
 
       if (!validationResult.isValid) {
-        setPasswordError(validationResult.errors[0]); // Show only the first error
+        setPasswordError(
+          validationResult.errors[0] || 'Password validation failed'
+        ); // Show only the first error
         return;
       }
     } else {

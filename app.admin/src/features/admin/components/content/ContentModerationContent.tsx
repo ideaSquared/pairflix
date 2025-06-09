@@ -129,7 +129,7 @@ const ContentModerationContent: React.FC = () => {
         });
 
         if (response && response.content) {
-          setContentItems(response.content);
+          setContentItems(response.content as unknown as ContentItem[]);
           if (response.pagination) {
             setTotalPages(Math.ceil(response.pagination.total / 10));
           }
@@ -243,7 +243,7 @@ const ContentModerationContent: React.FC = () => {
 
     try {
       const response = await admin.content.getReports(content.id);
-      setReports(response.reports);
+      setReports(response.reports as unknown as ReportItem[]);
       setShowReportsModal(true);
     } catch (error) {
       console.error('Error fetching content reports:', error);

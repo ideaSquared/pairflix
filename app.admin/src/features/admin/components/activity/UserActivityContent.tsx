@@ -136,7 +136,7 @@ const UserActivityContent: React.FC = () => {
       const response = await admin.activity.getUserActivities(params);
 
       if (response && Array.isArray(response.activities)) {
-        setActivities(response.activities);
+        setActivities(response.activities as unknown as Activity[]);
         setTotalCount(response.pagination?.total || 0);
       } else {
         setActivities([]);

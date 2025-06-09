@@ -13,6 +13,17 @@ export type { Activity } from './activity';
 // Re-export types from admin
 export type { AppSettings } from './admin';
 
+// Re-export types from auth
+export type { LoginCredentials } from './auth';
+
+// Re-export types from user
+export type {
+  EmailUpdate,
+  PasswordUpdate,
+  UpdateEmailResponse,
+  UpdateUsernameResponse,
+} from './user';
+
 // Export individual services
 export {
   activity,

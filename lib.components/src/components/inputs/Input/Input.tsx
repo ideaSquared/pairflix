@@ -52,6 +52,13 @@ export interface InputProps
   helperText?: string;
 
   /**
+   * Whether the input is in an error state
+   * Alternative to isInvalid for consistent API
+   * @default false
+   */
+  error?: boolean;
+
+  /**
    * Optional ID for the input element (generated from label if not provided)
    */
   id?: string;
@@ -208,10 +215,14 @@ export const InputError = styled.div`
   margin-top: ${({ theme }) => theme.spacing.xs || '4px'};
 `;
 
-export const InputGroup = styled.div<{ $isFullWidth?: boolean }>`
+export const InputGroup = styled.div<{
+  $isFullWidth?: boolean;
+  isFullWidth?: boolean;
+}>`
   display: flex;
   flex-direction: column;
-  width: ${({ $isFullWidth }) => ($isFullWidth ? '100%' : 'auto')};
+  width: ${({ $isFullWidth, isFullWidth }) =>
+    $isFullWidth || isFullWidth ? '100%' : 'auto'};
   margin-bottom: ${({ theme }) => theme.spacing.md || '12px'};
   position: relative;
 
@@ -248,6 +259,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     {
       label,
       isInvalid,
+      error,
       helperText,
       required,
       isFullWidth = false,
@@ -263,12 +275,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId =
       id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
+    // Support both error and isInvalid props
+    const hasError = isInvalid || error;
+
     return (
       <InputGroup $isFullWidth={isFullWidth} className={className}>
         {label && (
           <InputLabel
             htmlFor={inputId}
-            $isInvalid={isInvalid}
+            $isInvalid={hasError}
             $isRequired={required}
           >
             {label}
@@ -283,12 +298,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <StyledInput
             ref={ref}
             id={inputId}
-            $isInvalid={isInvalid}
+            $isInvalid={hasError}
             $isFullWidth={isFullWidth}
             $size={size}
             $hasStartAdornment={!!startAdornment}
             $hasEndAdornment={!!endAdornment}
-            aria-invalid={isInvalid || undefined}
+            aria-invalid={hasError || undefined}
             aria-required={required || undefined}
             required={required}
             {...props}

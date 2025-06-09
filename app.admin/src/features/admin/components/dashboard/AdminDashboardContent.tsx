@@ -41,6 +41,7 @@ interface DashboardMetrics {
     matches: number;
   };
   system: {
+    status?: 'healthy' | 'unhealthy';
     recentErrors: number;
     uptime: number;
     memoryUsage: { heapUsed: number; heapTotal: number };

@@ -24,7 +24,9 @@ export type TypographyWeight =
   | 'semibold'
   | 'bold';
 
-export interface TypographyProps extends BaseComponentProps {
+export interface TypographyProps
+  extends BaseComponentProps,
+    React.HTMLAttributes<HTMLElement> {
   /**
    * The variant of the typography
    * @default 'body1'
@@ -295,7 +297,8 @@ Typography.displayName = 'Typography';
 // Heading components for semantic HTML
 export const H1 = forwardRef<
   HTMLHeadingElement,
-  Omit<TypographyProps, 'variant' | 'as'>
+  Omit<TypographyProps, 'variant' | 'as'> &
+    React.HTMLAttributes<HTMLHeadingElement>
 >((props, ref) => <Typography ref={ref} variant="h1" as="h1" {...props} />);
 H1.displayName = 'H1';
 

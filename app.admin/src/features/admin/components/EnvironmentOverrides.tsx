@@ -7,6 +7,8 @@ import {
   Grid,
   H2,
   H3,
+  Tab,
+  TabList,
   Tabs,
   Typography,
 } from '@pairflix/components';
@@ -264,15 +266,13 @@ const EnvironmentOverrides: React.FC = () => {
       </Grid>
 
       <Card>
-        <Tabs
-          activeTab={activeTab}
-          onChange={handleTabChange}
-          tabs={[
-            { id: 'development', label: 'Development' },
-            { id: 'staging', label: 'Staging' },
-            { id: 'production', label: 'Production' },
-          ]}
-        />
+        <Tabs value={activeTab} onChange={handleTabChange}>
+          <TabList>
+            <Tab value="development">Development</Tab>
+            <Tab value="staging">Staging</Tab>
+            <Tab value="production">Production</Tab>
+          </TabList>
+        </Tabs>
 
         <CardContent>
           <Typography gutterBottom>
