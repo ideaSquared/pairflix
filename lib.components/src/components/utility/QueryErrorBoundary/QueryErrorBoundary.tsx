@@ -1,3 +1,6 @@
+import { useQueryErrorResetBoundary } from '@tanstack/react-query';
+import React from 'react';
+import styled from 'styled-components';
 import {
   Button,
   Card,
@@ -6,10 +9,7 @@ import {
   Flex,
   H2,
   Typography,
-} from '@pairflix/components';
-import { useQueryErrorResetBoundary } from '@tanstack/react-query';
-import React from 'react';
-import styled from 'styled-components';
+} from '../../../';
 
 interface QueryErrorBoundaryProps {
   children: React.ReactNode;

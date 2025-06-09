@@ -3,6 +3,9 @@ import {
   Button,
   Card,
   CardContent,
+  Container,
+  Flex,
+  Grid,
   H1,
   H2,
   Select,
@@ -12,7 +15,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import Layout, { Container, Flex, Grid } from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
   type ContentMatch,
