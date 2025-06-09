@@ -19,7 +19,10 @@ const withTheme = (StoryFn: React.ComponentType) => (
 );
 
 const baseToast = {
+  id: 'story-toast',
   message: 'This is a toast message!',
+  type: 'info' as const,
+  variant: 'info' as const,
   duration: 3000,
   closeable: true,
   pauseOnHover: true,
@@ -29,7 +32,7 @@ const InfoToastDemo = () => {
   const [open, setOpen] = useState(true);
   return open ? (
     <Toast
-      toast={{ ...baseToast, variant: 'info' }}
+      toast={{ ...baseToast, id: 'info-toast', type: 'info', variant: 'info' }}
       onClose={() => setOpen(false)}
     />
   ) : null;
@@ -44,7 +47,12 @@ const SuccessToastDemo = () => {
   const [open, setOpen] = useState(true);
   return open ? (
     <Toast
-      toast={{ ...baseToast, variant: 'success' }}
+      toast={{
+        ...baseToast,
+        id: 'success-toast',
+        type: 'success',
+        variant: 'success',
+      }}
       onClose={() => setOpen(false)}
     />
   ) : null;
@@ -59,7 +67,12 @@ const WarningToastDemo = () => {
   const [open, setOpen] = useState(true);
   return open ? (
     <Toast
-      toast={{ ...baseToast, variant: 'warning' }}
+      toast={{
+        ...baseToast,
+        id: 'warning-toast',
+        type: 'warning',
+        variant: 'warning',
+      }}
       onClose={() => setOpen(false)}
     />
   ) : null;
@@ -74,7 +87,12 @@ const ErrorToastDemo = () => {
   const [open, setOpen] = useState(true);
   return open ? (
     <Toast
-      toast={{ ...baseToast, variant: 'error' }}
+      toast={{
+        ...baseToast,
+        id: 'error-toast',
+        type: 'error',
+        variant: 'error',
+      }}
       onClose={() => setOpen(false)}
     />
   ) : null;
