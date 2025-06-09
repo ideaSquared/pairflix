@@ -37,3 +37,6 @@ Dockerfile*
 # Generated files
 *.d.ts
 *.map
+
+# GitHub Actions
+.github/labeler.yml
