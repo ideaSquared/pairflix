@@ -59,7 +59,7 @@ fi
 echo "✅ All images found"
 
 # Create backup of current deployment (if exists)
-if docker-compose -f "${COMPOSE_FILE}" ps -q >/dev/null 2>&1; then
+if [[ -n "$(docker-compose -f "${COMPOSE_FILE}" ps -q)" ]]; then
   echo "📦 Creating backup of current deployment..."
   BACKUP_DIR="backups/$(date +%Y%m%d_%H%M%S)"
   mkdir -p "${BACKUP_DIR}"
