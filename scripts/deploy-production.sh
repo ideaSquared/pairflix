@@ -34,6 +34,90 @@ for var in "${required_vars[@]}"; do
   fi
 done
 
+# Check for SSL certificates
+echo "🔐 Checking SSL certificates..."
+if [[ ! -f nginx/ssl/cert.pem ]] || [[ ! -f nginx/ssl/key.pem ]]; then
+    echo "⚠️  Warning: SSL certificates not found in nginx/ssl/"
+    echo "   For production, ensure you have:"
+    echo "   - nginx/ssl/cert.pem (SSL certificate)"
+    echo "   - nginx/ssl/key.pem (SSL private key)"
+    echo ""
+    
+    # Detect operating system for certificate generation
+    if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]] || [[ -n "${WINDIR}" ]]; then
+        echo "   For Windows development/testing, generate self-signed certificates:"
+        echo "   mkdir nginx\\ssl 2>nul || cd ."
+        echo "   cd nginx\\ssl"
+        echo "   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \\"
+        echo "     -keyout key.pem -out cert.pem \\"
+        echo "     -subj \"/C=US/ST=State/L=City/O=PairFlix/CN=localhost\""
+        echo "   cd ..\\.."
+    else
+        echo "   For Linux/macOS development/testing, generate self-signed certificates:"
+        echo "   mkdir -p nginx/ssl && cd nginx/ssl"
+        echo "   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \\"
+        echo "     -keyout key.pem -out cert.pem \\"
+        echo "     -subj \"/C=US/ST=State/L=City/O=PairFlix/CN=localhost\""
+        echo "   cd ../.."
+    fi
+    echo ""
+    
+    # Auto-generate certificates for development
+    if [[ "${ENVIRONMENT:-}" == "development" ]]; then
+        echo "🔐 Auto-generating self-signed certificates for development..."
+        
+        # Create directory with cross-platform command
+        if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]] || [[ -n "${WINDIR}" ]]; then
+            # Windows-specific commands
+            cmd //c "mkdir nginx\\ssl 2>nul || cd ."
+            cd nginx/ssl
+        else
+            # Unix-like systems
+            mkdir -p nginx/ssl
+            cd nginx/ssl
+        fi
+        
+        # Generate certificate (openssl should work on all platforms with Git Bash)
+        if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]] || [[ -n "${WINDIR}" ]]; then
+            # Windows Git Bash - prevent path conversion
+            MSYS_NO_PATHCONV=1 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout key.pem -out cert.pem \
+                -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost" 2>/dev/null || {
+                echo "❌ Failed to generate SSL certificates. Please install OpenSSL or generate them manually."
+                cd - > /dev/null
+                exit 1
+            }
+        else
+            # Unix-like systems
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout key.pem -out cert.pem \
+                -subj "/C=US/ST=State/L=City/O=PairFlix/CN=localhost" 2>/dev/null || {
+                echo "❌ Failed to generate SSL certificates. Please install OpenSSL or generate them manually."
+                cd - > /dev/null
+                exit 1
+            }
+        fi
+        
+        # Set permissions (Unix-like systems only)
+        if [[ "$OSTYPE" != "msys" ]] && [[ "$OSTYPE" != "win32" ]] && [[ -z "${WINDIR}" ]]; then
+            chmod 600 key.pem
+            chmod 644 cert.pem
+        fi
+        
+        cd - > /dev/null
+        echo "✅ Self-signed certificates generated"
+    else
+        read -p "   Continue without SSL certificates? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "❌ Deployment cancelled. Please configure SSL certificates."
+            exit 1
+        fi
+    fi
+else
+    echo "✅ SSL certificates found"
+fi
+
 # Export version for docker-compose
 export VERSION
 
@@ -139,9 +223,9 @@ echo "🎉 Deployment successful!"
 echo "Version ${VERSION} is now running"
 echo ""
 echo "Service URLs:"
-echo "  - Client App: http://localhost/"
-echo "  - Admin App: http://localhost/admin/"
-echo "  - API: http://localhost/api/"
+echo "  - Client App: https://localhost/ (HTTP redirects to HTTPS)"
+echo "  - Admin App: https://localhost/admin/"
+echo "  - API: https://localhost/api/"
 echo ""
 echo "To check status: docker-compose -f ${COMPOSE_FILE} ps"
 echo "To view logs: docker-compose -f ${COMPOSE_FILE} logs -f" 
