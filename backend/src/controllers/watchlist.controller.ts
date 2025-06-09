@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { activityService, ActivityType } from '../services/activity.service';
 import { auditLogService } from '../services/audit.service';
 import {
@@ -8,16 +8,117 @@ import {
 	updateWatchlistEntryService,
 } from '../services/watchlist.service';
 
+// Define interfaces for request body validation
+interface WatchlistBody {
+	tmdb_id: number;
+	media_type: 'movie' | 'tv';
+	status:
+		| 'to_watch'
+		| 'watch_together_focused'
+		| 'watch_together_background'
+		| 'watching'
+		| 'finished'
+		| 'flagged'
+		| 'removed'
+		| 'active';
+	notes?: string;
+	title?: string;
+	name?: string;
+}
+
+interface UpdateWatchlistBody {
+	tmdb_id?: number;
+	media_type?: 'movie' | 'tv';
+	status?:
+		| 'to_watch'
+		| 'watch_together_focused'
+		| 'watch_together_background'
+		| 'watching'
+		| 'finished'
+		| 'flagged'
+		| 'removed'
+		| 'active';
+	notes?: string;
+	rating?: number;
+	title?: string;
+	mediaTitle?: string;
+	name?: string;
+}
+
+// Type guard functions
+const isValidWatchlistBody = (obj: unknown): obj is WatchlistBody => {
+	if (typeof obj !== 'object' || obj === null) {
+		return false;
+	}
+
+	const body = obj as Record<string, unknown>;
+
+	return (
+		typeof body.tmdb_id === 'number' &&
+		typeof body.media_type === 'string' &&
+		['movie', 'tv'].includes(body.media_type) &&
+		typeof body.status === 'string' &&
+		[
+			'to_watch',
+			'watch_together_focused',
+			'watch_together_background',
+			'watching',
+			'finished',
+			'flagged',
+			'removed',
+			'active',
+		].includes(body.status) &&
+		(body.notes === undefined || typeof body.notes === 'string') &&
+		(body.title === undefined || typeof body.title === 'string') &&
+		(body.name === undefined || typeof body.name === 'string')
+	);
+};
+
+const isValidUpdateWatchlistBody = (
+	obj: unknown
+): obj is UpdateWatchlistBody => {
+	if (typeof obj !== 'object' || obj === null) {
+		return false;
+	}
+
+	const body = obj as Record<string, unknown>;
+
+	return (
+		(body.tmdb_id === undefined || typeof body.tmdb_id === 'number') &&
+		(body.media_type === undefined ||
+			(typeof body.media_type === 'string' &&
+				['movie', 'tv'].includes(body.media_type))) &&
+		(body.status === undefined ||
+			(typeof body.status === 'string' &&
+				[
+					'to_watch',
+					'watch_together_focused',
+					'watch_together_background',
+					'watching',
+					'finished',
+					'flagged',
+					'removed',
+					'active',
+				].includes(body.status))) &&
+		(body.notes === undefined || typeof body.notes === 'string') &&
+		(body.rating === undefined || typeof body.rating === 'number') &&
+		(body.title === undefined || typeof body.title === 'string') &&
+		(body.mediaTitle === undefined || typeof body.mediaTitle === 'string') &&
+		(body.name === undefined || typeof body.name === 'string')
+	);
+};
+
 export const addToWatchlist = async (req: Request, res: Response) => {
 	try {
 		if (!req.user) {
 			return res.status(401).json({ error: 'Authentication required' });
 		}
 
-		console.log('[Watchlist Controller] Adding to watchlist:', {
-			userId: req.user.user_id,
-			entry: req.body,
-		});
+		// Type validation
+		const requestBody = req.body as unknown;
+		if (!isValidWatchlistBody(requestBody)) {
+			return res.status(400).json({ error: 'Invalid request body' });
+		}
 
 		// Audit log for watchlist addition attempt
 		await auditLogService.info(
@@ -25,15 +126,15 @@ export const addToWatchlist = async (req: Request, res: Response) => {
 			'watchlist-controller',
 			{
 				userId: req.user.user_id,
-				tmdbId: req.body.tmdb_id,
-				mediaType: req.body.media_type,
+				tmdbId: requestBody.tmdb_id,
+				mediaType: requestBody.media_type,
 				// Use the title from the request body, not from the entry
-				title: req.body.title || req.body.name || 'Unknown title',
-				ip: req.ip,
+				title: requestBody.title ?? requestBody.name ?? 'Unknown title',
+				ip: req.ip ?? 'unknown',
 			}
 		);
 
-		const entry = await addToWatchlistService(req.user, req.body);
+		const entry = await addToWatchlistService(req.user, requestBody);
 
 		// Log the activity when a user adds something to their watchlist
 		// This is highly relevant for a social movie app
@@ -44,7 +145,7 @@ export const addToWatchlist = async (req: Request, res: Response) => {
 				tmdbId: entry.tmdb_id,
 				mediaType: entry.media_type,
 				// Use title from request body instead since it's not in the model
-				title: req.body.title || req.body.name || 'Unknown title',
+				title: requestBody.title ?? requestBody.name ?? 'Unknown title',
 				status: entry.status,
 			}
 		);
@@ -59,18 +160,13 @@ export const addToWatchlist = async (req: Request, res: Response) => {
 				tmdbId: entry.tmdb_id,
 				mediaType: entry.media_type,
 				// Use title from request body
-				title: req.body.title || req.body.name || 'Unknown title',
+				title: requestBody.title ?? requestBody.name ?? 'Unknown title',
 			}
 		);
 
 		res.status(201).json(entry);
 	} catch (error) {
-		console.error('[Watchlist Controller] Error adding to watchlist:', {
-			userId: req.user?.user_id,
-			entry: req.body,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
+		const requestBody = req.body as Record<string, unknown>;
 
 		// Audit log for watchlist addition failure
 		await auditLogService.error(
@@ -78,7 +174,7 @@ export const addToWatchlist = async (req: Request, res: Response) => {
 			'watchlist-controller',
 			{
 				userId: req.user?.user_id,
-				entry: req.body,
+				entry: requestBody,
 				error: error instanceof Error ? error.message : 'Unknown error',
 			}
 		);
@@ -98,18 +194,9 @@ export const getWatchlist = async (req: Request, res: Response) => {
 			return res.status(401).json({ error: 'Authentication required' });
 		}
 
-		console.log(
-			'[Watchlist Controller] Getting watchlist for user:',
-			req.user.user_id
-		);
 		const watchlist = await getWatchlistService(req.user);
 		res.json(watchlist);
 	} catch (error) {
-		console.error('[Watchlist Controller] Error getting watchlist:', {
-			userId: req.user?.user_id,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
 		if (error instanceof Error) {
 			res.status(500).json({ error: error.message });
 		} else {
@@ -129,11 +216,11 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 			return res.status(400).json({ error: 'Entry ID is required' });
 		}
 
-		console.log('[Watchlist Controller] Updating watchlist entry:', {
-			userId: req.user.user_id,
-			entryId: entryId,
-			updates: req.body,
-		});
+		// Type validation
+		const requestBody = req.body as unknown;
+		if (!isValidUpdateWatchlistBody(requestBody)) {
+			return res.status(400).json({ error: 'Invalid request body' });
+		}
 
 		// Audit log for watchlist update attempt
 		await auditLogService.info(
@@ -141,26 +228,26 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 			'watchlist-controller',
 			{
 				userId: req.user.user_id,
-				entryId: entryId,
-				updates: req.body,
-				ip: req.ip,
+				entryId,
+				updates: requestBody as Record<string, unknown>,
+				ip: req.ip ?? 'unknown',
 			}
 		);
 
 		// Get metadata for the updated entry from the request context
 		// We need to store this separately since the WatchlistEntry model doesn't have title
 		const entryMetadata = {
-			title: req.body.title || req.body.mediaTitle || 'Unknown title',
+			title: requestBody.title ?? requestBody.mediaTitle ?? 'Unknown title',
 		};
 
 		const updatedEntry = await updateWatchlistEntryService(
 			entryId,
-			req.body,
+			requestBody,
 			req.user
 		);
 
 		// Determine the type of update and log accordingly
-		if (req.body.rating !== undefined) {
+		if (requestBody.rating !== undefined) {
 			// Rating updates are very relevant for a social movie app
 			await activityService.logActivity(
 				req.user.user_id,
@@ -169,7 +256,7 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 					tmdbId: updatedEntry.tmdb_id,
 					mediaType: updatedEntry.media_type,
 					title: entryMetadata.title,
-					rating: req.body.rating,
+					rating: requestBody.rating,
 				}
 			);
 
@@ -179,13 +266,13 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 				'watchlist-controller',
 				{
 					userId: req.user.user_id,
-					entryId: entryId,
+					entryId,
 					tmdbId: updatedEntry.tmdb_id,
 					title: entryMetadata.title,
-					newRating: req.body.rating,
+					newRating: requestBody.rating,
 				}
 			);
-		} else if (req.body.status !== undefined) {
+		} else if (requestBody.status !== undefined) {
 			// Status changes (watched, plan to watch, etc.) are also relevant
 			await activityService.logActivity(
 				req.user.user_id,
@@ -194,7 +281,7 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 					tmdbId: updatedEntry.tmdb_id,
 					mediaType: updatedEntry.media_type,
 					title: entryMetadata.title,
-					status: req.body.status,
+					status: requestBody.status,
 				}
 			);
 
@@ -204,10 +291,10 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 				'watchlist-controller',
 				{
 					userId: req.user.user_id,
-					entryId: entryId,
+					entryId,
 					tmdbId: updatedEntry.tmdb_id,
 					title: entryMetadata.title,
-					newStatus: req.body.status,
+					newStatus: requestBody.status,
 				}
 			);
 		} else {
@@ -228,23 +315,17 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 				'watchlist-controller',
 				{
 					userId: req.user.user_id,
-					entryId: entryId,
+					entryId,
 					tmdbId: updatedEntry.tmdb_id,
 					title: entryMetadata.title,
-					updates: req.body,
+					updates: requestBody as Record<string, unknown>,
 				}
 			);
 		}
 
 		res.json(updatedEntry);
 	} catch (error) {
-		console.error('[Watchlist Controller] Error updating watchlist entry:', {
-			userId: req.user?.user_id,
-			entryId: req.params.entry_id,
-			updates: req.body,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
+		const requestBody = req.body as Record<string, unknown>;
 
 		// Audit log for update failure
 		await auditLogService.error(
@@ -253,7 +334,7 @@ export const updateWatchlistEntry = async (req: Request, res: Response) => {
 			{
 				userId: req.user?.user_id,
 				entryId: req.params.entry_id,
-				updates: req.body,
+				updates: requestBody,
 				error: error instanceof Error ? error.message : 'Unknown error',
 			}
 		);
@@ -272,10 +353,6 @@ export const getMatches = async (req: Request, res: Response) => {
 			return res.status(401).json({ error: 'Authentication required' });
 		}
 
-		console.log(
-			'[Watchlist Controller] Getting matches for user:',
-			req.user.user_id
-		);
 		const matches = await getMatchesService(req.user);
 
 		// Just viewing matches isn't activity other users need to see
@@ -283,11 +360,6 @@ export const getMatches = async (req: Request, res: Response) => {
 
 		res.json(matches);
 	} catch (error) {
-		console.error('[Watchlist Controller] Error getting matches:', {
-			userId: req.user?.user_id,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
 		if (error instanceof Error) {
 			res.status(500).json({ error: error.message });
 		} else {

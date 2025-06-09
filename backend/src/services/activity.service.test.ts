@@ -2,14 +2,20 @@ import { ActivityLog } from '../models/ActivityLog';
 import { activityService, ActivityType } from './activity.service';
 
 // Mock ActivityLog model
-jest.mock('../models/ActivityLog', () => {
-	return {
-		ActivityLog: {
-			create: jest.fn(),
-			findAll: jest.fn(),
-		},
-	};
-});
+jest.mock('../models/ActivityLog', () => ({
+	ActivityLog: {
+		create: jest.fn(),
+		findAll: jest.fn(),
+	},
+}));
+
+// Create properly typed mock instances to avoid unbound method errors
+const mockActivityLogCreate = jest.fn();
+const mockActivityLogFindAll = jest.fn();
+
+// Assign the mocks to the ActivityLog methods
+(ActivityLog.create as jest.Mock) = mockActivityLogCreate;
+(ActivityLog.findAll as jest.Mock) = mockActivityLogFindAll;
 
 describe('ActivityService', () => {
 	beforeEach(() => {
@@ -29,7 +35,7 @@ describe('ActivityService', () => {
 				created_at: new Date(),
 			};
 
-			(ActivityLog.create as jest.Mock).mockResolvedValue(mockActivity);
+			mockActivityLogCreate.mockResolvedValue(mockActivity);
 
 			const result = await activityService.logActivity(
 				'user123',
@@ -37,7 +43,7 @@ describe('ActivityService', () => {
 				{ tmdbId: 550, mediaType: 'movie' }
 			);
 
-			expect(ActivityLog.create).toHaveBeenCalledWith({
+			expect(mockActivityLogCreate).toHaveBeenCalledWith({
 				user_id: 'user123',
 				action: ActivityType.WATCHLIST_ADD,
 				context: 'watchlist',
@@ -49,9 +55,7 @@ describe('ActivityService', () => {
 		});
 
 		it('should handle errors without throwing', async () => {
-			(ActivityLog.create as jest.Mock).mockRejectedValue(
-				new Error('Database error')
-			);
+			mockActivityLogCreate.mockRejectedValue(new Error('Database error'));
 
 			console.error = jest.fn(); // Mock console.error
 
@@ -60,7 +64,7 @@ describe('ActivityService', () => {
 				ActivityType.WATCHLIST_ADD
 			);
 
-			expect(ActivityLog.create).toHaveBeenCalled();
+			expect(mockActivityLogCreate).toHaveBeenCalled();
 			expect(console.error).toHaveBeenCalled();
 			expect(result).toBeUndefined();
 		});
@@ -85,11 +89,11 @@ describe('ActivityService', () => {
 				},
 			];
 
-			(ActivityLog.findAll as jest.Mock).mockResolvedValue(mockActivities);
+			mockActivityLogFindAll.mockResolvedValue(mockActivities);
 
 			const result = await activityService.getUserActivities('user123', 10, 0);
 
-			expect(ActivityLog.findAll).toHaveBeenCalledWith({
+			expect(mockActivityLogFindAll).toHaveBeenCalledWith({
 				where: { user_id: 'user123' },
 				order: [['created_at', 'DESC']],
 				limit: 10,
@@ -115,7 +119,7 @@ describe('ActivityService', () => {
 				},
 			];
 
-			(ActivityLog.findAll as jest.Mock).mockResolvedValue(mockActivities);
+			mockActivityLogFindAll.mockResolvedValue(mockActivities);
 
 			const result = await activityService.getRecentActivities(
 				'user123',
@@ -123,7 +127,7 @@ describe('ActivityService', () => {
 				0
 			);
 
-			expect(ActivityLog.findAll).toHaveBeenCalledWith({
+			expect(mockActivityLogFindAll).toHaveBeenCalledWith({
 				where: {
 					user_id: {
 						[Symbol.for('ne')]: 'user123',

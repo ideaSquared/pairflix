@@ -1,12 +1,12 @@
-import { NextFunction, Response } from 'express';
+import type { NextFunction, Response } from 'express';
 import { auditLogService } from '../services/audit.service';
-import { AuthenticatedRequest } from '../types';
+import type { AuthenticatedRequest } from '../types';
 
 /**
  * Middleware to restrict access to admin users only
  * Must be called after authentication middleware
  */
-export const adminOnlyMiddleware = (
+export const adminOnlyMiddleware = async (
 	req: AuthenticatedRequest,
 	res: Response,
 	next: NextFunction
@@ -17,20 +17,25 @@ export const adminOnlyMiddleware = (
 	}
 
 	if (req.user.role !== 'admin') {
-		// Audit log unauthorized admin access attempt
-		auditLogService.warn(
-			'Unauthorized admin access attempt',
-			'admin-middleware',
-			{
-				userId: req.user.user_id,
-				email: req.user.email,
-				path: req.path,
-				method: req.method,
-				ip: req.ip,
-				userAgent: req.get('user-agent'),
-				timestamp: new Date(),
-			}
-		);
+		try {
+			// Audit log unauthorized admin access attempt
+			await auditLogService.warn(
+				'Unauthorized admin access attempt',
+				'admin-middleware',
+				{
+					userId: req.user.user_id,
+					email: req.user.email,
+					path: req.path,
+					method: req.method,
+					ip: req.ip,
+					userAgent: req.get('user-agent'),
+					timestamp: new Date(),
+				}
+			);
+		} catch (error) {
+			// If audit logging fails, still continue with the rejection
+			console.warn('Failed to log admin access attempt:', error);
+		}
 
 		return res.status(403).json({ error: 'Admin access required' });
 	}

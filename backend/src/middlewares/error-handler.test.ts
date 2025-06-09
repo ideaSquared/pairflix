@@ -1,5 +1,5 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\backend\src\middlewares\error-handler.test.ts
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { auditLogService } from '../services/audit.service';
 import { errorHandler } from './error-handler';
 
@@ -55,14 +55,14 @@ describe('Error Handler Middleware', () => {
 		process.env.NODE_ENV = originalEnv;
 	});
 
-	it('should log error and return 500 with error details in development mode', () => {
+	it('should log error and return 500 with error details in development mode', async () => {
 		// Arrange
 		process.env.NODE_ENV = 'development';
 		const testError = new Error('Test error message');
 		testError.stack = 'Test error stack';
 
 		// Act
-		errorHandler(
+		await errorHandler(
 			testError,
 			mockRequest as Request,
 			mockResponse as Response,
@@ -89,14 +89,14 @@ describe('Error Handler Middleware', () => {
 		expect(nextFunction).not.toHaveBeenCalled();
 	});
 
-	it('should log error and return 500 without stack trace in production mode', () => {
+	it('should log error and return 500 without stack trace in production mode', async () => {
 		// Arrange
 		process.env.NODE_ENV = 'production';
 		const testError = new Error('Test error message');
 		testError.stack = 'Test error stack';
 
 		// Act
-		errorHandler(
+		await errorHandler(
 			testError,
 			mockRequest as Request,
 			mockResponse as Response,
@@ -122,13 +122,13 @@ describe('Error Handler Middleware', () => {
 		expect(nextFunction).not.toHaveBeenCalled();
 	});
 
-	it('should handle error without message', () => {
+	it('should handle error without message', async () => {
 		// Arrange
 		const testError = new Error();
 		testError.stack = 'Test error stack';
 
 		// Act
-		errorHandler(
+		await errorHandler(
 			testError,
 			mockRequest as Request,
 			mockResponse as Response,
@@ -150,14 +150,14 @@ describe('Error Handler Middleware', () => {
 		);
 	});
 
-	it('should handle requests without user information', () => {
+	it('should handle requests without user information', async () => {
 		// Arrange
 		// Use delete to remove the user property entirely instead of setting it to undefined
 		delete mockRequest.user;
 		const testError = new Error('Test error message');
 
 		// Act
-		errorHandler(
+		await errorHandler(
 			testError,
 			mockRequest as Request,
 			mockResponse as Response,
@@ -171,7 +171,7 @@ describe('Error Handler Middleware', () => {
 			expect.objectContaining({
 				path: '/api/users',
 				method: 'GET',
-				userId: undefined,
+				userId: null,
 			})
 		);
 

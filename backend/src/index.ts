@@ -19,7 +19,7 @@ import { auditLogService } from './services/audit.service';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT ?? 3000;
 
 // Define allowed origins
 const allowedOrigins =
@@ -36,7 +36,7 @@ const allowedOrigins =
 
 // CORS configuration
 const corsOptions = {
-	origin: function (
+	origin(
 		origin: string | undefined,
 		callback: (err: Error | null, allow?: boolean) => void
 	) {
@@ -67,7 +67,7 @@ app.use(express.json());
 
 // Debug middleware to log incoming requests
 app.use((req, res, next) => {
-	console.log(`${req.method} ${req.url}`);
+	console.warn(`${req.method} ${req.url}`);
 	next();
 });
 
@@ -90,12 +90,12 @@ async function initializeApp() {
 	try {
 		// Connect to database first
 		await initDatabase();
-		console.log('Database connection established successfully.');
+		console.warn('Database connection established successfully.');
 
 		// Only start logging after database connection is established
 		// Log application startup
 		await auditLogService.info('Application starting', 'server-init', {
-			environment: process.env.NODE_ENV || 'development',
+			environment: process.env.NODE_ENV ?? 'development',
 			timestamp: new Date(),
 		});
 
@@ -110,7 +110,7 @@ async function initializeApp() {
 
 		if (process.env.NODE_ENV === 'development') {
 			await seedDatabase();
-			console.log('Development database seeded successfully.');
+			console.warn('Development database seeded successfully.');
 
 			// Log database seeding in development
 			await auditLogService.info('Development database seeded', 'server-init', {
@@ -118,31 +118,61 @@ async function initializeApp() {
 			});
 		}
 
-		// Initialize scheduled tasks
+		// Initialize scheduled tasks - function does not return a promise, so no need for await or void
+
 		initScheduledTasks();
 
-		app.listen(port, () => {
-			console.log(`Server running on port ${port}`);
+		// Use a Promise to handle server start
+		const server = app.listen(port, () => {
+			console.warn(`Server running on port ${port}`);
 
-			// Log server startup
-			auditLogService.info(`Server started on port ${port}`, 'server-init', {
-				port,
-				environment: process.env.NODE_ENV || 'development',
-				timestamp: new Date(),
-			});
+			// Log server startup - wrapped in an async IIFE to handle the promise
+			void (async () => {
+				try {
+					await auditLogService.info(
+						`Server started on port ${port}`,
+						'server-init',
+						{
+							port,
+							environment: process.env.NODE_ENV ?? 'development',
+							timestamp: new Date(),
+						}
+					);
+				} catch (error) {
+					console.warn('Failed to log server start:', error);
+				}
+			})();
+		});
+
+		// Handle server errors
+		server.on('error', async error => {
+			console.error('Server error:', error);
+			try {
+				await auditLogService.error('Server error', 'server-init', {
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date(),
+				});
+			} catch (logError) {
+				console.warn('Failed to log server error:', logError);
+			}
 		});
 	} catch (error) {
 		console.error('Unable to start server:', error);
 
-		// Log startup error
-		await auditLogService.error('Failed to start server', 'server-init', {
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-			timestamp: new Date(),
-		});
+		try {
+			// Log startup error
+			await auditLogService.error('Failed to start server', 'server-init', {
+				error: error instanceof Error ? error.message : 'Unknown error',
+				stack: error instanceof Error ? error.stack : undefined,
+				timestamp: new Date(),
+			});
+		} catch (logError) {
+			console.warn('Failed to log server start failure:', logError);
+		}
 
 		process.exit(1);
 	}
 }
 
-initializeApp();
+// Use void to explicitly mark that we're ignoring the promise result
+void initializeApp();

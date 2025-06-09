@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { ActivityLog } from '../models/ActivityLog';
@@ -13,10 +13,13 @@ import { activityService } from '../services/activity.service';
 import { auditLogService, LogLevel } from '../services/audit.service';
 import { settingsService } from '../services/settings.service';
 import { statisticsService } from '../services/statistics.service';
-import { ActivityContext } from '../types';
+import type { ActivityContext } from '../types';
 
 // Import Express namespace to ensure the Request type includes user property
 import '../middlewares/auth';
+
+// User status type for validation
+type UserStatus = 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
 
 /**
  * Get all recent audit logs
@@ -109,7 +112,11 @@ export const getAuditLogStats = async (req: Request, res: Response) => {
 export const runLogRotation = async (req: Request, res: Response) => {
 	try {
 		// Get custom retention periods from request if provided
-		const customRetention = req.body.retentionDays;
+		const requestData = req.body as Record<string, unknown>;
+		const customRetention: Partial<Record<LogLevel, number>> | undefined =
+			requestData.retentionDays as
+				| Partial<Record<LogLevel, number>>
+				| undefined;
 
 		// Run the cleanup
 		const deletedCount = await auditLogService.cleanupOldLogs(customRetention);
@@ -129,7 +136,9 @@ export const runLogRotation = async (req: Request, res: Response) => {
  */
 export const createTestLog = async (req: Request, res: Response) => {
 	try {
-		const { level, message } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const level = requestData.level as string;
+		const message = requestData.message as string;
 
 		if (!level || !message) {
 			return res.status(400).json({ error: 'Level and message are required' });
@@ -176,7 +185,7 @@ export const getUsers = async (req: Request, res: Response) => {
 		const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string | symbol, unknown> = {};
 
 		// Add search filter for username or email
 		if (search) {
@@ -193,7 +202,7 @@ export const getUsers = async (req: Request, res: Response) => {
 
 		// Add status filter - this assumes you have a status field or may need to be adjusted
 		if (status) {
-			where.status = status;
+			where.status = status as UserStatus;
 		}
 
 		// Fetch users with pagination
@@ -220,7 +229,13 @@ export const getUsers = async (req: Request, res: Response) => {
 		// Audit log for user listing
 		await auditLogService.info('Listed users', 'admin-controller', {
 			userId: req.user?.user_id,
-			filters: { search, role, status, sortBy, sortOrder },
+			filters: {
+				search,
+				role,
+				status,
+				sortBy,
+				sortOrder,
+			},
 			pagination: { limit, offset },
 			totalCount,
 		});
@@ -301,7 +316,11 @@ export const getUserById = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
 	try {
 		const { userId } = req.params;
-		const { username, email, role, status } = req.body;
+		const updateData = req.body as Record<string, unknown>;
+		const username = updateData.username as string | undefined;
+		const email = updateData.email as string | undefined;
+		const role = updateData.role as string | undefined;
+		const status = updateData.status as UserStatus | undefined;
 
 		const user = await User.findByPk(userId);
 
@@ -439,7 +458,9 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const changeUserStatus = async (req: Request, res: Response) => {
 	try {
 		const { userId } = req.params;
-		const { status, reason } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const status = requestData.status as UserStatus;
+		const reason = requestData.reason as string | undefined;
 
 		if (!userId) {
 			return res.status(400).json({ error: 'User ID is required' });
@@ -582,7 +603,12 @@ export const resetUserPassword = async (req: Request, res: Response) => {
  */
 export const createUser = async (req: Request, res: Response) => {
 	try {
-		const { username, email, password, role, status } = req.body;
+		const userData = req.body as Record<string, unknown>;
+		const username = userData.username as string;
+		const email = userData.email as string;
+		const password = userData.password as string;
+		const role = userData.role as string | undefined;
+		const status = userData.status as UserStatus | undefined;
 
 		// Validate required fields
 		if (!username || !email || !password) {
@@ -636,8 +662,8 @@ export const createUser = async (req: Request, res: Response) => {
 			username,
 			email,
 			password_hash,
-			role: role || 'user',
-			status: status || 'active',
+			role: role ?? 'user',
+			status: status ?? 'active',
 			preferences,
 		});
 
@@ -687,7 +713,7 @@ export const exportUsersAsCsv = async (req: Request, res: Response) => {
 		const status = req.query.status as string;
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string, unknown> = {};
 
 		// Add role filter
 		if (role) {
@@ -770,7 +796,7 @@ export const getAllWatchlistEntries = async (req: Request, res: Response) => {
 		const mediaType = req.query.mediaType as string;
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string, unknown> = {};
 
 		if (userId) {
 			where.user_id = userId;
@@ -838,7 +864,9 @@ export const getAllWatchlistEntries = async (req: Request, res: Response) => {
 export const moderateWatchlistEntry = async (req: Request, res: Response) => {
 	try {
 		const { entryId } = req.params;
-		const { action, reason } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const action = requestData.action as string;
+		const reason = requestData.reason as string;
 
 		if (!['flag', 'remove', 'approve'].includes(action)) {
 			return res.status(400).json({
@@ -907,7 +935,7 @@ export const moderateWatchlistEntry = async (req: Request, res: Response) => {
 			{
 				userId: req.user?.user_id,
 				entryId: req.params.entryId,
-				action: req.body.action,
+				action: (req.body as Record<string, unknown>).action as string,
 				error: error instanceof Error ? error.message : 'Unknown error',
 			}
 		);
@@ -929,7 +957,7 @@ export const getAllMatches = async (req: Request, res: Response) => {
 		const status = req.query.status as string;
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string | symbol, unknown> = {};
 
 		if (userId) {
 			where[Op.or] = [{ user_id_1: userId }, { user_id_2: userId }];
@@ -1154,7 +1182,7 @@ export const getAllActivities = async (req: Request, res: Response) => {
 		const endDate = req.query.endDate as string;
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string | symbol, unknown> = {};
 
 		// Filter by action if provided
 		if (action) {
@@ -1163,14 +1191,16 @@ export const getAllActivities = async (req: Request, res: Response) => {
 
 		// Filter by date range if provided
 		if (startDate || endDate) {
-			where.created_at = {};
+			where.created_at = {} as Record<symbol, Date>;
 
 			if (startDate) {
-				where.created_at[Op.gte] = new Date(startDate);
+				(where.created_at as Record<symbol, Date>)[Op.gte] = new Date(
+					startDate
+				);
 			}
 
 			if (endDate) {
-				where.created_at[Op.lte] = new Date(endDate);
+				(where.created_at as Record<symbol, Date>)[Op.lte] = new Date(endDate);
 			}
 		}
 
@@ -1372,7 +1402,7 @@ export const getActivitiesByContext = async (req: Request, res: Response) => {
  */
 export const getUserActivityPatterns = async (req: Request, res: Response) => {
 	try {
-		const userId = req.params.userId;
+		const { userId } = req.params;
 		const days = parseInt(req.query.days as string, 10) || 30;
 
 		const patterns = await activityService.getUserActivityPatterns(
@@ -1454,7 +1484,8 @@ export async function getAppSettings(req: Request, res: Response) {
  */
 export async function updateAppSettings(req: Request, res: Response) {
 	try {
-		const { settings } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const settings = requestData.settings as Record<string, unknown>;
 
 		if (!settings) {
 			return res.status(400).json({ error: 'Settings object is required' });
@@ -1543,7 +1574,9 @@ export async function clearCache(req: Request, res: Response) {
  * Admin login endpoint
  */
 export const adminLogin = async (req: Request, res: Response) => {
-	const { email, password } = req.body;
+	const requestData = req.body as Record<string, unknown>;
+	const email = requestData.email as string;
+	const password = requestData.password as string;
 	try {
 		// Audit log - admin login attempt
 		await auditLogService.info('Admin login attempt', 'admin-controller', {
@@ -1612,7 +1645,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 
 		const token = jwt.sign(
 			tokenPayload,
-			process.env.JWT_SECRET || 'default_jwt_secret',
+			process.env.JWT_SECRET ?? 'default_jwt_secret',
 			{ expiresIn: '8h' }
 		);
 
@@ -1654,7 +1687,7 @@ export const adminLogin = async (req: Request, res: Response) => {
 /**
  * Validate an admin token
  */
-export const validateAdminToken = async (req: Request, res: Response) => {
+export const validateAdminToken = (req: Request, res: Response) => {
 	try {
 		// If we got here, the token is valid (checked by authenticateToken middleware)
 		// and the user is an admin (checked by adminOnlyMiddleware)
@@ -1689,7 +1722,7 @@ export const getAllContent = async (req: Request, res: Response) => {
 		const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
 
 		// Build query conditions
-		const where: any = {};
+		const where: Record<string, unknown> = {};
 		if (search) {
 			where.title = { [Op.iLike]: `%${search}%` };
 		}
@@ -1701,7 +1734,7 @@ export const getAllContent = async (req: Request, res: Response) => {
 		}
 
 		// Determine sort order
-		const order: any[] = [];
+		const order: [string, string][] = [];
 		if (sortBy) {
 			order.push([sortBy, sortOrder.toUpperCase()]);
 		} else {
@@ -1730,7 +1763,13 @@ export const getAllContent = async (req: Request, res: Response) => {
 		// Audit log
 		await auditLogService.info('Retrieved all content', 'admin-controller', {
 			adminId: req.user?.user_id,
-			filters: { search, type, status, sortBy, sortOrder },
+			filters: {
+				search,
+				type,
+				status,
+				sortBy,
+				sortOrder,
+			},
 			pagination: { limit, offset },
 		});
 
@@ -1784,7 +1823,9 @@ export const getContentReports = async (req: Request, res: Response) => {
 export const updateContent = async (req: Request, res: Response) => {
 	try {
 		const { contentId } = req.params;
-		const { title, status } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const title = requestData.title as string | undefined;
+		const status = requestData.status as string | undefined;
 
 		const content = await Content.findByPk(contentId);
 		if (!content) {
@@ -1799,7 +1840,8 @@ export const updateContent = async (req: Request, res: Response) => {
 
 		// Update content
 		if (title) content.title = title;
-		if (status) content.status = status;
+		if (status)
+			content.status = status as 'active' | 'pending' | 'flagged' | 'removed';
 		await content.save();
 
 		// Audit log
@@ -1895,7 +1937,8 @@ export const approveContent = async (req: Request, res: Response) => {
 export const removeContent = async (req: Request, res: Response) => {
 	try {
 		const { contentId } = req.params;
-		const { reason } = req.body;
+		const requestData = req.body as Record<string, unknown>;
+		const reason = requestData.reason as string;
 
 		const content = await Content.findByPk(contentId);
 		if (!content) {
@@ -1992,9 +2035,9 @@ export const adminController = {
 	getActivitiesByContext,
 	getUserActivityPatterns,
 	// App settings methods
-	getAppSettings: getAppSettings, // Explicitly assign the function
-	updateAppSettings: updateAppSettings, // Explicitly assign the function
-	clearCache: clearCache, // Explicitly assign the function
+	getAppSettings, // Explicitly assign the function
+	updateAppSettings, // Explicitly assign the function
+	clearCache, // Explicitly assign the function
 	adminLogin,
 	validateAdminToken,
 	// Content management functions

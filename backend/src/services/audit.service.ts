@@ -31,11 +31,11 @@ export const log = async (
 	level: LogLevel,
 	message: string,
 	source: string,
-	context?: any
+	context?: Record<string, unknown>
 ): Promise<AuditLog | null> => {
 	try {
 		// Ensure context is never undefined - convert to empty object if needed
-		const safeContext = context || {};
+		const safeContext = context ?? {};
 
 		return await AuditLog.create({
 			level,
@@ -56,10 +56,8 @@ export const log = async (
 export const info = async (
 	message: string,
 	source: string,
-	context?: any
-): Promise<AuditLog | null> => {
-	return log(LogLevel.INFO, message, source, context);
-};
+	context?: Record<string, unknown>
+): Promise<AuditLog | null> => log(LogLevel.INFO, message, source, context);
 
 /**
  * Log a warning
@@ -67,10 +65,8 @@ export const info = async (
 export const warn = async (
 	message: string,
 	source: string,
-	context?: any
-): Promise<AuditLog | null> => {
-	return log(LogLevel.WARN, message, source, context);
-};
+	context?: Record<string, unknown>
+): Promise<AuditLog | null> => log(LogLevel.WARN, message, source, context);
 
 /**
  * Log an error
@@ -78,10 +74,8 @@ export const warn = async (
 export const error = async (
 	message: string,
 	source: string,
-	context?: any
-): Promise<AuditLog | null> => {
-	return log(LogLevel.ERROR, message, source, context);
-};
+	context?: Record<string, unknown>
+): Promise<AuditLog | null> => log(LogLevel.ERROR, message, source, context);
 
 /**
  * Log debug information (only for development)
@@ -89,7 +83,7 @@ export const error = async (
 export const debug = async (
 	message: string,
 	source: string,
-	context?: any
+	context?: Record<string, unknown>
 ): Promise<AuditLog | null> => {
 	// Only log debug messages if not in production
 	if (process.env.NODE_ENV !== 'production') {
@@ -107,13 +101,12 @@ export const debug = async (
 export const getRecentLogs = async (
 	limit = 100,
 	offset = 0
-): Promise<AuditLog[]> => {
-	return AuditLog.findAll({
+): Promise<AuditLog[]> =>
+	AuditLog.findAll({
 		order: [['created_at', 'DESC']],
 		limit,
 		offset,
 	});
-};
 
 /**
  * Get audit logs filtered by level
@@ -126,27 +119,26 @@ export const getLogsByLevel = async (
 	level: LogLevel,
 	limit = 100,
 	offset = 0
-): Promise<AuditLog[]> => {
-	return AuditLog.findAll({
+): Promise<AuditLog[]> =>
+	AuditLog.findAll({
 		where: { level },
 		order: [['created_at', 'DESC']],
 		limit,
 		offset,
 	});
-};
 
 /**
  * Clean up logs older than the specified retention period
  * @param retentionDays - Number of days to keep logs (default: use DEFAULT_RETENTION_PERIODS)
  * @returns Number of logs deleted
  */
-export const cleanupOldLogs = async (retentionDays?: {
-	[key in LogLevel]?: number;
-}): Promise<number> => {
+export const cleanupOldLogs = async (
+	retentionDays?: Partial<Record<LogLevel, number>>
+): Promise<number> => {
 	try {
 		const retention = {
 			...DEFAULT_RETENTION_PERIODS,
-			...(retentionDays || {}),
+			...(retentionDays ?? {}),
 		};
 
 		let totalDeleted = 0;
@@ -177,8 +169,8 @@ export const cleanupOldLogs = async (retentionDays?: {
 		}
 
 		return totalDeleted;
-	} catch (error) {
-		console.error('Failed to clean up old logs:', error);
+	} catch (cleanupError) {
+		console.error('Failed to clean up old logs:', cleanupError);
 		return 0;
 	}
 };
@@ -189,13 +181,13 @@ export const cleanupOldLogs = async (retentionDays?: {
  */
 export const getAuditLogStats = async (): Promise<{
 	total: number;
-	byLevel: { [key in LogLevel]?: number };
+	byLevel: Partial<Record<LogLevel, number>>;
 	oldestLog: Date | null;
 	newestLog: Date | null;
 }> => {
 	const stats = {
 		total: 0,
-		byLevel: {} as { [key in LogLevel]?: number },
+		byLevel: {} as Partial<Record<LogLevel, number>>,
 		oldestLog: null as Date | null,
 		newestLog: null as Date | null,
 	};

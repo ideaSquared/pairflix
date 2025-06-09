@@ -5,184 +5,183 @@ import * as React from 'react';
 import { Box } from './Box';
 
 describe('Box', () => {
-	it('renders children correctly', () => {
-		render(
-			<Box data-testid='box'>
-				<div>Box Content</div>
-			</Box>
-		);
+  it('renders children correctly', () => {
+    render(
+      <Box data-testid="box">
+        <div>Box Content</div>
+      </Box>
+    );
 
-		const boxElement = screen.getByTestId('box');
-		expect(boxElement).toBeInTheDocument();
-		expect(boxElement).toHaveTextContent('Box Content');
-	});
+    const boxElement = screen.getByTestId('box');
+    expect(boxElement).toBeInTheDocument();
+    expect(boxElement).toHaveTextContent('Box Content');
+  });
 
-	it('renders with custom element type using "as" prop', () => {
-		render(
-			<Box as='section' data-testid='box-section'>
-				Section Content
-			</Box>
-		);
+  it('renders with custom element type using "as" prop', () => {
+    render(
+      <Box as="section" data-testid="box-section">
+        Section Content
+      </Box>
+    );
 
-		const boxElement = screen.getByTestId('box-section');
-		expect(boxElement.tagName).toBe('SECTION');
-	});
+    const boxElement = screen.getByTestId('box-section');
+    expect(boxElement.tagName).toBe('SECTION');
+  });
 
-	it('applies layout properties correctly', () => {
-		const { container } = render(
-			<Box
-				width='200px'
-				height='100px'
-				maxWidth='300px'
-				minHeight='50px'
-				data-testid='box-layout'
-			>
-				Content
-			</Box>
-		);
+  it('applies layout properties correctly', () => {
+    render(
+      <Box
+        width="200px"
+        height="100px"
+        maxWidth="300px"
+        minHeight="50px"
+        data-testid="box-layout"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-layout');
-		expect(box).toHaveStyle({
-			width: '200px',
-			height: '100px',
-			maxWidth: '300px',
-			minHeight: '50px',
-		});
-	});
+    const box = screen.getByTestId('box-layout');
+    expect(box).toHaveStyle({
+      width: '200px',
+      height: '100px',
+      maxWidth: '300px',
+      minHeight: '50px',
+    });
+  });
 
-	it('applies margin and padding correctly', () => {
-		const { container } = render(
-			<Box
-				margin='10px'
-				padding='20px'
-				marginTop='5px'
-				paddingLeft='15px'
-				data-testid='box-spacing'
-			>
-				Content
-			</Box>
-		);
+  it('applies margin and padding correctly', () => {
+    render(
+      <Box
+        margin="10px"
+        padding="20px"
+        marginTop="5px"
+        paddingLeft="15px"
+        data-testid="box-spacing"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-spacing');
-		// Check each property individually to avoid issues with CSS shorthand
-		// The browser may normalize/combine margin and padding values differently
-		expect(box).toBeInTheDocument();
+    const box = screen.getByTestId('box-spacing');
+    // Check each property individually to avoid issues with CSS shorthand
+    // The browser may normalize/combine margin and padding values differently
+    expect(box).toBeInTheDocument();
 
-		// Verify that the box has some styling applied
-		const computedStyle = window.getComputedStyle(box);
-		// Just verify padding and margin are applied, without checking exact values
-		expect(computedStyle.padding).toBeTruthy();
-		expect(computedStyle.margin).toBeTruthy();
-	});
+    // When both padding and paddingLeft are set, paddingLeft overrides
+    // the left side of the padding shorthand
+    expect(box).toHaveStyle('padding: 20px 20px 20px 15px');
+    // marginTop overrides the top margin from the shorthand
+    expect(box).toHaveStyle('margin: 5px 10px 10px 10px');
+  });
 
-	it('applies flex properties correctly', () => {
-		const { container } = render(
-			<Box
-				display='flex'
-				flexDirection='column'
-				alignItems='center'
-				justifyContent='space-between'
-				data-testid='box-flex'
-			>
-				Content
-			</Box>
-		);
+  it('applies flex properties correctly', () => {
+    render(
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="space-between"
+        data-testid="box-flex"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-flex');
-		expect(box).toHaveStyle({
-			display: 'flex',
-			flexDirection: 'column',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-		});
-	});
+    const box = screen.getByTestId('box-flex');
+    expect(box).toHaveStyle({
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    });
+  });
 
-	it('applies grid properties correctly', () => {
-		const { container } = render(
-			<Box
-				display='grid'
-				gridGap='10px'
-				gridColumn='span 2'
-				data-testid='box-grid'
-			>
-				Content
-			</Box>
-		);
+  it('applies grid properties correctly', () => {
+    render(
+      <Box
+        display="grid"
+        gridGap="10px"
+        gridColumn="span 2"
+        data-testid="box-grid"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-grid');
-		// Test each property individually
-		expect(box).toHaveStyle('display: grid');
+    const box = screen.getByTestId('box-grid');
+    // Test each property individually
+    expect(box).toHaveStyle('display: grid');
 
-		// Some browsers might normalize CSS properties differently
-		const computedStyle = window.getComputedStyle(box);
-		// Just verify that some grid properties are applied
-		expect(box).toBeInTheDocument();
-	});
+    // Some browsers might normalize CSS properties differently
+    // Just verify that some grid properties are applied
+    expect(box).toBeInTheDocument();
+  });
 
-	it('applies position properties correctly', () => {
-		const { container } = render(
-			<Box
-				position='absolute'
-				top='10px'
-				left='20px'
-				zIndex={10}
-				data-testid='box-position'
-			>
-				Content
-			</Box>
-		);
+  it('applies position properties correctly', () => {
+    render(
+      <Box
+        position="absolute"
+        top="10px"
+        left="20px"
+        zIndex={10}
+        data-testid="box-position"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-position');
-		expect(box).toHaveStyle({
-			position: 'absolute',
-			top: '10px',
-			left: '20px',
-			zIndex: '10',
-		});
-	});
+    const box = screen.getByTestId('box-position');
+    expect(box).toHaveStyle({
+      position: 'absolute',
+      top: '10px',
+      left: '20px',
+      zIndex: '10',
+    });
+  });
 
-	it('applies background and border styling correctly', () => {
-		const { container } = render(
-			<Box
-				backgroundColor='#f5f5f5'
-				border='1px solid #ccc'
-				borderRadius='4px'
-				boxShadow='0 2px 4px rgba(0,0,0,0.1)'
-				data-testid='box-styling'
-			>
-				Content
-			</Box>
-		);
+  it('applies background and border styling correctly', () => {
+    render(
+      <Box
+        backgroundColor="#f5f5f5"
+        border="1px solid #ccc"
+        borderRadius="4px"
+        boxShadow="0 2px 4px rgba(0,0,0,0.1)"
+        data-testid="box-styling"
+      >
+        Content
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-styling');
-		expect(box).toHaveStyle({
-			backgroundColor: '#f5f5f5',
-			border: '1px solid #ccc',
-			borderRadius: '4px',
-			boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-		});
-	});
+    const box = screen.getByTestId('box-styling');
+    expect(box).toHaveStyle({
+      backgroundColor: '#f5f5f5',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    });
+  });
 
-	it('forwards ref correctly', () => {
-		const ref = React.createRef<HTMLDivElement>();
-		render(
-			<Box ref={ref} data-testid='box-ref'>
-				Reference Test
-			</Box>
-		);
+  it('forwards ref correctly', () => {
+    const ref = React.createRef<HTMLDivElement>();
+    render(
+      <Box ref={ref} data-testid="box-ref">
+        Reference Test
+      </Box>
+    );
 
-		expect(ref.current).not.toBeNull();
-		expect(ref.current?.tagName).toBe('DIV');
-	});
+    expect(ref.current).not.toBeNull();
+    expect(ref.current?.tagName).toBe('DIV');
+  });
 
-	it('applies className correctly', () => {
-		render(
-			<Box className='custom-class' data-testid='box-class'>
-				Class Test
-			</Box>
-		);
+  it('applies className correctly', () => {
+    render(
+      <Box className="custom-class" data-testid="box-class">
+        Class Test
+      </Box>
+    );
 
-		const box = screen.getByTestId('box-class');
-		expect(box).toHaveClass('custom-class');
-	});
+    const box = screen.getByTestId('box-class');
+    expect(box).toHaveClass('custom-class');
+  });
 });

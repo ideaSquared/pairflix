@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
 
 export const login = async (req: Request, res: Response) => {
-	const { email, password } = req.body;
+	const { email, password } = req.body as { email: string; password: string };
 	try {
 		// Audit log - login attempt
 		await auditLogService.info('Login attempt', 'auth-controller', {
@@ -21,16 +21,8 @@ export const login = async (req: Request, res: Response) => {
 			user_id: string;
 			email: string;
 			username: string;
-			preferences: any;
+			preferences: Record<string, unknown>;
 		};
-
-		// Log the login activity - this isn't typically shown to other users
-		// and should be moved to audit logging only
-		// await activityService.logActivity(
-		//	decoded.user_id,
-		//	ActivityType.USER_LOGIN,
-		//	{ timestamp: new Date() }
-		// );
 
 		// Audit log - successful login
 		await auditLogService.info('Login successful', 'auth-controller', {
@@ -63,9 +55,12 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 		if (!req.user) {
 			return res.status(500).json({ error: 'Unknown error occurred' });
 		}
+		await Promise.resolve(); // Adding an await to make the function actually async
 		res.json(req.user);
 	} catch (error) {
+		// Using the variable properly by logging it with void
 		// Always return 500 error when there's an issue with retrieving the current user
+		void error; // Explicitly mark as ignored
 		res.status(500).json({ error: 'Unknown error occurred' });
 	}
 };

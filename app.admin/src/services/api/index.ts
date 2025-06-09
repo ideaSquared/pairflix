@@ -13,8 +13,8 @@ export { admin, auth, fetchWithAuth };
 
 // Default export of the complete API surface
 const api = {
-	admin,
-	auth,
+  admin,
+  auth,
 } as const;
 
 export default api;

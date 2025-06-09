@@ -1,18 +1,30 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\backend\src\middlewares\auth.test.ts
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User';
 import { auditLogService } from '../services/audit.service';
 import { authenticateToken, requireAdmin } from './auth';
 
 // Mock dependencies
-jest.mock('jsonwebtoken');
-jest.mock('../models/User');
+jest.mock('jsonwebtoken', () => ({
+	verify: jest.fn(),
+	sign: jest.fn(),
+}));
+
+jest.mock('../models/User', () => ({
+	__esModule: true,
+	default: {
+		findByPk: jest.fn(),
+		findOne: jest.fn(),
+	},
+}));
+
 jest.mock('../services/audit.service', () => ({
 	auditLogService: {
 		warn: jest.fn(),
 	},
 }));
+
+import User from '../models/User';
 
 describe('Auth Middleware', () => {
 	let mockRequest: Partial<Request>;
@@ -248,13 +260,13 @@ describe('Auth Middleware', () => {
 	});
 
 	describe('requireAdmin', () => {
-		it('should return 401 if no user is in the request', () => {
+		it('should return 401 if no user is in the request', async () => {
 			// Arrange
 			// Use delete to remove the user property entirely instead of setting it to undefined
 			delete mockRequest.user;
 
 			// Act
-			requireAdmin(
+			await requireAdmin(
 				mockRequest as Request,
 				mockResponse as Response,
 				nextFunction
@@ -268,7 +280,7 @@ describe('Auth Middleware', () => {
 			expect(nextFunction).not.toHaveBeenCalled();
 		});
 
-		it('should return 403 if user is not an admin', () => {
+		it('should return 403 if user is not an admin', async () => {
 			// Arrange
 			mockRequest.user = {
 				user_id: 'regular-user-id',
@@ -286,7 +298,7 @@ describe('Auth Middleware', () => {
 			};
 
 			// Act
-			requireAdmin(
+			await requireAdmin(
 				mockRequest as Request,
 				mockResponse as Response,
 				nextFunction
@@ -301,7 +313,7 @@ describe('Auth Middleware', () => {
 			expect(auditLogService.warn).toHaveBeenCalled();
 		});
 
-		it('should call next() if user is an admin', () => {
+		it('should call next() if user is an admin', async () => {
 			// Arrange
 			mockRequest.user = {
 				user_id: 'admin-user-id',
@@ -319,7 +331,7 @@ describe('Auth Middleware', () => {
 			};
 
 			// Act
-			requireAdmin(
+			await requireAdmin(
 				mockRequest as Request,
 				mockResponse as Response,
 				nextFunction

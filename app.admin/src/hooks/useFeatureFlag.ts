@@ -8,23 +8,23 @@ import { useSettings } from '../contexts/SettingsContext';
  * @returns boolean indicating if feature is enabled
  */
 export function useFeatureFlag(
-	featureKey: keyof Required<
-		NonNullable<ReturnType<typeof useSettings>['settings']>
-	>['features'],
-	defaultValue = false
+  featureKey: keyof Required<
+    NonNullable<ReturnType<typeof useSettings>['settings']>
+  >['features'],
+  defaultValue = false
 ): boolean {
-	const { settings, isLoading } = useSettings();
+  const { settings, isLoading } = useSettings();
 
-	// While loading, return the default value
-	if (isLoading || !settings) {
-		return defaultValue;
-	}
+  // While loading, return the default value
+  if (isLoading || !settings) {
+    return defaultValue;
+  }
 
-	// Check if the feature exists in the settings
-	if (featureKey in settings.features) {
-		return Boolean(settings.features[featureKey]);
-	}
+  // Check if the feature exists in the settings
+  if (featureKey in settings.features) {
+    return Boolean(settings.features[featureKey]);
+  }
 
-	// If feature isn't defined in settings, return the default value
-	return defaultValue;
+  // If feature isn't defined in settings, return the default value
+  return defaultValue;
 }

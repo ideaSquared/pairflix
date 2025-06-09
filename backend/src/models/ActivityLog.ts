@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
+import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
 import User from './User';
 
 // Base interface with all properties required
@@ -7,7 +7,7 @@ interface ActivityLogAttributes {
 	user_id: string;
 	action: string;
 	context: string;
-	metadata?: any;
+	metadata?: Record<string, unknown>;
 	ip_address: string | null; // Using null instead of undefined for DB fields
 	user_agent: string | null; // Using null instead of undefined for DB fields
 	created_at: Date;
@@ -24,12 +24,19 @@ export class ActivityLog extends Model<
 	ActivityLogCreationAttributes
 > {
 	declare log_id: string;
+
 	declare user_id: string;
+
 	declare action: string;
+
 	declare context: string;
-	declare metadata: any;
+
+	declare metadata: Record<string, unknown>;
+
 	declare ip_address: string | null;
+
 	declare user_agent: string | null;
+
 	declare created_at: Date;
 
 	static initialize(sequelize: Sequelize) {

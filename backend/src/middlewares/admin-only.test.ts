@@ -1,7 +1,7 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\backend\src\middlewares\admin-only.test.ts
-import { Response } from 'express';
+import type { Response } from 'express';
 import { auditLogService } from '../services/audit.service';
-import { AuthenticatedRequest } from '../types';
+import type { AuthenticatedRequest } from '../types';
 import { adminOnlyMiddleware } from './admin-only';
 
 // Mock dependencies
@@ -33,13 +33,13 @@ describe('Admin Only Middleware', () => {
 		jest.clearAllMocks();
 	});
 
-	it('should return 401 if no user is in the request', () => {
+	it('should return 401 if no user is in the request', async () => {
 		// Arrange
 		// Use delete to remove the user property entirely instead of setting it to undefined
 		delete mockRequest.user;
 
 		// Act
-		adminOnlyMiddleware(
+		await adminOnlyMiddleware(
 			mockRequest as AuthenticatedRequest,
 			mockResponse as Response,
 			nextFunction
@@ -53,7 +53,7 @@ describe('Admin Only Middleware', () => {
 		expect(nextFunction).not.toHaveBeenCalled();
 	});
 
-	it('should return 403 if user is not an admin', () => {
+	it('should return 403 if user is not an admin', async () => {
 		// Arrange
 		mockRequest.user = {
 			user_id: 'regular-user-id',
@@ -71,7 +71,7 @@ describe('Admin Only Middleware', () => {
 		};
 
 		// Act
-		adminOnlyMiddleware(
+		await adminOnlyMiddleware(
 			mockRequest as AuthenticatedRequest,
 			mockResponse as Response,
 			nextFunction
@@ -93,7 +93,7 @@ describe('Admin Only Middleware', () => {
 		);
 	});
 
-	it('should call next() if user is an admin', () => {
+	it('should call next() if user is an admin', async () => {
 		// Arrange
 		mockRequest.user = {
 			user_id: 'admin-user-id',
@@ -111,7 +111,7 @@ describe('Admin Only Middleware', () => {
 		};
 
 		// Act
-		adminOnlyMiddleware(
+		await adminOnlyMiddleware(
 			mockRequest as AuthenticatedRequest,
 			mockResponse as Response,
 			nextFunction

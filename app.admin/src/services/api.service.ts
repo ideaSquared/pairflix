@@ -2,7 +2,7 @@
 // Please import from '@/services/api' instead
 
 console.warn(
-	'api.service.ts is deprecated. Please import from @/services/api instead.'
+  'api.service.ts is deprecated. Please import from @/services/api instead.'
 );
 
 export const apiService = null;

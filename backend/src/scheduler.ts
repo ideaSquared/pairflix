@@ -7,14 +7,14 @@ import { auditLogService } from './services/audit.service';
 export const initScheduledTasks = (): void => {
 	// Run log rotation at midnight every day
 	cron.schedule('0 0 * * *', async () => {
-		console.log('Running scheduled audit log cleanup...');
+		console.warn('Running scheduled audit log cleanup...');
 		try {
 			const deletedCount = await auditLogService.cleanupOldLogs();
-			console.log(`Log rotation complete - removed ${deletedCount} old logs`);
+			console.warn(`Log rotation complete - removed ${deletedCount} old logs`);
 		} catch (error) {
 			console.error('Error during scheduled log cleanup:', error);
 		}
 	});
 
-	console.log('Scheduled tasks initialized');
+	console.warn('Scheduled tasks initialized');
 };

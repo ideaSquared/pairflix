@@ -1,42 +1,76 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\backend\src\services\settings.service.test.ts
-import AppSettings from '../models/AppSettings';
-import { auditLogService } from './audit.service';
-import { settingsService } from './settings.service';
+
+// Define interfaces for type safety
+interface SettingData {
+	key: string;
+	value: string | number | boolean;
+	category: string;
+	description: string | null;
+}
+
+interface MockSettingInstance extends SettingData {
+	save: jest.MockedFunction<() => Promise<void>>;
+	destroy: jest.MockedFunction<() => Promise<void>>;
+}
+
+interface MockSequelize {
+	findAll: jest.MockedFunction<() => Promise<SettingData[]>>;
+	findByPk: jest.MockedFunction<
+		(key: string) => Promise<MockSettingInstance | null>
+	>;
+	findOrCreate: jest.MockedFunction<
+		(options: unknown) => Promise<[MockSettingInstance, boolean]>
+	>;
+	create: jest.MockedFunction<(data: unknown) => Promise<SettingData>>;
+}
+
+// Create separate mock functions to avoid unbound method references
+const mockFindAll = jest.fn() as jest.MockedFunction<
+	() => Promise<SettingData[]>
+>;
+const mockFindByPk = jest.fn() as jest.MockedFunction<
+	(key: string) => Promise<MockSettingInstance | null>
+>;
+const mockFindOrCreate = jest.fn() as jest.MockedFunction<
+	(options: unknown) => Promise<[MockSettingInstance, boolean]>
+>;
+const mockCreate = jest.fn() as jest.MockedFunction<
+	(data: unknown) => Promise<SettingData>
+>;
 
 // Mock dependencies
 jest.mock('../models/AppSettings', () => {
-	// Create mock functions
-	const findAll = jest.fn();
-	const findByPk = jest.fn();
-	const findOrCreate = jest.fn();
-	const create = jest.fn();
-
 	// Create the mock module with both default export and direct methods
-	const mockModule = {
-		findAll,
-		findByPk,
-		findOrCreate,
-		create,
+	const mockModule: MockSequelize & { default: MockSequelize } = {
+		findAll: mockFindAll,
+		findByPk: mockFindByPk,
+		findOrCreate: mockFindOrCreate,
+		create: mockCreate,
 		default: {
-			findAll,
-			findByPk,
-			findOrCreate,
-			create,
+			findAll: mockFindAll,
+			findByPk: mockFindByPk,
+			findOrCreate: mockFindOrCreate,
+			create: mockCreate,
 		},
 	};
 
 	return mockModule;
 });
 
-jest.mock('./audit.service', () => {
-	return {
-		auditLogService: {
-			info: jest.fn().mockResolvedValue(null),
-			warn: jest.fn().mockResolvedValue(null),
-			error: jest.fn().mockResolvedValue(null),
-		},
-	};
-});
+// Create separate audit log mock functions before they are used in jest.mock
+const mockAuditInfo = jest.fn().mockResolvedValue(null);
+const mockAuditWarn = jest.fn().mockResolvedValue(null);
+const mockAuditError = jest.fn().mockResolvedValue(null);
+
+jest.mock('./audit.service', () => ({
+	auditLogService: {
+		info: mockAuditInfo,
+		warn: mockAuditWarn,
+		error: mockAuditError,
+	},
+}));
+
+import { settingsService } from './settings.service';
 
 describe('SettingsService', () => {
 	// Save original environment
@@ -44,7 +78,7 @@ describe('SettingsService', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		// Reset service cache
+		// Reset service cache (synchronous operation, no await needed)
 		settingsService.clearCache();
 		// Reset environment variables
 		process.env = { ...originalEnv };
@@ -58,7 +92,7 @@ describe('SettingsService', () => {
 	describe('getSettings', () => {
 		it('should fetch settings from database when cache is empty', async () => {
 			// Mock the database response
-			(AppSettings.findAll as jest.Mock).mockResolvedValue([
+			mockFindAll.mockResolvedValue([
 				{
 					key: 'general.siteName',
 					value: 'PairFlix',
@@ -77,7 +111,7 @@ describe('SettingsService', () => {
 			const settings = await settingsService.getSettings();
 
 			// Verify database was called
-			expect(AppSettings.findAll).toHaveBeenCalled();
+			expect(mockFindAll).toHaveBeenCalled();
 
 			// Verify the returned settings
 			expect(settings).toHaveProperty('general.siteName', 'PairFlix');
@@ -86,15 +120,15 @@ describe('SettingsService', () => {
 
 		it('should initialize default settings when database is empty', async () => {
 			// Mock empty database
-			(AppSettings.findAll as jest.Mock).mockResolvedValue([]);
+			mockFindAll.mockResolvedValue([]);
 
 			// Mock the create function
-			(AppSettings.create as jest.Mock).mockImplementation(data => {
-				return Promise.resolve(data);
-			});
+			mockCreate.mockImplementation((data: unknown) =>
+				Promise.resolve(data as SettingData)
+			);
 
 			// Mock second findAll after initialization
-			(AppSettings.findAll as jest.Mock)
+			mockFindAll
 				.mockResolvedValueOnce([]) // First call returns empty
 				.mockResolvedValueOnce([
 					// Second call returns initialized defaults
@@ -110,18 +144,18 @@ describe('SettingsService', () => {
 			const settings = await settingsService.getSettings();
 
 			// Verify initializeDefaultSettings was called indirectly (via AppSettings.create)
-			expect(AppSettings.create).toHaveBeenCalled();
+			expect(mockCreate).toHaveBeenCalled();
 
 			// Verify settings were returned
 			expect(settings).toHaveProperty('general.siteName', 'PairFlix');
 		});
 
 		it('should return cached settings when available and not expired', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// First call: populate cache
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'PairFlix',
@@ -133,29 +167,27 @@ describe('SettingsService', () => {
 			await settingsService.getSettings();
 
 			// Clear mock to check if it gets called again
-			(AppSettings.findAll as jest.Mock).mockClear();
+			mockFindAll.mockClear();
 
 			// Second call: should use cache
 			const settings = await settingsService.getSettings();
 
 			expect(settings).toHaveProperty('general.siteName', 'PairFlix');
-			expect(AppSettings.findAll).not.toHaveBeenCalled();
+			expect(mockFindAll).not.toHaveBeenCalled();
 		});
 
 		it('should handle database errors and use cache/defaults', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock database error
-			(AppSettings.findAll as jest.Mock).mockRejectedValue(
-				new Error('Database error')
-			);
+			mockFindAll.mockRejectedValue(new Error('Database error'));
 
 			// Call the method
 			const settings = await settingsService.getSettings();
 
 			// Verify error was logged
-			expect(auditLogService.error).toHaveBeenCalled();
+			expect(mockAuditError).toHaveBeenCalled();
 
 			// Verify default settings were returned
 			expect(settings).toHaveProperty('general.siteName');
@@ -163,11 +195,11 @@ describe('SettingsService', () => {
 		});
 
 		it('should force refresh from database when forceRefresh is true', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// First call: populate cache
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'PairFlix',
@@ -179,7 +211,7 @@ describe('SettingsService', () => {
 			await settingsService.getSettings();
 
 			// Mock different data for forced refresh
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'Updated Name',
@@ -192,7 +224,7 @@ describe('SettingsService', () => {
 			const settings = await settingsService.getSettings(true);
 
 			expect(settings).toHaveProperty('general.siteName', 'Updated Name');
-			expect(AppSettings.findAll).toHaveBeenCalledTimes(2);
+			expect(mockFindAll).toHaveBeenCalledTimes(2);
 		});
 
 		it('should apply environment variable overrides', async () => {
@@ -200,7 +232,7 @@ describe('SettingsService', () => {
 			process.env.SMTP_SERVER = 'smtp.override.com';
 
 			// Mock database response
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'email.smtpServer',
 					value: 'smtp.example.com',
@@ -218,44 +250,49 @@ describe('SettingsService', () => {
 
 	describe('getSetting', () => {
 		it('should return a specific setting by key', async () => {
-			// Reset the service completely
+			// Reset the service completely (synchronous operation, no await needed)
 			settingsService.clearCache();
 
 			// Mock the implementation to bypass cache mechanisms and directly use findByPk
-			const originalGetSetting = settingsService.getSetting;
-			settingsService.getSetting = jest
+			const mockGetSetting = jest
 				.fn()
-				.mockImplementationOnce(async key => {
+				.mockImplementationOnce(async (key: string) => {
 					// Call findByPk directly without going through cache
-					const setting = await AppSettings.findByPk(key);
+					const setting = await mockFindByPk(key);
 					return setting ? setting.value : null;
 				});
 
+			// Replace the method temporarily
+			const originalMethod = settingsService.getSetting.bind(settingsService);
+			settingsService.getSetting = mockGetSetting;
+
 			// Mock findByPk to return a result
-			(AppSettings.findByPk as jest.Mock).mockResolvedValueOnce({
+			mockFindByPk.mockResolvedValueOnce({
 				key: 'general.siteName',
 				value: 'PairFlix',
 				category: 'general',
 				description: null,
+				save: jest.fn(),
+				destroy: jest.fn(),
 			});
 
 			// Call the method
 			const value = await settingsService.getSetting('general.siteName');
 
 			// Verify the specific key was looked up in the database
-			expect(AppSettings.findByPk).toHaveBeenCalledWith('general.siteName');
+			expect(mockFindByPk).toHaveBeenCalledWith('general.siteName');
 			expect(value).toBe('PairFlix');
 
 			// Restore original implementation
-			settingsService.getSetting = originalGetSetting;
+			settingsService.getSetting = originalMethod;
 		});
 
 		it('should return a cached setting if available', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Populate cache via getSettings
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'PairFlix',
@@ -273,18 +310,18 @@ describe('SettingsService', () => {
 			const value = await settingsService.getSetting('general.siteName');
 
 			expect(value).toBe('PairFlix');
-			expect(AppSettings.findByPk).not.toHaveBeenCalled();
+			expect(mockFindByPk).not.toHaveBeenCalled();
 		});
 
 		it('should return default value if setting not found', async () => {
-			// Setup empty cache
-			await settingsService.clearCache();
+			// Setup empty cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock findAll for initial getSettings call
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([]);
+			mockFindAll.mockResolvedValueOnce([]);
 
 			// Mock findByPk to return null (setting not found)
-			(AppSettings.findByPk as jest.Mock).mockResolvedValueOnce(null);
+			mockFindByPk.mockResolvedValueOnce(null);
 
 			// Call with default value
 			const value = await settingsService.getSetting(
@@ -299,11 +336,11 @@ describe('SettingsService', () => {
 			// Setup environment variable
 			process.env.SMTP_PASSWORD = 'supersecret';
 
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Populate cache
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'email.smtpPassword',
 					value: '',
@@ -321,18 +358,14 @@ describe('SettingsService', () => {
 		});
 
 		it('should handle database errors when fetching a setting', async () => {
-			// Setup empty cache
+			// Setup empty cache (synchronous operation, no await needed)
 			settingsService.clearCache();
 
 			// Mock getSettings to throw an error
-			(AppSettings.findAll as jest.Mock).mockRejectedValueOnce(
-				new Error('Database error')
-			);
+			mockFindAll.mockRejectedValueOnce(new Error('Database error'));
 
 			// Mock findByPk to also throw an error
-			(AppSettings.findByPk as jest.Mock).mockRejectedValueOnce(
-				new Error('Database error')
-			);
+			mockFindByPk.mockRejectedValueOnce(new Error('Database error'));
 
 			// Call with default value - we need to access a key that's not in the defaultSettings
 			// or the test will return the default value from there
@@ -342,44 +375,45 @@ describe('SettingsService', () => {
 			);
 
 			expect(value).toBe('Default Name');
-			expect(auditLogService.error).toHaveBeenCalled();
+			expect(mockAuditError).toHaveBeenCalled();
 		});
 	});
 
 	describe('updateSetting', () => {
 		it('should create a new setting if it does not exist', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock findOrCreate to simulate creating a new setting
-			(AppSettings.findOrCreate as jest.Mock).mockResolvedValueOnce([
+			mockFindOrCreate.mockResolvedValueOnce([
 				{
 					key: 'new.setting',
 					value: 'new value',
 					category: 'general',
 					description: null,
 					save: jest.fn(),
+					destroy: jest.fn(),
 				},
 				true, // Created flag
 			]);
 
 			await settingsService.updateSetting('new.setting', 'new value');
 
-			expect(AppSettings.findOrCreate).toHaveBeenCalledWith({
+			expect(mockFindOrCreate).toHaveBeenCalledWith({
 				where: { key: 'new.setting' },
 				defaults: expect.objectContaining({
 					key: 'new.setting',
 					value: 'new value',
-				}),
+				}) as unknown,
 			});
 		});
 
 		it('should update an existing setting', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock getSetting for the old value check
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'Old Name',
@@ -392,13 +426,14 @@ describe('SettingsService', () => {
 
 			// Mock findOrCreate to simulate updating existing
 			const mockSave = jest.fn();
-			(AppSettings.findOrCreate as jest.Mock).mockResolvedValueOnce([
+			mockFindOrCreate.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'Old Name',
 					category: 'general',
 					description: null,
 					save: mockSave,
+					destroy: jest.fn(),
 				},
 				false, // Not created flag
 			]);
@@ -406,44 +441,43 @@ describe('SettingsService', () => {
 			await settingsService.updateSetting('general.siteName', 'New Name');
 
 			expect(mockSave).toHaveBeenCalled();
-			expect(auditLogService.info).toHaveBeenCalled();
+			expect(mockAuditInfo).toHaveBeenCalled();
 		});
 
 		it('should not store sensitive settings in the database', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock findOrCreate
-			(AppSettings.findOrCreate as jest.Mock).mockResolvedValueOnce([
+			mockFindOrCreate.mockResolvedValueOnce([
 				{
 					key: 'email.smtpPassword',
 					value: '',
 					category: 'email',
 					description: null,
 					save: jest.fn(),
+					destroy: jest.fn(),
 				},
 				true, // Created flag
 			]);
 
 			await settingsService.updateSetting('email.smtpPassword', 'secret');
 
-			expect(AppSettings.findOrCreate).toHaveBeenCalledWith({
+			expect(mockFindOrCreate).toHaveBeenCalledWith({
 				where: { key: 'email.smtpPassword' },
 				defaults: expect.objectContaining({
 					key: 'email.smtpPassword',
 					value: '', // Empty string, not the actual value
-				}),
+				}) as unknown,
 			});
 		});
 
 		it('should handle database errors during update', async () => {
-			// Setup cache
-			await settingsService.clearCache();
+			// Setup cache (synchronous operation, no await needed)
+			settingsService.clearCache();
 
 			// Mock database error
-			(AppSettings.findOrCreate as jest.Mock).mockRejectedValueOnce(
-				new Error('Database error')
-			);
+			mockFindOrCreate.mockRejectedValueOnce(new Error('Database error'));
 
 			// Call the method and expect it to throw
 			await expect(
@@ -451,13 +485,13 @@ describe('SettingsService', () => {
 			).rejects.toThrow();
 
 			// Verify error was logged
-			expect(auditLogService.error).toHaveBeenCalled();
+			expect(mockAuditError).toHaveBeenCalled();
 		});
 	});
 
 	describe('updateSettings', () => {
 		it('should update multiple settings at once', async () => {
-			// Mock updateSetting
+			// Mock updateSetting with proper typing
 			const updateSettingSpy = jest
 				.spyOn(settingsService, 'updateSetting')
 				.mockResolvedValue(undefined);
@@ -482,34 +516,33 @@ describe('SettingsService', () => {
 		it('should delete a setting', async () => {
 			// Mock findByPk
 			const mockDestroy = jest.fn();
-			(AppSettings.findByPk as jest.Mock).mockResolvedValueOnce({
+			mockFindByPk.mockResolvedValueOnce({
 				key: 'general.siteName',
 				value: 'PairFlix',
 				category: 'general',
 				description: null,
 				destroy: mockDestroy,
+				save: jest.fn(),
 			});
 
 			await settingsService.deleteSetting('general.siteName');
 
 			expect(mockDestroy).toHaveBeenCalled();
-			expect(auditLogService.warn).toHaveBeenCalled();
+			expect(mockAuditWarn).toHaveBeenCalled();
 		});
 
 		it('should do nothing if the setting does not exist', async () => {
 			// Mock findByPk to return null (not found)
-			(AppSettings.findByPk as jest.Mock).mockResolvedValueOnce(null);
+			mockFindByPk.mockResolvedValueOnce(null);
 
 			await settingsService.deleteSetting('nonexistent.setting');
 
-			expect(auditLogService.warn).not.toHaveBeenCalled();
+			expect(mockAuditWarn).not.toHaveBeenCalled();
 		});
 
 		it('should handle database errors during deletion', async () => {
 			// Mock database error
-			(AppSettings.findByPk as jest.Mock).mockRejectedValueOnce(
-				new Error('Database error')
-			);
+			mockFindByPk.mockRejectedValueOnce(new Error('Database error'));
 
 			// Call the method and expect it to throw
 			await expect(
@@ -517,14 +550,14 @@ describe('SettingsService', () => {
 			).rejects.toThrow();
 
 			// Verify error was logged
-			expect(auditLogService.error).toHaveBeenCalled();
+			expect(mockAuditError).toHaveBeenCalled();
 		});
 	});
 
 	describe('clearCache', () => {
 		it('should clear the settings cache', async () => {
 			// Populate cache
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'PairFlix',
@@ -538,11 +571,11 @@ describe('SettingsService', () => {
 			// Clear mocks to verify next calls
 			jest.clearAllMocks();
 
-			// Clear cache
+			// Clear cache (synchronous operation, no await needed)
 			settingsService.clearCache();
 
 			// Verify next call fetches from database
-			(AppSettings.findAll as jest.Mock).mockResolvedValueOnce([
+			mockFindAll.mockResolvedValueOnce([
 				{
 					key: 'general.siteName',
 					value: 'Updated Name',
@@ -554,21 +587,21 @@ describe('SettingsService', () => {
 			const settings = await settingsService.getSettings();
 
 			expect(settings).toHaveProperty('general.siteName', 'Updated Name');
-			expect(AppSettings.findAll).toHaveBeenCalled();
+			expect(mockFindAll).toHaveBeenCalled();
 		});
 	});
 
 	describe('initializeDefaultSettings', () => {
 		it('should create default settings in the database', async () => {
 			// Mock AppSettings.create
-			(AppSettings.create as jest.Mock).mockImplementation(data => {
-				return Promise.resolve(data);
-			});
+			mockCreate.mockImplementation((data: unknown) =>
+				Promise.resolve(data as SettingData)
+			);
 
 			await settingsService.initializeDefaultSettings();
 
-			expect(AppSettings.create).toHaveBeenCalled();
-			expect(auditLogService.info).toHaveBeenCalledWith(
+			expect(mockCreate).toHaveBeenCalled();
+			expect(mockAuditInfo).toHaveBeenCalledWith(
 				'Initialized default settings',
 				'settings-service',
 				expect.any(Object)
@@ -577,9 +610,7 @@ describe('SettingsService', () => {
 
 		it('should handle database errors during initialization', async () => {
 			// Mock database error
-			(AppSettings.create as jest.Mock).mockRejectedValue(
-				new Error('Database error')
-			);
+			mockCreate.mockRejectedValue(new Error('Database error'));
 
 			// Call the method and expect it to throw
 			await expect(

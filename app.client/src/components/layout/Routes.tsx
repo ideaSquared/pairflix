@@ -8,47 +8,45 @@ import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
-	element,
+  element,
 }) => {
-	const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
-	if (isLoading) {
-		return <div>Loading...</div>;
-	}
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
-	return isAuthenticated ? element : <Navigate to='/login' />;
+  return isAuthenticated ? element : <Navigate to="/login" />;
 };
 
 const AppRoutes: React.FC = () => {
-	const { user } = useAuth();
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
 
-	return (
-		<Routes>
-			<Route path='/login' element={<LoginPage />} />
+      {/* Protected user routes */}
+      <Route
+        path="/watchlist"
+        element={<ProtectedRoute element={<WatchlistPage />} />}
+      />
+      <Route
+        path="/matches"
+        element={<ProtectedRoute element={<MatchPage />} />}
+      />
+      <Route
+        path="/activity"
+        element={<ProtectedRoute element={<ActivityPage />} />}
+      />
+      <Route
+        path="/profile"
+        element={<ProtectedRoute element={<ProfilePage />} />}
+      />
 
-			{/* Protected user routes */}
-			<Route
-				path='/watchlist'
-				element={<ProtectedRoute element={<WatchlistPage />} />}
-			/>
-			<Route
-				path='/matches'
-				element={<ProtectedRoute element={<MatchPage />} />}
-			/>
-			<Route
-				path='/activity'
-				element={<ProtectedRoute element={<ActivityPage />} />}
-			/>
-			<Route
-				path='/profile'
-				element={<ProtectedRoute element={<ProfilePage />} />}
-			/>
-
-			{/* Default route */}
-			<Route path='/' element={<Navigate to='/watchlist' />} />
-			<Route path='*' element={<Navigate to='/' />} />
-		</Routes>
-	);
+      {/* Default route */}
+      <Route path="/" element={<Navigate to="/watchlist" />} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 };
 
 export default AppRoutes;

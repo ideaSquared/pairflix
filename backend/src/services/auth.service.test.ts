@@ -1,11 +1,27 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User';
 import { authenticateUser } from './auth.service';
 
-jest.mock('../models/User');
-jest.mock('bcryptjs');
-jest.mock('jsonwebtoken');
+// Mock the User model
+jest.mock('../models/User', () => ({
+	__esModule: true,
+	default: {
+		findOne: jest.fn(),
+		findByPk: jest.fn(),
+	},
+}));
+
+jest.mock('bcryptjs', () => ({
+	compare: jest.fn(),
+	hash: jest.fn(),
+}));
+
+jest.mock('jsonwebtoken', () => ({
+	sign: jest.fn(),
+	verify: jest.fn(),
+}));
+
+import User from '../models/User';
 
 describe('authenticateUser', () => {
 	it('should return a token for valid credentials', async () => {

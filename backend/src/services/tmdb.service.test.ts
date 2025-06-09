@@ -3,10 +3,12 @@ import {
 	getPopular,
 	getTVDetails,
 	searchMedia,
+	type TMDbMovie,
+	type TMDbTV,
 } from './tmdb.service';
 
 // Mock the global fetch function
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 // Mock the dotenv config and environment variables
 jest.mock('dotenv', () => ({
@@ -14,23 +16,11 @@ jest.mock('dotenv', () => ({
 }));
 
 describe('TMDB Service', () => {
-	const originalEnv = process.env;
-
 	// Reset mocks between tests
 	beforeEach(() => {
 		jest.resetAllMocks();
-		// Mock the TMDB_API_KEY directly in the module
-		jest.mock(
-			'./tmdb.service',
-			() => {
-				const original = jest.requireActual('./tmdb.service');
-				return {
-					...original,
-					TMDB_API_KEY: 'test-api-key',
-				};
-			},
-			{ virtual: true }
-		);
+		// Set up environment variable for tests
+		process.env.TMDB_API_KEY = 'test-api-key';
 	});
 
 	// Check API error handling through searchMedia
@@ -53,8 +43,20 @@ describe('TMDB Service', () => {
 		it('should fetch search results for a query', async () => {
 			const mockResponse = {
 				results: [
-					{ id: 1, title: 'Test Movie' },
-					{ id: 2, name: 'Test TV Show' },
+					{
+						id: 1,
+						title: 'Test Movie',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbMovie,
+					{
+						id: 2,
+						name: 'Test TV Show',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbTV,
 				],
 			};
 
@@ -69,7 +71,16 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			// Define a proper type for the mock calls to avoid unsafe member access
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/search/multi');
 			expect(url).toContain('query=test');
 			expect(url).toContain('page=1');
@@ -87,7 +98,15 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/search/multi');
 			expect(url).toContain('query=test');
 			expect(url).toContain('page=2');
@@ -96,7 +115,7 @@ describe('TMDB Service', () => {
 
 	describe('getMovieDetails', () => {
 		it('should fetch details for a movie by ID', async () => {
-			const mockMovieDetails = {
+			const mockMovieDetails: TMDbMovie = {
 				id: 123,
 				title: 'Test Movie',
 				poster_path: '/path.jpg',
@@ -114,14 +133,22 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/movie/123');
 		});
 	});
 
 	describe('getTVDetails', () => {
 		it('should fetch details for a TV show by ID', async () => {
-			const mockTVDetails = {
+			const mockTVDetails: TMDbTV = {
 				id: 456,
 				name: 'Test TV Show',
 				poster_path: '/path.jpg',
@@ -139,7 +166,15 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/tv/456');
 		});
 	});
@@ -148,8 +183,20 @@ describe('TMDB Service', () => {
 		it('should fetch popular movies', async () => {
 			const mockPopularMovies = {
 				results: [
-					{ id: 1, title: 'Popular Movie 1' },
-					{ id: 2, title: 'Popular Movie 2' },
+					{
+						id: 1,
+						title: 'Popular Movie 1',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbMovie,
+					{
+						id: 2,
+						title: 'Popular Movie 2',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbMovie,
 				],
 			};
 
@@ -163,7 +210,15 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/movie/popular');
 			expect(url).toContain('page=1');
 		});
@@ -171,8 +226,20 @@ describe('TMDB Service', () => {
 		it('should fetch popular TV shows', async () => {
 			const mockPopularTVShows = {
 				results: [
-					{ id: 3, name: 'Popular TV 1' },
-					{ id: 4, name: 'Popular TV 2' },
+					{
+						id: 3,
+						name: 'Popular TV 1',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbTV,
+					{
+						id: 4,
+						name: 'Popular TV 2',
+						poster_path: null,
+						overview: '',
+						status: '',
+					} as TMDbTV,
 				],
 			};
 
@@ -186,7 +253,15 @@ describe('TMDB Service', () => {
 
 			// Don't test exact URL to avoid environment variable issues
 			expect(global.fetch).toHaveBeenCalled();
-			const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+			// Type-safe access to the mock call arguments
+			const mockFetch = global.fetch as jest.Mock;
+			type MockCall = [url: string, init?: RequestInit];
+			const calls = mockFetch.mock.calls as MockCall[];
+			expect(calls.length).toBeGreaterThan(0);
+
+			// Ensure we have at least one call before accessing it
+			expect(calls[0]).toBeDefined();
+			const url = calls[0]![0];
 			expect(url).toContain('/tv/popular');
 			expect(url).toContain('page=2');
 		});

@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
+import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
 
 interface ContentAttributes {
 	id: string;
@@ -19,13 +19,21 @@ type ContentCreationAttributes = Optional<
 
 class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 	declare id: string;
+
 	declare title: string;
+
 	declare type: 'movie' | 'show' | 'episode';
+
 	declare status: 'active' | 'pending' | 'flagged' | 'removed';
+
 	declare tmdb_id: number;
+
 	declare reported_count: number;
+
 	declare removal_reason?: string;
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
 	static initialize(sequelize: Sequelize) {

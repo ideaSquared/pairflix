@@ -6,15 +6,15 @@ import UserManagementContent from '../features/user-management/UserManagementCon
 import AdminLayout from '../layouts/AdminLayout';
 
 export const AdminRoutes = () => {
-	return (
-		<Routes>
-			<Route path='/' element={<AdminLayout />}>
-				<Route index element={<UnifiedDashboard />} />
-				<Route path='users' element={<UserManagementContent />} />
-				<Route path='activity' element={<ActivityManagement />} />
-				<Route path='settings' element={<AdminSettings />} />
-				<Route path='*' element={<Navigate to='/admin' replace />} />
-			</Route>
-		</Routes>
-	);
+  return (
+    <Routes>
+      <Route path="/" element={<AdminLayout />}>
+        <Route index element={<UnifiedDashboard />} />
+        <Route path="users" element={<UserManagementContent />} />
+        <Route path="activity" element={<ActivityManagement />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Route>
+    </Routes>
+  );
 };

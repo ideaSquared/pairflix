@@ -1,14 +1,14 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { searchMediaService } from '../services/search.service';
 
 export const searchTMDb = async (req: Request, res: Response) => {
 	const { query } = req.query;
 	if (!query || typeof query !== 'string') {
-		console.log('[Search Controller] Invalid query parameter:', { query });
+		console.warn('[Search Controller] Invalid query parameter:', { query });
 		return res.status(400).json({ error: 'Query parameter is required' });
 	}
 	try {
-		console.log('[Search Controller] Searching media:', { query });
+		console.warn('[Search Controller] Searching media:', { query });
 		const tmdbResponse = await searchMediaService(query);
 
 		// Search activity isn't typically interesting for other users to see
@@ -20,7 +20,7 @@ export const searchTMDb = async (req: Request, res: Response) => {
 		//     ActivityType.MEDIA_SEARCH,
 		//     {
 		//       searchQuery: query,
-		//       resultCount: tmdbResponse.results?.length || 0,
+		//       resultCount: tmdbResponse.results?.length ?? 0,
 		//       timestamp: new Date(),
 		//     }
 		//   );

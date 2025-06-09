@@ -1,4 +1,4 @@
-import { Sequelize } from 'sequelize';
+import type { Sequelize } from 'sequelize';
 import ActivityLog from './ActivityLog';
 import AppSettings from './AppSettings';
 import AuditLog from './AuditLog';

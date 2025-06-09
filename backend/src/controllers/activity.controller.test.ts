@@ -1,8 +1,8 @@
 // filepath: g:\ideasquared\projects\pairflix\backend\src\controllers\activity.controller.test.ts
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { activityService } from '../services/activity.service';
 import { mockRequest, mockResponse } from '../tests/controller-helpers';
-import { AuthenticatedRequest } from '../types';
+import type { AuthenticatedRequest } from '../types';
 import { activityController } from './activity.controller';
 
 // Mock activity service
@@ -267,7 +267,7 @@ describe('ActivityController', () => {
 			expect(res.json).toHaveBeenCalledWith({
 				activities: expect.arrayContaining(
 					expectedSortedActivities.slice(0, 10)
-				),
+				) as unknown[],
 			});
 		});
 

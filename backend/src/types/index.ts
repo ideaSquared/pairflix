@@ -1,6 +1,8 @@
 /**
  * Enum for watchlist entry status values
  */
+import type { Request } from 'express';
+
 export enum WatchStatus {
 	WANT_TO_WATCH = 'to_watch',
 	WATCH_TOGETHER_FOCUSED = 'watch_together_focused',
@@ -74,11 +76,9 @@ export interface ActivityLog {
 	log_id: string;
 	user_id: string;
 	action: string;
-	metadata: Record<string, any>;
+	metadata: Record<string, unknown>;
 	created_at: Date;
 }
-
-import { Request } from 'express';
 
 export interface AuthenticatedUser {
 	user_id: string;
@@ -133,8 +133,8 @@ export interface SearchActivityMetadata {
 }
 
 export interface UserActivityMetadata {
-	previousValues?: Record<string, any>;
-	newValues?: Record<string, any>;
+	previousValues?: Record<string, unknown>;
+	newValues?: Record<string, unknown>;
 	userAgent?: string;
 	ipAddress?: string;
 	sessionId?: string;

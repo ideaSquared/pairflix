@@ -2,10 +2,10 @@
 import { fetchWithAuth, SearchResponse, SearchResult } from './utils';
 
 export const search = {
-	media: async (query: string): Promise<SearchResult[]> => {
-		const response = (await fetchWithAuth(
-			`/api/search/media?query=${encodeURIComponent(query)}`
-		)) as SearchResponse;
-		return response.results || [];
-	},
+  media: async (query: string): Promise<SearchResult[]> => {
+    const response = (await fetchWithAuth(
+      `/api/search/media?query=${encodeURIComponent(query)}`
+    )) as SearchResponse;
+    return response.results || [];
+  },
 };

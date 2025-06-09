@@ -2,6 +2,22 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
+// Define proper types for JWT payload and user data
+interface UserForToken {
+	user_id: string;
+	email: string;
+	username: string;
+	role: string;
+	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	preferences: {
+		theme?: 'light' | 'dark';
+		viewStyle?: 'list' | 'grid';
+		emailNotifications?: boolean;
+		autoArchiveDays?: number;
+		favoriteGenres?: string[];
+	};
+}
+
 export const authenticateUser = async (email: string, password: string) => {
 	const user = await User.findOne({ where: { email } });
 	if (!user) {
@@ -34,7 +50,7 @@ export const authenticateUser = async (email: string, password: string) => {
 	} else {
 		// In test environment, we might not have the save method
 		// This could also update the user via User.update if needed in tests
-		console.log('Save method not available - in test environment');
+		console.error('Save method not available - in test environment');
 	}
 
 	const token = jwt.sign(
@@ -42,12 +58,26 @@ export const authenticateUser = async (email: string, password: string) => {
 			user_id: user.user_id,
 			email: user.email,
 			username: user.username,
-			role: user.role || 'user',
-			status: user.status || 'active', // Include user status in token with default
-			preferences: user.preferences || {},
+			role: user.role ?? 'user',
+			status: user.status ?? 'active', // Include user status in token with default
+			preferences: user.preferences ?? {},
 		},
 		process.env.JWT_SECRET!,
 		{ expiresIn: '7d' }
 	);
 	return token;
 };
+
+export const generateToken = (user: UserForToken): string =>
+	jwt.sign(
+		{
+			user_id: user.user_id,
+			email: user.email,
+			username: user.username,
+			role: user.role ?? 'user',
+			status: user.status ?? 'active',
+			preferences: user.preferences ?? {},
+		},
+		process.env.JWT_SECRET!,
+		{ expiresIn: '7d' }
+	);

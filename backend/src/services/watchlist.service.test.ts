@@ -1,5 +1,3 @@
-import Match from '../models/Match';
-import WatchlistEntry from '../models/WatchlistEntry';
 import { getMovieDetails, getTVDetails } from './tmdb.service';
 import {
 	addToWatchlistService,
@@ -8,9 +6,38 @@ import {
 	updateWatchlistEntryService,
 } from './watchlist.service';
 
-jest.mock('../models/WatchlistEntry');
-jest.mock('../models/Match');
-jest.mock('./tmdb.service');
+// Mock the models and services
+jest.mock('../models/WatchlistEntry', () => ({
+	__esModule: true,
+	default: {
+		create: jest.fn(),
+		findAll: jest.fn(),
+		update: jest.fn(),
+		findByPk: jest.fn(),
+	},
+}));
+
+jest.mock('../models/Match', () => ({
+	__esModule: true,
+	default: {
+		findAll: jest.fn(),
+	},
+}));
+
+jest.mock('./tmdb.service', () => ({
+	getMovieDetails: jest.fn(),
+	getTVDetails: jest.fn(),
+}));
+
+import Match from '../models/Match';
+import WatchlistEntry from '../models/WatchlistEntry';
+
+// Create a mock authenticated user with all required properties
+const mockAuthUser = {
+	user_id: 'user-1',
+	email: 'user1@example.com',
+	username: 'testuser1',
+};
 
 describe('Watchlist Service', () => {
 	beforeEach(() => {
@@ -24,27 +51,25 @@ describe('Watchlist Service', () => {
 				user_id: 'user-1',
 				tmdb_id: 123,
 				media_type: 'movie',
-				status: 'want_to_watch',
+				status: 'to_watch',
 				notes: 'Test notes',
 			};
 			(WatchlistEntry.create as jest.Mock).mockResolvedValue(mockEntry);
 
-			const entry = await addToWatchlistService(
-				{ user_id: 'user-1' },
-				{
-					tmdb_id: 123,
-					media_type: 'movie',
-					status: 'want_to_watch',
-					notes: 'Test notes',
-				}
-			);
+			const entry = await addToWatchlistService(mockAuthUser, {
+				tmdb_id: 123,
+				media_type: 'movie',
+				status: 'to_watch',
+				notes: 'Test notes',
+			});
 
 			expect(entry).toEqual(mockEntry);
+
 			expect(WatchlistEntry.create).toHaveBeenCalledWith({
 				user_id: 'user-1',
 				tmdb_id: 123,
 				media_type: 'movie',
-				status: 'want_to_watch',
+				status: 'to_watch',
 				notes: 'Test notes',
 			});
 		});
@@ -77,7 +102,7 @@ describe('Watchlist Service', () => {
 			(WatchlistEntry.findAll as jest.Mock).mockResolvedValue(mockEntries);
 			(getMovieDetails as jest.Mock).mockResolvedValue(mockDetails);
 
-			const watchlist = await getWatchlistService({ user_id: 'user-1' });
+			const watchlist = await getWatchlistService(mockAuthUser);
 
 			// Expect results to contain all fields from the mock details
 			expect(watchlist).toHaveLength(1);
@@ -125,7 +150,7 @@ describe('Watchlist Service', () => {
 			(WatchlistEntry.findAll as jest.Mock).mockResolvedValue(mockEntries);
 			(getTVDetails as jest.Mock).mockResolvedValue(mockDetails);
 
-			const watchlist = await getWatchlistService({ user_id: 'user-1' });
+			const watchlist = await getWatchlistService(mockAuthUser);
 
 			// Expect results to contain all fields from the mock details
 			expect(watchlist).toHaveLength(1);
@@ -151,13 +176,13 @@ describe('Watchlist Service', () => {
 				user_id: 'user-1',
 				tmdb_id: 123,
 				media_type: 'movie',
-				status: 'watched',
+				status: 'finished',
 				toJSON: () => ({
 					entry_id: 'entry-1',
 					user_id: 'user-1',
 					tmdb_id: 123,
 					media_type: 'movie',
-					status: 'watched',
+					status: 'finished',
 				}),
 			};
 
@@ -175,8 +200,8 @@ describe('Watchlist Service', () => {
 
 			const updatedEntry = await updateWatchlistEntryService(
 				'entry-1',
-				{ status: 'watched' },
-				{ user_id: 'user-1' }
+				{ status: 'finished' },
+				mockAuthUser
 			);
 
 			// Expect results to contain all fields from the mock details
@@ -185,7 +210,7 @@ describe('Watchlist Service', () => {
 				user_id: 'user-1',
 				tmdb_id: 123,
 				media_type: 'movie',
-				status: 'watched',
+				status: 'finished',
 				title: 'Test Movie',
 				poster_path: '/path.jpg',
 				overview: 'Test overview',
@@ -194,7 +219,7 @@ describe('Watchlist Service', () => {
 			});
 
 			expect(WatchlistEntry.update).toHaveBeenCalledWith(
-				{ status: 'watched' },
+				{ status: 'finished' },
 				{ where: { entry_id: 'entry-1', user_id: 'user-1' } }
 			);
 		});
@@ -230,7 +255,7 @@ describe('Watchlist Service', () => {
 			const updatedEntry = await updateWatchlistEntryService(
 				'entry-2',
 				{ status: 'finished' },
-				{ user_id: 'user-1' }
+				mockAuthUser
 			);
 
 			// Expect results to contain all fields from the mock details
@@ -255,8 +280,8 @@ describe('Watchlist Service', () => {
 			await expect(
 				updateWatchlistEntryService(
 					'entry-1',
-					{ status: 'watched' },
-					{ user_id: 'user-1' }
+					{ status: 'finished' },
+					mockAuthUser
 				)
 			).rejects.toThrow('Entry not found');
 		});
@@ -268,8 +293,8 @@ describe('Watchlist Service', () => {
 			await expect(
 				updateWatchlistEntryService(
 					'entry-1',
-					{ status: 'watched' },
-					{ user_id: 'user-1' }
+					{ status: 'finished' },
+					mockAuthUser
 				)
 			).rejects.toThrow('Entry not found after update');
 		});
@@ -319,16 +344,17 @@ describe('Watchlist Service', () => {
 			};
 
 			(Match.findAll as jest.Mock).mockResolvedValue(mockMatches);
-			(WatchlistEntry.findAll as jest.Mock).mockImplementation(options => {
-				if (options.where.user_id === 'user-1') {
-					return Promise.resolve(mockUserEntries);
-				} else {
+			(WatchlistEntry.findAll as jest.Mock).mockImplementation(
+				(options: { where: { user_id: string } }) => {
+					if (options.where.user_id === 'user-1') {
+						return Promise.resolve(mockUserEntries);
+					}
 					return Promise.resolve(mockMatchedEntries);
 				}
-			});
+			);
 			(getMovieDetails as jest.Mock).mockResolvedValue(mockMovieDetails);
 
-			const matches = await getMatchesService({ user_id: 'user-1' });
+			const matches = await getMatchesService(mockAuthUser);
 
 			expect(matches).toHaveLength(1);
 			expect(matches[0]).toMatchObject({
@@ -348,7 +374,7 @@ describe('Watchlist Service', () => {
 		it('should return an empty array if no matches found', async () => {
 			(Match.findAll as jest.Mock).mockResolvedValue([]);
 
-			const matches = await getMatchesService({ user_id: 'user-1' });
+			const matches = await getMatchesService(mockAuthUser);
 
 			expect(matches).toEqual([]);
 		});
@@ -383,31 +409,22 @@ describe('Watchlist Service', () => {
 			];
 
 			(Match.findAll as jest.Mock).mockResolvedValue(mockMatches);
-			(WatchlistEntry.findAll as jest.Mock).mockImplementation(options => {
-				if (options.where.user_id === 'user-1') {
-					return Promise.resolve(mockUserEntries);
-				} else {
+			(WatchlistEntry.findAll as jest.Mock).mockImplementation(
+				(options: { where: { user_id: string } }) => {
+					if (options.where.user_id === 'user-1') {
+						return Promise.resolve(mockUserEntries);
+					}
 					return Promise.resolve(mockMatchedEntries);
 				}
-			});
+			);
 
 			// Mock API error
 			(getMovieDetails as jest.Mock).mockRejectedValue(new Error('API Error'));
 
-			const matches = await getMatchesService({ user_id: 'user-1' });
+			const matches = await getMatchesService(mockAuthUser);
 
 			// Should return empty array as the content match is filtered out due to API error
 			expect(matches).toEqual([]);
 		});
 	});
 });
-
-const mockEntry1 = {
-	entry_id: 'entry1',
-	user_id: 'user1',
-	tmdb_id: 123,
-	media_type: 'movie',
-	status: 'watch_together_focused',
-	created_at: new Date(),
-	updated_at: new Date(),
-};

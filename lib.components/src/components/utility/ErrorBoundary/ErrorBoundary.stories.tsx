@@ -4,39 +4,39 @@ import { lightTheme } from '../../../styles/theme';
 import { ErrorBoundary, ErrorFallback } from './ErrorBoundary';
 
 const meta: Meta<typeof ErrorBoundary> = {
-	title: 'Utility/ErrorBoundary',
-	component: ErrorBoundary,
-	tags: ['autodocs'],
+  title: 'Utility/ErrorBoundary',
+  component: ErrorBoundary,
+  tags: ['autodocs'],
 };
 export default meta;
 type Story = StoryObj<typeof ErrorBoundary>;
 
-const withTheme = (StoryFn: any) => (
-	<ThemeProvider theme={lightTheme}>
-		<StoryFn />
-	</ThemeProvider>
+const withTheme = (StoryFn: React.ComponentType) => (
+  <ThemeProvider theme={lightTheme}>
+    <StoryFn />
+  </ThemeProvider>
 );
 
 const BuggyComponent = () => {
-	throw new Error('This is a test error!');
+  throw new Error('This is a test error!');
 };
 
 export const DefaultFallback: Story = {
-	render: () => (
-		<ErrorBoundary>
-			<BuggyComponent />
-		</ErrorBoundary>
-	),
-	decorators: [withTheme],
+  render: () => (
+    <ErrorBoundary>
+      <BuggyComponent />
+    </ErrorBoundary>
+  ),
+  decorators: [withTheme],
 };
 
 export const CustomFallback: Story = {
-	render: () => (
-		<ErrorBoundary
-			fallback={<ErrorFallback error={new Error('Custom error!')} />}
-		>
-			<BuggyComponent />
-		</ErrorBoundary>
-	),
-	decorators: [withTheme],
+  render: () => (
+    <ErrorBoundary
+      fallback={<ErrorFallback error={new Error('Custom error!')} />}
+    >
+      <BuggyComponent />
+    </ErrorBoundary>
+  ),
+  decorators: [withTheme],
 };

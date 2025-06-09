@@ -1,23 +1,23 @@
 export { Card, default } from './Card';
 export type {
-	CardBaseProps,
-	CardProps,
-	CardVariant,
-	ElevationType,
+  CardBaseProps,
+  CardProps,
+  CardVariant,
+  ElevationType,
 } from './Card';
 
 export {
-	CardContent,
-	CardFooter,
-	CardGrid,
-	CardHeader,
-	CardMedia,
+  CardContent,
+  CardFooter,
+  CardGrid,
+  CardHeader,
+  CardMedia,
 } from './CardComposable';
 
 export type {
-	CardContentProps,
-	CardFooterProps,
-	CardGridProps,
-	CardHeaderProps,
-	CardMediaProps,
+  CardContentProps,
+  CardFooterProps,
+  CardGridProps,
+  CardHeaderProps,
+  CardMediaProps,
 } from './CardComposable';

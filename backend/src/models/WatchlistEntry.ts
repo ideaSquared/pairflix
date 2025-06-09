@@ -1,8 +1,12 @@
-import { DataTypes, Model, ModelStatic } from 'sequelize';
-import { WatchlistEntry as WatchlistEntryInterface } from '../types';
+import { DataTypes, Model, type ModelStatic, type Sequelize } from 'sequelize';
+import type { WatchlistEntry as WatchlistEntryInterface } from '../types';
 import User from './User';
 
-interface WatchlistEntryAttributes extends WatchlistEntryInterface {}
+interface WatchlistEntryAttributes extends WatchlistEntryInterface {
+	entry_id: string;
+	created_at: Date;
+	updated_at: Date;
+}
 
 interface WatchlistEntryCreationAttributes {
 	user_id: string;
@@ -19,17 +23,26 @@ class WatchlistEntry extends Model<
 	WatchlistEntryCreationAttributes
 > {
 	declare entry_id: string;
+
 	declare user_id: string;
+
 	declare tmdb_id: number;
+
 	declare media_type: 'movie' | 'tv';
+
 	declare status: WatchlistEntryInterface['status'];
+
 	declare rating?: number;
+
 	declare notes?: string;
+
 	declare tags?: string[];
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
-	static initialize(sequelize: any): ModelStatic<WatchlistEntry> {
+	static initialize(sequelize: Sequelize): ModelStatic<WatchlistEntry> {
 		if (!sequelize || typeof sequelize.define !== 'function') {
 			throw new Error(
 				'Invalid Sequelize instance provided to WatchlistEntry.initialize(). ' +

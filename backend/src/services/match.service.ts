@@ -3,7 +3,23 @@ import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
 
-export const createMatchService = async (user: any, body: any) => {
+interface AuthenticatedUser {
+	user_id: string;
+	email: string;
+	username: string;
+	role?: string;
+	status?: string;
+	preferences?: Record<string, unknown>;
+}
+
+interface CreateMatchBody {
+	user2_id: string;
+}
+
+export const createMatchService = async (
+	user: AuthenticatedUser,
+	body: CreateMatchBody
+) => {
 	const { user2_id } = body;
 	const existingMatch = await Match.findOne({
 		where: {
@@ -19,8 +35,8 @@ export const createMatchService = async (user: any, body: any) => {
 	return Match.create({ user1_id: user.user_id, user2_id, status: 'pending' });
 };
 
-export const getMatchesService = async (user: any) => {
-	return Match.findAll({
+export const getMatchesService = async (user: AuthenticatedUser) =>
+	Match.findAll({
 		where: {
 			[Op.or]: [{ user1_id: user.user_id }, { user2_id: user.user_id }],
 		},
@@ -34,12 +50,11 @@ export const getMatchesService = async (user: any) => {
 			},
 		],
 	});
-};
 
 export const updateMatchStatusService = async (
 	match_id: string,
 	status: string,
-	user: any
+	user: AuthenticatedUser
 ) => {
 	const match = await Match.findByPk(match_id);
 	if (!match) {

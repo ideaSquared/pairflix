@@ -4,9 +4,9 @@ import { initializeModels } from '../models';
 
 dotenv.config();
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || '', {
+const sequelize = new Sequelize(process.env.DATABASE_URL ?? '', {
 	dialect: 'postgres',
-	logging: process.env.NODE_ENV === 'development' ? console.log : false,
+	logging: process.env.NODE_ENV === 'development' ? console.warn : false,
 	dialectOptions: {
 		...(process.env.NODE_ENV === 'production' && {
 			ssl: {
@@ -25,22 +25,22 @@ export async function initDatabase() {
 		while (retries > 0) {
 			try {
 				await sequelize.authenticate();
-				console.log('Database connection established successfully.');
+				console.warn('Database connection established successfully.');
 				break;
 			} catch (error) {
 				retries -= 1;
-				console.log(`Failed to connect to database. ${retries} retries left.`);
+				console.warn(`Failed to connect to database. ${retries} retries left.`);
 				if (retries === 0) throw error;
 				await new Promise(resolve => setTimeout(resolve, 5000));
 			}
 		}
 
 		// Initialize models and their associations
-		const models = initializeModels(sequelize);
+		initializeModels(sequelize);
 
 		// Sync models
 		await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-		console.log('Database models synchronized.');
+		console.warn('Database models synchronized.');
 
 		return sequelize;
 	} catch (error) {

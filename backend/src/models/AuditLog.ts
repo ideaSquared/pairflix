@@ -1,26 +1,52 @@
-import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
+import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
+
+// Define proper typing for audit log context data
+interface AuditLogContext {
+	userId?: string;
+	userEmail?: string;
+	ipAddress?: string;
+	userAgent?: string;
+	sessionId?: string;
+	requestId?: string;
+	endpoint?: string;
+	method?: string;
+	statusCode?: number;
+	duration?: number;
+	error?: string;
+	stackTrace?: string;
+	timestamp?: string;
+	metadata?: Record<string, unknown>;
+	[key: string]: unknown; // Allow additional properties
+}
 
 interface AuditLogAttributes {
 	log_id: string;
 	level: string;
 	message: string;
-	context: any;
+	context: AuditLogContext | null;
 	source: string;
 	created_at: Date;
 }
 
-interface AuditLogCreationAttributes
-	extends Optional<AuditLogAttributes, 'log_id' | 'created_at'> {}
+type AuditLogCreationAttributes = Optional<
+	AuditLogAttributes,
+	'log_id' | 'created_at'
+>;
 
 export class AuditLog extends Model<
 	AuditLogAttributes,
 	AuditLogCreationAttributes
 > {
 	declare log_id: string;
+
 	declare level: string;
+
 	declare message: string;
-	declare context: any;
+
+	declare context: AuditLogContext | null;
+
 	declare source: string;
+
 	declare created_at: Date;
 
 	static initialize(sequelize: Sequelize) {

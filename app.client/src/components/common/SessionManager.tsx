@@ -7,53 +7,53 @@ import { useAuth } from '../../hooks/useAuth';
  * It automatically logs out inactive users based on the configured timeout.
  */
 const SessionManager: React.FC = () => {
-	const { settings } = useSettings();
-	const { logout } = useAuth();
+  const { settings } = useSettings();
+  const { logout } = useAuth();
 
-	useEffect(() => {
-		if (!settings?.security.sessionTimeout) return;
+  useEffect(() => {
+    if (!settings?.security.sessionTimeout) return;
 
-		// Convert minutes to milliseconds
-		const timeoutMs = settings.security.sessionTimeout * 60 * 1000;
-		let activityTimer: ReturnType<typeof setTimeout>;
+    // Convert minutes to milliseconds
+    const timeoutMs = settings.security.sessionTimeout * 60 * 1000;
+    let activityTimer: ReturnType<typeof setTimeout>;
 
-		const resetTimer = () => {
-			clearTimeout(activityTimer);
-			activityTimer = setTimeout(() => {
-				logout();
-				alert(
-					'Your session has expired due to inactivity. Please log in again.'
-				);
-			}, timeoutMs);
-		};
+    const resetTimer = () => {
+      clearTimeout(activityTimer);
+      activityTimer = setTimeout(() => {
+        logout();
+        alert(
+          'Your session has expired due to inactivity. Please log in again.'
+        );
+      }, timeoutMs);
+    };
 
-		// Set up event listeners to track user activity
-		const activityEvents = [
-			'mousedown',
-			'mousemove',
-			'keypress',
-			'scroll',
-			'touchstart',
-		];
+    // Set up event listeners to track user activity
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+    ];
 
-		activityEvents.forEach((event) => {
-			window.addEventListener(event, resetTimer, { passive: true });
-		});
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetTimer, { passive: true });
+    });
 
-		// Initialize the timer
-		resetTimer();
+    // Initialize the timer
+    resetTimer();
 
-		// Clean up event listeners
-		return () => {
-			activityEvents.forEach((event) => {
-				window.removeEventListener(event, resetTimer);
-			});
-			clearTimeout(activityTimer);
-		};
-	}, [settings?.security.sessionTimeout, logout]);
+    // Clean up event listeners
+    return () => {
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+      clearTimeout(activityTimer);
+    };
+  }, [settings?.security.sessionTimeout, logout]);
 
-	// This component doesn't render anything
-	return null;
+  // This component doesn't render anything
+  return null;
 };
 
 export default SessionManager;

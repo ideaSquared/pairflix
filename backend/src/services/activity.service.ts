@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { ActivityLog } from '../models/ActivityLog';
-import { ActivityContext, AuthenticatedRequest } from '../types';
+import type { ActivityContext, AuthenticatedRequest } from '../types';
 
 /**
  * Activity types to ensure consistency across the application
@@ -44,27 +44,70 @@ export enum ActivityType {
 }
 
 /**
+ * Activity metadata interface for type safety
+ */
+interface ActivityMetadata {
+	tmdbId?: number;
+	mediaType?: 'movie' | 'tv';
+	rating?: number;
+	searchQuery?: string;
+	matchId?: string;
+	notificationId?: string;
+	featureName?: string;
+	configKey?: string;
+	[key: string]: unknown;
+}
+
+/**
+ * Query replacements interface for database queries
+ */
+interface QueryReplacements {
+	date: Date;
+	limit: number;
+	userId?: string;
+	dateFormat?: string;
+	startDate?: Date;
+	endDate?: Date;
+	[key: string]: unknown;
+}
+
+/**
+ * User pattern result with correct property names
+ */
+interface UserPatternResult {
+	user_id: string;
+	username: string;
+	most_frequent_activity: string;
+	most_active_time: string;
+	activity_count: number;
+}
+
+/**
  * Get appropriate context based on activity type
  */
 export const getContextFromActivityType = (
 	actionType: ActivityType
 ): ActivityContext => {
-	if (actionType.startsWith('WATCHLIST_')) {
+	const actionString = String(actionType);
+	if (actionString.startsWith('WATCHLIST_')) {
 		return 'watchlist';
-	} else if (actionType.startsWith('USER_')) {
+	}
+	if (actionString.startsWith('USER_')) {
 		return 'user';
-	} else if (actionType.startsWith('MATCH_')) {
+	}
+	if (actionString.startsWith('MATCH_')) {
 		return 'match';
-	} else if (actionType.startsWith('MEDIA_')) {
+	}
+	if (actionString.startsWith('MEDIA_')) {
 		return 'media';
-	} else if (
-		actionType === 'NOTIFICATION_CLICKED' ||
-		actionType === 'FEATURE_USED'
+	}
+	if (
+		actionType === ActivityType.NOTIFICATION_CLICKED ||
+		actionType === ActivityType.FEATURE_USED
 	) {
 		return 'system';
-	} else {
-		return 'system'; // Default context
 	}
+	return 'system'; // Default context
 };
 
 /**
@@ -79,21 +122,21 @@ export const getContextFromActivityType = (
 export const logActivity = async (
 	userId: string,
 	action: ActivityType,
-	metadata?: any,
+	metadata?: ActivityMetadata,
 	req?: AuthenticatedRequest,
 	context?: ActivityContext
 ): Promise<ActivityLog | undefined> => {
 	try {
 		// Determine context if not explicitly provided
-		const activityContext = context || getContextFromActivityType(action);
+		const activityContext = context ?? getContextFromActivityType(action);
 
 		return await ActivityLog.create({
 			user_id: userId,
 			action,
 			context: activityContext,
-			metadata,
-			ip_address: req?.ip || null,
-			user_agent: req?.get('user-agent') || null,
+			metadata: metadata ?? {},
+			ip_address: req?.ip ?? null,
+			user_agent: req?.get('user-agent') ?? null,
 		});
 	} catch (error) {
 		console.error('Failed to log activity:', error);
@@ -114,27 +157,23 @@ export const getUserActivities = async (
 	userId: string,
 	limit = 20,
 	offset = 0
-): Promise<ActivityLog[]> => {
-	return ActivityLog.findAll({
+): Promise<ActivityLog[]> =>
+	ActivityLog.findAll({
 		where: { user_id: userId },
 		order: [['created_at', 'DESC']],
 		limit,
 		offset,
 	});
-};
 
 /**
  * Get the count of activity log entries for a specific user
  * @param userId - ID of the user whose activities to count
  * @returns Total number of activity entries
  */
-export const getUserActivitiesCount = async (
-	userId: string
-): Promise<number> => {
-	return ActivityLog.count({
+export const getUserActivitiesCount = async (userId: string): Promise<number> =>
+	ActivityLog.count({
 		where: { user_id: userId },
 	});
-};
 
 /**
  * Get all recent activities (for partner's activities)
@@ -147,8 +186,8 @@ export const getRecentActivities = async (
 	excludeUserId: string,
 	limit = 20,
 	offset = 0
-): Promise<ActivityLog[]> => {
-	return ActivityLog.findAll({
+): Promise<ActivityLog[]> =>
+	ActivityLog.findAll({
 		where: {
 			user_id: {
 				[Symbol.for('ne')]: excludeUserId,
@@ -164,7 +203,6 @@ export const getRecentActivities = async (
 			},
 		],
 	});
-};
 
 /**
  * Get most popular activities within a specific time period
@@ -179,7 +217,7 @@ export const getMostPopularActivities = async (
 	const date = new Date();
 	date.setDate(date.getDate() - days);
 
-	const sequelize = ActivityLog.sequelize;
+	const { sequelize } = ActivityLog;
 	if (!sequelize) {
 		throw new Error('Database connection not available');
 	}
@@ -212,7 +250,7 @@ export const getActivityTimeline = async (
 	endDate: Date,
 	groupBy: 'day' | 'week' | 'month' = 'day'
 ): Promise<{ date: string; count: number }[]> => {
-	const sequelize = ActivityLog.sequelize;
+	const { sequelize } = ActivityLog;
 	if (!sequelize) {
 		throw new Error('Database connection not available');
 	}
@@ -268,7 +306,7 @@ export const getActivityStats = async (
 	const date = new Date();
 	date.setDate(date.getDate() - days);
 
-	const sequelize = ActivityLog.sequelize;
+	const { sequelize } = ActivityLog;
 	if (!sequelize) {
 		throw new Error('Database connection not available');
 	}
@@ -311,14 +349,14 @@ export const getUserActivityPatterns = async (
 	const date = new Date();
 	date.setDate(date.getDate() - days);
 
-	const sequelize = ActivityLog.sequelize;
+	const { sequelize } = ActivityLog;
 	if (!sequelize) {
 		throw new Error('Database connection not available');
 	}
 
 	// This is a complex query that would need to be adjusted based on
 	// the specific database being used (PostgreSQL, MySQL, etc.)
-	let query = `
+	const query = `
         WITH user_activities AS (
             SELECT 
                 a.user_id,
@@ -355,23 +393,26 @@ export const getUserActivityPatterns = async (
         LIMIT :limit
     `;
 
-	const replacements: any = { date, limit };
+	const replacements: QueryReplacements = { date, limit };
 	if (userId) {
 		replacements.userId = userId;
 	}
 
-	const results = await sequelize.query(query, {
+	const results = (await sequelize.query(query, {
 		replacements,
 		type: QueryTypes.SELECT,
-	});
+	})) as unknown;
 
-	return results as {
-		user_id: string;
-		username: string;
-		mostFrequentActivity: string;
-		mostActiveTime: string;
-		activityCount: number;
-	}[];
+	// Transform the results to match the expected return type
+	const transformedResults = (results as UserPatternResult[]).map(result => ({
+		user_id: result.user_id,
+		username: result.username,
+		mostFrequentActivity: result.most_frequent_activity,
+		mostActiveTime: result.most_active_time,
+		activityCount: Number(result.activity_count),
+	}));
+
+	return transformedResults;
 };
 
 /**
@@ -396,7 +437,8 @@ export const getActivitiesByContext = async (
 		hasMore: boolean;
 	};
 }> => {
-	const where: any = { context };
+	// Use proper Sequelize where clause typing
+	const where: Record<string, unknown> = { context };
 
 	// Add action filter if provided
 	if (action) {

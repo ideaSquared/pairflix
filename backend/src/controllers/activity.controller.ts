@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import { activityService } from '../services/activity.service';
-import { AuthenticatedRequest } from '../types';
+import type { AuthenticatedRequest } from '../types';
 
 /**
  * Get the current user's activity log
@@ -114,7 +114,7 @@ export const getAdminUserActivities = async (
 			return res.status(403).json({ error: 'Admin privileges required' });
 		}
 
-		const userId = req.params.userId;
+		const { userId } = req.params;
 		// Ensure userId is provided and is not the string "undefined"
 		if (!userId || userId === 'undefined') {
 			return res.status(400).json({ error: 'Valid User ID is required' });

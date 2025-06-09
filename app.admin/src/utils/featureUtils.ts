@@ -4,7 +4,7 @@
  * @returns A function that shows an alert when called
  */
 export const notImplemented = (feature: string): void => {
-	alert(`This feature (${feature}) isn't available yet.`);
+  alert(`This feature (${feature}) isn't available yet.`);
 };
 
 /**
@@ -13,5 +13,5 @@ export const notImplemented = (feature: string): void => {
  * @returns A function that can be used as an onClick handler
  */
 export const createNotImplementedHandler = (feature: string) => (): void => {
-	notImplemented(feature);
+  notImplemented(feature);
 };

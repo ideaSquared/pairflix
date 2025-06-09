@@ -14,40 +14,40 @@ import LoginPage from '../../features/auth/LoginPage';
 
 // Auth guard for admin routes
 const AdminRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
-	const { isAuthenticated, isLoading, user } = useAdminAuth();
+  const { isAuthenticated, isLoading, user } = useAdminAuth();
 
-	if (isLoading) {
-		return <Loading message='Checking authentication...' />;
-	}
+  if (isLoading) {
+    return <Loading message="Checking authentication..." />;
+  }
 
-	if (!isAuthenticated || user?.role !== 'admin') {
-		return <Navigate to='/login' replace />;
-	}
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
 
-	return element;
+  return element;
 };
 
 const AppRoutes: React.FC = () => {
-	return (
-		<Routes>
-			{/* Public routes */}
-			<Route path='/login' element={<LoginPage />} />
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
 
-			{/* Protected admin routes */}
-			<Route path='/' element={<AdminRoute element={<AdminLayout />} />}>
-				<Route index element={<UnifiedDashboard />} />
-				<Route path='users' element={<UserManagementContent />} />
-				<Route path='content' element={<ContentManagement />} />
-				<Route path='monitoring' element={<SystemMonitoringContent />} />
-				<Route path='activity' element={<ActivityManagement />} />
-				<Route path='stats' element={<SystemStatsContent />} />
-				<Route path='settings' element={<AdminSettings />} />
-			</Route>
+      {/* Protected admin routes */}
+      <Route path="/" element={<AdminRoute element={<AdminLayout />} />}>
+        <Route index element={<UnifiedDashboard />} />
+        <Route path="users" element={<UserManagementContent />} />
+        <Route path="content" element={<ContentManagement />} />
+        <Route path="monitoring" element={<SystemMonitoringContent />} />
+        <Route path="activity" element={<ActivityManagement />} />
+        <Route path="stats" element={<SystemStatsContent />} />
+        <Route path="settings" element={<AdminSettings />} />
+      </Route>
 
-			{/* Fallback route */}
-			<Route path='*' element={<Navigate to='/' replace />} />
-		</Routes>
-	);
+      {/* Fallback route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 export default AppRoutes;

@@ -1,5 +1,5 @@
-import { DataTypes, Model, ModelStatic } from 'sequelize';
-import { User as UserInterface } from '../types';
+import { DataTypes, Model, type ModelStatic, type Sequelize } from 'sequelize';
+import type { User as UserInterface } from '../types';
 
 interface UserAttributes extends UserInterface {
 	password_hash: string;
@@ -35,12 +35,19 @@ interface UserCreationAttributes {
 
 class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare user_id: string;
+
 	declare email: string;
+
 	declare username: string;
+
 	declare password_hash: string;
+
 	declare role: string;
+
 	declare status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+
 	declare last_login?: Date;
+
 	declare preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
@@ -48,10 +55,12 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 		autoArchiveDays: number;
 		favoriteGenres: string[];
 	};
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
-	static initialize(sequelize: any): ModelStatic<User> {
+	static initialize(sequelize: Sequelize): ModelStatic<User> {
 		if (!sequelize || typeof sequelize.define !== 'function') {
 			throw new Error(
 				'Invalid Sequelize instance provided to User.initialize(). ' +

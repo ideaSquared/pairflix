@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 // Mock Express request object
 export const mockRequest = (overrides: Partial<Request> = {}) => {

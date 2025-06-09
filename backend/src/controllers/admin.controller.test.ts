@@ -1,6 +1,10 @@
 import { auditLogService } from '../services/audit.service';
 import { mockRequest, mockResponse } from '../tests/controller-helpers';
-import { adminController } from './admin.controller';
+import {
+	createTestLog,
+	getAuditLogs,
+	getAuditLogsByLevel,
+} from './admin.controller';
 
 // Mock the audit service
 jest.mock('../services/audit.service', () => ({
@@ -48,12 +52,12 @@ describe('AdminController', () => {
 			(auditLogService.getRecentLogs as jest.Mock).mockResolvedValue(mockLogs);
 
 			// Act
-			await adminController.getAuditLogs(req, res);
+			await getAuditLogs(req, res);
 
 			// Assert
 			expect(auditLogService.getRecentLogs).toHaveBeenCalledWith(10, 0);
 			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({ logs: mockLogs });
+			expect(res.json).toHaveBeenCalledWith({ data: mockLogs });
 		});
 
 		it('should handle errors', async () => {
@@ -68,7 +72,7 @@ describe('AdminController', () => {
 			console.error = jest.fn(); // Mock console.error
 
 			// Act
-			await adminController.getAuditLogs(req, res);
+			await getAuditLogs(req, res);
 
 			// Assert
 			expect(console.error).toHaveBeenCalled();
@@ -106,7 +110,7 @@ describe('AdminController', () => {
 			(auditLogService.getLogsByLevel as jest.Mock).mockResolvedValue(mockLogs);
 
 			// Act
-			await adminController.getAuditLogsByLevel(req, res);
+			await getAuditLogsByLevel(req, res);
 
 			// Assert
 			expect(auditLogService.getLogsByLevel).toHaveBeenCalledWith(
@@ -115,7 +119,7 @@ describe('AdminController', () => {
 				10
 			);
 			expect(res.status).toHaveBeenCalledWith(200);
-			expect(res.json).toHaveBeenCalledWith({ logs: mockLogs });
+			expect(res.json).toHaveBeenCalledWith({ data: mockLogs });
 		});
 
 		it('should return 400 for invalid log level', async () => {
@@ -126,7 +130,7 @@ describe('AdminController', () => {
 			const res = mockResponse();
 
 			// Act
-			await adminController.getAuditLogsByLevel(req, res);
+			await getAuditLogsByLevel(req, res);
 
 			// Assert
 			expect(auditLogService.getLogsByLevel).not.toHaveBeenCalled();
@@ -151,7 +155,7 @@ describe('AdminController', () => {
 			console.error = jest.fn(); // Mock console.error
 
 			// Act
-			await adminController.getAuditLogsByLevel(req, res);
+			await getAuditLogsByLevel(req, res);
 
 			// Assert
 			expect(console.error).toHaveBeenCalled();
@@ -198,7 +202,7 @@ describe('AdminController', () => {
 			(auditLogService.log as jest.Mock).mockResolvedValue(mockLog);
 
 			// Act
-			await adminController.createTestLog(req, res);
+			await createTestLog(req, res);
 
 			// Assert
 			expect(auditLogService.log).toHaveBeenCalledWith(
@@ -222,7 +226,7 @@ describe('AdminController', () => {
 			const res1 = mockResponse();
 
 			// Act
-			await adminController.createTestLog(req1, res1);
+			await createTestLog(req1, res1);
 
 			// Assert
 			expect(auditLogService.log).not.toHaveBeenCalled();
@@ -238,7 +242,7 @@ describe('AdminController', () => {
 			const res2 = mockResponse();
 
 			// Act
-			await adminController.createTestLog(req2, res2);
+			await createTestLog(req2, res2);
 
 			// Assert
 			expect(auditLogService.log).not.toHaveBeenCalled();
@@ -259,7 +263,7 @@ describe('AdminController', () => {
 			const res = mockResponse();
 
 			// Act
-			await adminController.createTestLog(req, res);
+			await createTestLog(req, res);
 
 			// Assert
 			expect(auditLogService.log).not.toHaveBeenCalled();
@@ -287,7 +291,7 @@ describe('AdminController', () => {
 			console.error = jest.fn(); // Mock console.error
 
 			// Act
-			await adminController.createTestLog(req, res);
+			await createTestLog(req, res);
 
 			// Assert
 			expect(console.error).toHaveBeenCalled();

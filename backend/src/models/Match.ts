@@ -1,4 +1,4 @@
-import { DataTypes, Model, ModelStatic } from 'sequelize';
+import { DataTypes, Model, type ModelStatic, type Sequelize } from 'sequelize';
 import User from './User';
 import WatchlistEntry from './WatchlistEntry';
 
@@ -23,14 +23,20 @@ interface MatchCreationAttributes {
 
 class Match extends Model<MatchAttributes, MatchCreationAttributes> {
 	declare match_id: string;
+
 	declare user1_id: string;
+
 	declare user2_id: string;
+
 	declare entry_id: string | null;
+
 	declare status: MatchStatus;
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
-	static initialize(sequelize: any): ModelStatic<Match> {
+	static initialize(sequelize: Sequelize): ModelStatic<Match> {
 		return Match.init(
 			{
 				match_id: {

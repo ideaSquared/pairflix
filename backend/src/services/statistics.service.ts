@@ -27,21 +27,27 @@ export interface UserStatistics {
 export interface ContentStatistics {
 	watchlistEntries: number;
 	matches: number;
-	averageWatchlistPerUser?: number;
+	averageWatchlistPerUser?: number | undefined;
 }
 
 export interface ActivityStatistics {
 	last24Hours: number;
 	lastWeek: number;
-	activityByDate?: any[];
-	activityByType?: any[];
-	mostActiveUsers?: any[];
+	activityByDate?: unknown[];
+	activityByType?: unknown[];
+	mostActiveUsers?: unknown[];
 }
 
 export interface SystemHealthStatistics {
 	recentErrors: number;
 	uptime: number;
-	memoryUsage: any;
+	memoryUsage: {
+		rss: number;
+		heapTotal: number;
+		heapUsed: number;
+		external: number;
+		arrayBuffers: number;
+	};
 	os?: {
 		type: string;
 		platform: string;
@@ -62,7 +68,13 @@ export interface SystemHealthStatistics {
 	};
 	process?: {
 		uptime: number;
-		memoryUsage: any;
+		memoryUsage: {
+			rss: number;
+			heapTotal: number;
+			heapUsed: number;
+			external: number;
+			arrayBuffers: number;
+		};
 		nodeVersion: string;
 		pid: number;
 	};
@@ -85,6 +97,104 @@ export interface UnifiedStatistics {
 export interface StatsOptions {
 	includeDetailed?: boolean;
 	activityDays?: number;
+}
+
+export interface DashboardStats {
+	totalUsers: number;
+	activeUsers: number;
+	totalMatches: number;
+	watchlistEntries: number;
+}
+
+export interface SystemMetrics {
+	users: UserStatistics;
+	content: ContentStatistics;
+	activity: ActivityStatistics;
+	system: SystemHealthStatistics & { timestamp: Date };
+}
+
+export interface DatabaseInfo {
+	status: string;
+	type: string;
+	version: string;
+	connections: {
+		current: number;
+		max: number;
+	};
+	performance: {
+		avgQueryTime: number;
+		slowQueries: number;
+	};
+	storageUsage: number;
+}
+
+export interface SystemEvent {
+	type: string;
+	description: string;
+	timestamp: string | Date;
+	status: string;
+}
+
+export interface DependencyInfo {
+	name: string;
+	currentVersion: string;
+	latestVersion: string;
+	status: string;
+}
+
+export interface ComprehensiveSystemStats {
+	timestamp: Date;
+	database: {
+		totalUsers: number;
+		newUsers?:
+			| {
+					lastDay: number;
+					lastWeek: number;
+					lastMonth: number;
+			  }
+			| undefined;
+		activeUsers: number;
+		inactivePercentage?: number | undefined;
+		contentStats: ContentStatistics;
+		errorCount: number;
+		size?:
+			| {
+					bytes: number;
+					megabytes: number;
+			  }
+			| undefined;
+		status: string;
+		type: string;
+		version: string;
+		connections: {
+			current: number;
+			max: number;
+		};
+		performance: {
+			avgQueryTime: number;
+			slowQueries: number;
+		};
+		storageUsage: number;
+	};
+	system: {
+		hostname: string;
+		platform: string;
+		arch: string;
+		uptime: number;
+		os?: SystemHealthStatistics['os'];
+		memory?: SystemHealthStatistics['memory'];
+		cpu?: SystemHealthStatistics['cpu'];
+		process?: SystemHealthStatistics['process'];
+	};
+	application: {
+		nodeVersion: string;
+		version: string;
+		uptime: number;
+		pid: number;
+	};
+	environment: Record<string, string>;
+	dependencies: DependencyInfo[];
+	events: SystemEvent[];
 }
 
 /**
@@ -170,11 +280,15 @@ class StatisticsService {
 			User.count(),
 		]);
 
+		const averageWatchlistPerUser =
+			userCount > 0
+				? Math.round((watchlistCount / userCount) * 10) / 10
+				: undefined;
+
 		return {
 			watchlistEntries: watchlistCount,
 			matches: matchCount,
-			averageWatchlistPerUser:
-				userCount > 0 ? Math.round((watchlistCount / userCount) * 10) / 10 : 0,
+			averageWatchlistPerUser,
 		};
 	}
 
@@ -342,8 +456,8 @@ class StatisticsService {
 			},
 			cpu: {
 				cores: os.cpus().length,
-				model: os.cpus()[0]?.model || 'Unknown',
-				speed: os.cpus()[0]?.speed || 0,
+				model: os.cpus()[0]?.model ?? 'Unknown',
+				speed: os.cpus()[0]?.speed ?? 0,
 			},
 			process: {
 				uptime: process.uptime(), // Node.js process uptime in seconds
@@ -365,7 +479,7 @@ class StatisticsService {
 	/**
 	 * Get unified statistics for dashboard
 	 */
-	async getDashboardStats(): Promise<any> {
+	async getDashboardStats(): Promise<DashboardStats> {
 		const [userStats, contentStats] = await Promise.all([
 			this.getUserStats(),
 			this.getContentStats(),
@@ -382,7 +496,7 @@ class StatisticsService {
 	/**
 	 * Get system metrics (simplified statistics)
 	 */
-	async getSystemMetrics(): Promise<any> {
+	async getSystemMetrics(): Promise<SystemMetrics> {
 		const [userStats, contentStats, activityStats, systemStats] =
 			await Promise.all([
 				this.getUserStats(),
@@ -405,7 +519,7 @@ class StatisticsService {
 	/**
 	 * Get comprehensive system statistics
 	 */
-	async getSystemStats(): Promise<any> {
+	async getSystemStats(): Promise<ComprehensiveSystemStats> {
 		const [userStats, contentStats, systemStats] = await Promise.all([
 			this.getDetailedUserStats(),
 			this.getContentStats(),
@@ -451,9 +565,9 @@ class StatisticsService {
 			},
 			system: {
 				hostname: os.hostname(),
-				platform: systemStats.os?.platform || '',
-				arch: systemStats.os?.arch || '',
-				uptime: systemStats.os?.uptime || 0,
+				platform: systemStats.os?.platform ?? '',
+				arch: systemStats.os?.arch ?? '',
+				uptime: systemStats.os?.uptime ?? 0,
 				os: systemStats.os,
 				memory: systemStats.memory,
 				cpu: systemStats.cpu,
@@ -462,7 +576,7 @@ class StatisticsService {
 			// Add application info
 			application: {
 				nodeVersion: process.version,
-				version: process.env.npm_package_version || '1.0.0',
+				version: process.env.npm_package_version ?? '1.0.0',
 				uptime: process.uptime(),
 				pid: process.pid,
 			},
@@ -502,7 +616,7 @@ class StatisticsService {
 				) {
 					filtered[key] = '********';
 				} else {
-					filtered[key] = process.env[key] || '';
+					filtered[key] = process.env[key] ?? '';
 				}
 			}
 		}
@@ -513,7 +627,7 @@ class StatisticsService {
 	/**
 	 * Get real package dependencies from package.json
 	 */
-	private async getRealDependencies(): Promise<any[]> {
+	private async getRealDependencies(): Promise<DependencyInfo[]> {
 		try {
 			// Import packages using Node.js file system
 			const fs = await import('fs');
@@ -521,12 +635,15 @@ class StatisticsService {
 
 			// Read the package.json file
 			const packageJsonPath = path.resolve(__dirname, '../../package.json');
-			const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+			const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf8');
+			const packageJson = JSON.parse(
+				packageJsonContent
+			) as PackageJsonStructure;
 
 			// Extract dependencies and devDependencies
 			const dependencies = {
-				...packageJson.dependencies,
-				...packageJson.devDependencies,
+				...(packageJson.dependencies ?? {}),
+				...(packageJson.devDependencies ?? {}),
 			};
 
 			// Convert to the format expected by the frontend
@@ -543,8 +660,7 @@ class StatisticsService {
 					};
 				})
 				.slice(0, 20); // Limit to 20 packages to avoid overwhelming the UI
-		} catch (error) {
-			console.error('Error reading package dependencies:', error);
+		} catch {
 			// Return a minimal fallback if there's an error
 			return [
 				{
@@ -566,33 +682,38 @@ class StatisticsService {
 	/**
 	 * Get real database information
 	 */
-	private async getDatabaseInfo(): Promise<any> {
+	private async getDatabaseInfo(): Promise<DatabaseInfo> {
 		try {
 			// Get database type and version
-			const [dbInfo]: any = await sequelize.query(
+			const dbInfoResult = await sequelize.query(
 				'SELECT version() as version',
-				{ type: QueryTypes.SELECT }
+				{
+					type: QueryTypes.SELECT,
+				}
 			);
+			const [dbInfo] = dbInfoResult as DatabaseVersionResult[];
 
 			// Get database connection stats
-			const [connectionStats]: any = await sequelize
+			const [connectionStats] = (await sequelize
 				.query('SELECT count(*) as connections FROM pg_stat_activity', {
 					type: QueryTypes.SELECT,
 				})
-				.catch(() => [{ connections: 0 }]);
+				.catch(() => [{ connections: 0 }])) as DatabaseConnectionResult[];
 
 			// Get database query performance
 			const getAvgQueryTime = async (): Promise<number> => {
 				try {
 					// This is PostgreSQL specific - adjust for other DB types
-					const [result]: any = await sequelize.query(
-						`SELECT round(avg(extract(epoch from now() - query_start) * 1000), 2) as avg_time 
-						 FROM pg_stat_activity 
-						 WHERE state = 'active' AND query_start is not null`,
-						{ type: QueryTypes.SELECT }
-					);
-					return result?.avg_time || 12.4;
-				} catch (error) {
+					const avgQuery = `SELECT round(avg(extract(epoch from now() - query_start) * 1000), 2) as avg_time 
+					FROM pg_stat_activity 
+					WHERE state = 'active' AND query_start is not null`;
+
+					const results = await sequelize.query(avgQuery, {
+						type: QueryTypes.SELECT,
+					});
+					const result = results[0] as DatabaseQueryResult;
+					return Number(result?.avg_time ?? 12.4);
+				} catch {
 					return 12.4; // Default value
 				}
 			};
@@ -600,16 +721,18 @@ class StatisticsService {
 			// Count slow queries (taking more than 1 second)
 			const getSlowQueriesCount = async (): Promise<number> => {
 				try {
-					const [result]: any = await sequelize.query(
-						`SELECT count(*) as count 
-						 FROM pg_stat_activity 
-						 WHERE state = 'active' 
-						 AND query_start is not null 
-						 AND extract(epoch from now() - query_start) > 1`,
-						{ type: QueryTypes.SELECT }
-					);
-					return parseInt(result?.count || '0', 10);
-				} catch (error) {
+					const slowQuery = `SELECT count(*) as count 
+					FROM pg_stat_activity 
+					WHERE state = 'active' 
+					AND query_start is not null 
+					AND extract(epoch from now() - query_start) > 1`;
+
+					const results = await sequelize.query(slowQuery, {
+						type: QueryTypes.SELECT,
+					});
+					const result = results[0] as DatabaseCountResult;
+					return parseInt(String(result?.count ?? '0'), 10);
+				} catch {
 					return 0;
 				}
 			};
@@ -619,45 +742,60 @@ class StatisticsService {
 				getSlowQueriesCount(),
 			]);
 
-			// Extract database type from version string (works for PostgreSQL, MySQL, etc.)
-			const dbType = dbInfo?.version?.split(' ')[0] || 'PostgreSQL';
-			const dbVersion = dbInfo?.version?.match(/\d+\.\d+(\.\d+)?/)
-				? dbInfo.version.match(/\d+\.\d+(\.\d+)?/)[0]
-				: '14.0';
+			// Extract database type from version string - handle potential errors safely
+			let dbType = 'PostgreSQL';
+			let dbVersion = '14.0';
+
+			if (
+				dbInfo &&
+				typeof dbInfo === 'object' &&
+				'version' in dbInfo &&
+				typeof dbInfo.version === 'string'
+			) {
+				const versionParts = dbInfo.version.split(' ');
+				if (versionParts.length > 0 && versionParts[0]) {
+					dbType = versionParts[0];
+				}
+
+				const versionMatch = dbInfo.version.match(/\d+\.\d+(\.\d+)?/);
+				if (versionMatch?.[0]) {
+					dbVersion = versionMatch[0];
+				}
+			}
 
 			// Get storage usage percentage from size info
 			const getStorageUsage = async (): Promise<number> => {
 				try {
 					// This is PostgreSQL specific
-					const [result]: any = await sequelize.query(
-						`SELECT 
-							pg_database_size(current_database()) as db_size,
-							pg_database_size(current_database()) / pg_tablespace_size('pg_default') * 100 as usage_percent`,
-						{ type: QueryTypes.SELECT }
-					);
-					return parseFloat(result?.usage_percent || '70');
-				} catch (error) {
+					const storageQuery = `SELECT 
+						pg_database_size(current_database()) as db_size,
+						pg_database_size(current_database()) / pg_tablespace_size('pg_default') * 100 as usage_percent`;
+
+					const results = await sequelize.query(storageQuery, {
+						type: QueryTypes.SELECT,
+					});
+					const result = results[0] as DatabaseUsageResult;
+					return parseFloat(String(result?.usage_percent ?? '70'));
+				} catch {
 					return 70; // Default value
 				}
 			};
 
 			const storageUsage = await getStorageUsage();
 
-			// Fix: sequelize.authenticate() returns a Promise<void>, not a boolean
-			// We're making it here, so connection is working
 			return {
 				status: 'connected',
 				type: dbType,
 				version: dbVersion,
 				connections: {
-					current: parseInt(connectionStats?.connections || '0', 10),
-					max: parseInt(process.env.DB_MAX_CONNECTIONS || '100', 10),
+					current: parseInt(String(connectionStats?.connections ?? '0'), 10),
+					max: parseInt(process.env.DB_MAX_CONNECTIONS ?? '100', 10),
 				},
 				performance: {
-					avgQueryTime: avgQueryTime,
-					slowQueries: slowQueries,
+					avgQueryTime,
+					slowQueries,
 				},
-				storageUsage: storageUsage,
+				storageUsage,
 			};
 		} catch (error) {
 			console.error('Error getting database information:', error);
@@ -682,7 +820,7 @@ class StatisticsService {
 	/**
 	 * Get recent system events from audit logs
 	 */
-	private async getRecentSystemEvents(): Promise<any[]> {
+	private async getRecentSystemEvents(): Promise<SystemEvent[]> {
 		try {
 			// Get 24 hours ago timestamp
 			const oneDayAgo = new Date();
@@ -753,3 +891,30 @@ class StatisticsService {
 
 // Create and export singleton instance
 export const statisticsService = new StatisticsService();
+
+// Database query result interfaces
+interface DatabaseVersionResult {
+	version: string;
+}
+
+interface DatabaseConnectionResult {
+	connections: string | number;
+}
+
+interface DatabaseQueryResult {
+	avg_time: string | number;
+}
+
+interface DatabaseCountResult {
+	count: string | number;
+}
+
+interface DatabaseUsageResult {
+	usage_percent: string | number;
+}
+
+interface PackageJsonStructure {
+	dependencies?: Record<string, string>;
+	devDependencies?: Record<string, string>;
+	version?: string;
+}

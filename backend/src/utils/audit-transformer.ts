@@ -1,4 +1,4 @@
-import AuditLog from '../models/AuditLog';
+import type AuditLog from '../models/AuditLog';
 import { LogLevel } from '../services/audit.service';
 
 /**
@@ -6,12 +6,12 @@ import { LogLevel } from '../services/audit.service';
  */
 export interface TransformedAuditLog {
 	id: string;
-	level: string;
+	level: LogLevel;
 	levelClass: string;
 	message: string;
 	source: string;
 	timestamp: Date;
-	context: any;
+	context: Record<string, unknown> | null;
 	formattedTimestamp: string;
 }
 
@@ -19,11 +19,22 @@ export interface TransformedAuditLog {
  * Transform an audit log entry into a structured format for display
  */
 export function transformAuditLog(log: AuditLog): TransformedAuditLog {
-	const { log_id, level, message, source, context, created_at } = log;
+	// Safely access properties without destructuring to avoid any type issues
+	const { log_id } = log;
+	const { level } = log;
+	const { message } = log;
+	const { source } = log;
+	const { created_at } = log;
+
+	// Safely handle context which may be any type from the database
+	const context: Record<string, unknown> | null = log.context
+		? (log.context as Record<string, unknown>)
+		: null;
 
 	// Determine CSS class based on level for UI styling
 	let levelClass = '';
-	switch (level) {
+	const logLevel = level as LogLevel;
+	switch (logLevel) {
 		case LogLevel.ERROR:
 			levelClass = 'error';
 			break;
@@ -45,7 +56,7 @@ export function transformAuditLog(log: AuditLog): TransformedAuditLog {
 
 	return {
 		id: log_id,
-		level,
+		level: logLevel,
 		levelClass,
 		message,
 		source,

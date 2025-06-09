@@ -1,4 +1,3 @@
-import * as matchService from '../services/match.service';
 import {
 	mockRequest,
 	mockResponse,
@@ -6,12 +5,40 @@ import {
 } from '../tests/controller-helpers';
 import { createMatch, getMatches, updateMatchStatus } from './match.controller';
 
+// Mock the models used by the match service
+jest.mock('../models/Match', () => ({
+	__esModule: true,
+	default: {
+		findOne: jest.fn(),
+		findAll: jest.fn(),
+		findByPk: jest.fn(),
+		create: jest.fn(),
+	},
+}));
+
+jest.mock('../models/User', () => ({
+	__esModule: true,
+	default: {
+		findByPk: jest.fn(),
+		findOne: jest.fn(),
+	},
+}));
+
+jest.mock('../models/WatchlistEntry', () => ({
+	__esModule: true,
+	default: {
+		findAll: jest.fn(),
+	},
+}));
+
 // Mock the match service
 jest.mock('../services/match.service', () => ({
 	createMatchService: jest.fn(),
 	getMatchesService: jest.fn(),
 	updateMatchStatusService: jest.fn(),
 }));
+
+import * as matchService from '../services/match.service';
 
 // Mock the audit service
 jest.mock('../services/audit.service', () => ({
@@ -56,53 +83,74 @@ describe('Match Controller', () => {
 				updated_at: new Date(),
 			};
 
-			(matchService.createMatchService as jest.Mock).mockResolvedValue(
-				mockMatch
-			);
+			// Mock Match model methods
+			(Match.findOne as jest.Mock).mockResolvedValue(null); // No existing match
+			(Match.create as jest.Mock).mockResolvedValue(mockMatch);
 
 			// Act
 			await createMatch(req, res);
 
 			// Assert
-			expect(matchService.createMatchService).toHaveBeenCalledWith(req.user, {
+			expect(Match.findOne).toHaveBeenCalledWith({
+				where: {
+					user1_id: 'test-user-id',
+					user2_id: 'target-user-id',
+				},
+			});
+			expect(Match.create).toHaveBeenCalledWith({
+				user1_id: 'test-user-id',
 				user2_id: 'target-user-id',
+				status: 'pending',
 			});
 			expect(res.status).toHaveBeenCalledWith(201);
 			expect(res.json).toHaveBeenCalledWith(mockMatch);
 		});
 
-		it('should handle service errors', async () => {
+		it('should handle existing match', async () => {
 			// Arrange
 			const req = mockRequest({
 				body: { user2_id: 'target-user-id' },
 			});
 			const res = mockResponse();
 
-			const errorMessage = 'Match already exists';
-			(matchService.createMatchService as jest.Mock).mockRejectedValue(
-				new Error(errorMessage)
-			);
+			const existingMatch = {
+				match_id: 'existing-match-id',
+				user1_id: 'test-user-id',
+				user2_id: 'target-user-id',
+				status: 'pending',
+			};
+
+			// Mock Match model methods
+			(Match.findOne as jest.Mock).mockResolvedValue(existingMatch); // Return existing match
 
 			// Act
 			await createMatch(req, res);
 
 			// Assert
-			expect(matchService.createMatchService).toHaveBeenCalledWith(req.user, {
-				user2_id: 'target-user-id',
+			expect(Match.findOne).toHaveBeenCalledWith({
+				where: {
+					user1_id: 'test-user-id',
+					user2_id: 'target-user-id',
+				},
 			});
-			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({ error: errorMessage });
+			expect(res.status).toHaveBeenCalledWith(409);
+			expect(res.json).toHaveBeenCalledWith({
+				error: 'Match already exists',
+				match: existingMatch,
+			});
 		});
 
-		it('should handle unknown errors', async () => {
+		it('should handle database errors', async () => {
 			// Arrange
 			const req = mockRequest({
 				body: { user2_id: 'target-user-id' },
 			});
 			const res = mockResponse();
 
-			(matchService.createMatchService as jest.Mock).mockRejectedValue(
-				'Unknown error'
+			// Mock Match model methods
+			(Match.findOne as jest.Mock).mockResolvedValue(null);
+			(Match.create as jest.Mock).mockRejectedValue(
+				new Error('Database error')
 			);
 
 			// Act
@@ -111,7 +159,7 @@ describe('Match Controller', () => {
 			// Assert
 			expect(res.status).toHaveBeenCalledWith(500);
 			expect(res.json).toHaveBeenCalledWith({
-				error: 'Unknown error occurred',
+				error: 'Database error',
 			});
 		});
 	});
@@ -197,31 +245,28 @@ describe('Match Controller', () => {
 			});
 			const res = mockResponse();
 
-			const mockUpdatedMatch = {
+			const mockMatch = {
 				match_id: 'match-1',
 				user1_id: 'other-user-id',
 				user2_id: 'test-user-id',
-				status: 'accepted',
-				updated_at: new Date(),
+				status: 'pending',
+				save: jest.fn().mockResolvedValue(true),
 			};
 
-			(matchService.updateMatchStatusService as jest.Mock).mockResolvedValue(
-				mockUpdatedMatch
-			);
+			// Mock Match model methods
+			(Match.findByPk as jest.Mock).mockResolvedValue(mockMatch);
 
 			// Act
 			await updateMatchStatus(req, res);
 
 			// Assert
-			expect(matchService.updateMatchStatusService).toHaveBeenCalledWith(
-				'match-1',
-				'accepted',
-				req.user
-			);
-			expect(res.json).toHaveBeenCalledWith(mockUpdatedMatch);
+			expect(Match.findByPk).toHaveBeenCalledWith('match-1');
+			expect(mockMatch.save).toHaveBeenCalled();
+			expect(mockMatch.status).toBe('accepted');
+			expect(res.json).toHaveBeenCalledWith(mockMatch);
 		});
 
-		it('should handle service errors', async () => {
+		it('should handle match not found', async () => {
 			// Arrange
 			const req = mockRequest({
 				params: { match_id: 'match-1' },
@@ -229,25 +274,19 @@ describe('Match Controller', () => {
 			});
 			const res = mockResponse();
 
-			const errorMessage = 'Match not found';
-			(matchService.updateMatchStatusService as jest.Mock).mockRejectedValue(
-				new Error(errorMessage)
-			);
+			// Mock Match model methods
+			(Match.findByPk as jest.Mock).mockResolvedValue(null);
 
 			// Act
 			await updateMatchStatus(req, res);
 
 			// Assert
-			expect(matchService.updateMatchStatusService).toHaveBeenCalledWith(
-				'match-1',
-				'accepted',
-				req.user
-			);
-			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({ error: errorMessage });
+			expect(Match.findByPk).toHaveBeenCalledWith('match-1');
+			expect(res.status).toHaveBeenCalledWith(404);
+			expect(res.json).toHaveBeenCalledWith({ error: 'Match not found' });
 		});
 
-		it('should handle unknown errors', async () => {
+		it('should handle unauthorized user', async () => {
 			// Arrange
 			const req = mockRequest({
 				params: { match_id: 'match-1' },
@@ -255,17 +294,24 @@ describe('Match Controller', () => {
 			});
 			const res = mockResponse();
 
-			(matchService.updateMatchStatusService as jest.Mock).mockRejectedValue(
-				'Unknown error'
-			);
+			const mockMatch = {
+				match_id: 'match-1',
+				user1_id: 'other-user-id',
+				user2_id: 'another-user-id', // Different from test-user-id
+				status: 'pending',
+			};
+
+			// Mock Match model methods
+			(Match.findByPk as jest.Mock).mockResolvedValue(mockMatch);
 
 			// Act
 			await updateMatchStatus(req, res);
 
 			// Assert
-			expect(res.status).toHaveBeenCalledWith(500);
+			expect(Match.findByPk).toHaveBeenCalledWith('match-1');
+			expect(res.status).toHaveBeenCalledWith(403);
 			expect(res.json).toHaveBeenCalledWith({
-				error: 'Unknown error occurred',
+				error: 'Only the recipient can accept/reject a match request',
 			});
 		});
 	});

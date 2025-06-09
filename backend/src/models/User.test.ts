@@ -1,8 +1,86 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, type ModelStatic, type Sequelize } from 'sequelize';
 import User from './User';
 
+// Define interfaces for type safety
+interface UserAttributes {
+	user_id: {
+		type: typeof DataTypes.UUID;
+		defaultValue: typeof DataTypes.UUIDV4;
+		primaryKey: boolean;
+	};
+	email: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+		unique: boolean;
+		validate: {
+			isEmail: boolean;
+		};
+	};
+	username: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+		unique: boolean;
+		validate: {
+			len: [number, number];
+			is: RegExp;
+		};
+	};
+	password_hash: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+	};
+	role: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+		defaultValue: string;
+	};
+	status: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+		defaultValue: string;
+		validate: {
+			isIn: [string[]];
+		};
+	};
+	last_login: {
+		type: typeof DataTypes.DATE;
+		allowNull: boolean;
+	};
+	preferences: {
+		type: typeof DataTypes.JSONB;
+		allowNull: boolean;
+		defaultValue: {
+			theme: string;
+			viewStyle: string;
+			emailNotifications: boolean;
+			autoArchiveDays: number;
+			favoriteGenres: string[];
+		};
+	};
+	created_at: typeof DataTypes.DATE;
+	updated_at: typeof DataTypes.DATE;
+}
+
+interface UserModelOptions {
+	sequelize: Sequelize;
+	modelName: string;
+	tableName: string;
+	timestamps: boolean;
+	underscored: boolean;
+}
+
+interface MockSequelize {
+	define: jest.MockedFunction<
+		() => {
+			belongsTo: jest.MockedFunction<() => void>;
+			hasMany: jest.MockedFunction<() => void>;
+			associate: jest.MockedFunction<() => void>;
+		}
+	>;
+}
+
 // Mock for Sequelize
-const mockSequelize = {
+const mockSequelize: MockSequelize = {
 	define: jest.fn().mockReturnValue({
 		belongsTo: jest.fn(),
 		hasMany: jest.fn(),
@@ -13,6 +91,7 @@ const mockSequelize = {
 // Mock Sequelize.fn
 jest.mock('sequelize', () => {
 	const actualSequelize = jest.requireActual('sequelize');
+
 	return {
 		...actualSequelize,
 		Sequelize: jest.fn().mockImplementation(() => mockSequelize),
@@ -30,19 +109,19 @@ describe('User Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(User, 'init')
-				.mockImplementation(() => User as any);
+				.mockImplementation(() => User as ModelStatic<User>);
 
 			// Call initialize on User model
-			User.initialize(mockSequelize as any);
+			User.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
 			// Get the attributes passed to init
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
-			const attributes = calls[0]?.[0];
+			const attributes = calls[0]?.[0] as unknown as UserAttributes;
 			expect(attributes).toBeDefined();
 
 			// Verify all required fields are defined
@@ -63,19 +142,19 @@ describe('User Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(User, 'init')
-				.mockImplementation(() => User as any);
+				.mockImplementation(() => User as ModelStatic<User>);
 
 			// Call initialize on User model
-			User.initialize(mockSequelize as any);
+			User.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
 			// Get the options passed to init
-			const options = calls[0]?.[1];
+			const options = calls[0]?.[1] as UserModelOptions;
 			expect(options).toBeDefined();
 
 			// Check model options
@@ -91,20 +170,19 @@ describe('User Model', () => {
 	});
 
 	describe('Field definitions', () => {
-		let attributes: any;
+		let attributes: UserAttributes;
 
 		beforeEach(() => {
 			// Spy on init method to capture attributes
 			const initSpy = jest
 				.spyOn(User, 'init')
-				.mockImplementation(() => User as any);
-			User.initialize(mockSequelize as any);
+				.mockImplementation(() => User as ModelStatic<User>);
+			User.initialize(mockSequelize as unknown as Sequelize);
 
-			const calls = initSpy.mock.calls;
-			expect(calls.length).toBeGreaterThan(0);
-
-			attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const { calls } = initSpy.mock;
+			if (calls.length > 0) {
+				attributes = calls[0]?.[0] as unknown as UserAttributes;
+			}
 
 			initSpy.mockRestore();
 		});

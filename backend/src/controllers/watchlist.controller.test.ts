@@ -1,4 +1,3 @@
-import * as watchlistService from '../services/watchlist.service';
 import {
 	mockRequest,
 	mockResponse,
@@ -11,6 +10,21 @@ import {
 	updateWatchlistEntry,
 } from './watchlist.controller';
 
+// Mock the models used by audit and activity services
+jest.mock('../models/AuditLog', () => ({
+	__esModule: true,
+	default: {
+		create: jest.fn(),
+	},
+}));
+
+jest.mock('../models/ActivityLog', () => ({
+	__esModule: true,
+	ActivityLog: {
+		create: jest.fn(),
+	},
+}));
+
 // Mock the watchlist service
 jest.mock('../services/watchlist.service', () => ({
 	addToWatchlistService: jest.fn(),
@@ -18,6 +32,28 @@ jest.mock('../services/watchlist.service', () => ({
 	updateWatchlistEntryService: jest.fn(),
 	getMatchesService: jest.fn(),
 }));
+
+// Mock the audit service
+jest.mock('../services/audit.service', () => ({
+	auditLogService: {
+		info: jest.fn().mockResolvedValue({}),
+		error: jest.fn().mockResolvedValue({}),
+	},
+}));
+
+// Mock the activity service
+jest.mock('../services/activity.service', () => ({
+	activityService: {
+		logActivity: jest.fn().mockResolvedValue({}),
+	},
+	ActivityType: {
+		WATCHLIST_ADD: 'WATCHLIST_ADD',
+		WATCHLIST_UPDATE: 'WATCHLIST_UPDATE',
+		WATCHLIST_REMOVE: 'WATCHLIST_REMOVE',
+	},
+}));
+
+import * as watchlistService from '../services/watchlist.service';
 
 describe('Watchlist Controller', () => {
 	beforeEach(() => {
@@ -66,25 +102,18 @@ describe('Watchlist Controller', () => {
 		it('should handle validation errors', async () => {
 			// Arrange
 			const req = mockRequest({
-				body: { tmdb_id: 123 }, // Missing required fields
+				body: { tmdb_id: 123 }, // Missing required fields (media_type and status)
 			});
 			const res = mockResponse();
-
-			const errorMessage = 'Missing required fields';
-			(watchlistService.addToWatchlistService as jest.Mock).mockRejectedValue(
-				new Error(errorMessage)
-			);
 
 			// Act
 			await addToWatchlist(req, res);
 
 			// Assert
-			expect(watchlistService.addToWatchlistService).toHaveBeenCalledWith(
-				req.user,
-				{ tmdb_id: 123 }
-			);
+			// Service should not be called due to validation failure
+			expect(watchlistService.addToWatchlistService).not.toHaveBeenCalled();
 			expect(res.status).toHaveBeenCalledWith(400);
-			expect(res.json).toHaveBeenCalledWith({ error: errorMessage });
+			expect(res.json).toHaveBeenCalledWith({ error: 'Invalid request body' });
 		});
 
 		it('should handle unknown errors', async () => {

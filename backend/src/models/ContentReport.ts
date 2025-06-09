@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional, Sequelize } from 'sequelize';
+import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
 import Content from './Content';
 import User from './User';
 
@@ -23,12 +23,19 @@ class ContentReport extends Model<
 	ContentReportCreationAttributes
 > {
 	declare id: string;
+
 	declare content_id: string;
+
 	declare user_id: string;
+
 	declare reason: string;
+
 	declare details?: string;
+
 	declare status: 'pending' | 'dismissed' | 'resolved';
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
 	static initialize(sequelize: Sequelize) {

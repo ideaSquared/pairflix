@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const { TMDB_API_KEY } = process.env;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 interface TMDbResponse<T> {
@@ -33,7 +33,7 @@ async function tmdbFetch<T>(
 	params: Record<string, string> = {}
 ): Promise<T> {
 	const searchParams = new URLSearchParams({
-		api_key: TMDB_API_KEY || '',
+		api_key: TMDB_API_KEY ?? '',
 		...params,
 	});
 
@@ -45,7 +45,7 @@ async function tmdbFetch<T>(
 		);
 	}
 
-	return response.json();
+	return response.json() as Promise<T>;
 }
 
 export async function searchMedia(query: string, page: number = 1) {

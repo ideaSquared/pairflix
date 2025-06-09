@@ -1,8 +1,70 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, type Sequelize } from 'sequelize';
 import Content from './Content';
 
-// Mock for Sequelize
-const mockSequelize = {
+// Define proper TypeScript interfaces for Content model
+interface ContentAttributes {
+	id: {
+		type: typeof DataTypes.UUID;
+		defaultValue: typeof DataTypes.UUIDV4;
+		primaryKey: boolean;
+	};
+	title: {
+		type: typeof DataTypes.STRING;
+		allowNull: boolean;
+	};
+	type: {
+		type: typeof DataTypes.ENUM;
+		allowNull: boolean;
+	};
+	status: {
+		type: typeof DataTypes.ENUM;
+		allowNull: boolean;
+		defaultValue: string;
+	};
+	tmdb_id: {
+		type: typeof DataTypes.INTEGER;
+		allowNull: boolean;
+	};
+	reported_count: {
+		type: typeof DataTypes.INTEGER;
+		allowNull: boolean;
+		defaultValue: number;
+	};
+	removal_reason: {
+		type: typeof DataTypes.TEXT;
+		allowNull: boolean;
+	};
+	created_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+	updated_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+}
+
+interface ContentModelOptions {
+	sequelize: MockSequelizeInstance;
+	modelName: string;
+	tableName: string;
+	timestamps: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface MockModel {
+	belongsTo: jest.MockedFunction<() => void>;
+	hasMany: jest.MockedFunction<() => void>;
+	associate: jest.MockedFunction<() => void>;
+}
+
+interface MockSequelizeInstance {
+	define: jest.MockedFunction<() => MockModel>;
+}
+
+// Mock for Sequelize with proper typing
+const mockSequelize: MockSequelizeInstance = {
 	define: jest.fn().mockReturnValue({
 		belongsTo: jest.fn(),
 		hasMany: jest.fn(),
@@ -13,6 +75,7 @@ const mockSequelize = {
 // Mock Sequelize.fn
 jest.mock('sequelize', () => {
 	const actualSequelize = jest.requireActual('sequelize');
+
 	return {
 		...actualSequelize,
 		Sequelize: jest.fn().mockImplementation(() => mockSequelize),
@@ -30,19 +93,19 @@ describe('Content Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(Content, 'init')
-				.mockImplementation(() => Content as any);
+				.mockImplementation(() => Content);
 
 			// Call initialize on Content model
-			Content.initialize(mockSequelize as any);
+			Content.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
 			// Get the attributes passed to init
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
-			const attributes = calls[0]?.[0];
+			const attributes = calls[0]?.[0] as unknown as ContentAttributes;
 			expect(attributes).toBeDefined();
 
 			// Verify all required fields are defined
@@ -64,19 +127,19 @@ describe('Content Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(Content, 'init')
-				.mockImplementation(() => Content as any);
+				.mockImplementation(() => Content);
 
 			// Call initialize on Content model
-			Content.initialize(mockSequelize as any);
+			Content.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
 			// Get the options passed to init
-			const options = calls[0]?.[1];
+			const options = calls[0]?.[1] as unknown as ContentModelOptions;
 			expect(options).toBeDefined();
 
 			// Check model options
@@ -93,20 +156,19 @@ describe('Content Model', () => {
 	});
 
 	describe('Field definitions', () => {
-		let attributes: any;
+		let attributes: ContentAttributes;
 
 		beforeEach(() => {
 			// Spy on init method to capture attributes
 			const initSpy = jest
 				.spyOn(Content, 'init')
-				.mockImplementation(() => Content as any);
-			Content.initialize(mockSequelize as any);
+				.mockImplementation(() => Content);
+			Content.initialize(mockSequelize as unknown as Sequelize);
 
-			const calls = initSpy.mock.calls;
-			expect(calls.length).toBeGreaterThan(0);
-
-			attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const { calls } = initSpy.mock;
+			if (calls.length > 0) {
+				attributes = calls[0]?.[0] as unknown as ContentAttributes;
+			}
 
 			initSpy.mockRestore();
 		});

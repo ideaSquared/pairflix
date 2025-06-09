@@ -1,5 +1,5 @@
 // filepath: c:\Users\thete\Desktop\localdev\pairflix\backend\src\middlewares\request-logger.test.ts
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { auditLogService } from '../services/audit.service';
 import { requestLogger } from './request-logger';
 
@@ -31,7 +31,7 @@ describe('Request Logger Middleware', () => {
 		jest.clearAllMocks();
 	});
 
-	it('should log the request and call next()', () => {
+	it('should log the request and call next()', async () => {
 		// Arrange
 		mockRequest.user = {
 			user_id: 'test-user-id',
@@ -49,7 +49,7 @@ describe('Request Logger Middleware', () => {
 		};
 
 		// Act
-		requestLogger(
+		await requestLogger(
 			mockRequest as Request,
 			mockResponse as Response,
 			nextFunction
@@ -69,7 +69,7 @@ describe('Request Logger Middleware', () => {
 		expect(nextFunction).toHaveBeenCalled();
 	});
 
-	it('should skip logging for health check endpoint and call next()', () => {
+	it('should skip logging for health check endpoint and call next()', async () => {
 		// Create a new request object with the health path
 		const healthRequest: Partial<Request> = {
 			...mockRequest,
@@ -77,7 +77,7 @@ describe('Request Logger Middleware', () => {
 		};
 
 		// Act
-		requestLogger(
+		await requestLogger(
 			healthRequest as Request,
 			mockResponse as Response,
 			nextFunction
@@ -88,7 +88,7 @@ describe('Request Logger Middleware', () => {
 		expect(nextFunction).toHaveBeenCalled();
 	});
 
-	it('should skip logging for favicon and call next()', () => {
+	it('should skip logging for favicon and call next()', async () => {
 		// Create a new request object with the favicon path
 		const faviconRequest: Partial<Request> = {
 			...mockRequest,
@@ -96,7 +96,7 @@ describe('Request Logger Middleware', () => {
 		};
 
 		// Act
-		requestLogger(
+		await requestLogger(
 			faviconRequest as Request,
 			mockResponse as Response,
 			nextFunction
@@ -107,13 +107,13 @@ describe('Request Logger Middleware', () => {
 		expect(nextFunction).toHaveBeenCalled();
 	});
 
-	it('should log request without user information when not authenticated', () => {
+	it('should log request without user information when not authenticated', async () => {
 		// Arrange - create a new request object without the user property
 		const unauthenticatedRequest: Partial<Request> = { ...mockRequest };
 		// Don't set the user property at all
 
 		// Act
-		requestLogger(
+		await requestLogger(
 			unauthenticatedRequest as Request,
 			mockResponse as Response,
 			nextFunction
@@ -126,7 +126,7 @@ describe('Request Logger Middleware', () => {
 			expect.objectContaining({
 				method: mockRequest.method,
 				path: mockRequest.path,
-				userId: undefined,
+				userId: null,
 				ip: '127.0.0.1',
 			})
 		);

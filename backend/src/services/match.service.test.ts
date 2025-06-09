@@ -1,40 +1,71 @@
 import Match from '../models/Match';
+import type { AuthenticatedUser } from '../types';
 import {
 	createMatchService,
 	getMatchesService,
 	updateMatchStatusService,
 } from './match.service';
 
-jest.mock('../models/Match');
+// Mock the Match model
+jest.mock('../models/Match', () => ({
+	__esModule: true,
+	default: {
+		findOne: jest.fn(),
+		create: jest.fn(),
+		findAll: jest.fn(),
+		findByPk: jest.fn(),
+	},
+}));
+
 jest.mock('../models/User');
 
+// Create mock authenticated user
+const mockUser1: AuthenticatedUser = {
+	user_id: 'user-1',
+	email: 'user1@example.com',
+	username: 'user1',
+	role: 'user',
+	status: 'active',
+	preferences: {
+		theme: 'dark',
+		viewStyle: 'grid',
+		emailNotifications: true,
+		autoArchiveDays: 30,
+		favoriteGenres: [],
+	},
+};
+
+// Cast Match to the mocked version for easier access to mock methods
+const MockedMatch = Match as jest.Mocked<typeof Match>;
+
 describe('Match Service', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
 	describe('createMatchService', () => {
 		it('should create a match successfully', async () => {
-			(Match.findOne as jest.Mock).mockResolvedValue(null);
-			(Match.create as jest.Mock).mockResolvedValue({ match_id: 'match-1' });
+			MockedMatch.findOne.mockResolvedValue(null);
+			MockedMatch.create.mockResolvedValue({ match_id: 'match-1' } as any);
 
-			const match = await createMatchService(
-				{ user_id: 'user-1' },
-				{ user2_id: 'user-2' }
-			);
+			const match = await createMatchService(mockUser1, { user2_id: 'user-2' });
 			expect(match).toEqual({ match_id: 'match-1' });
 		});
 
 		it('should throw an error if match already exists', async () => {
-			(Match.findOne as jest.Mock).mockResolvedValue({ match_id: 'match-1' });
+			MockedMatch.findOne.mockResolvedValue({ match_id: 'match-1' } as any);
 
 			await expect(
-				createMatchService({ user_id: 'user-1' }, { user2_id: 'user-2' })
+				createMatchService(mockUser1, { user2_id: 'user-2' })
 			).rejects.toThrow('Match already exists');
 		});
 	});
 
 	describe('getMatchesService', () => {
 		it('should return matches for a user', async () => {
-			(Match.findAll as jest.Mock).mockResolvedValue([{ match_id: 'match-1' }]);
+			MockedMatch.findAll.mockResolvedValue([{ match_id: 'match-1' }] as any);
 
-			const matches = await getMatchesService({ user_id: 'user-1' });
+			const matches = await getMatchesService(mockUser1);
 			expect(matches).toEqual([{ match_id: 'match-1' }]);
 		});
 	});
@@ -46,22 +77,22 @@ describe('Match Service', () => {
 				user1_id: 'user-1',
 				user2_id: 'user-2',
 			};
-			(Match.findByPk as jest.Mock).mockResolvedValue(mockMatch);
+			MockedMatch.findByPk.mockResolvedValue(mockMatch as any);
 
 			const updatedMatch = await updateMatchStatusService(
 				'match-1',
 				'accepted',
-				{ user_id: 'user-1' }
+				mockUser1
 			);
 			expect(mockMatch.save).toHaveBeenCalled();
 			expect(updatedMatch).toEqual(mockMatch);
 		});
 
 		it('should throw an error if match not found', async () => {
-			(Match.findByPk as jest.Mock).mockResolvedValue(null);
+			MockedMatch.findByPk.mockResolvedValue(null);
 
 			await expect(
-				updateMatchStatusService('match-1', 'accepted', { user_id: 'user-1' })
+				updateMatchStatusService('match-1', 'accepted', mockUser1)
 			).rejects.toThrow('Match not found');
 		});
 	});

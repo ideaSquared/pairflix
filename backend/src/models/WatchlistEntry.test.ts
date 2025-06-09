@@ -1,8 +1,88 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, type ModelStatic, type Sequelize } from 'sequelize';
 import WatchlistEntry from './WatchlistEntry';
 
+// Define interfaces for type safety
+interface WatchlistEntryAttributes {
+	entry_id: {
+		type: typeof DataTypes.UUID;
+		defaultValue: typeof DataTypes.UUIDV4;
+		primaryKey: boolean;
+	};
+	user_id: {
+		type: typeof DataTypes.UUID;
+		allowNull: boolean;
+		references: {
+			model: unknown;
+			key: string;
+		};
+	};
+	tmdb_id: {
+		type: typeof DataTypes.INTEGER;
+		allowNull: boolean;
+	};
+	media_type: {
+		type: {
+			toString(): string;
+		};
+		allowNull: boolean;
+	};
+	status: {
+		type: {
+			toString(): string;
+		};
+		allowNull: boolean;
+		defaultValue: string;
+	};
+	rating: {
+		type: typeof DataTypes.INTEGER;
+		allowNull: boolean;
+		validate: {
+			min: number;
+			max: number;
+		};
+	};
+	notes: {
+		type: typeof DataTypes.TEXT;
+		allowNull: boolean;
+	};
+	tags: {
+		type: {
+			key: string;
+		};
+		allowNull: boolean;
+		defaultValue: string[];
+	};
+	created_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+	updated_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+}
+
+interface WatchlistEntryModelOptions {
+	sequelize: Sequelize;
+	modelName: string;
+	tableName: string;
+	timestamps: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface MockSequelize {
+	define: jest.MockedFunction<
+		() => {
+			belongsTo: jest.MockedFunction<() => void>;
+			hasMany: jest.MockedFunction<() => void>;
+			associate: jest.MockedFunction<() => void>;
+		}
+	>;
+}
+
 // Mock for Sequelize
-const mockSequelize = {
+const mockSequelize: MockSequelize = {
 	define: jest.fn().mockReturnValue({
 		belongsTo: jest.fn(),
 		hasMany: jest.fn(),
@@ -13,6 +93,7 @@ const mockSequelize = {
 // Mock Sequelize.fn
 jest.mock('sequelize', () => {
 	const actualSequelize = jest.requireActual('sequelize');
+
 	return {
 		...actualSequelize,
 		Sequelize: jest.fn().mockImplementation(() => mockSequelize),
@@ -30,19 +111,21 @@ describe('WatchlistEntry Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(WatchlistEntry, 'init')
-				.mockImplementation(() => WatchlistEntry as any);
+				.mockImplementation(
+					() => WatchlistEntry as ModelStatic<WatchlistEntry>
+				);
 
 			// Call initialize on WatchlistEntry model
-			WatchlistEntry.initialize(mockSequelize as any);
+			WatchlistEntry.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
 			// Get the attributes passed to init
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
-			const attributes = calls[0]?.[0];
+			const attributes = calls[0]?.[0] as unknown as WatchlistEntryAttributes;
 			expect(attributes).toBeDefined();
 
 			// Verify all required fields are defined
@@ -65,19 +148,21 @@ describe('WatchlistEntry Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(WatchlistEntry, 'init')
-				.mockImplementation(() => WatchlistEntry as any);
+				.mockImplementation(
+					() => WatchlistEntry as ModelStatic<WatchlistEntry>
+				);
 
 			// Call initialize on WatchlistEntry model
-			WatchlistEntry.initialize(mockSequelize as any);
+			WatchlistEntry.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
 			// Get the options passed to init
-			const options = calls[0]?.[1];
+			const options = calls[0]?.[1] as WatchlistEntryModelOptions;
 			expect(options).toBeDefined();
 
 			// Check model options
@@ -94,20 +179,21 @@ describe('WatchlistEntry Model', () => {
 	});
 
 	describe('Field definitions', () => {
-		let attributes: any;
+		let attributes: WatchlistEntryAttributes;
 
 		beforeEach(() => {
 			// Spy on init method to capture attributes
 			const initSpy = jest
 				.spyOn(WatchlistEntry, 'init')
-				.mockImplementation(() => WatchlistEntry as any);
-			WatchlistEntry.initialize(mockSequelize as any);
+				.mockImplementation(
+					() => WatchlistEntry as ModelStatic<WatchlistEntry>
+				);
+			WatchlistEntry.initialize(mockSequelize as unknown as Sequelize);
 
-			const calls = initSpy.mock.calls;
-			expect(calls.length).toBeGreaterThan(0);
-
-			attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const { calls } = initSpy.mock;
+			if (calls.length > 0) {
+				attributes = calls[0]?.[0] as unknown as WatchlistEntryAttributes;
+			}
 
 			initSpy.mockRestore();
 		});
@@ -133,30 +219,32 @@ describe('WatchlistEntry Model', () => {
 		it('should define media_type as ENUM with correct values', () => {
 			// Check that it's an ENUM type (in any form)
 			expect(attributes.media_type.type).toBeDefined();
-			expect(attributes.media_type.type.toString().includes('ENUM')).toBe(true);
+			const mediaTypeStr = attributes.media_type.type.toString();
+			expect(mediaTypeStr.includes('ENUM')).toBe(true);
 			// Check for movie and tv values in the type structure
 			const typeStr = JSON.stringify(attributes.media_type.type);
-			expect(typeStr).toContain('movie');
-			expect(typeStr).toContain('tv');
+			expect(typeStr.includes('movie')).toBe(true);
+			expect(typeStr.includes('tv')).toBe(true);
 			expect(attributes.media_type.allowNull).toBe(false);
 		});
 
 		it('should define status field with correct default value', () => {
 			// Check that it's an ENUM type (in any form)
 			expect(attributes.status.type).toBeDefined();
-			expect(attributes.status.type.toString().includes('ENUM')).toBe(true);
+			const statusTypeStr = attributes.status.type.toString();
+			expect(statusTypeStr.includes('ENUM')).toBe(true);
 			expect(attributes.status.allowNull).toBe(false);
 			expect(attributes.status.defaultValue).toBe('to_watch');
 			// Check for status values in the type structure
 			const typeStr = JSON.stringify(attributes.status.type);
-			expect(typeStr).toContain('to_watch');
-			expect(typeStr).toContain('watching');
-			expect(typeStr).toContain('finished');
-			expect(typeStr).toContain('flagged');
-			expect(typeStr).toContain('removed');
-			expect(typeStr).toContain('active');
-			expect(typeStr).toContain('watch_together_focused');
-			expect(typeStr).toContain('watch_together_background');
+			expect(typeStr.includes('to_watch')).toBe(true);
+			expect(typeStr.includes('watching')).toBe(true);
+			expect(typeStr.includes('finished')).toBe(true);
+			expect(typeStr.includes('flagged')).toBe(true);
+			expect(typeStr.includes('removed')).toBe(true);
+			expect(typeStr.includes('active')).toBe(true);
+			expect(typeStr.includes('watch_together_focused')).toBe(true);
+			expect(typeStr.includes('watch_together_background')).toBe(true);
 		});
 
 		it('should define rating field with validation', () => {

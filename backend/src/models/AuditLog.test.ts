@@ -1,8 +1,19 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, type ModelStatic, type Sequelize } from 'sequelize';
 import AuditLog from './AuditLog';
 
+// Define proper types for mocked Sequelize
+interface MockSequelizeModel {
+	belongsTo: jest.MockedFunction<() => void>;
+	hasMany: jest.MockedFunction<() => void>;
+	associate: jest.MockedFunction<() => void>;
+}
+
+interface MockSequelize {
+	define: jest.MockedFunction<() => MockSequelizeModel>;
+}
+
 // Mock for Sequelize
-const mockSequelize = {
+const mockSequelize: MockSequelize = {
 	define: jest.fn().mockReturnValue({
 		belongsTo: jest.fn(),
 		hasMany: jest.fn(),
@@ -13,11 +24,44 @@ const mockSequelize = {
 // Mock Sequelize.fn
 jest.mock('sequelize', () => {
 	const actualSequelize = jest.requireActual('sequelize');
+
 	return {
 		...actualSequelize,
 		Sequelize: jest.fn().mockImplementation(() => mockSequelize),
 	};
 });
+
+// Define types for model attributes used in tests
+interface TestModelAttributes {
+	log_id: {
+		type: typeof DataTypes.UUID;
+		defaultValue: typeof DataTypes.UUIDV4;
+		primaryKey: boolean;
+	};
+	level: {
+		type: DataTypes.StringDataType;
+		allowNull: boolean;
+		validate: {
+			isIn: string[][];
+		};
+	};
+	message: {
+		type: DataTypes.StringDataType;
+		allowNull: boolean;
+	};
+	context: {
+		type: typeof DataTypes.JSONB;
+		allowNull: boolean;
+	};
+	source: {
+		type: DataTypes.StringDataType;
+		allowNull: boolean;
+	};
+	created_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+}
 
 describe('AuditLog Model', () => {
 	beforeEach(() => {
@@ -30,20 +74,23 @@ describe('AuditLog Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(AuditLog, 'init')
-				.mockImplementation(() => AuditLog as any);
+				.mockImplementation(() => AuditLog as ModelStatic<AuditLog>);
 
 			// Call initialize on AuditLog model
-			AuditLog.initialize(mockSequelize as any);
+			AuditLog.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
 			// Get the attributes passed to init
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
-			const attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const firstCall = calls[0];
+			expect(firstCall).toBeDefined();
+			expect(firstCall![0]).toBeDefined();
+
+			const attributes = firstCall![0] as unknown as TestModelAttributes;
 
 			// Verify all required fields are defined
 			expect(attributes).toHaveProperty('log_id');
@@ -61,20 +108,23 @@ describe('AuditLog Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(AuditLog, 'init')
-				.mockImplementation(() => AuditLog as any);
+				.mockImplementation(() => AuditLog as ModelStatic<AuditLog>);
 
 			// Call initialize on AuditLog model
-			AuditLog.initialize(mockSequelize as any);
+			AuditLog.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
 			// Get the options passed to init
-			const options = calls[0]?.[1];
-			expect(options).toBeDefined();
+			const firstCall = calls[0];
+			expect(firstCall).toBeDefined();
+			expect(firstCall![1]).toBeDefined();
+
+			const options = firstCall![1];
 
 			// Check model options
 			expect(options).toHaveProperty('sequelize', mockSequelize);
@@ -88,22 +138,25 @@ describe('AuditLog Model', () => {
 	});
 
 	describe('Field definitions', () => {
-		let attributes: any;
+		let attributes: TestModelAttributes;
 
-		beforeEach(() => {
+		const getAttributes = (): TestModelAttributes => {
 			// Spy on init method to capture attributes
 			const initSpy = jest
 				.spyOn(AuditLog, 'init')
-				.mockImplementation(() => AuditLog as any);
-			AuditLog.initialize(mockSequelize as any);
+				.mockImplementation(() => AuditLog as ModelStatic<AuditLog>);
+			AuditLog.initialize(mockSequelize as unknown as Sequelize);
 
-			const calls = initSpy.mock.calls;
-			expect(calls.length).toBeGreaterThan(0);
-
-			attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const { calls } = initSpy.mock;
+			const firstCall = calls[0];
+			const result = firstCall![0] as unknown as TestModelAttributes;
 
 			initSpy.mockRestore();
+			return result;
+		};
+
+		beforeEach(() => {
+			attributes = getAttributes();
 		});
 
 		it('should define log_id field correctly', () => {
@@ -113,8 +166,9 @@ describe('AuditLog Model', () => {
 		});
 
 		it('should define level field with validation', () => {
-			expect(attributes.level.type.toString().indexOf('VARCHAR')).not.toBe(-1);
-			expect(attributes.level.type.options.length).toBe(10); // VARCHAR(10)
+			const levelType = attributes.level.type;
+			expect(String(levelType).indexOf('VARCHAR')).not.toBe(-1);
+			expect(levelType.options?.length).toBe(10); // VARCHAR(10)
 			expect(attributes.level.allowNull).toBe(false);
 			expect(attributes.level.validate).toBeDefined();
 			expect(attributes.level.validate.isIn).toEqual([
@@ -123,10 +177,9 @@ describe('AuditLog Model', () => {
 		});
 
 		it('should define message field correctly', () => {
-			expect(attributes.message.type.toString().indexOf('VARCHAR')).not.toBe(
-				-1
-			);
-			expect(attributes.message.type.options.length).toBe(255); // VARCHAR(255)
+			const messageType = attributes.message.type;
+			expect(String(messageType).indexOf('VARCHAR')).not.toBe(-1);
+			expect(messageType.options?.length).toBe(255); // VARCHAR(255)
 			expect(attributes.message.allowNull).toBe(false);
 		});
 
@@ -136,8 +189,9 @@ describe('AuditLog Model', () => {
 		});
 
 		it('should define source field correctly', () => {
-			expect(attributes.source.type.toString().indexOf('VARCHAR')).not.toBe(-1);
-			expect(attributes.source.type.options.length).toBe(100); // VARCHAR(100)
+			const sourceType = attributes.source.type;
+			expect(String(sourceType).indexOf('VARCHAR')).not.toBe(-1);
+			expect(sourceType.options?.length).toBe(100); // VARCHAR(100)
 			expect(attributes.source.allowNull).toBe(false);
 		});
 

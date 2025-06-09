@@ -4,28 +4,72 @@ import WatchlistEntry from '../models/WatchlistEntry';
 import {
 	getMovieDetails,
 	getTVDetails,
-	TMDbMovie,
-	TMDbTV,
+	type TMDbMovie,
+	type TMDbTV,
 } from './tmdb.service';
+
+// Define valid status type based on WatchlistEntry model
+type WatchlistEntryStatus =
+	| 'to_watch'
+	| 'watch_together_focused'
+	| 'watch_together_background'
+	| 'watching'
+	| 'finished'
+	| 'flagged'
+	| 'removed'
+	| 'active';
+
+interface AuthenticatedUser {
+	user_id: string;
+	email: string;
+	username: string;
+	role?: string;
+	status?: string;
+	preferences?: Record<string, unknown>;
+}
+
+interface WatchlistBody {
+	tmdb_id: number;
+	media_type: 'movie' | 'tv';
+	status: WatchlistEntryStatus;
+	notes?: string;
+}
 
 /**
  * Add a new entry to a user's watchlist
  */
-export const addToWatchlist = async (user: any, body: any) => {
+export const addToWatchlist = async (
+	user: AuthenticatedUser,
+	body: WatchlistBody
+) => {
 	const { tmdb_id, media_type, status, notes } = body;
-	return WatchlistEntry.create({
+
+	// Create a properly typed create object
+	const createData: {
+		user_id: string;
+		tmdb_id: number;
+		media_type: 'movie' | 'tv';
+		status: WatchlistEntryStatus;
+		notes?: string;
+	} = {
 		user_id: user.user_id,
 		tmdb_id,
 		media_type,
 		status,
-		notes,
-	});
+	};
+
+	// Only add notes if it's defined
+	if (notes !== undefined) {
+		createData.notes = notes;
+	}
+
+	return WatchlistEntry.create(createData);
 };
 
 /**
  * Get all entries in a user's watchlist with TMDb details
  */
-export const getWatchlist = async (user: any) => {
+export const getWatchlist = async (user: AuthenticatedUser) => {
 	const entries = await WatchlistEntry.findAll({
 		where: { user_id: user.user_id },
 		order: [['created_at', 'DESC']],
@@ -62,17 +106,31 @@ export const getWatchlist = async (user: any) => {
  */
 export const updateWatchlistEntry = async (
 	entry_id: string,
-	body: any,
-	user: any
+	body: Partial<WatchlistBody>,
+	user: AuthenticatedUser
 ) => {
-	console.log('Updating watchlist entry:', {
+	console.warn('Updating watchlist entry:', {
 		entry_id,
 		body,
 		userId: user.user_id,
 	});
 
+	// Create a properly typed update object
+	const updateData: Partial<{
+		tmdb_id: number;
+		media_type: 'movie' | 'tv';
+		status: WatchlistEntryStatus;
+		notes?: string;
+	}> = {};
+
+	// Only add properties that exist in body
+	if (body.tmdb_id !== undefined) updateData.tmdb_id = body.tmdb_id;
+	if (body.media_type !== undefined) updateData.media_type = body.media_type;
+	if (body.status !== undefined) updateData.status = body.status;
+	if (body.notes !== undefined) updateData.notes = body.notes;
+
 	// First, update the entry and check if it was successful
-	const [updated] = await WatchlistEntry.update(body, {
+	const [updated] = await WatchlistEntry.update(updateData, {
 		where: { entry_id, user_id: user.user_id },
 	});
 
@@ -115,9 +173,9 @@ export const updateWatchlistEntry = async (
 /**
  * Get content matches between a user and their matched users
  */
-export const getMatches = async (user: any) => {
+export const getMatches = async (user: AuthenticatedUser) => {
 	try {
-		console.log('Getting matches for user:', user.user_id);
+		console.warn('Getting matches for user:', user.user_id);
 
 		// First, get all accepted matches for the user
 		const matches = await Match.findAll({
@@ -129,9 +187,9 @@ export const getMatches = async (user: any) => {
 			},
 		});
 
-		console.log('Found matches:', matches.length);
+		console.warn('Found matches:', matches.length);
 
-		if (!matches || matches.length === 0) {
+		if (!matches?.length) {
 			return [];
 		}
 
@@ -140,14 +198,14 @@ export const getMatches = async (user: any) => {
 			match.user1_id === user.user_id ? match.user2_id : match.user1_id
 		);
 
-		console.log('Matched user IDs:', matchedUserIds);
+		console.warn('Matched user IDs:', matchedUserIds);
 
 		// Get current user's watchlist
 		const userEntries = await WatchlistEntry.findAll({
 			where: { user_id: user.user_id },
 		});
 
-		console.log('Current user entries:', userEntries.length);
+		console.warn('Current user entries:', userEntries.length);
 
 		// Get matched users' watchlist entries
 		const matchedUserEntries = await WatchlistEntry.findAll({
@@ -156,10 +214,10 @@ export const getMatches = async (user: any) => {
 			},
 		});
 
-		console.log('Matched users entries:', matchedUserEntries.length);
+		console.warn('Matched users entries:', matchedUserEntries.length);
 
 		// Create a map of TMDb IDs to matched user entries for faster lookup
-		const matchedEntriesMap = new Map();
+		const matchedEntriesMap = new Map<number, (typeof matchedUserEntries)[0]>();
 		matchedUserEntries.forEach(entry => {
 			matchedEntriesMap.set(entry.tmdb_id, entry);
 		});
@@ -170,11 +228,11 @@ export const getMatches = async (user: any) => {
 				const matchedEntry = matchedEntriesMap.get(userEntry.tmdb_id);
 				if (matchedEntry) {
 					try {
-						console.log('Found matching content:', userEntry.tmdb_id);
+						console.warn('Found matching content:', userEntry.tmdb_id);
 						const details =
 							userEntry.media_type === 'tv'
-								? ((await getTVDetails(userEntry.tmdb_id)) as TMDbTV)
-								: ((await getMovieDetails(userEntry.tmdb_id)) as TMDbMovie);
+								? await getTVDetails(userEntry.tmdb_id)
+								: await getMovieDetails(userEntry.tmdb_id);
 
 						return {
 							tmdb_id: userEntry.tmdb_id,
@@ -183,11 +241,10 @@ export const getMatches = async (user: any) => {
 								userEntry.media_type === 'tv'
 									? (details as TMDbTV).name
 									: (details as TMDbMovie).title,
-
 							poster_path: details.poster_path,
 							overview: details.overview,
 							user1_status: userEntry.status,
-							user2_status: matchedEntry.status,
+							user2_status: matchedEntry.status as WatchlistEntryStatus,
 						};
 					} catch (err) {
 						console.error(
@@ -202,8 +259,20 @@ export const getMatches = async (user: any) => {
 		);
 
 		// Filter out null entries and return valid matches
-		const validMatches = contentMatches.filter(match => match !== null);
-		console.log('Returning valid content matches:', validMatches.length);
+		const validMatches = contentMatches.filter(
+			(
+				match
+			): match is {
+				tmdb_id: number;
+				media_type: 'movie' | 'tv';
+				title: string;
+				poster_path: string | null;
+				overview: string;
+				user1_status: WatchlistEntryStatus;
+				user2_status: WatchlistEntryStatus;
+			} => match !== null
+		);
+		console.warn('Returning valid content matches:', validMatches.length);
 		return validMatches;
 	} catch (error) {
 		console.error('Error in getMatches:', error);

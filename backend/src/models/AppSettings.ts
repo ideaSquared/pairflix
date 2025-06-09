@@ -1,9 +1,18 @@
-import { DataTypes, Model, ModelStatic } from 'sequelize';
+import { DataTypes, Model, type ModelStatic, type Sequelize } from 'sequelize';
+
+// Type for JSON values that can be stored in JSONB
+type JsonValue =
+	| string
+	| number
+	| boolean
+	| null
+	| JsonValue[]
+	| { [key: string]: JsonValue };
 
 // Interface that defines the structure of AppSettings
 interface AppSettingsAttributes {
 	key: string;
-	value: any;
+	value: JsonValue;
 	category: string;
 	description: string | null;
 	created_at: Date;
@@ -13,7 +22,7 @@ interface AppSettingsAttributes {
 // Interface for creation attributes where some fields are optional
 interface AppSettingsCreationAttributes {
 	key: string;
-	value: any;
+	value: JsonValue;
 	category: string;
 	description?: string | null;
 }
@@ -23,13 +32,18 @@ class AppSettings extends Model<
 	AppSettingsCreationAttributes
 > {
 	declare key: string;
-	declare value: any;
+
+	declare value: JsonValue;
+
 	declare category: string;
+
 	declare description: string | null;
+
 	declare created_at: Date;
+
 	declare updated_at: Date;
 
-	static initialize(sequelize: any): ModelStatic<AppSettings> {
+	static initialize(sequelize: Sequelize): ModelStatic<AppSettings> {
 		return AppSettings.init(
 			{
 				key: {

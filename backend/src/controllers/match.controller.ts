@@ -1,71 +1,62 @@
-import { Request, Response } from 'express';
-import { activityService, ActivityType } from '../services/activity.service';
-import { auditLogService } from '../services/audit.service';
-import {
-	createMatchService,
-	getMatchesService,
-	updateMatchStatusService,
-} from '../services/match.service';
+import type { Request, Response } from 'express';
+import Match from '../models/Match';
+import { ActivityType, activityService } from '../services/activity.service';
+import { getMatchesService } from '../services/match.service';
+
+// Type definition for create match request body
+interface CreateMatchBody {
+	user2_id: string;
+}
 
 export const createMatch = async (req: Request, res: Response) => {
+	console.warn('Creating new match...');
 	try {
-		console.log('[Match Controller] Creating match:', {
-			userId: req.user?.user_id,
-			matchData: req.body,
-		});
+		const { user2_id } = req.body as CreateMatchBody;
+		const user1_id = req.user?.user_id;
 
-		// Audit log for match creation attempt
-		await auditLogService.info('Match creation attempt', 'match-controller', {
-			userId: req.user?.user_id,
-			targetUserId: req.body.user2_id,
-			ip: req.ip,
-		});
-
-		const match = await createMatchService(req.user, req.body);
-
-		// Log match creation - this is relevant for user activity feed
-		// as it shows users making connections
-		if (req.user) {
-			await activityService.logActivity(
-				req.user.user_id,
-				ActivityType.MATCH_CREATE,
-				{
-					matchId: match.match_id,
-					user2Id: match.user2_id,
-				}
-			);
+		if (!user1_id) {
+			return res.status(401).json({ error: 'Authentication required' });
 		}
 
-		// Audit log for successful match creation
-		await auditLogService.info(
-			'Match created successfully',
-			'match-controller',
-			{
-				userId: req.user?.user_id,
-				targetUserId: match.user2_id,
-				matchId: match.match_id,
-				status: match.status,
-			}
-		);
+		// Check if users are trying to match with themselves
+		if (user1_id === user2_id) {
+			return res.status(400).json({ error: 'Cannot match with yourself' });
+		}
+
+		// Check if match already exists
+		const existingMatch = await Match.findOne({
+			where: {
+				user1_id,
+				user2_id,
+			},
+		});
+
+		if (existingMatch) {
+			return res.status(409).json({
+				error: 'Match already exists',
+				match: existingMatch,
+			});
+		}
+
+		// Create the match request
+		const match = await Match.create({
+			user1_id,
+			user2_id,
+			status: 'pending',
+		});
+
+		// Log activity
+		await activityService.logActivity(user1_id, ActivityType.MATCH_CREATE, {
+			match_id: match.match_id,
+			recipient_id: user2_id,
+			timestamp: new Date(),
+		});
 
 		res.status(201).json(match);
 	} catch (error) {
-		console.error('[Match Controller] Error creating match:', {
-			userId: req.user?.user_id,
-			matchData: req.body,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
-
-		// Audit log for match creation failure
-		await auditLogService.error('Match creation failed', 'match-controller', {
-			userId: req.user?.user_id,
-			targetUserId: req.body.user2_id,
-			error: error instanceof Error ? error.message : 'Unknown error',
-		});
-
+		console.error('Error creating match:', error);
 		if (error instanceof Error) {
-			res.status(400).json({ error: error.message });
+			res.status(500).json({ error: error.message });
 		} else {
 			res.status(500).json({ error: 'Unknown error occurred' });
 		}
@@ -74,10 +65,13 @@ export const createMatch = async (req: Request, res: Response) => {
 
 export const getMatches = async (req: Request, res: Response) => {
 	try {
-		console.log(
-			'[Match Controller] Getting matches for user:',
-			req.user?.user_id
-		);
+		console.warn('Getting matches for user:', req.user?.user_id);
+
+		// Check if user is authenticated
+		if (!req.user) {
+			return res.status(401).json({ error: 'User not authenticated' });
+		}
+
 		const matches = await getMatchesService(req.user);
 
 		// Just viewing matches isn't an activity others need to see
@@ -85,11 +79,7 @@ export const getMatches = async (req: Request, res: Response) => {
 
 		res.json(matches);
 	} catch (error) {
-		console.error('[Match Controller] Error getting matches:', {
-			userId: req.user?.user_id,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
+		console.error('Error getting matches:', error);
 		if (error instanceof Error) {
 			res.status(500).json({ error: 'Internal server error' });
 		} else {
@@ -99,84 +89,95 @@ export const getMatches = async (req: Request, res: Response) => {
 };
 
 export const updateMatchStatus = async (req: Request, res: Response) => {
-	try {
-		console.log('[Match Controller] Updating match status:', {
-			userId: req.user?.user_id,
-			matchId: req.params.match_id,
-			status: req.body.status,
-		});
+	const { match_id } = req.params;
+	const { status } = req.body as { status: 'accepted' | 'rejected' };
+	const currentUserId = req.user?.user_id;
 
-		const matchId = req.params.match_id;
-		if (!matchId) {
-			return res.status(400).json({ error: 'Match ID is required' });
+	if (!currentUserId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+
+	try {
+		// Find the match
+		const match = await Match.findByPk(match_id);
+
+		if (!match) {
+			return res.status(404).json({ error: 'Match not found' });
 		}
 
-		// Audit log for match status update attempt
-		await auditLogService.info(
-			'Match status update attempt',
-			'match-controller',
-			{
-				userId: req.user?.user_id,
-				matchId: matchId,
-				newStatus: req.body.status,
-				ip: req.ip,
-			}
-		);
+		// Verify the current user is the recipient of the match request
+		if (match.user2_id !== currentUserId) {
+			return res.status(403).json({
+				error: 'Only the recipient can accept/reject a match request',
+			});
+		}
 
-		const updatedMatch = await updateMatchStatusService(
-			matchId,
-			req.body.status,
-			req.user
-		);
+		// Update the status
+		console.warn(`Updating match ${match_id} status to ${status}`);
+		match.status = status;
+		await match.save();
 
-		// Match status updates are relevant for user activity feed
-		if (req.user) {
+		// Log activity
+		if (status === 'accepted') {
+			// Log for user1 (original requester)
 			await activityService.logActivity(
-				req.user.user_id,
+				match.user1_id,
 				ActivityType.MATCH_UPDATE,
 				{
-					matchId: matchId,
-					newStatus: req.body.status,
+					match_id: match.match_id,
+					recipient_id: match.user2_id,
+					status,
+					timestamp: new Date(),
+				}
+			);
+
+			// Log for user2 (current user)
+			await activityService.logActivity(
+				currentUserId,
+				ActivityType.MATCH_ACCEPTED,
+				{
+					match_id: match.match_id,
+					requester_id: match.user1_id,
+					timestamp: new Date(),
+				}
+			);
+		} else if (status === 'rejected') {
+			// Only log for the requester, not for the rejector
+			await activityService.logActivity(
+				match.user1_id,
+				ActivityType.MATCH_DECLINED,
+				{
+					match_id: match.match_id,
+					recipient_id: match.user2_id,
+					timestamp: new Date(),
 				}
 			);
 		}
 
-		// Audit log for successful match status update
-		await auditLogService.info(
-			'Match status updated successfully',
-			'match-controller',
-			{
-				userId: req.user?.user_id,
-				matchId: matchId,
-				// Remove reference to previousStatus which doesn't exist
-				newStatus: updatedMatch.status,
-			}
-		);
-
-		res.json(updatedMatch);
+		res.json(match);
 	} catch (error) {
-		console.error('[Match Controller] Error updating match status:', {
-			userId: req.user?.user_id,
-			matchId: req.params.match_id,
-			status: req.body.status,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
-
-		// Audit log for match status update failure
-		await auditLogService.error(
-			'Match status update failed',
-			'match-controller',
-			{
-				userId: req.user?.user_id,
-				matchId: req.params.match_id,
-				attemptedStatus: req.body.status,
-				error: error instanceof Error ? error.message : 'Unknown error',
-			}
-		);
-
+		console.error('Error updating match status:', error);
 		if (error instanceof Error) {
-			res.status(400).json({ error: error.message });
+			res.status(500).json({ error: error.message });
+		} else {
+			res.status(500).json({ error: 'Unknown error occurred' });
+		}
+	}
+};
+
+export const getUserMatches = async (req: Request, res: Response) => {
+	console.warn('Getting user matches...');
+	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'Authentication required' });
+		}
+
+		const matches = await getMatchesService(req.user);
+		res.json(matches);
+	} catch (error) {
+		console.error('Error getting user matches:', error);
+		if (error instanceof Error) {
+			res.status(500).json({ error: error.message });
 		} else {
 			res.status(500).json({ error: 'Unknown error occurred' });
 		}

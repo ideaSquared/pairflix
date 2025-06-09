@@ -4,8 +4,24 @@ import { auditLogService } from './audit.service';
 
 dotenv.config();
 
+// Type for JSON values that can be stored in JSONB
+type JsonValue =
+	| string
+	| number
+	| boolean
+	| null
+	| JsonValue[]
+	| { [key: string]: JsonValue };
+
+// Define proper TypeScript interfaces for type safety
+interface SettingData {
+	value: unknown;
+	category: string;
+	description: string | null;
+}
+
 // Cache settings for performance
-let appSettingsCache: Record<string, any> = {};
+let appSettingsCache: Record<string, SettingData> = {};
 let lastSettingsFetch: number = 0;
 const SETTINGS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -32,7 +48,7 @@ export class SettingsService {
 	 * @param forceRefresh Force refresh from database even if cache is valid
 	 * @returns Compiled settings object
 	 */
-	async getSettings(forceRefresh = false): Promise<any> {
+	async getSettings(forceRefresh = false): Promise<Record<string, unknown>> {
 		const now = Date.now();
 
 		// Return cached settings if available and not expired
@@ -93,7 +109,7 @@ export class SettingsService {
 	 * @param defaultValue Default value if setting not found
 	 * @returns Setting value or default
 	 */
-	async getSetting(key: string, defaultValue?: any): Promise<any> {
+	async getSetting(key: string, defaultValue?: unknown): Promise<unknown> {
 		// Ensure cache is populated
 		if (Object.keys(appSettingsCache).length === 0) {
 			await this.getSettings();
@@ -101,14 +117,17 @@ export class SettingsService {
 
 		// Check if setting exists in cache
 		if (key in appSettingsCache) {
-			const value = appSettingsCache[key].value;
+			const settingData = appSettingsCache[key];
+			if (settingData) {
+				const { value } = settingData;
 
-			// Apply environment override for sensitive settings
-			if (SENSITIVE_SETTINGS.includes(key)) {
-				return this.getEnvironmentOverride(key) || value;
+				// Apply environment override for sensitive settings
+				if (SENSITIVE_SETTINGS.includes(key)) {
+					return this.getEnvironmentOverride(key) ?? value;
+				}
+
+				return value;
 			}
-
-			return value;
 		}
 
 		// Try to get from database directly if not in cache
@@ -125,7 +144,7 @@ export class SettingsService {
 
 				// Apply environment override for sensitive settings
 				if (SENSITIVE_SETTINGS.includes(key)) {
-					return this.getEnvironmentOverride(key) || setting.value;
+					return this.getEnvironmentOverride(key) ?? setting.value;
 				}
 
 				return setting.value;
@@ -148,7 +167,7 @@ export class SettingsService {
 	 */
 	async updateSetting(
 		key: string,
-		value: any,
+		value: unknown,
 		category?: string,
 		description?: string,
 		userId?: string
@@ -166,14 +185,14 @@ export class SettingsService {
 				where: { key },
 				defaults: {
 					key, // Add the key to defaults to fix TypeScript error
-					value,
-					category: category || this.getCategoryFromKey(key),
-					description: description || null,
+					value: value as JsonValue,
+					category: category ?? this.getCategoryFromKey(key),
+					description: description ?? null,
 				},
 			});
 
 			if (!created) {
-				setting.value = value;
+				setting.value = value as JsonValue;
 				if (category) setting.category = category;
 				if (description) setting.description = description;
 				await setting.save();
@@ -182,15 +201,15 @@ export class SettingsService {
 			// Update the cache
 			appSettingsCache[key] = {
 				value,
-				category: category || setting.category,
-				description: description || setting.description,
+				category: category ?? setting.category,
+				description: description ?? setting.description,
 			};
 
 			// Log the change
 			await auditLogService.info('Updated setting', 'settings-service', {
 				userId,
 				key,
-				category: category || setting.category,
+				category: category ?? setting.category,
 				changed: true,
 				// Don't log actual values for sensitive settings
 				value: SENSITIVE_SETTINGS.includes(key) ? '[SENSITIVE]' : value,
@@ -221,7 +240,7 @@ export class SettingsService {
 	 * @param userId User ID making the change (for audit logs)
 	 */
 	async updateSettings(
-		settings: Record<string, any>,
+		settings: Record<string, unknown>,
 		userId?: string
 	): Promise<void> {
 		const updatePromises = Object.entries(settings).map(([key, value]) =>
@@ -244,8 +263,8 @@ export class SettingsService {
 				return; // Nothing to delete
 			}
 
-			const oldValue = setting.value;
-			const category = setting.category;
+			const oldValue: unknown = setting.value;
+			const { category } = setting;
 
 			await setting.destroy();
 
@@ -305,7 +324,7 @@ export class SettingsService {
 
 					return AppSettings.create({
 						key,
-						value,
+						value: value as JsonValue,
 						category: data.category,
 						description: data.description,
 					});
@@ -334,15 +353,17 @@ export class SettingsService {
 	 * @param settingsCache The settings cache
 	 * @returns Compiled settings object
 	 */
-	private compileSettings(settingsCache: Record<string, any>): any {
-		const result: Record<string, any> = {};
+	private compileSettings(
+		settingsCache: Record<string, SettingData>
+	): Record<string, unknown> {
+		const result: Record<string, unknown> = {};
 
 		// Process each setting
 		Object.entries(settingsCache).forEach(([key, data]) => {
 			if (!key.includes('.')) {
 				// Top-level setting
 				result[key] = SENSITIVE_SETTINGS.includes(key)
-					? this.getEnvironmentOverride(key) || data.value
+					? (this.getEnvironmentOverride(key) ?? data.value)
 					: data.value;
 			} else {
 				// Nested setting (e.g., "general.siteName")
@@ -356,10 +377,8 @@ export class SettingsService {
 					const part = parts[i];
 					if (!part) continue; // Skip empty parts
 
-					if (!current[part]) {
-						current[part] = {};
-					}
-					current = current[part];
+					current[part] ??= {};
+					current = current[part] as Record<string, unknown>;
 				}
 
 				// Set the value at the leaf node, with environment override if sensitive
@@ -367,7 +386,7 @@ export class SettingsService {
 				if (lastPart) {
 					// Ensure lastPart is defined
 					current[lastPart] = SENSITIVE_SETTINGS.includes(key)
-						? this.getEnvironmentOverride(key) || data.value
+						? (this.getEnvironmentOverride(key) ?? data.value)
 						: data.value;
 				}
 			}
@@ -382,8 +401,10 @@ export class SettingsService {
 	 * @param dbSettings Database settings array
 	 * @returns Cache object
 	 */
-	private convertToCache(dbSettings: AppSettings[]): Record<string, any> {
-		const cache: Record<string, any> = {};
+	private convertToCache(
+		dbSettings: AppSettings[]
+	): Record<string, SettingData> {
+		const cache: Record<string, SettingData> = {};
 
 		dbSettings.forEach(setting => {
 			cache[setting.key] = {
@@ -401,7 +422,7 @@ export class SettingsService {
 	 * @param key Setting key
 	 * @returns Override value or undefined
 	 */
-	private getEnvironmentOverride(key: string): any {
+	private getEnvironmentOverride(key: string): unknown {
 		// Handle specific mappings
 		switch (key) {
 			case 'email.smtpPassword':
@@ -436,48 +457,58 @@ export class SettingsService {
 	 * @param settings Compiled settings
 	 * @returns Settings with global overrides
 	 */
-	private applyGlobalEnvironmentOverrides(settings: any): any {
+	private applyGlobalEnvironmentOverrides(
+		settings: Record<string, unknown>
+	): Record<string, unknown> {
 		const result = { ...settings };
 
-		// Make sure all required sections exist
-		if (!result.general) result.general = {};
-		if (!result.email) result.email = {};
-		if (!result.features) result.features = {};
+		// Ensure all required sections exist
+		result.general ??= {};
+		result.email ??= {};
+		result.features ??= {};
 
 		// Apply overrides
 		if (process.env.MAINTENANCE_MODE && result.general) {
-			result.general.maintenanceMode =
+			(result.general as Record<string, unknown>).maintenanceMode =
 				process.env.MAINTENANCE_MODE.toLowerCase() === 'true';
 		}
 
 		if (process.env.ENABLE_MATCHING && result.features) {
-			result.features.enableMatching =
+			(result.features as Record<string, unknown>).enableMatching =
 				process.env.ENABLE_MATCHING.toLowerCase() === 'true';
 		}
 
 		// Additional environment variable overrides
 		if (process.env.SMTP_SERVER && result.email) {
-			result.email.smtpServer = process.env.SMTP_SERVER;
+			(result.email as Record<string, unknown>).smtpServer =
+				process.env.SMTP_SERVER;
 		}
 
 		if (process.env.SMTP_PORT && result.email) {
-			result.email.smtpPort = parseInt(process.env.SMTP_PORT, 10);
+			(result.email as Record<string, unknown>).smtpPort = parseInt(
+				process.env.SMTP_PORT,
+				10
+			);
 		}
 
 		if (process.env.SMTP_USERNAME && result.email) {
-			result.email.smtpUsername = process.env.SMTP_USERNAME;
+			(result.email as Record<string, unknown>).smtpUsername =
+				process.env.SMTP_USERNAME;
 		}
 
 		if (process.env.SMTP_PASSWORD && result.email) {
-			result.email.smtpPassword = process.env.SMTP_PASSWORD;
+			(result.email as Record<string, unknown>).smtpPassword =
+				process.env.SMTP_PASSWORD;
 		}
 
 		if (process.env.EMAIL_SENDER && result.email) {
-			result.email.senderEmail = process.env.EMAIL_SENDER;
+			(result.email as Record<string, unknown>).senderEmail =
+				process.env.EMAIL_SENDER;
 		}
 
 		if (process.env.EMAIL_SENDER_NAME && result.email) {
-			result.email.senderName = process.env.EMAIL_SENDER_NAME;
+			(result.email as Record<string, unknown>).senderName =
+				process.env.EMAIL_SENDER_NAME;
 		}
 
 		return result;
@@ -507,10 +538,13 @@ export class SettingsService {
 	 * Get default settings as a flat map of key-value pairs
 	 * @returns Default settings map
 	 */
-	private getDefaultSettingsMap(): Record<string, any> {
+	private getDefaultSettingsMap(): Record<
+		string,
+		{ value: unknown; category: string; description: string }
+	> {
 		const defaultSettings: Record<
 			string,
-			{ value: any; category: string; description: string }
+			{ value: unknown; category: string; description: string }
 		> = {
 			'general.siteName': {
 				value: 'PairFlix',
@@ -665,7 +699,7 @@ export class SettingsService {
 	 * Get default settings as a hierarchical object (for backward compatibility)
 	 * @returns Default settings object
 	 */
-	getDefaultSettings(): any {
+	getDefaultSettings(): Record<string, unknown> {
 		return this.compileSettings(this.getDefaultSettingsMap());
 	}
 }

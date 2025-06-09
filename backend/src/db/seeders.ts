@@ -12,13 +12,6 @@ import { auditLogService } from '../services/audit.service';
 import { settingsService } from '../services/settings.service';
 import sequelize from './connection';
 
-// Helper function for creating past dates
-const pastDate = (daysAgo: number): Date => {
-	const date = new Date();
-	date.setDate(date.getDate() - daysAgo);
-	return date;
-};
-
 export async function seedDatabase() {
 	if (process.env.NODE_ENV !== 'development') {
 		return;
@@ -83,7 +76,7 @@ export async function seedDatabase() {
 
 		// Initialize default app settings using the settings service
 		await settingsService.initializeDefaultSettings();
-		console.log('Default app settings created');
+		console.warn('Default app settings created');
 
 		// Create an audit log entry for the initial settings creation
 		await auditLogService.info(
@@ -619,9 +612,9 @@ export async function seedDatabase() {
 			},
 		] as const;
 
-		const createdContent = (await Promise.all(
+		const createdContent = await Promise.all(
 			contentItems.map(item => Content.create(item))
-		)) as Content[];
+		);
 
 		// Validate that all content was created
 		if (
@@ -713,7 +706,7 @@ export async function seedDatabase() {
 			}),
 		]);
 
-		console.log('Database seeded successfully!');
+		console.warn('Database seeded successfully!');
 	} catch (error) {
 		console.error('Error seeding database:', error);
 		throw error;

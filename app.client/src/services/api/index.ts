@@ -15,14 +15,14 @@ export type { AppSettings } from './admin';
 
 // Export individual services
 export {
-	activity,
-	admin,
-	auth,
-	fetchWithAuth,
-	matches,
-	search,
-	user,
-	watchlist,
+  activity,
+  admin,
+  auth,
+  fetchWithAuth,
+  matches,
+  search,
+  user,
+  watchlist,
 };
 
 // Export types from utils
@@ -30,13 +30,13 @@ export * from './utils';
 
 // Create and export a default api object that combines all services
 const api = {
-	auth,
-	user,
-	search,
-	watchlist,
-	matches,
-	activity,
-	admin,
+  auth,
+  user,
+  search,
+  watchlist,
+  matches,
+  activity,
+  admin,
 };
 
 export default api;

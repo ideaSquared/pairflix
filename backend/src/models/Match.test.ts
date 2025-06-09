@@ -1,8 +1,73 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, type ModelStatic, type Sequelize } from 'sequelize';
 import Match from './Match';
 
+// Define interfaces for type safety
+interface MatchAttributes {
+	match_id: {
+		type: typeof DataTypes.UUID;
+		defaultValue: typeof DataTypes.UUIDV4;
+		primaryKey: boolean;
+	};
+	user1_id: {
+		type: typeof DataTypes.UUID;
+		allowNull: boolean;
+		references: {
+			model: unknown;
+			key: string;
+		};
+	};
+	user2_id: {
+		type: typeof DataTypes.UUID;
+		allowNull: boolean;
+		references: {
+			model: unknown;
+			key: string;
+		};
+	};
+	entry_id: {
+		type: typeof DataTypes.UUID;
+		allowNull: boolean;
+		references: {
+			model: unknown;
+			key: string;
+		};
+	};
+	status: {
+		type: ReturnType<typeof DataTypes.ENUM>;
+		allowNull: boolean;
+		defaultValue: string;
+	};
+	created_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+	updated_at: {
+		type: typeof DataTypes.DATE;
+		defaultValue: typeof DataTypes.NOW;
+	};
+}
+
+interface MatchModelOptions {
+	sequelize: Sequelize;
+	modelName: string;
+	tableName: string;
+	timestamps: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface MockSequelize {
+	define: jest.MockedFunction<
+		() => {
+			belongsTo: jest.MockedFunction<() => void>;
+			hasMany: jest.MockedFunction<() => void>;
+			associate: jest.MockedFunction<() => void>;
+		}
+	>;
+}
+
 // Mock for Sequelize
-const mockSequelize = {
+const mockSequelize: MockSequelize = {
 	define: jest.fn().mockReturnValue({
 		belongsTo: jest.fn(),
 		hasMany: jest.fn(),
@@ -13,6 +78,7 @@ const mockSequelize = {
 // Mock Sequelize.fn
 jest.mock('sequelize', () => {
 	const actualSequelize = jest.requireActual('sequelize');
+
 	return {
 		...actualSequelize,
 		Sequelize: jest.fn().mockImplementation(() => mockSequelize),
@@ -30,19 +96,19 @@ describe('Match Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(Match, 'init')
-				.mockImplementation(() => Match as any);
+				.mockImplementation(() => Match as ModelStatic<Match>);
 
 			// Call initialize on Match model
-			Match.initialize(mockSequelize as any);
+			Match.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
 			// Get the attributes passed to init
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
-			const attributes = calls[0]?.[0];
+			const attributes = calls[0]?.[0] as unknown as MatchAttributes;
 			expect(attributes).toBeDefined();
 
 			// Verify all required fields are defined
@@ -62,19 +128,19 @@ describe('Match Model', () => {
 			// Spy on init method
 			const initSpy = jest
 				.spyOn(Match, 'init')
-				.mockImplementation(() => Match as any);
+				.mockImplementation(() => Match as ModelStatic<Match>);
 
 			// Call initialize on Match model
-			Match.initialize(mockSequelize as any);
+			Match.initialize(mockSequelize as unknown as Sequelize);
 
 			// Verify init was called
 			expect(initSpy).toHaveBeenCalled();
 
-			const calls = initSpy.mock.calls;
+			const { calls } = initSpy.mock;
 			expect(calls.length).toBeGreaterThan(0);
 
 			// Get the options passed to init
-			const options = calls[0]?.[1];
+			const options = calls[0]?.[1] as MatchModelOptions;
 			expect(options).toBeDefined();
 
 			// Check model options
@@ -91,20 +157,19 @@ describe('Match Model', () => {
 	});
 
 	describe('Field definitions', () => {
-		let attributes: any;
+		let attributes: MatchAttributes;
 
 		beforeEach(() => {
 			// Spy on init method to capture attributes
 			const initSpy = jest
 				.spyOn(Match, 'init')
-				.mockImplementation(() => Match as any);
-			Match.initialize(mockSequelize as any);
+				.mockImplementation(() => Match as ModelStatic<Match>);
+			Match.initialize(mockSequelize as unknown as Sequelize);
 
-			const calls = initSpy.mock.calls;
-			expect(calls.length).toBeGreaterThan(0);
-
-			attributes = calls[0]?.[0];
-			expect(attributes).toBeDefined();
+			const { calls } = initSpy.mock;
+			if (calls.length > 0) {
+				attributes = calls[0]?.[0] as unknown as MatchAttributes;
+			}
 
 			initSpy.mockRestore();
 		});
@@ -139,13 +204,21 @@ describe('Match Model', () => {
 		it('should define status as ENUM with correct values and default', () => {
 			// Check that it's an ENUM type
 			expect(attributes.status.type).toBeDefined();
-			expect(attributes.status.type.toString().includes('ENUM')).toBe(true);
+			const statusTypeStr = String(attributes.status.type);
+			expect(
+				statusTypeStr.includes('ENUM') ||
+					Array.isArray(
+						(attributes.status.type as { values?: string[] }).values
+					)
+			).toBe(true);
 
 			// Check for status values in the type structure
-			const typeStr = JSON.stringify(attributes.status.type);
-			expect(typeStr).toContain('pending');
-			expect(typeStr).toContain('accepted');
-			expect(typeStr).toContain('rejected');
+			const statusType = attributes.status.type as { values?: string[] };
+			expect(statusType.values).toBeDefined();
+			expect(Array.isArray(statusType.values)).toBe(true);
+			expect(statusType.values).toContain('pending');
+			expect(statusType.values).toContain('accepted');
+			expect(statusType.values).toContain('rejected');
 
 			expect(attributes.status.allowNull).toBe(false);
 			expect(attributes.status.defaultValue).toBe('pending');

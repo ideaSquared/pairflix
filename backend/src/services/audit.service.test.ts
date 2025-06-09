@@ -1,21 +1,35 @@
-import { auditLogService, LogLevel } from './audit.service';
+// Define mock return type for AuditLog
+interface MockAuditLog {
+	log_id: string;
+	level: string;
+	message: string;
+	source: string;
+	context: Record<string, unknown> | null;
+	created_at: Date;
+}
+
+// Create mock functions first
+const mockAuditLogCreate = jest.fn();
+const mockAuditLogFindAll = jest.fn();
+const mockAuditLogDestroy = jest.fn();
+const mockAuditLogCount = jest.fn();
+const mockAuditLogFindOne = jest.fn();
 
 // Mock AuditLog model
-jest.mock('../models/AuditLog', () => {
-	return {
-		__esModule: true,
-		default: {
-			create: jest.fn(),
-			findAll: jest.fn(),
-			destroy: jest.fn(),
-			count: jest.fn(),
-			findOne: jest.fn(),
-		},
-	};
-});
+const mockAuditLog = {
+	create: mockAuditLogCreate,
+	findAll: mockAuditLogFindAll,
+	destroy: mockAuditLogDestroy,
+	count: mockAuditLogCount,
+	findOne: mockAuditLogFindOne,
+};
 
-// Import the mock after it's been set up
-import AuditLog from '../models/AuditLog';
+jest.mock('../models/AuditLog', () => ({
+	__esModule: true,
+	default: mockAuditLog,
+}));
+
+import { auditLogService, LogLevel } from './audit.service';
 
 describe('AuditLogService', () => {
 	beforeEach(() => {
@@ -26,7 +40,7 @@ describe('AuditLogService', () => {
 
 	describe('log', () => {
 		it('should create a log entry with the specified level, message, and source', async () => {
-			const mockLog = {
+			const mockLog: MockAuditLog = {
 				log_id: '123',
 				level: 'info',
 				message: 'Test message',
@@ -35,7 +49,7 @@ describe('AuditLogService', () => {
 				created_at: new Date(),
 			};
 
-			(AuditLog.create as jest.Mock).mockResolvedValue(mockLog);
+			mockAuditLogCreate.mockResolvedValue(mockLog);
 
 			const result = await auditLogService.log(
 				LogLevel.INFO,
@@ -44,7 +58,7 @@ describe('AuditLogService', () => {
 				{ test: true }
 			);
 
-			expect(AuditLog.create).toHaveBeenCalledWith({
+			expect(mockAuditLogCreate).toHaveBeenCalledWith({
 				level: 'info',
 				message: 'Test message',
 				source: 'test-service',
@@ -54,9 +68,7 @@ describe('AuditLogService', () => {
 		});
 
 		it('should handle errors without throwing', async () => {
-			(AuditLog.create as jest.Mock).mockRejectedValue(
-				new Error('Database error')
-			);
+			mockAuditLogCreate.mockRejectedValue(new Error('Database error'));
 
 			// Mock console.error
 			const originalConsoleError = console.error;
@@ -68,7 +80,7 @@ describe('AuditLogService', () => {
 				'error-source'
 			);
 
-			expect(AuditLog.create).toHaveBeenCalled();
+			expect(mockAuditLogCreate).toHaveBeenCalled();
 			expect(console.error).toHaveBeenCalled();
 			expect(result).toBeNull();
 
@@ -79,107 +91,113 @@ describe('AuditLogService', () => {
 
 	describe('convenience methods', () => {
 		beforeEach(() => {
-			// Create a spy directly on the service's log method
-			jest
-				.spyOn(auditLogService, 'log')
-				.mockImplementation(async () => ({ log_id: 'test123' }) as any);
-		});
-
-		afterEach(() => {
-			jest.restoreAllMocks();
+			// Reset the mock for each test
+			mockAuditLogCreate.mockClear();
 		});
 
 		it('should use the correct log level for info()', async () => {
-			// Store the original implementation
-			const originalInfo = auditLogService.info;
+			const mockLog = {
+				log_id: 'test123',
+				level: 'info',
+				message: 'Info message',
+				source: 'test-source',
+				context: { data: 123 },
+				created_at: new Date(),
+			};
 
-			// We need to mock auditLogService.info to use our mocked log
-			auditLogService.info = jest.fn(async (message, source, context) => {
-				return auditLogService.log(LogLevel.INFO, message, source, context);
-			}) as any;
+			mockAuditLogCreate.mockResolvedValue(mockLog);
 
-			await auditLogService.info('Info message', 'test-source', { data: 123 });
+			const result = await auditLogService.info('Info message', 'test-source', {
+				data: 123,
+			});
 
-			expect(auditLogService.log).toHaveBeenCalledWith(
-				LogLevel.INFO,
-				'Info message',
-				'test-source',
-				{ data: 123 }
-			);
-
-			// Restore original implementation
-			auditLogService.info = originalInfo;
+			expect(mockAuditLogCreate).toHaveBeenCalledWith({
+				level: 'info',
+				message: 'Info message',
+				source: 'test-source',
+				context: { data: 123 },
+			});
+			expect(result).toEqual(mockLog);
 		});
 
 		it('should use the correct log level for warn()', async () => {
-			// Store the original implementation
-			const originalWarn = auditLogService.warn;
+			const mockLog = {
+				log_id: 'test123',
+				level: 'warn',
+				message: 'Warning message',
+				source: 'test-source',
+				context: {},
+				created_at: new Date(),
+			};
 
-			// Mock warn to use our mocked log
-			auditLogService.warn = jest.fn(async (message, source, context) => {
-				return auditLogService.log(LogLevel.WARN, message, source, context);
-			}) as any;
+			mockAuditLogCreate.mockResolvedValue(mockLog);
 
-			await auditLogService.warn('Warning message', 'test-source');
-
-			expect(auditLogService.log).toHaveBeenCalledWith(
-				LogLevel.WARN,
+			const result = await auditLogService.warn(
 				'Warning message',
-				'test-source',
-				undefined
+				'test-source'
 			);
 
-			// Restore original implementation
-			auditLogService.warn = originalWarn;
+			expect(mockAuditLogCreate).toHaveBeenCalledWith({
+				level: 'warn',
+				message: 'Warning message',
+				source: 'test-source',
+				context: {},
+			});
+			expect(result).toEqual(mockLog);
 		});
 
 		it('should use the correct log level for error()', async () => {
-			// Store the original implementation
-			const originalError = auditLogService.error;
+			const mockLog = {
+				log_id: 'test123',
+				level: 'error',
+				message: 'Error message',
+				source: 'test-source',
+				context: {},
+				created_at: new Date(),
+			};
 
-			// Mock error to use our mocked log
-			auditLogService.error = jest.fn(async (message, source, context) => {
-				return auditLogService.log(LogLevel.ERROR, message, source, context);
-			}) as any;
+			mockAuditLogCreate.mockResolvedValue(mockLog);
 
-			await auditLogService.error('Error message', 'test-source');
-
-			expect(auditLogService.log).toHaveBeenCalledWith(
-				LogLevel.ERROR,
+			const result = await auditLogService.error(
 				'Error message',
-				'test-source',
-				undefined
+				'test-source'
 			);
 
-			// Restore original implementation
-			auditLogService.error = originalError;
+			expect(mockAuditLogCreate).toHaveBeenCalledWith({
+				level: 'error',
+				message: 'Error message',
+				source: 'test-source',
+				context: {},
+			});
+			expect(result).toEqual(mockLog);
 		});
 
 		it('should use the correct log level for debug() in development', async () => {
 			process.env.NODE_ENV = 'development';
 
-			// Store the original implementation
-			const originalDebug = auditLogService.debug;
+			const mockLog = {
+				log_id: 'test123',
+				level: 'debug',
+				message: 'Debug message',
+				source: 'test-source',
+				context: {},
+				created_at: new Date(),
+			};
 
-			// Mock debug to use our mocked log
-			auditLogService.debug = jest.fn(async (message, source, context) => {
-				if (process.env.NODE_ENV !== 'production') {
-					return auditLogService.log(LogLevel.DEBUG, message, source, context);
-				}
-				return null;
-			}) as any;
+			mockAuditLogCreate.mockResolvedValue(mockLog);
 
-			await auditLogService.debug('Debug message', 'test-source');
-
-			expect(auditLogService.log).toHaveBeenCalledWith(
-				LogLevel.DEBUG,
+			const result = await auditLogService.debug(
 				'Debug message',
-				'test-source',
-				undefined
+				'test-source'
 			);
 
-			// Restore original implementation
-			auditLogService.debug = originalDebug;
+			expect(mockAuditLogCreate).toHaveBeenCalledWith({
+				level: 'debug',
+				message: 'Debug message',
+				source: 'test-source',
+				context: {},
+			});
+			expect(result).toEqual(mockLog);
 		});
 
 		it('should not log debug messages in production', async () => {
@@ -189,23 +207,37 @@ describe('AuditLogService', () => {
 				'test-source'
 			);
 
-			expect(auditLogService.log).not.toHaveBeenCalled();
+			expect(mockAuditLogCreate).not.toHaveBeenCalled();
 			expect(result).toBeNull();
 		});
 	});
 
 	describe('query methods', () => {
 		it('should fetch recent logs with proper ordering', async () => {
-			const mockLogs = [
-				{ log_id: '1', created_at: new Date(), level: 'info' },
-				{ log_id: '2', created_at: new Date(), level: 'error' },
+			const mockLogs: MockAuditLog[] = [
+				{
+					log_id: '1',
+					created_at: new Date(),
+					level: 'info',
+					message: 'Test 1',
+					source: 'test',
+					context: null,
+				},
+				{
+					log_id: '2',
+					created_at: new Date(),
+					level: 'error',
+					message: 'Test 2',
+					source: 'test',
+					context: null,
+				},
 			];
 
-			(AuditLog.findAll as jest.Mock).mockResolvedValue(mockLogs);
+			mockAuditLogFindAll.mockResolvedValue(mockLogs);
 
 			const result = await auditLogService.getRecentLogs(10, 0);
 
-			expect(AuditLog.findAll).toHaveBeenCalledWith({
+			expect(mockAuditLogFindAll).toHaveBeenCalledWith({
 				order: [['created_at', 'DESC']],
 				limit: 10,
 				offset: 0,
@@ -214,12 +246,26 @@ describe('AuditLogService', () => {
 		});
 
 		it('should fetch logs filtered by level', async () => {
-			const mockLogs = [
-				{ log_id: '1', created_at: new Date(), level: 'error' },
-				{ log_id: '2', created_at: new Date(), level: 'error' },
+			const mockLogs: MockAuditLog[] = [
+				{
+					log_id: '1',
+					created_at: new Date(),
+					level: 'error',
+					message: 'Error 1',
+					source: 'test',
+					context: null,
+				},
+				{
+					log_id: '2',
+					created_at: new Date(),
+					level: 'error',
+					message: 'Error 2',
+					source: 'test',
+					context: null,
+				},
 			];
 
-			(AuditLog.findAll as jest.Mock).mockResolvedValue(mockLogs);
+			mockAuditLog.findAll.mockResolvedValue(mockLogs);
 
 			const result = await auditLogService.getLogsByLevel(
 				LogLevel.ERROR,
@@ -227,7 +273,7 @@ describe('AuditLogService', () => {
 				0
 			);
 
-			expect(AuditLog.findAll).toHaveBeenCalledWith({
+			expect(mockAuditLog.findAll).toHaveBeenCalledWith({
 				where: { level: 'error' },
 				order: [['created_at', 'DESC']],
 				limit: 10,
