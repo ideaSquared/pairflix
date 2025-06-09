@@ -7,7 +7,8 @@ on:
     branches: [main, master]
 
 jobs:
-  install-lint-test-build:
+  ci:
+    name: CI (Lint, Test, Build)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
