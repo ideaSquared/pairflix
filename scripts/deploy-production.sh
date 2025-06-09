@@ -132,7 +132,7 @@ fi
 
 # Clean up old images (keep last 3 versions)
 echo "🧹 Cleaning up old images..."
-docker images | grep pairflix | awk '{print $1":"$2}' | tail -n +4 | xargs -r docker rmi || true
+docker images --format '{{.Repository}}:{{.Tag}} {{.CreatedAt}}' | grep pairflix | sort -k2 | head -n -3 | awk '{print $1}' | xargs -r docker rmi || true
 
 echo ""
 echo "🎉 Deployment successful!"
