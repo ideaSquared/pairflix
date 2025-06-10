@@ -39,7 +39,11 @@ export const clientNavigationConfig: NavigationConfig = {
       ],
     },
   ],
-  logo: React.createElement('div', { style: { fontWeight: 'bold', fontSize: '1.5rem' } }, 'PairFlix'),
+  logo: React.createElement(
+    'div',
+    { style: { fontWeight: 'bold', fontSize: '1.5rem' } },
+    'PairFlix'
+  ),
   user: {
     name: 'User',
     initials: 'U',
@@ -127,7 +131,11 @@ export const adminNavigationConfig: NavigationConfig = {
       ],
     },
   ],
-  logo: React.createElement('div', { style: { fontWeight: 'bold', fontSize: '1.25rem' } }, 'PairFlix Admin'),
+  logo: React.createElement(
+    'div',
+    { style: { fontWeight: 'bold', fontSize: '1.25rem' } },
+    'PairFlix Admin'
+  ),
   user: {
     name: 'Admin',
     initials: 'A',
@@ -150,28 +158,28 @@ export const adminNavigationConfig: NavigationConfig = {
 
 // Helper function to create navigation config with icons
 export const createNavigationConfig = (
-  sections: Array<{
+  sections: {
     title?: string;
-    items: Array<{
+    items: {
       key: string;
       label: string;
       path: string;
       icon?: React.ReactNode;
       badge?: string | number;
-    }>;
-  }>,
+    }[];
+  }[],
   options?: {
     logo?: React.ReactNode;
     user?: {
       name: string;
       avatar?: React.ReactNode;
       initials?: string;
-      menu?: Array<{
+      menu?: {
         key: string;
         label: string;
         path: string;
         icon?: React.ReactNode;
-      }>;
+      }[];
     };
   }
 ): NavigationConfig => {
@@ -190,7 +198,9 @@ export const adminNavigationWithFontAwesome: NavigationConfig = {
           key: 'dashboard',
           label: 'Dashboard',
           path: '/',
-          icon: React.createElement('i', { className: 'fas fa-tachometer-alt' }),
+          icon: React.createElement('i', {
+            className: 'fas fa-tachometer-alt',
+          }),
         },
       ],
     },
@@ -219,7 +229,9 @@ export const adminNavigationWithFontAwesome: NavigationConfig = {
           key: 'logs',
           label: 'Audit Logs',
           path: '/logs',
-          icon: React.createElement('i', { className: 'fas fa-clipboard-list' }),
+          icon: React.createElement('i', {
+            className: 'fas fa-clipboard-list',
+          }),
         },
       ],
     },
@@ -247,7 +259,11 @@ export const adminNavigationWithFontAwesome: NavigationConfig = {
       ],
     },
   ],
-  logo: React.createElement('div', { style: { fontWeight: 'bold', fontSize: '1.25rem' } }, 'PairFlix Admin'),
+  logo: React.createElement(
+    'div',
+    { style: { fontWeight: 'bold', fontSize: '1.25rem' } },
+    'PairFlix Admin'
+  ),
   user: {
     name: 'Admin User',
     initials: 'AU',
@@ -266,4 +282,4 @@ export const adminNavigationWithFontAwesome: NavigationConfig = {
       },
     ],
   },
-}; 
+};

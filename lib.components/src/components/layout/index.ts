@@ -10,17 +10,37 @@ export * from './components/Spacer';
 
 // Export new standardized layout components
 export {
-    AppLayout,
-    type AppLayoutProps, type FooterConfig, type HeaderConfig, type NavigationConfig,
-    type NavigationItem,
-    type NavigationSection, type SidebarConfig
+  AppLayout,
+  type AppLayoutProps,
+  type FooterConfig,
+  type HeaderConfig,
+  type NavigationConfig,
+  type NavigationItem,
+  type NavigationSection,
+  type SidebarConfig,
 } from './AppLayout/AppLayout';
 export * from './PageContainer/PageContainer';
 
 // Export responsive utilities (with explicit naming to avoid conflicts)
 export {
-    breakpoints, createContainerQuery, createResponsiveCSS, desktopFirst, getSpacing, hideOnDesktop, hideOnMobile, layoutTokens, media, mobileFirst, responsiveFontSize,
-    responsiveSpacing, showOnlyDesktop, showOnlyMobile, type BreakpointKey, type ContainerConfig, type FlexConfig, type GridConfig, type ResponsiveValue,
-    type SpacingValue
+  breakpoints,
+  createContainerQuery,
+  createResponsiveCSS,
+  desktopFirst,
+  getSpacing,
+  hideOnDesktop,
+  hideOnMobile,
+  layoutTokens,
+  media,
+  mobileFirst,
+  responsiveFontSize,
+  responsiveSpacing,
+  showOnlyDesktop,
+  showOnlyMobile,
+  type BreakpointKey,
+  type ContainerConfig,
+  type FlexConfig,
+  type GridConfig,
+  type ResponsiveValue,
+  type SpacingValue,
 } from './utils/responsive';
-

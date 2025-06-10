@@ -31,34 +31,34 @@ const StyledPageContainer = styled.div<PageContainerProps>`
 
   ${({ padding = 'md', theme, responsive = true }) => {
     if (padding === 'none') return '';
-    
+
     const paddingValue = theme.spacing?.[padding] || '1rem';
-    
+
     return css`
       padding: ${paddingValue};
-      
+
       ${responsive &&
-        css`
-          @media (max-width: 768px) {
-            padding: ${padding === 'xl' || padding === 'lg' 
-              ? theme.spacing?.md || '1rem' 
-              : theme.spacing?.sm || '0.5rem'};
-          }
-          
-          @media (max-width: 576px) {
-            padding: ${theme.spacing?.sm || '0.5rem'};
-          }
-        `}
+      css`
+        @media (max-width: 768px) {
+          padding: ${padding === 'xl' || padding === 'lg'
+            ? theme.spacing?.md || '1rem'
+            : theme.spacing?.sm || '0.5rem'};
+        }
+
+        @media (max-width: 576px) {
+          padding: ${theme.spacing?.sm || '0.5rem'};
+        }
+      `}
     `;
   }}
 `;
 
 /**
  * PageContainer - Consistent content container for pages
- * 
+ *
  * Provides standardized spacing, max-width constraints, and responsive behavior
  * for page content within the AppLayout system.
- * 
+ *
  * @example
  * <PageContainer maxWidth="lg" padding="xl">
  *   <h1>Page Title</h1>
@@ -77,4 +77,4 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   );
 };
 
-export default PageContainer; 
+export default PageContainer;
