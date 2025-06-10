@@ -1,5 +1,6 @@
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { ActivityLog } from '../models/ActivityLog';
+import Match from '../models/Match';
 import type { ActivityContext, AuthenticatedRequest } from '../types';
 
 /**
@@ -163,6 +164,12 @@ export const getUserActivities = async (
 		order: [['created_at', 'DESC']],
 		limit,
 		offset,
+		include: [
+			{
+				association: 'user',
+				attributes: ['user_id', 'username'],
+			},
+		],
 	});
 
 /**
@@ -176,7 +183,74 @@ export const getUserActivitiesCount = async (userId: string): Promise<number> =>
 	});
 
 /**
- * Get all recent activities (for partner's activities)
+ * Get activities from the user's matched partners only
+ * @param userId - Current user's ID
+ * @param limit - Maximum number of activities to return (default: 20)
+ * @param offset - Number of activities to skip (for pagination)
+ * @returns Array of activity log entries from matched partners
+ */
+export const getPartnerActivities = async (
+	userId: string,
+	limit = 20,
+	offset = 0
+): Promise<ActivityLog[]> => {
+	// First, get all accepted matches for the user
+	const matches = await Match.findAll({
+		where: {
+			[Op.or]: [
+				{ user1_id: userId, status: 'accepted' },
+				{ user2_id: userId, status: 'accepted' },
+			],
+		},
+	});
+
+	// If no matches, return empty array
+	if (!matches || matches.length === 0) {
+		return [];
+	}
+
+	// Get the partner user IDs
+	const partnerUserIds = matches.map(match =>
+		match.user1_id === userId ? match.user2_id : match.user1_id
+	);
+
+	// Define socially relevant activities that partners would want to see
+	const sociallyRelevantActivities = [
+		'WATCHLIST_ADD',
+		'WATCHLIST_UPDATE',
+		'WATCHLIST_REMOVE',
+		'WATCHLIST_RATE',
+		'MATCH_ACCEPTED',
+		'MATCH_CREATE',
+	];
+
+	// Get activities only from partners and only socially relevant ones
+	const activities = await ActivityLog.findAll({
+		where: {
+			user_id: {
+				[Op.in]: partnerUserIds,
+			},
+			action: {
+				[Op.in]: sociallyRelevantActivities,
+			},
+		},
+		order: [['created_at', 'DESC']],
+		limit,
+		offset,
+		include: [
+			{
+				association: 'user',
+				attributes: ['user_id', 'username'],
+			},
+		],
+	});
+
+	return activities;
+};
+
+/**
+ * Get all recent activities (for partner's activities) - DEPRECATED
+ * Use getPartnerActivities instead for proper partner filtering
  * @param excludeUserId - User ID to exclude from results (typically the current user)
  * @param limit - Maximum number of activities to return (default: 20)
  * @param offset - Number of activities to skip (for pagination)
@@ -473,15 +547,58 @@ export const getActivitiesByContext = async (
 	};
 };
 
+/**
+ * Get filtered user activities for social feed (excludes system activities)
+ * @param userId - ID of the user whose activities to fetch
+ * @param limit - Maximum number of activities to return (default: 20)
+ * @param offset - Number of activities to skip (for pagination)
+ * @returns Array of socially relevant activity log entries
+ */
+export const getUserSocialActivities = async (
+	userId: string,
+	limit = 20,
+	offset = 0
+): Promise<ActivityLog[]> => {
+	// Define socially relevant activities that partners would want to see
+	const sociallyRelevantActivities = [
+		'WATCHLIST_ADD',
+		'WATCHLIST_UPDATE',
+		'WATCHLIST_REMOVE',
+		'WATCHLIST_RATE',
+		'MATCH_ACCEPTED',
+		'MATCH_CREATE',
+	];
+
+	return ActivityLog.findAll({
+		where: {
+			user_id: userId,
+			action: {
+				[Op.in]: sociallyRelevantActivities,
+			},
+		},
+		order: [['created_at', 'DESC']],
+		limit,
+		offset,
+		include: [
+			{
+				association: 'user',
+				attributes: ['user_id', 'username'],
+			},
+		],
+	});
+};
+
 // Export service functions with an object for backward compatibility
 export const activityService = {
 	logActivity,
 	getUserActivities,
-	getRecentActivities,
+	getPartnerActivities,
+	getRecentActivities, // Keep for backward compatibility
 	getUserActivitiesCount,
 	getMostPopularActivities,
 	getActivityTimeline,
 	getActivityStats,
 	getUserActivityPatterns,
 	getActivitiesByContext,
+	getUserSocialActivities,
 };

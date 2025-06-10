@@ -4,3 +4,4 @@ dist/
 coverage/
 *storybook.log
 storybook-static
+*.tsbuildinfo

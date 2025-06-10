@@ -10,6 +10,8 @@ jest.mock('../services/activity.service', () => ({
 	activityService: {
 		getUserActivities: jest.fn(),
 		getRecentActivities: jest.fn(),
+		getPartnerActivities: jest.fn(),
+		getUserSocialActivities: jest.fn(),
 	},
 }));
 
@@ -117,7 +119,7 @@ describe('ActivityController', () => {
 				},
 			];
 
-			(activityService.getRecentActivities as jest.Mock).mockResolvedValue(
+			(activityService.getPartnerActivities as jest.Mock).mockResolvedValue(
 				mockActivities
 			);
 
@@ -142,7 +144,7 @@ describe('ActivityController', () => {
 				res as Response
 			);
 
-			expect(activityService.getRecentActivities).toHaveBeenCalledWith(
+			expect(activityService.getPartnerActivities).toHaveBeenCalledWith(
 				'user123',
 				10,
 				0
@@ -152,7 +154,7 @@ describe('ActivityController', () => {
 		});
 
 		it('should handle errors', async () => {
-			(activityService.getRecentActivities as jest.Mock).mockRejectedValue(
+			(activityService.getPartnerActivities as jest.Mock).mockRejectedValue(
 				new Error('Database error')
 			);
 
@@ -213,10 +215,10 @@ describe('ActivityController', () => {
 				},
 			];
 
-			(activityService.getUserActivities as jest.Mock).mockResolvedValue(
+			(activityService.getUserSocialActivities as jest.Mock).mockResolvedValue(
 				userActivities
 			);
-			(activityService.getRecentActivities as jest.Mock).mockResolvedValue(
+			(activityService.getPartnerActivities as jest.Mock).mockResolvedValue(
 				partnerActivities
 			);
 
@@ -272,7 +274,7 @@ describe('ActivityController', () => {
 		});
 
 		it('should handle errors', async () => {
-			(activityService.getUserActivities as jest.Mock).mockRejectedValue(
+			(activityService.getUserSocialActivities as jest.Mock).mockRejectedValue(
 				new Error('Database error')
 			);
 

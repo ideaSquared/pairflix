@@ -75,15 +75,16 @@ PostgreSQL database with a normalized schema:
 
 ## Activity Tracking System
 
-The application implements a comprehensive activity tracking system that monitors and analyzes user behavior:
+The application implements a comprehensive activity tracking system that monitors and analyzes user behavior with sophisticated filtering for social feeds:
 
 ### Components
 
 - **ActivityLog Model**: Stores structured activity data with contextual information
 - **ActivityType Enum**: Standardized activity types for consistency across the application
-- **Activity Service**: Core service for logging and retrieving activity data
+- **Activity Service**: Core service for logging and retrieving activity data with social filtering
 - **Analytics Functions**: Advanced analytics to derive insights from user activity
 - **Admin Dashboard**: Visualization and reporting of activity patterns
+- **Social Activity Feed**: User-focused activity streams with partner matching
 
 ### Activity Tracking Flow
 
@@ -93,6 +94,7 @@ The application implements a comprehensive activity tracking system that monitor
 4. Activity is stored with context, metadata, and security information
 5. Analytics functions process activity data for insights
 6. Admin dashboard displays activity trends and patterns
+7. Social feeds provide filtered, partner-based activity streams
 
 ### Activity Categories
 
@@ -104,6 +106,37 @@ Activities are organized into contextual categories:
 - **Search**: Media searches with filters
 - **Media**: Viewing media details, trailers, etc.
 - **System**: Notification interactions, feature usage
+
+### Social Activity Filtering
+
+The activity system implements intelligent filtering for user-facing feeds:
+
+#### Social Activities (Included in User Feeds)
+
+- `WATCHLIST_ADD`, `WATCHLIST_UPDATE`, `WATCHLIST_REMOVE`, `WATCHLIST_RATE`
+- `MATCH_ACCEPTED`, `MATCH_CREATE`
+- Other socially relevant activities
+
+#### System Activities (Excluded from User Feeds)
+
+- `USER_LOGIN`, `USER_LOGOUT`, `USER_PASSWORD_CHANGE`
+- `USER_PROFILE_UPDATE`, `USER_PREFERENCES_UPDATE`
+- `MEDIA_SEARCH`, `MEDIA_VIEW`
+- Other system/privacy-related activities
+
+### Partner-Based Activity Streams
+
+The system provides three distinct activity endpoints:
+
+1. **User Activities** (`/api/activity/me`): User's own activities only
+2. **Partner Activities** (`/api/activity/partner`): Activities from accepted match partners only
+3. **Social Feed** (`/api/activity/feed`): Combined social activities from user + partners
+
+Partner filtering uses the Match model to identify accepted partnerships:
+
+- Queries for matches with `status: 'accepted'`
+- Includes activities from both `user1_id` and `user2_id` relationships
+- Maintains privacy by excluding non-matched users
 
 ### Security Tracking
 

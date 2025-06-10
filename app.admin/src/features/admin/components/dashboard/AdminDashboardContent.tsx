@@ -5,10 +5,11 @@ import {
   Grid,
   H3,
   Loading,
+  PageContainer,
   Typography,
 } from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { adminStatsService } from '../../../../services/adminStats.service';
 import { fetchWithAuth } from '../../../../services/api';
@@ -55,6 +56,7 @@ interface DashboardMetrics {
 }
 
 const AdminDashboardContent: React.FC = () => {
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,24 +166,30 @@ const AdminDashboardContent: React.FC = () => {
   };
 
   if (isLoading && !metrics) {
-    return <Loading message="Loading dashboard metrics..." />;
+    return (
+      <PageContainer>
+        <Loading message="Loading dashboard metrics..." />
+      </PageContainer>
+    );
   }
 
   if (error) {
     return (
-      <Card variant="primary" accentColor="var(--color-error)">
-        <CardContent>
-          <Typography variant="body1">{error}</Typography>
-          <Button onClick={handleRefreshStats} style={{ marginTop: '1rem' }}>
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
+      <PageContainer>
+        <Card variant="primary" accentColor="var(--color-error)">
+          <CardContent>
+            <Typography variant="body1">{error}</Typography>
+            <Button onClick={handleRefreshStats} style={{ marginTop: '1rem' }}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </PageContainer>
     );
   }
 
   return (
-    <>
+    <PageContainer>
       {metrics && (
         <>
           <StatsOverview
@@ -191,16 +199,10 @@ const AdminDashboardContent: React.FC = () => {
 
           <SectionTitle>Quick Actions</SectionTitle>
           <ActionButtons>
-            <Button
-              variant="primary"
-              onClick={() => (window.location.href = '/users')}
-            >
+            <Button variant="primary" onClick={() => navigate('/users')}>
               Manage Users
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => (window.location.href = '/activity')}
-            >
+            <Button variant="secondary" onClick={() => navigate('/activity')}>
               View Activity Logs
             </Button>
             <Button variant="secondary" onClick={handleRefreshStats}>
@@ -308,10 +310,7 @@ const AdminDashboardContent: React.FC = () => {
                 <Typography variant="body2" gutterBottom>
                   Configure system and application settings
                 </Typography>
-                <Button
-                  variant="text"
-                  onClick={() => (window.location.href = '/admin/settings')}
-                >
+                <Button variant="text" onClick={() => navigate('/settings')}>
                   Open Settings
                 </Button>
               </CardContent>
@@ -346,7 +345,7 @@ const AdminDashboardContent: React.FC = () => {
           </div>
         </>
       )}
-    </>
+    </PageContainer>
   );
 };
 
