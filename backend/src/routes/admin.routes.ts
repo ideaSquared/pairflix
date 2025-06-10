@@ -2,8 +2,11 @@ import express from 'express';
 import {
 	adminController,
 	adminLogin,
+	adminLogout,
 	clearCache,
 	getAppSettings,
+	getCurrentAdminUser,
+	refreshAdminToken,
 	updateAppSettings,
 	validateAdminToken,
 } from '../controllers/admin.controller';
@@ -22,6 +25,30 @@ router.get(
 	authenticateToken as express.RequestHandler,
 	adminOnlyMiddleware as express.RequestHandler,
 	validateAdminToken
+);
+
+// Current user endpoint
+router.get(
+	'/me',
+	authenticateToken as express.RequestHandler,
+	adminOnlyMiddleware as express.RequestHandler,
+	getCurrentAdminUser
+);
+
+// Token refresh endpoint
+router.post(
+	'/refresh-token',
+	authenticateToken as express.RequestHandler,
+	adminOnlyMiddleware as express.RequestHandler,
+	refreshAdminToken
+);
+
+// Logout endpoint
+router.post(
+	'/logout',
+	authenticateToken as express.RequestHandler,
+	adminOnlyMiddleware as express.RequestHandler,
+	adminLogout
 );
 
 // Apply auth middleware to all other admin routes

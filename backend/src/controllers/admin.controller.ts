@@ -1710,6 +1710,194 @@ export const validateAdminToken = (req: Request, res: Response) => {
 };
 
 /**
+ * Get current admin user information
+ */
+export const getCurrentAdminUser = async (req: Request, res: Response) => {
+	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'Authentication required' });
+		}
+
+		// Fetch the latest user data from database
+		const user = await User.findByPk(req.user.user_id, {
+			attributes: [
+				'user_id',
+				'email',
+				'username',
+				'role',
+				'status',
+				'last_login',
+				'created_at',
+			],
+		});
+
+		if (!user) {
+			await auditLogService.warn(
+				'Admin user not found during current user fetch',
+				'admin-controller',
+				{
+					userId: req.user.user_id,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Verify user still has admin role
+		if (user.role !== 'admin') {
+			await auditLogService.warn(
+				'User no longer has admin role',
+				'admin-controller',
+				{
+					userId: user.user_id,
+					currentRole: user.role,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(403).json({ error: 'Admin access revoked' });
+		}
+
+		// Audit log - admin user data access
+		await auditLogService.info('Admin user data accessed', 'admin-controller', {
+			userId: user.user_id,
+			email: user.email,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({
+			user_id: user.user_id,
+			email: user.email,
+			username: user.username,
+			role: user.role,
+			status: user.status,
+			last_login: user.last_login,
+			created_at: user.created_at,
+		});
+	} catch (error) {
+		console.error('Error fetching current admin user:', error);
+		await auditLogService.error(
+			'Failed to fetch current admin user',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+				timestamp: new Date(),
+			}
+		);
+		return res.status(500).json({ error: 'Failed to fetch user data' });
+	}
+};
+
+/**
+ * Refresh admin token
+ */
+export const refreshAdminToken = async (req: Request, res: Response) => {
+	try {
+		if (!req.user) {
+			return res.status(401).json({ error: 'Authentication required' });
+		}
+
+		// Verify user still exists and has admin role
+		const user = await User.findByPk(req.user.user_id);
+		if (!user) {
+			await auditLogService.warn(
+				'Admin token refresh failed - user not found',
+				'admin-controller',
+				{
+					userId: req.user.user_id,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		if (user.role !== 'admin') {
+			await auditLogService.warn(
+				'Admin token refresh failed - not an admin',
+				'admin-controller',
+				{
+					userId: user.user_id,
+					role: user.role,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(403).json({ error: 'Admin access required' });
+		}
+
+		// Create a new token with admin privileges
+		const tokenPayload = {
+			user_id: user.user_id,
+			email: user.email,
+			username: user.username,
+			role: user.role,
+		};
+
+		const newToken = jwt.sign(
+			tokenPayload,
+			process.env.JWT_SECRET ?? 'default_jwt_secret',
+			{ expiresIn: '8h' }
+		);
+
+		// Update last login time
+		user.last_login = new Date();
+		await user.save();
+
+		// Audit log - successful token refresh
+		await auditLogService.info('Admin token refreshed', 'admin-controller', {
+			userId: user.user_id,
+			email: user.email,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({
+			token: newToken,
+			user: {
+				id: user.user_id,
+				email: user.email,
+				name: user.username,
+				role: user.role,
+			},
+		});
+	} catch (error) {
+		console.error('Admin token refresh error:', error);
+		await auditLogService.error(
+			'Admin token refresh error',
+			'admin-controller',
+			{
+				userId: req.user?.user_id,
+				error: error instanceof Error ? error.message : 'Unknown error',
+				timestamp: new Date(),
+			}
+		);
+		return res.status(500).json({ error: 'Token refresh failed' });
+	}
+};
+
+/**
+ * Admin logout endpoint
+ */
+export const adminLogout = async (req: Request, res: Response) => {
+	try {
+		// Audit log - admin logout
+		await auditLogService.info('Admin logout', 'admin-controller', {
+			userId: req.user?.user_id,
+			email: req.user?.email,
+			timestamp: new Date(),
+		});
+
+		return res.status(200).json({ message: 'Logged out successfully' });
+	} catch (error) {
+		console.error('Admin logout error:', error);
+		await auditLogService.error('Admin logout error', 'admin-controller', {
+			userId: req.user?.user_id,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			timestamp: new Date(),
+		});
+		return res.status(500).json({ error: 'Logout failed' });
+	}
+};
+
+/**
  * Get all content items with filtering and pagination
  */
 export const getAllContent = async (req: Request, res: Response) => {
@@ -2049,4 +2237,8 @@ export const adminController = {
 	approveContent,
 	removeContent,
 	dismissReport,
+	// New admin user functions
+	getCurrentAdminUser,
+	refreshAdminToken,
+	adminLogout,
 };

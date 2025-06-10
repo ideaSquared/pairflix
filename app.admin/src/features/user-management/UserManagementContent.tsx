@@ -173,7 +173,7 @@ const UserManagementContent = () => {
   // Handle user status change
   const handleStatusChange = async (
     userId: string,
-    status: AdminUser['status']
+    status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned'
   ) => {
     try {
       await api.admin.users.changeStatus(userId, status);
