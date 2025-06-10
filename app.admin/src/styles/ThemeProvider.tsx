@@ -2,22 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { useAuth } from '../hooks/useAuth';
 import { GlobalStyles } from './GlobalStyles';
-import { Theme, darkTheme, lightTheme } from './theme';
+import { Theme, darkTheme } from './theme';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user, isLoading } = useAuth();
-  const [theme, setTheme] = useState<Theme>(darkTheme); // Default to dark theme
+  const [theme, setTheme] = useState<Theme>(darkTheme); // Default to dark theme for admin
 
-  // Update theme when user preferences change or auth loads
+  // Use dark theme by default for admin interface
+  // Theme can be controlled by admin settings if needed in the future
   useEffect(() => {
-    if (!isLoading) {
-      const userTheme =
-        user?.preferences?.theme === 'light' ? lightTheme : darkTheme;
-      setTheme(userTheme);
+    if (!isLoading && user) {
+      // For now, always use dark theme for admin interface
+      // In the future, this could be controlled by admin settings
+      setTheme(darkTheme);
     }
-  }, [user?.preferences?.theme, isLoading]);
+  }, [user, isLoading]);
 
   return (
     <StyledThemeProvider theme={theme}>

@@ -1,13 +1,15 @@
+import { Button } from '@pairflix/components';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Button } from '@pairflix/components';
 import { AdminUser } from '../../services/api/admin';
+
+type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending' | 'banned';
 
 interface UserActionsMenuProps {
   user: AdminUser;
   onStatusChange: (
     userId: string,
-    newStatus: AdminUser['status'],
+    newStatus: UserStatus,
     reason?: string
   ) => void;
   onDelete: (userId: string) => void;
@@ -115,7 +117,7 @@ const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
     null
   );
   const [statusReason, setStatusReason] = useState('');
-  const [newStatus, setNewStatus] = useState<AdminUser['status']>('active');
+  const [newStatus, setNewStatus] = useState<UserStatus>('active');
 
   // Close the menu if clicked outside
   React.useEffect(() => {
@@ -132,10 +134,7 @@ const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
     setIsOpen(!isOpen);
   };
 
-  const handleOpenDialog = (
-    type: 'delete' | 'status',
-    status?: AdminUser['status']
-  ) => {
+  const handleOpenDialog = (type: 'delete' | 'status', status?: UserStatus) => {
     setDialogType(type);
     if (status) setNewStatus(status);
     setDialogOpen(true);
