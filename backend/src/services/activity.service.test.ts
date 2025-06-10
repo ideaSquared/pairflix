@@ -1,4 +1,5 @@
 import { ActivityLog } from '../models/ActivityLog';
+import Match from '../models/Match';
 import { activityService, ActivityType } from './activity.service';
 
 // Mock ActivityLog model
@@ -9,17 +10,29 @@ jest.mock('../models/ActivityLog', () => ({
 	},
 }));
 
+// Mock Match model
+jest.mock('../models/Match', () => ({
+	Match: {
+		findAll: jest.fn(),
+	},
+}));
+
 // Create properly typed mock instances to avoid unbound method errors
 const mockActivityLogCreate = jest.fn();
 const mockActivityLogFindAll = jest.fn();
+const mockMatchFindAll = jest.fn();
 
-// Assign the mocks to the ActivityLog methods
+// Assign the mocks to the model methods
 (ActivityLog.create as jest.Mock) = mockActivityLogCreate;
 (ActivityLog.findAll as jest.Mock) = mockActivityLogFindAll;
+(Match.findAll as jest.Mock) = mockMatchFindAll;
 
 describe('ActivityService', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockActivityLogCreate.mockClear();
+		mockActivityLogFindAll.mockClear();
+		mockMatchFindAll.mockClear();
 	});
 
 	describe('logActivity', () => {
@@ -155,6 +168,19 @@ describe('ActivityService', () => {
 
 	describe('getPartnerActivities', () => {
 		it('should fetch activities from matched partners', async () => {
+			const mockMatches = [
+				{
+					user1_id: 'user123',
+					user2_id: 'partner456',
+					status: 'accepted',
+				},
+				{
+					user1_id: 'partner789',
+					user2_id: 'user123',
+					status: 'accepted',
+				},
+			];
+
 			const mockActivities = [
 				{
 					log_id: '123',
@@ -169,12 +195,24 @@ describe('ActivityService', () => {
 				},
 			];
 
+			mockMatchFindAll.mockResolvedValue(mockMatches);
 			mockActivityLogFindAll.mockResolvedValue(mockActivities);
 
 			const result = await activityService.getPartnerActivities(
 				'user123',
 				10,
 				0
+			);
+
+			expect(mockMatchFindAll).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({
+						or: expect.arrayContaining([
+							{ user1_id: 'user123', status: 'accepted' },
+							{ user2_id: 'user123', status: 'accepted' },
+						]),
+					}),
+				})
 			);
 
 			expect(result).toEqual(mockActivities);
