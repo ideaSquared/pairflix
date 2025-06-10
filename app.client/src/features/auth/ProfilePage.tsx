@@ -5,6 +5,7 @@ import {
   H1,
   H2,
   Input,
+  PageContainer,
   Select,
   Typography,
 } from '@pairflix/components';
@@ -12,7 +13,6 @@ import { useMutation } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import DocumentTitle from '../../components/common/DocumentTitle';
-import Layout from '../../components/layout/Layout';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../hooks/useAuth';
 import { user as userService } from '../../services/api';
@@ -394,7 +394,7 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <PageContainer maxWidth="md" padding="lg" centered>
       <DocumentTitle title="Profile Settings" />
       <ProfileContainer>
         <H1 gutterBottom>Profile Settings</H1>
@@ -593,7 +593,7 @@ const ProfilePage: React.FC = () => {
           </CardContent>
         </PreferencesCard>
       </ProfileContainer>
-    </Layout>
+    </PageContainer>
   );
 };
 

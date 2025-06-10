@@ -10,6 +10,7 @@ import {
   H3,
   Input,
   InputGroup,
+  PageContainer,
   Select,
   SelectGroup,
   Typography,
@@ -19,7 +20,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import TagFilter from '../../components/common/TagFilter';
 import TagInput from '../../components/common/TagInput';
-import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
   user as userService,
@@ -313,24 +313,24 @@ const WatchlistPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Layout isFullWidth>
+      <PageContainer maxWidth="xxl" padding="lg" centered>
         <Container fluid centered>
           <Typography>Loading your watchlist...</Typography>
         </Container>
-      </Layout>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <Layout isFullWidth>
+      <PageContainer maxWidth="xxl" padding="lg" centered>
         <Container fluid centered>
           <Typography color="error">
             Error loading watchlist:{' '}
             {error instanceof Error ? error.message : 'Unknown error'}
           </Typography>
         </Container>
-      </Layout>
+      </PageContainer>
     );
   }
 
@@ -437,7 +437,7 @@ const WatchlistPage: React.FC = () => {
 
   // Fixed mismatched JSX tags and syntax errors.
   return (
-    <Layout isFullWidth>
+    <PageContainer maxWidth="xxl" padding="lg" centered>
       <Container fluid centered>
         <H1 gutterBottom>My Watchlist</H1>
 
@@ -526,7 +526,7 @@ const WatchlistPage: React.FC = () => {
           <SearchMedia />
         )}
       </Container>
-    </Layout>
+    </PageContainer>
   );
 };
 

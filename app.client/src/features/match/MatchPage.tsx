@@ -8,6 +8,7 @@ import {
   Grid,
   H1,
   H2,
+  PageContainer,
   Select,
   SelectGroup,
   Typography,
@@ -15,7 +16,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../hooks/useAuth';
 import {
   type ContentMatch,
@@ -253,11 +253,11 @@ const MatchPage: React.FC = () => {
 
   if (isUserLoading || isContentLoading) {
     return (
-      <Layout isFullWidth>
+      <PageContainer maxWidth="xxl" padding="lg" centered>
         <Container fluid>
           <Typography>Loading...</Typography>
         </Container>
-      </Layout>
+      </PageContainer>
     );
   }
 
@@ -269,7 +269,7 @@ const MatchPage: React.FC = () => {
   );
 
   return (
-    <Layout isFullWidth>
+    <PageContainer maxWidth="xxl" padding="lg" centered>
       <Container fluid>
         <H1 gutterBottom>Matches</H1>
 
@@ -457,7 +457,7 @@ const MatchPage: React.FC = () => {
           </div>
         </MatchesGrid>
       </Container>
-    </Layout>
+    </PageContainer>
   );
 };
 

@@ -12,7 +12,13 @@ export default defineConfig({
       fileName: format => `index.${format === 'es' ? 'js' : 'cjs'}`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'styled-components'],
+      external: [
+        'react', 
+        'react-dom', 
+        'styled-components',
+        '@tanstack/react-query',
+        'react-router-dom'
+      ],
       output: [
         {
           format: 'es',
@@ -20,6 +26,8 @@ export default defineConfig({
             react: 'React',
             'react-dom': 'ReactDOM',
             'styled-components': 'styled',
+            '@tanstack/react-query': 'ReactQuery',
+            'react-router-dom': 'ReactRouterDOM',
           },
         },
         {

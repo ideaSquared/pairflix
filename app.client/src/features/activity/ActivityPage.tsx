@@ -1,9 +1,9 @@
+import { PageContainer } from '@pairflix/components';
 import React from 'react';
 import styled from 'styled-components';
-import Layout from '../../components/layout/Layout';
 import ActivityFeed from './ActivityFeed';
 
-const PageContainer = styled.div`
+const PageContent = styled.div`
   padding: 2rem 1rem;
 
   @media (max-width: 768px) {
@@ -39,8 +39,8 @@ const Description = styled.p`
 
 const ActivityPage: React.FC = () => {
   return (
-    <Layout>
-      <PageContainer>
+    <PageContainer maxWidth="lg" padding="lg" centered>
+      <PageContent>
         <PageHeader>
           <Title>Activity Feed</Title>
           <Description>
@@ -49,8 +49,8 @@ const ActivityPage: React.FC = () => {
         </PageHeader>
 
         <ActivityFeed limit={30} />
-      </PageContainer>
-    </Layout>
+      </PageContent>
+    </PageContainer>
   );
 };
 
