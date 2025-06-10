@@ -107,14 +107,28 @@ describe('WatchlistPage', () => {
     const searchInput = screen.getByPlaceholderText('Search your watchlist...');
     fireEvent.change(searchInput, { target: { value: 'Movie' } });
 
-    // Verify only matching entries are displayed
-    expect(screen.getByText('Test Movie')).toBeInTheDocument();
-    expect(screen.queryByText('Test TV Show')).not.toBeInTheDocument();
+    // Wait for debounced search to take effect (300ms debounce + extra buffer)
+    await waitFor(
+      () => {
+        expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
+
+    // Wait a bit more to ensure filtering is complete
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Test TV Show')).not.toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
 
     // Clear search to show all entries again
     fireEvent.change(searchInput, { target: { value: '' } });
-    expect(screen.getByText('Test Movie')).toBeInTheDocument();
-    expect(screen.getByText('Test TV Show')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Test Movie')).toBeInTheDocument();
+      expect(screen.getByText('Test TV Show')).toBeInTheDocument();
+    });
   });
 
   it('allows changing view style between grid and list', async () => {
@@ -192,9 +206,11 @@ describe('WatchlistPage', () => {
       screen.getByPlaceholderText('Search your watchlist...')
     ).toBeInTheDocument();
 
-    // Find and click the Add New button
-    const addNewButton = screen.getByRole('button', { name: /Add New/i });
-    fireEvent.click(addNewButton);
+    // Find and click the Add Content button
+    const addContentButton = screen.getByRole('button', {
+      name: /Add Content/i,
+    });
+    fireEvent.click(addContentButton);
 
     // Verify we're now on the search tab - search media component should be visible
     // and list search box should not be visible
