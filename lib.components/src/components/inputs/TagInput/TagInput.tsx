@@ -1,6 +1,6 @@
-import { Button } from '@pairflix/components';
 import React, { KeyboardEvent, useState } from 'react';
 import styled from 'styled-components';
+import { Button } from '../Button';
 
 const TagInputContainer = styled.div`
   display: flex;
@@ -74,18 +74,24 @@ const HelperText = styled.p`
   margin: 0.25rem 0;
 `;
 
-interface TagInputProps {
+export interface TagInputProps {
   tags: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
   maxTags?: number;
+  className?: string;
 }
 
+/**
+ * TagInput component for adding and managing tags
+ * Supports keyboard shortcuts (Enter to add) and visual tag management
+ */
 const TagInput: React.FC<TagInputProps> = ({
   tags,
   onChange,
   placeholder = 'Add a tag...',
   maxTags = 10,
+  className,
 }) => {
   const [inputValue, setInputValue] = useState('');
 
@@ -119,7 +125,7 @@ const TagInput: React.FC<TagInputProps> = ({
   };
 
   return (
-    <TagInputContainer>
+    <TagInputContainer className={className}>
       <TagInputField>
         <Input
           value={inputValue}
@@ -131,6 +137,7 @@ const TagInput: React.FC<TagInputProps> = ({
         <Button
           onClick={addTag}
           disabled={!inputValue.trim() || tags.length >= maxTags}
+          size="small"
         >
           Add
         </Button>

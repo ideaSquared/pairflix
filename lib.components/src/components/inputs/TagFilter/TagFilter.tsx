@@ -59,16 +59,26 @@ const AllButton = styled(TagFilterButton)`
   font-weight: bold;
 `;
 
-interface TagFilterProps {
+export interface TagFilterProps {
   tags: string[];
   selectedTags: string[];
   onChange: (tags: string[]) => void;
+  className?: string;
+  showAllButton?: boolean;
+  showClearButton?: boolean;
 }
 
+/**
+ * TagFilter component for filtering content by tags
+ * Supports multi-select filtering with visual feedback
+ */
 const TagFilter: React.FC<TagFilterProps> = ({
   tags,
   selectedTags,
   onChange,
+  className,
+  showAllButton = true,
+  showClearButton = true,
 }) => {
   const handleTagClick = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -83,10 +93,12 @@ const TagFilter: React.FC<TagFilterProps> = ({
   };
 
   return (
-    <FilterContainer>
-      <AllButton $active={selectedTags.length === 0} onClick={clearFilters}>
-        All
-      </AllButton>
+    <FilterContainer className={className}>
+      {showAllButton && (
+        <AllButton $active={selectedTags.length === 0} onClick={clearFilters}>
+          All
+        </AllButton>
+      )}
 
       {tags.map(tag => (
         <TagFilterButton
@@ -98,7 +110,7 @@ const TagFilter: React.FC<TagFilterProps> = ({
         </TagFilterButton>
       ))}
 
-      {selectedTags.length > 0 && (
+      {showClearButton && selectedTags.length > 0 && (
         <ClearButton onClick={clearFilters}>Clear filters</ClearButton>
       )}
     </FilterContainer>

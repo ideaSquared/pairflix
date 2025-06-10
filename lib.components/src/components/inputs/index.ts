@@ -7,4 +7,6 @@ export * from './Input';
 export * from './SearchBar';
 export * from './Select';
 export * from './Switch';
+export * from './TagFilter';
+export * from './TagInput';
 export * from './Textarea';
