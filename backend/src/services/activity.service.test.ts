@@ -98,6 +98,12 @@ describe('ActivityService', () => {
 				order: [['created_at', 'DESC']],
 				limit: 10,
 				offset: 0,
+				include: [
+					{
+						association: 'user',
+						attributes: ['user_id', 'username'],
+					},
+				],
 			});
 			expect(result).toEqual(mockActivities);
 		});
@@ -143,6 +149,62 @@ describe('ActivityService', () => {
 					},
 				],
 			});
+			expect(result).toEqual(mockActivities);
+		});
+	});
+
+	describe('getPartnerActivities', () => {
+		it('should fetch activities from matched partners', async () => {
+			const mockActivities = [
+				{
+					log_id: '123',
+					user_id: 'partner456',
+					action: ActivityType.WATCHLIST_ADD,
+					metadata: { tmdbId: 550 },
+					created_at: new Date(),
+					user: {
+						user_id: 'partner456',
+						username: 'partner',
+					},
+				},
+			];
+
+			mockActivityLogFindAll.mockResolvedValue(mockActivities);
+
+			const result = await activityService.getPartnerActivities(
+				'user123',
+				10,
+				0
+			);
+
+			expect(result).toEqual(mockActivities);
+		});
+	});
+
+	describe('getUserSocialActivities', () => {
+		it('should fetch social activities for a specific user', async () => {
+			const mockActivities = [
+				{
+					log_id: '123',
+					user_id: 'user123',
+					action: ActivityType.WATCHLIST_ADD,
+					metadata: { tmdbId: 550 },
+					created_at: new Date(),
+					user: {
+						user_id: 'user123',
+						username: 'testuser',
+					},
+				},
+			];
+
+			mockActivityLogFindAll.mockResolvedValue(mockActivities);
+
+			const result = await activityService.getUserSocialActivities(
+				'user123',
+				10,
+				0
+			);
+
 			expect(result).toEqual(mockActivities);
 		});
 	});
