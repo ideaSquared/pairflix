@@ -1,8 +1,14 @@
-import { ErrorBoundary, QueryErrorBoundary } from '@pairflix/components';
+import {
+  AppLayout,
+  ErrorBoundary,
+  QueryErrorBoundary,
+} from '@pairflix/components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import AppSessionManager from './components/common/AppSessionManager';
+import { createAdminNavigation } from './config/navigation';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { useAuth } from './hooks/useAuth';
 import AppRoutes from './routes/AppRoutes';
 import { ThemeProvider } from './styles/ThemeProvider';
 
@@ -27,6 +33,23 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppWithAuth() {
+  const { user } = useAuth();
+  const navigation = createAdminNavigation(user);
+
+  return (
+    <AppLayout
+      variant="admin"
+      navigation={navigation}
+      sidebar={{ collapsible: true }}
+    >
+      {/* SessionManager enforces session timeout settings */}
+      <AppSessionManager />
+      <AppRoutes />
+    </AppLayout>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -35,9 +58,7 @@ function App() {
           <QueryErrorBoundary>
             <SettingsProvider>
               <ThemeProvider>
-                {/* SessionManager enforces session timeout settings */}
-                <AppSessionManager />
-                <AppRoutes />
+                <AppWithAuth />
               </ThemeProvider>
             </SettingsProvider>
           </QueryErrorBoundary>

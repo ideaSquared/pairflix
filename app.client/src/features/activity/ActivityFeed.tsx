@@ -21,7 +21,7 @@ const FeedContainer = styled.div`
 const ActivityItem = styled.div`
   display: flex;
   flex-direction: column;
-  background: ${props => props.theme.colors.cardBackground};
+  background: ${props => props.theme.colors.background.card};
   border-radius: ${props => props.theme.borderRadius.md};
   padding: 1rem;
   box-shadow: ${props => props.theme.shadows.sm};
@@ -45,25 +45,25 @@ const ActivityHeader = styled.div`
 `;
 
 const ActivityTitle = styled.h3`
-  font-size: ${props => props.theme.fontSizes.md};
+  font-size: ${props => props.theme.typography.fontSize.md};
   margin: 0;
-  color: ${props => props.theme.colors.textPrimary};
+  color: ${props => props.theme.colors.text.primary};
 `;
 
 const ActivityTime = styled.span`
-  font-size: ${props => props.theme.fontSizes.sm};
-  color: ${props => props.theme.colors.textSecondary};
+  font-size: ${props => props.theme.typography.fontSize.sm};
+  color: ${props => props.theme.colors.text.secondary};
 `;
 
 const ActivityContent = styled.div`
-  font-size: ${props => props.theme.fontSizes.md};
-  color: ${props => props.theme.colors.textPrimary};
+  font-size: ${props => props.theme.typography.fontSize.md};
+  color: ${props => props.theme.colors.text.primary};
 `;
 
 const ActivityDetails = styled.div`
   margin-top: 0.5rem;
-  font-size: ${props => props.theme.fontSizes.sm};
-  color: ${props => props.theme.colors.textSecondary};
+  font-size: ${props => props.theme.typography.fontSize.sm};
+  color: ${props => props.theme.colors.text.secondary};
 `;
 
 const EmptyState = styled.div`
@@ -73,7 +73,7 @@ const EmptyState = styled.div`
   justify-content: center;
   padding: 2rem;
   text-align: center;
-  color: ${props => props.theme.colors.textSecondary};
+  color: ${props => props.theme.colors.text.secondary};
 `;
 
 const ActivityIcon = styled.span`
@@ -81,34 +81,51 @@ const ActivityIcon = styled.span`
 `;
 
 const getActivityDescription = (activity: Activity): string => {
-  switch (activity.type) {
-    case 'added':
-      return `added ${activity.contentTitle} to their watchlist`;
-    case 'updated':
-      return `changed ${activity.contentTitle} status to ${activity.details.status?.replace('_', ' ')}`;
-    case 'rated':
-      return `rated ${activity.contentTitle} ${activity.details.rating}/10`;
-    case 'completed':
-      return `finished watching ${activity.contentTitle}`;
-    case 'note':
-      return `added a note to ${activity.contentTitle}`;
+  // Map the backend activity data to user-friendly descriptions
+  const action = activity.action;
+  const metadata = activity.metadata || {};
+
+  switch (action) {
+    case 'WATCHLIST_ADD':
+      return `added ${metadata.title || 'a movie/show'} to their watchlist`;
+    case 'WATCHLIST_UPDATE':
+      return `updated ${metadata.title || 'a movie/show'} status to ${metadata.status || 'unknown'}`;
+    case 'WATCHLIST_RATE':
+      return `rated ${metadata.title || 'a movie/show'} ${metadata.rating || '?'}/10`;
+    case 'WATCHLIST_REMOVE':
+      return `removed ${metadata.title || 'a movie/show'} from their watchlist`;
+    case 'USER_LOGIN':
+      return 'logged in';
+    case 'USER_PROFILE_UPDATE':
+      return 'updated their profile';
+    case 'MATCH_CREATE':
+      return 'created a new match';
+    case 'MATCH_ACCEPTED':
+      return 'accepted a match';
     default:
-      return `updated ${activity.contentTitle}`;
+      return `performed action: ${action}`;
   }
 };
 
 const getActivityIcon = (activity: Activity): string => {
-  switch (activity.type) {
-    case 'added':
+  const action = activity.action;
+
+  switch (action) {
+    case 'WATCHLIST_ADD':
       return '➕';
-    case 'updated':
+    case 'WATCHLIST_UPDATE':
       return '🔄';
-    case 'rated':
+    case 'WATCHLIST_RATE':
       return '⭐';
-    case 'completed':
-      return '✅';
-    case 'note':
-      return '📝';
+    case 'WATCHLIST_REMOVE':
+      return '➖';
+    case 'USER_LOGIN':
+      return '🚪';
+    case 'USER_PROFILE_UPDATE':
+      return '👤';
+    case 'MATCH_CREATE':
+    case 'MATCH_ACCEPTED':
+      return '💕';
     default:
       return '👀';
   }
@@ -120,13 +137,15 @@ interface ActivityFeedProps {
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({ limit = 20 }) => {
   const {
-    data: activities,
+    data: response,
     isLoading,
     error,
   } = useQuery({
     queryKey: ['activities', limit],
     queryFn: () => api.activity.getRecent(limit),
   });
+
+  const activities = response?.activities || [];
 
   if (isLoading) {
     return <Loading />;
@@ -147,11 +166,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ limit = 20 }) => {
   return (
     <FeedContainer>
       {activities.map(activity => (
-        <ActivityItem key={activity.id}>
+        <ActivityItem key={activity.log_id}>
           <ActivityHeader>
-            <ActivityTitle>{activity.userDisplayName}</ActivityTitle>
+            <ActivityTitle>
+              {activity.user?.username || 'Unknown User'}
+            </ActivityTitle>
             <ActivityTime>
-              {formatDistanceToNow(new Date(activity.timestamp), {
+              {formatDistanceToNow(new Date(activity.created_at), {
                 addSuffix: true,
               })}
             </ActivityTime>
@@ -160,8 +181,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ limit = 20 }) => {
             <ActivityIcon>{getActivityIcon(activity)}</ActivityIcon>
             {getActivityDescription(activity)}
           </ActivityContent>
-          {activity.details.note && (
-            <ActivityDetails>"{activity.details.note}"</ActivityDetails>
+          {activity.metadata?.note && (
+            <ActivityDetails>"{activity.metadata.note}"</ActivityDetails>
           )}
         </ActivityItem>
       ))}

@@ -80,20 +80,20 @@ const CardBody = styled(CardContent)`
 const ContentTitle = styled(Typography)`
   font-weight: bold;
   margin: 0.5rem 0;
-  font-size: ${props => props.theme.fontSizes.lg};
+  font-size: ${props => props.theme.typography.fontSize.lg};
 `;
 
 const ReasonText = styled(Typography)`
   margin-top: auto;
-  color: ${props => props.theme.colors.textSecondary};
+  color: ${props => props.theme.colors.text.secondary};
   font-style: italic;
-  font-size: ${props => props.theme.fontSizes.sm};
+  font-size: ${props => props.theme.typography.fontSize.sm};
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem 1rem;
-  color: ${props => props.theme.colors.textSecondary};
+  color: ${props => props.theme.colors.text.secondary};
 `;
 
 interface RecommendationsProps {

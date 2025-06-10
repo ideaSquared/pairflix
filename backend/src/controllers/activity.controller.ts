@@ -47,9 +47,8 @@ export const getPartnerActivities = async (
 		const limit = parseInt(req.query.limit as string, 10) || 20;
 		const offset = parseInt(req.query.offset as string, 10) || 0;
 
-		// In a two-user system, getting activities from everyone except the current user
-		// will effectively get the partner's activities
-		const activities = await activityService.getRecentActivities(
+		// Get activities only from matched partners
+		const activities = await activityService.getPartnerActivities(
 			userId,
 			limit,
 			offset
@@ -75,10 +74,10 @@ export const getFeed = async (req: AuthenticatedRequest, res: Response) => {
 		const limit = parseInt(req.query.limit as string, 10) || 20;
 		const offset = parseInt(req.query.offset as string, 10) || 0;
 
-		// Get both user's and partner's activities
+		// Get both user's and partner's activities (filtered for social relevance)
 		const [userActivities, partnerActivities] = await Promise.all([
-			activityService.getUserActivities(userId, limit, offset),
-			activityService.getRecentActivities(userId, limit, offset),
+			activityService.getUserSocialActivities(userId, limit, offset),
+			activityService.getPartnerActivities(userId, limit, offset),
 		]);
 
 		// Combine and sort by creation date (newest first)

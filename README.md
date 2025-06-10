@@ -90,7 +90,7 @@ The primary user interface where users can:
 - Create and manage personal watchlists
 - Rate and review content
 - Find viewing partners with similar interests
-- View activity feeds and recommendations
+- View social activity feeds from matched partners and recommendations
 
 **Access:** http://localhost:5173
 
@@ -176,7 +176,7 @@ RESTful API server providing:
 - **Authorization**: Role-based access control (User/Admin)
 - **Input Validation**: Request validation and sanitization
 - **CORS**: Configurable CORS policies
-- **Audit Logging**: Comprehensive activity and security logging
+- **Activity Feeds**: Social activity feeds with partner-based filtering and privacy controls
 
 ## 📊 Database
 
@@ -185,7 +185,7 @@ PostgreSQL database with comprehensive schema including:
 - User management and preferences
 - Content and watchlist management
 - Matching and recommendation engine
-- Audit logging and activity tracking
+- Social activity tracking with partner-based filtering
 - Application settings and configuration
 
 See [`db-schema.md`](./db-schema.md) for detailed schema documentation.

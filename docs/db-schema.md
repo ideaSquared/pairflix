@@ -134,7 +134,7 @@ CREATE TABLE entry_tags (
 
 ### Activity Log
 
-Tracks user actions within the system with enhanced contextual data.
+Tracks user actions within the system with enhanced contextual data and social filtering support.
 
 ```sql
 CREATE TABLE activity_log (
@@ -159,6 +159,44 @@ CREATE TABLE activity_log (
 - `ip_address`: IP address from which the activity was performed (for security tracking)
 - `user_agent`: Browser/device information (for security tracking)
 - `created_at`: Timestamp when the activity occurred
+
+#### Social Activity Types:
+
+The system distinguishes between social activities (visible in user feeds) and system activities (admin-only):
+
+**Social Activities** (included in user activity feeds):
+
+- `WATCHLIST_ADD`, `WATCHLIST_UPDATE`, `WATCHLIST_REMOVE`, `WATCHLIST_RATE`
+- `MATCH_ACCEPTED`, `MATCH_CREATE`
+- Other user-facing social interactions
+
+**System Activities** (excluded from user feeds):
+
+- `USER_LOGIN`, `USER_LOGOUT`, `USER_PASSWORD_CHANGE`
+- `USER_PROFILE_UPDATE`, `USER_PREFERENCES_UPDATE`
+- `MEDIA_SEARCH`, `MEDIA_VIEW`
+- Administrative and privacy-sensitive activities
+
+#### Partner Activity Queries:
+
+The activity system supports partner-based filtering through the Match model:
+
+```sql
+-- Get activities from accepted match partners
+SELECT al.* FROM activity_log al
+JOIN users u ON al.user_id = u.user_id
+WHERE al.user_id IN (
+  SELECT CASE
+    WHEN m.user1_id = $currentUserId THEN m.user2_id
+    WHEN m.user2_id = $currentUserId THEN m.user1_id
+  END as partner_id
+  FROM matches m
+  WHERE (m.user1_id = $currentUserId OR m.user2_id = $currentUserId)
+  AND m.status = 'accepted'
+)
+AND al.action IN ('WATCHLIST_ADD', 'WATCHLIST_UPDATE', 'WATCHLIST_REMOVE', 'WATCHLIST_RATE', 'MATCH_ACCEPTED', 'MATCH_CREATE')
+ORDER BY al.created_at DESC
+```
 
 ### AppSettings
 

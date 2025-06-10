@@ -8,9 +8,6 @@ import { useAuth } from '../hooks/useAuth';
 const AdminDashboard = React.lazy(
   () => import('../features/admin/components/dashboard/AdminDashboardContent')
 );
-const AdminLayout = React.lazy(
-  () => import('../features/admin/components/AdminLayout')
-);
 const UserManagementContent = React.lazy(
   () => import('../features/user-management/UserManagementContent')
 );
@@ -67,17 +64,36 @@ const AppRoutes: React.FC = () => {
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Admin routes - all nested under the AdminLayout */}
-        <Route path="/" element={<AdminRoute element={<AdminLayout />} />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<UserManagementContent />} />
-          <Route path="content" element={<ContentModeration />} />
-          <Route path="monitoring" element={<SystemMonitoring />} />
-          <Route path="activity" element={<ActivityManagement />} />
-          <Route path="logs" element={<AuditLogContent />} />
-          <Route path="stats" element={<SystemStatsContent />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
+        {/* Admin routes - now directly rendered since AppLayout provides the layout */}
+        <Route index element={<AdminRoute element={<AdminDashboard />} />} />
+        <Route
+          path="/users"
+          element={<AdminRoute element={<UserManagementContent />} />}
+        />
+        <Route
+          path="/content"
+          element={<AdminRoute element={<ContentModeration />} />}
+        />
+        <Route
+          path="/monitoring"
+          element={<AdminRoute element={<SystemMonitoring />} />}
+        />
+        <Route
+          path="/activity"
+          element={<AdminRoute element={<ActivityManagement />} />}
+        />
+        <Route
+          path="/logs"
+          element={<AdminRoute element={<AuditLogContent />} />}
+        />
+        <Route
+          path="/stats"
+          element={<AdminRoute element={<SystemStatsContent />} />}
+        />
+        <Route
+          path="/settings"
+          element={<AdminRoute element={<AdminSettings />} />}
+        />
 
         {/* Redirect all other routes to admin dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />

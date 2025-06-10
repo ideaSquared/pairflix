@@ -17,23 +17,23 @@ const PageHeader = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: ${props => props.theme.fontSizes.xl};
-  color: ${props => props.theme.colors.textPrimary};
+  font-size: ${props => props.theme.typography.fontSize.xl};
+  color: ${props => props.theme.colors.text.primary};
   margin-bottom: 0.5rem;
 
   @media (max-width: 768px) {
-    font-size: ${props => props.theme.fontSizes.lg};
+    font-size: ${props => props.theme.typography.fontSize.lg};
   }
 `;
 
 const Description = styled.p`
-  font-size: ${props => props.theme.fontSizes.md};
-  color: ${props => props.theme.colors.textSecondary};
+  font-size: ${props => props.theme.typography.fontSize.md};
+  color: ${props => props.theme.colors.text.secondary};
   max-width: 600px;
   margin: 0 auto;
 
   @media (max-width: 768px) {
-    font-size: ${props => props.theme.fontSizes.sm};
+    font-size: ${props => props.theme.typography.fontSize.sm};
   }
 `;
 

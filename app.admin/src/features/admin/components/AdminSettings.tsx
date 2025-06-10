@@ -177,6 +177,13 @@ const AdminSettings: React.FC = () => {
     setActiveTab(tabId);
   };
 
+  const handleCancelSettings = () => {
+    // Reset local settings to original settings from context
+    setLocalSettings(settings);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
   if (isLoading) {
     return <Loading message="Loading application settings..." />;
   }
@@ -837,7 +844,7 @@ const AdminSettings: React.FC = () => {
 
       <SubmitButtonContainer>
         <Flex justifyContent="flex-end" gap="md">
-          <Button variant="secondary" onClick={() => window.location.reload()}>
+          <Button variant="secondary" onClick={handleCancelSettings}>
             Cancel
           </Button>
           <Button

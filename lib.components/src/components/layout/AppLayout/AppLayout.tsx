@@ -1,4 +1,5 @@
 import React, { ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { Container } from '../components/Container';
 import { Flex } from '../components/Flex';
@@ -81,7 +82,10 @@ const AdminLayoutContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.background.primary};
 `;
 
-const HeaderContainer = styled.header<{ variant: 'client' | 'admin'; hasSidebar?: boolean }>`
+const HeaderContainer = styled.header<{
+  variant: 'client' | 'admin';
+  hasSidebar?: boolean;
+}>`
   background-color: ${({ theme }) => theme.colors.background.secondary};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   position: sticky;
@@ -102,8 +106,14 @@ const HeaderContainer = styled.header<{ variant: 'client' | 'admin'; hasSidebar?
     `}
 `;
 
-const SidebarContainer = styled.aside<{ collapsed?: boolean; persistent?: boolean }>`
-  width: ${({ collapsed }) => (collapsed ? layoutTokens.sidebar.collapsedWidth : layoutTokens.sidebar.width)};
+const SidebarContainer = styled.aside<{
+  collapsed?: boolean;
+  persistent?: boolean;
+}>`
+  width: ${({ collapsed }) =>
+    collapsed
+      ? layoutTokens.sidebar.collapsedWidth
+      : layoutTokens.sidebar.width};
   background-color: ${({ theme }) => theme.colors.background.secondary};
   border-right: 1px solid ${({ theme }) => theme.colors.border};
   position: fixed;
@@ -116,12 +126,17 @@ const SidebarContainer = styled.aside<{ collapsed?: boolean; persistent?: boolea
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
 
   @media ${media.mobile} {
-    transform: ${({ persistent }) => (persistent ? 'translateX(0)' : 'translateX(-100%)')};
+    transform: ${({ persistent }) =>
+      persistent ? 'translateX(0)' : 'translateX(-100%)'};
     width: ${layoutTokens.sidebar.width};
   }
 `;
 
-const MainContent = styled.main<{ variant: 'client' | 'admin'; hasSidebar?: boolean; fullWidth?: boolean }>`
+const MainContent = styled.main<{
+  variant: 'client' | 'admin';
+  hasSidebar?: boolean;
+  fullWidth?: boolean;
+}>`
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -173,7 +188,9 @@ const MobileOverlay = styled.div<{ visible: boolean }>`
   z-index: ${layoutTokens.sidebar.zIndex - 1};
   opacity: ${({ visible }) => (visible ? 1 : 0)};
   visibility: ${({ visible }) => (visible ? 'visible' : 'hidden')};
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 
   @media ${media.desktop} {
     display: none;
@@ -181,21 +198,25 @@ const MobileOverlay = styled.div<{ visible: boolean }>`
 `;
 
 // Sub-components
-const TopNavigation: React.FC<{ navigation: NavigationConfig; onMenuToggle?: () => void }> = ({
-  navigation,
-  onMenuToggle,
-}) => (
+const TopNavigation: React.FC<{
+  navigation: NavigationConfig;
+  onMenuToggle?: () => void;
+}> = ({ navigation, onMenuToggle }) => (
   <Container>
-    <Flex alignItems="center" justifyContent="space-between" style={{ height: layoutTokens.header.height }}>
+    <Flex
+      alignItems="center"
+      justifyContent="space-between"
+      style={{ height: layoutTokens.header.height }}
+    >
       <Flex alignItems="center" gap="md">
         {navigation.logo}
         <nav>
           <Flex gap="md" alignItems="center">
             {navigation.sections.flatMap(section =>
               section.items.map(item => (
-                <a
+                <Link
                   key={item.key}
-                  href={item.path}
+                  to={item.path}
                   style={{
                     textDecoration: 'none',
                     color: 'inherit',
@@ -204,9 +225,11 @@ const TopNavigation: React.FC<{ navigation: NavigationConfig; onMenuToggle?: () 
                     transition: 'background-color 0.2s ease',
                   }}
                 >
-                  {item.icon && <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>}
+                  {item.icon && (
+                    <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>
+                  )}
                   {item.label}
-                </a>
+                </Link>
               ))
             )}
           </Flex>
@@ -247,7 +270,12 @@ const SidebarNavigation: React.FC<{
 }> = ({ navigation, collapsed, onToggleCollapse }) => (
   <div style={{ padding: '1rem' }}>
     {navigation.logo && (
-      <div style={{ marginBottom: '2rem', textAlign: collapsed ? 'center' : 'left' }}>
+      <div
+        style={{
+          marginBottom: '2rem',
+          textAlign: collapsed ? 'center' : 'left',
+        }}
+      >
         {navigation.logo}
       </div>
     )}
@@ -270,9 +298,9 @@ const SidebarNavigation: React.FC<{
             </div>
           )}
           {section.items.map(item => (
-            <a
+            <Link
               key={item.key}
-              href={item.path}
+              to={item.path}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -285,7 +313,12 @@ const SidebarNavigation: React.FC<{
               }}
             >
               {item.icon && (
-                <span style={{ marginRight: collapsed ? '0' : '0.75rem', fontSize: '1rem' }}>
+                <span
+                  style={{
+                    marginRight: collapsed ? '0' : '0.75rem',
+                    fontSize: '1rem',
+                  }}
+                >
                   {item.icon}
                 </span>
               )}
@@ -306,7 +339,7 @@ const SidebarNavigation: React.FC<{
                   )}
                 </>
               )}
-            </a>
+            </Link>
           ))}
         </div>
       ))}
@@ -334,19 +367,19 @@ const SidebarNavigation: React.FC<{
 
 /**
  * AppLayout - Unified layout component for both client and admin applications
- * 
+ *
  * Features:
  * - Configurable navigation patterns (top bar vs sidebar)
  * - Responsive behavior with mobile-first approach
  * - Theme integration and consistent styling
  * - Accessibility features built-in
- * 
+ *
  * @example
  * // Client Application
  * <AppLayout variant="client" navigation={clientNavConfig}>
  *   <Routes>...</Routes>
  * </AppLayout>
- * 
+ *
  * // Admin Application
  * <AppLayout variant="admin" navigation={adminNavConfig} sidebar={sidebarConfig}>
  *   <Routes>...</Routes>
@@ -362,11 +395,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   fullWidth = false,
   className,
 }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(sidebar?.defaultCollapsed ?? false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    sidebar?.defaultCollapsed ?? false
+  );
   const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
 
   const toggleSidebar = () => setSidebarCollapsed(!sidebarCollapsed);
-  const toggleMobileSidebar = () => setMobileSidebarVisible(!mobileSidebarVisible);
+  const toggleMobileSidebar = () =>
+    setMobileSidebarVisible(!mobileSidebarVisible);
 
   const hasNavigation = navigation && navigation.sections.length > 0;
   const hasSidebar = variant === 'admin' && hasNavigation;
@@ -383,7 +419,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               <SidebarNavigation
                 navigation={navigation!}
                 collapsed={sidebarCollapsed}
-                onToggleCollapse={sidebar?.collapsible ? toggleSidebar : undefined}
+                onToggleCollapse={
+                  sidebar?.collapsible ? toggleSidebar : undefined
+                }
               />
             </SidebarContainer>
             <MobileOverlay
@@ -408,7 +446,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </HeaderContainer>
         )}
 
-        <MainContent variant="admin" hasSidebar={hasSidebar} fullWidth={fullWidth}>
+        <MainContent
+          variant="admin"
+          hasSidebar={hasSidebar}
+          fullWidth={fullWidth}
+        >
           {fullWidth ? children : <Container>{children}</Container>}
         </MainContent>
 
@@ -426,7 +468,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <AppLayoutContainer className={className}>
       {hasNavigation && (
         <HeaderContainer variant="client">
-          <TopNavigation navigation={navigation!} onMenuToggle={toggleMobileSidebar} />
+          <TopNavigation
+            navigation={navigation!}
+            onMenuToggle={toggleMobileSidebar}
+          />
         </HeaderContainer>
       )}
 
@@ -443,4 +488,4 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   );
 };
 
-export default AppLayout; 
+export default AppLayout;

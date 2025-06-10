@@ -1110,6 +1110,121 @@ Deletes a watchlist entry.
 
 **Response: 204 No Content**
 
+## Activity Feed Endpoints
+
+### User Activity Feed
+
+#### GET /api/activity/me
+
+Returns the authenticated user's activity feed.
+
+**Response: 200 OK**
+
+```json
+{
+  "activities": [
+    {
+      "log_id": "123e4567-e89b-12d3-a456-426614174000",
+      "user_id": "123e4567-e89b-12d3-a456-426614174000",
+      "action": "WATCHLIST_ADD",
+      "context": "watchlist",
+      "metadata": {
+        "mediaId": 12345,
+        "mediaType": "movie",
+        "title": "The Matrix"
+      },
+      "created_at": "2023-01-02T00:00:00.000Z",
+      "user": {
+        "user_id": "123e4567-e89b-12d3-a456-426614174000",
+        "username": "johndoe"
+      }
+    }
+  ]
+}
+```
+
+#### GET /api/activity/partner
+
+Returns activity from matched partners only.
+
+**Response: 200 OK**
+
+```json
+{
+  "activities": [
+    {
+      "log_id": "123e4567-e89b-12d3-a456-426614174000",
+      "user_id": "456e7890-e89b-12d3-a456-426614174000",
+      "action": "WATCHLIST_RATE",
+      "context": "watchlist",
+      "metadata": {
+        "mediaId": 12345,
+        "mediaType": "movie",
+        "title": "The Matrix",
+        "rating": 5
+      },
+      "created_at": "2023-01-02T00:00:00.000Z",
+      "user": {
+        "user_id": "456e7890-e89b-12d3-a456-426614174000",
+        "username": "janedoe"
+      }
+    }
+  ]
+}
+```
+
+#### GET /api/activity/feed
+
+Returns a social activity feed containing user's activities and matched partners' activities. Only includes socially relevant activities (excludes login events, searches, password changes, etc.).
+
+**Response: 200 OK**
+
+```json
+{
+  "activities": [
+    {
+      "log_id": "123e4567-e89b-12d3-a456-426614174000",
+      "user_id": "123e4567-e89b-12d3-a456-426614174000",
+      "action": "WATCHLIST_ADD",
+      "context": "watchlist",
+      "metadata": {
+        "mediaId": 12345,
+        "mediaType": "movie",
+        "title": "The Matrix"
+      },
+      "created_at": "2023-01-02T00:00:00.000Z",
+      "user": {
+        "user_id": "123e4567-e89b-12d3-a456-426614174000",
+        "username": "johndoe"
+      }
+    },
+    {
+      "log_id": "456e7890-e89b-12d3-a456-426614174000",
+      "user_id": "456e7890-e89b-12d3-a456-426614174000",
+      "action": "MATCH_ACCEPTED",
+      "context": "match",
+      "metadata": {
+        "partnerId": "123e4567-e89b-12d3-a456-426614174000",
+        "partnerUsername": "johndoe"
+      },
+      "created_at": "2023-01-01T00:00:00.000Z",
+      "user": {
+        "user_id": "456e7890-e89b-12d3-a456-426614174000",
+        "username": "janedoe"
+      }
+    }
+  ]
+}
+```
+
+**Note:** The activity feed filters to show only social activities including:
+
+- Watchlist actions (add, update, remove, rate)
+- Match activities (create, accept)
+- Other socially relevant activities
+
+System activities like login events, searches, password changes, and profile updates are excluded from the social feed.
+
 ## Search Endpoints
 
 #### GET /api/search/media

@@ -25,7 +25,7 @@ The PairFlix client application provides users with an intuitive interface to di
 ### Social Features
 
 - **Find Partners**: Discover users with similar viewing interests
-- **Activity Feeds**: See what friends and matches are watching
+- **Social Activity Feeds**: See what matched partners are watching with privacy-focused filtering
 - **Recommendations**: Get personalized content recommendations
 - **User Profiles**: Manage personal profiles and preferences
 
@@ -134,7 +134,7 @@ app.client/
 
 - Watchlist management
 - User profile and preferences
-- Social features (matching, activity feeds)
+- Social features (matching, filtered activity feeds with partner privacy)
 - User-specific content and recommendations
 
 ## 🌐 API Integration
@@ -146,7 +146,7 @@ The client communicates with the PairFlix backend API for:
 - User authentication and management
 - Watchlist operations
 - Social features and matching
-- Activity tracking and feeds
+- Social activity tracking with partner-based filtering
 
 ### TMDB Integration
 

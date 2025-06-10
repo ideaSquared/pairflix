@@ -2,7 +2,6 @@ import UserManagementContent from '../user-management/UserManagementContent';
 import AuditLogContent from './components/activity/AuditLogContent';
 import UserActivityContent from './components/activity/UserActivityContent';
 import ActivityManagement from './components/ActivityManagement';
-import AdminLayout from './components/AdminLayout';
 import AdminSettings from './components/AdminSettings';
 import ContentModeration from './components/content/ContentModerationContent';
 import AdminDashboard from './components/dashboard/AdminDashboardContent';
@@ -18,7 +17,6 @@ import StatsOverview from './components/shared/StatsOverview';
 export {
   ActivityManagement,
   AdminDashboard,
-  AdminLayout,
   AdminSettings,
   AuditLogContent,
   ContentManagement,

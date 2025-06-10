@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
   CompactPagination,
+  PageContainer,
 } from '@pairflix/components';
 import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -60,12 +61,6 @@ interface PaginationInfo {
   offset: number;
   hasMore: boolean;
 }
-
-const PageContainer = styled.div`
-  height: 100%;
-  width: 100%;
-  padding: 16px;
-`;
 
 const PageHeader = styled.div`
   display: flex;
