@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@pairflix/components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -165,6 +165,281 @@ const Tag = styled.span`
   font-size: ${({ theme }) => theme.typography?.fontSize?.sm || '0.875rem'};
 `;
 
+// Performance hooks for optimization
+const useDebounced = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Virtual scrolling configuration
+const VIRTUAL_ITEM_HEIGHT = 400; // Approximate height of each item
+const VIRTUAL_CONTAINER_HEIGHT = 600; // Height of the visible area
+const VIRTUALIZATION_THRESHOLD = 50; // Enable virtualization for lists with 50+ items
+
+// Memoized tag extraction function
+const extractAllTags = (entries: WatchlistEntry[]): string[] => {
+  const tags = new Set<string>();
+  entries.forEach((entry: WatchlistEntry) => {
+    if (entry.tags && Array.isArray(entry.tags)) {
+      entry.tags.forEach((tag: string) => tags.add(tag));
+    }
+  });
+  return Array.from(tags).sort();
+};
+
+// Memoized filtering function with performance optimizations
+const filterEntries = (
+  entries: WatchlistEntry[],
+  searchQuery: string,
+  selectedTags: string[]
+): WatchlistEntry[] => {
+  // Early return for no filters
+  if (!searchQuery && selectedTags.length === 0) {
+    return [...entries].sort((a, b) =>
+      (a.title || '').localeCompare(b.title || '')
+    );
+  }
+
+  const lowerSearchQuery = searchQuery.toLowerCase();
+
+  const filtered = entries.filter((entry: unknown): entry is WatchlistEntry => {
+    if (!entry || typeof entry !== 'object') return false;
+
+    const castEntry = entry as Partial<WatchlistEntry>;
+    if (!castEntry.entry_id || !castEntry.title) {
+      console.warn('Invalid entry found:', entry);
+      return false;
+    }
+
+    // Search query filter - use pre-lowercased query for better performance
+    const matchesSearch =
+      searchQuery === '' ||
+      castEntry.title.toLowerCase().includes(lowerSearchQuery);
+
+    // Tags filter - optimized with early returns
+    const matchesTags =
+      selectedTags.length === 0 ||
+      (castEntry.tags &&
+        selectedTags.some(tag => castEntry.tags?.includes(tag)));
+
+    return matchesSearch && !!matchesTags;
+  });
+
+  // Apply stable sort by title to maintain consistent order
+  return [...filtered].sort((a, b) =>
+    (a.title || '').localeCompare(b.title || '')
+  );
+};
+
+// Virtual scrolling container
+const VirtualizedContainer = styled.div<{ height: number }>`
+  height: ${props => props.height}px;
+  overflow: auto;
+  position: relative;
+`;
+
+const VirtualizedContent = styled.div<{ height: number }>`
+  height: ${props => props.height}px;
+  position: relative;
+`;
+
+// Simple virtualization hook
+const useSimpleVirtualization = <T,>(
+  items: T[],
+  itemHeight: number,
+  containerHeight: number,
+  scrollTop: number
+) => {
+  return useMemo(() => {
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      startIndex + Math.ceil(containerHeight / itemHeight) + 5, // 5 item buffer
+      items.length - 1
+    );
+
+    const visibleItems = [];
+    for (let i = Math.max(0, startIndex - 5); i <= endIndex; i++) {
+      if (items[i]) {
+        visibleItems.push({
+          item: items[i],
+          index: i,
+          top: i * itemHeight,
+        });
+      }
+    }
+
+    return {
+      visibleItems,
+      totalHeight: items.length * itemHeight,
+    };
+  }, [items, itemHeight, containerHeight, scrollTop]);
+};
+
+// Memoized individual watchlist item component
+interface WatchlistItemProps {
+  entry: WatchlistEntry;
+  viewStyle: 'grid' | 'list';
+  isEditingTags: string | null;
+  onStatusChange: (entryId: string, status: WatchlistEntry['status']) => void;
+  onTagsChange: (entryId: string, tags: string[]) => void;
+  onEditTags: (entryId: string | null) => void;
+  style?: React.CSSProperties;
+}
+
+const WatchlistItem = React.memo<WatchlistItemProps>(
+  ({
+    entry,
+    viewStyle,
+    isEditingTags,
+    onStatusChange,
+    onTagsChange,
+    onEditTags,
+    style,
+  }) => {
+    const handleStatusChange = useCallback(
+      (e: React.ChangeEvent<HTMLSelectElement>) => {
+        onStatusChange(
+          entry.entry_id,
+          e.target.value as WatchlistEntry['status']
+        );
+      },
+      [entry.entry_id, onStatusChange]
+    );
+
+    const handleTagsChange = useCallback(
+      (tags: string[]) => {
+        onTagsChange(entry.entry_id, tags);
+      },
+      [entry.entry_id, onTagsChange]
+    );
+
+    const handleEditTagsClick = useCallback(() => {
+      onEditTags(entry.entry_id);
+    }, [entry.entry_id, onEditTags]);
+
+    const handleDoneEditing = useCallback(() => {
+      onEditTags(null);
+    }, [onEditTags]);
+
+    const commonContent = useMemo(
+      () => (
+        <>
+          <H3 gutterBottom>
+            <Badge variant="primary">
+              {entry.media_type === 'tv' ? 'TV Series' : 'Movie'}
+            </Badge>{' '}
+            {entry.title}
+          </H3>
+          <SelectGroup $isFullWidth>
+            <Select
+              value={entry.status}
+              onChange={handleStatusChange}
+              isFullWidth
+            >
+              <option value="to_watch">To Watch</option>
+              <option value="watch_together_focused">
+                Watch together (focused)
+              </option>
+              <option value="watch_together_background">
+                Watch together (background)
+              </option>
+              <option value="watching">Watching</option>
+              <option value="finished">Finished</option>
+            </Select>
+          </SelectGroup>
+          {entry.notes && (
+            <Typography variant="body2" gutterBottom>
+              Notes: {entry.notes}
+            </Typography>
+          )}
+          <TagsSection>
+            {isEditingTags === entry.entry_id ? (
+              <>
+                <Typography variant="body2" gutterBottom>
+                  Manage Tags:
+                </Typography>
+                <TagInput
+                  tags={entry.tags || []}
+                  onChange={handleTagsChange}
+                  placeholder="Add tags..."
+                />
+                <Button
+                  onClick={handleDoneEditing}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  Done
+                </Button>
+              </>
+            ) : (
+              <>
+                <Flex justifyContent="space-between" alignItems="center">
+                  <Typography variant="body2">Tags:</Typography>
+                  <Button variant="text" onClick={handleEditTagsClick}>
+                    Edit Tags
+                  </Button>
+                </Flex>
+                <TagsContainer>
+                  {entry.tags && entry.tags.length > 0 ? (
+                    entry.tags.map((tag, idx) => <Tag key={idx}>{tag}</Tag>)
+                  ) : (
+                    <Typography variant="caption">No tags added</Typography>
+                  )}
+                </TagsContainer>
+              </>
+            )}
+          </TagsSection>
+        </>
+      ),
+      [
+        entry.media_type,
+        entry.title,
+        entry.status,
+        entry.notes,
+        entry.tags,
+        entry.entry_id,
+        isEditingTags,
+        handleStatusChange,
+        handleTagsChange,
+        handleEditTagsClick,
+        handleDoneEditing,
+      ]
+    );
+
+    const itemContent =
+      viewStyle === 'grid' ? (
+        <WatchlistCard
+          status={entry.status}
+          data-testid={`movie-item-${entry.entry_id}`}
+        >
+          <RelativeCard>{commonContent}</RelativeCard>
+        </WatchlistCard>
+      ) : (
+        <ListViewItem
+          status={entry.status}
+          data-testid={`movie-item-${entry.entry_id}`}
+        >
+          <RelativeCard>{commonContent}</RelativeCard>
+        </ListViewItem>
+      );
+
+    // Wrap in positioned container if style is provided (for virtualization)
+    return style ? <div style={style}>{itemContent}</div> : itemContent;
+  }
+);
+
+WatchlistItem.displayName = 'WatchlistItem';
+
 const WatchlistPage: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -175,6 +450,10 @@ const WatchlistPage: React.FC = () => {
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isEditingTags, setIsEditingTags] = useState<string | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+
+  // Debounce search query for better performance
+  const debouncedSearchQuery = useDebounced(searchQuery, 300);
 
   const preferenceMutation = useMutation<
     PreferenceResponse,
@@ -190,6 +469,16 @@ const WatchlistPage: React.FC = () => {
       }
     },
   });
+
+  const updateMutation = useMutation(
+    ({ id, updates }: { id: string; updates: Partial<WatchlistEntry> }) =>
+      watchlist.update(id, updates),
+    {
+      onSuccess: () => {
+        void queryClient.invalidateQueries(['watchlist']);
+      },
+    }
+  );
 
   // Update useEffect to sync with user preferences
   useEffect(() => {
@@ -207,109 +496,90 @@ const WatchlistPage: React.FC = () => {
     staleTime: 30000,
   });
 
-  const updateMutation = useMutation(
-    ({ id, updates }: { id: string; updates: Partial<WatchlistEntry> }) =>
-      watchlist.update(id, updates),
-    {
-      onMutate: async ({ id, updates }) => {
-        await queryClient.cancelQueries(['watchlist']);
-        const previousEntries = queryClient.getQueryData<WatchlistEntry[]>([
-          'watchlist',
-        ]);
-
-        queryClient.setQueryData<WatchlistEntry[]>(['watchlist'], old => {
-          if (!old) return [];
-          return old.map(entry =>
-            entry.entry_id === id ? { ...entry, ...updates } : entry
-          );
-        });
-
-        return { previousEntries };
-      },
-      onError: (_err, _vars, context) => {
-        if (context?.previousEntries) {
-          queryClient.setQueryData(['watchlist'], context.previousEntries);
-        }
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(['watchlist']);
-      },
-    }
+  // Memoized callbacks for better performance
+  const handleStatusChange = useCallback(
+    (entryId: string, status: WatchlistEntry['status']) => {
+      updateMutation.mutate({ id: entryId, updates: { status } });
+    },
+    [updateMutation]
   );
 
-  const handleStatusChange = (
-    entryId: string,
-    status: WatchlistEntry['status']
-  ) => {
-    updateMutation.mutate({ id: entryId, updates: { status } });
-  };
-
-  const handleTagsChange = (entryId: string, tags: string[]) => {
-    try {
-      // Properly format the tags before sending to the API
-      updateMutation.mutate({
-        id: entryId,
-        updates: {
-          tags: tags.length > 0 ? tags : [], // Ensure we always send an array, even if empty
-        },
-      });
-      setIsEditingTags(null); // Close tag editor after saving
-    } catch (error) {
-      console.error('Error updating tags:', error);
-      // Keep the tag editor open if there was an error
-    }
-  };
-
-  const handleViewStyleChange = (newViewStyle: 'grid' | 'list') => {
-    setViewStyle(newViewStyle); // Update local state immediately
-    preferenceMutation.mutate(newViewStyle); // Update server-side preference
-  };
-
-  // Extract all unique tags from entries
-  const allTags = useMemo(() => {
-    const tags = new Set<string>();
-    entries.forEach((entry: WatchlistEntry) => {
-      if (entry.tags && Array.isArray(entry.tags)) {
-        entry.tags.forEach((tag: string) => tags.add(tag));
+  const handleTagsChange = useCallback(
+    (entryId: string, tags: string[]) => {
+      try {
+        updateMutation.mutate({
+          id: entryId,
+          updates: {
+            tags: tags.length > 0 ? tags : [],
+          },
+        });
+        setIsEditingTags(null);
+      } catch (error) {
+        console.error('Error updating tags:', error);
       }
-    });
-    return Array.from(tags).sort();
-  }, [entries]);
+    },
+    [updateMutation]
+  );
 
-  // Enhanced filtering to include tag filtering with stable sort order
-  const filteredEntries = useMemo(() => {
-    const filtered = entries.filter(
-      (entry: unknown): entry is WatchlistEntry => {
-        if (!entry || typeof entry !== 'object') return false;
+  const handleViewStyleChange = useCallback(
+    (newViewStyle: 'grid' | 'list') => {
+      setViewStyle(newViewStyle);
+      preferenceMutation.mutate(newViewStyle);
+    },
+    [preferenceMutation]
+  );
 
-        const castEntry = entry as Partial<WatchlistEntry>;
-        if (!castEntry.entry_id || !castEntry.title) {
-          console.warn('Invalid entry found:', entry);
-          return false;
-        }
+  const handleEditTags = useCallback((entryId: string | null) => {
+    setIsEditingTags(entryId);
+  }, []);
 
-        // First filter by search query
-        const matchesSearch = castEntry.title
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(event.currentTarget.scrollTop);
+  }, []);
 
-        // Then filter by selected tags
-        const matchesTags =
-          selectedTags.length === 0 ||
-          (castEntry.tags &&
-            selectedTags.some(tag => castEntry.tags?.includes(tag)));
+  // Memoized computations
+  const allTags = useMemo(() => extractAllTags(entries), [entries]);
 
-        return matchesSearch && !!matchesTags;
+  const filteredEntries = useMemo(
+    () => filterEntries(entries, debouncedSearchQuery, selectedTags),
+    [entries, debouncedSearchQuery, selectedTags]
+  );
+
+  // Virtual scrolling logic for large lists
+  const shouldVirtualize = filteredEntries.length > VIRTUALIZATION_THRESHOLD;
+  const virtualization = useSimpleVirtualization(
+    filteredEntries,
+    VIRTUAL_ITEM_HEIGHT,
+    VIRTUAL_CONTAINER_HEIGHT,
+    scrollTop
+  );
+
+  // Memoized render function for items
+  const renderWatchlistItem = useCallback(
+    (entry: WatchlistEntry, virtualProps?: { style: React.CSSProperties }) => {
+      const props: WatchlistItemProps = {
+        entry,
+        viewStyle,
+        isEditingTags,
+        onStatusChange: handleStatusChange,
+        onTagsChange: handleTagsChange,
+        onEditTags: handleEditTags,
+      };
+
+      if (virtualProps?.style) {
+        props.style = virtualProps.style;
       }
-    );
 
-    // Apply a stable sort to maintain consistent order regardless of status changes
-    // Sort by entry_id to ensure stable positioning
-    return [...filtered].sort((a, b) => {
-      // First sort by title alphabetically
-      return a.title.localeCompare(b.title);
-    });
-  }, [entries, searchQuery, selectedTags]);
+      return <WatchlistItem key={entry.entry_id} {...props} />;
+    },
+    [
+      viewStyle,
+      isEditingTags,
+      handleStatusChange,
+      handleTagsChange,
+      handleEditTags,
+    ]
+  );
 
   if (isLoading) {
     return (
@@ -334,108 +604,44 @@ const WatchlistPage: React.FC = () => {
     );
   }
 
-  const renderWatchlistItem = (entry: WatchlistEntry) => {
-    const commonContent = (
-      <>
-        <H3 gutterBottom>
-          <Badge variant="primary">
-            {entry.media_type === 'tv' ? 'TV Series' : 'Movie'}
-          </Badge>{' '}
-          {entry.title}
-        </H3>
-        {/* {entry.tmdb_status && (
-					<MediaStatus>Status: {entry.tmdb_status}</MediaStatus>
-				)} */}{' '}
-        <SelectGroup $isFullWidth>
-          <Select
-            value={entry.status}
-            onChange={e =>
-              handleStatusChange(
-                entry.entry_id,
-                e.target.value as WatchlistEntry['status']
-              )
-            }
-            isFullWidth
-          >
-            <option value="to_watch">To Watch</option>
-            <option value="watch_together_focused">
-              Watch together (focused)
-            </option>
-            <option value="watch_together_background">
-              Watch together (background)
-            </option>
-            <option value="watching">Watching</option>
-            <option value="finished">Finished</option>
-          </Select>
-        </SelectGroup>
-        {entry.notes && (
-          <Typography variant="body2" gutterBottom>
-            Notes: {entry.notes}
-          </Typography>
-        )}
-        {/* Tags display and management */}
-        <TagsSection>
-          {isEditingTags === entry.entry_id ? (
-            <>
-              <Typography variant="body2" gutterBottom>
-                Manage Tags:
-              </Typography>
-              <TagInput
-                tags={entry.tags || []}
-                onChange={tags => handleTagsChange(entry.entry_id, tags)}
-                placeholder="Add tags..."
-              />
-              <Button
-                onClick={() => setIsEditingTags(null)}
-                style={{ marginTop: '0.5rem' }}
-              >
-                Done
-              </Button>
-            </>
-          ) : (
-            <>
-              <Flex justifyContent="space-between" alignItems="center">
-                <Typography variant="body2">Tags:</Typography>
-                <Button
-                  variant="text"
-                  onClick={() => setIsEditingTags(entry.entry_id)}
-                >
-                  Edit Tags
-                </Button>
-              </Flex>
-              <TagsContainer>
-                {entry.tags && entry.tags.length > 0 ? (
-                  entry.tags.map((tag, idx) => <Tag key={idx}>{tag}</Tag>)
-                ) : (
-                  <Typography variant="caption">No tags added</Typography>
-                )}
-              </TagsContainer>
-            </>
-          )}
-        </TagsSection>
-      </>
-    );
+  const renderContent = () => {
+    if (shouldVirtualize && viewStyle === 'list') {
+      // Use virtualization for large lists in list view
+      return (
+        <VirtualizedContainer
+          height={VIRTUAL_CONTAINER_HEIGHT}
+          onScroll={handleScroll}
+        >
+          <VirtualizedContent height={virtualization.totalHeight}>
+            {virtualization.visibleItems.map(({ item, top }) => {
+              if (!item) return null;
+              return renderWatchlistItem(item, {
+                style: {
+                  position: 'absolute',
+                  top,
+                  left: 0,
+                  right: 0,
+                  height: VIRTUAL_ITEM_HEIGHT,
+                },
+              });
+            })}
+          </VirtualizedContent>
+        </VirtualizedContainer>
+      );
+    }
 
+    // Regular rendering for smaller lists or grid view
     return viewStyle === 'grid' ? (
-      <WatchlistCard
-        key={entry.entry_id}
-        status={entry.status}
-        data-testid={`movie-item-${entry.entry_id}`}
-      >
-        <RelativeCard>{commonContent}</RelativeCard>
-      </WatchlistCard>
+      <GridContainer>
+        {filteredEntries.map(entry => renderWatchlistItem(entry))}
+      </GridContainer>
     ) : (
-      <ListViewItem
-        key={entry.entry_id}
-        status={entry.status}
-        data-testid={`movie-item-${entry.entry_id}`}
-      >
-        <RelativeCard>{commonContent}</RelativeCard>
-      </ListViewItem>
+      <ListContainer>
+        {filteredEntries.map(entry => renderWatchlistItem(entry))}
+      </ListContainer>
     );
   };
 
-  // Fixed mismatched JSX tags and syntax errors.
   return (
     <PageContainer maxWidth="xxl" padding="lg" centered>
       <Container fluid centered>
@@ -448,14 +654,16 @@ const WatchlistPage: React.FC = () => {
                 $active={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
               >
-                My List{' '}
-                {filteredEntries.length > 0 && `(${filteredEntries.length})`}
+                My List ({entries.length})
+                {shouldVirtualize && (
+                  <Typography variant="caption"> • Optimized View</Typography>
+                )}
               </TabButton>
               <TabButton
                 $active={activeTab === 'search'}
                 onClick={() => setActiveTab('search')}
               >
-                Add New
+                Add Content
               </TabButton>
             </Flex>
 
@@ -477,7 +685,9 @@ const WatchlistPage: React.FC = () => {
                       }
                     >
                       <option value="grid">Grid View</option>
-                      <option value="list">List View</option>
+                      <option value="list">
+                        List View{shouldVirtualize ? ' (Optimized)' : ''}
+                      </option>
                     </Select>
                   </Flex>
                 </InputGroup>
@@ -497,25 +707,18 @@ const WatchlistPage: React.FC = () => {
 
         {activeTab === 'list' ? (
           <>
-            {viewStyle === 'grid' ? (
-              <GridContainer>
-                {filteredEntries.map(renderWatchlistItem)}
-              </GridContainer>
-            ) : (
-              <ListContainer>
-                {filteredEntries.map(renderWatchlistItem)}
-              </ListContainer>
-            )}
+            {renderContent()}
 
             {filteredEntries.length === 0 &&
-              (searchQuery || selectedTags.length > 0) && (
+              (debouncedSearchQuery || selectedTags.length > 0) && (
                 <Typography>
-                  No matches found{searchQuery ? ` for "${searchQuery}"` : ''}
+                  No matches found
+                  {debouncedSearchQuery ? ` for "${debouncedSearchQuery}"` : ''}
                   {selectedTags.length > 0 ? ` with selected tags` : ''}
                 </Typography>
               )}
             {filteredEntries.length === 0 &&
-              !searchQuery &&
+              !debouncedSearchQuery &&
               selectedTags.length === 0 && (
                 <Typography>
                   Your watchlist is empty. Add some titles to get started!
@@ -530,4 +733,4 @@ const WatchlistPage: React.FC = () => {
   );
 };
 
-export default WatchlistPage;
+export default React.memo(WatchlistPage);

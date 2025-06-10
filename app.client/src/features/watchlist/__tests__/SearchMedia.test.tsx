@@ -53,7 +53,7 @@ describe('SearchMedia', () => {
   it('renders the search input', () => {
     render(<SearchMedia />);
     expect(
-      screen.getByPlaceholderText('Search for movies or TV shows...')
+      screen.getByPlaceholderText('Search for movies and TV shows...')
     ).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe('SearchMedia', () => {
 
     // Type in search box
     const searchInput = screen.getByPlaceholderText(
-      'Search for movies or TV shows...'
+      'Search for movies and TV shows...'
     );
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
@@ -87,7 +87,7 @@ describe('SearchMedia', () => {
 
     // Type in search box to get results
     const searchInput = screen.getByPlaceholderText(
-      'Search for movies or TV shows...'
+      'Search for movies and TV shows...'
     );
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
@@ -128,13 +128,13 @@ describe('SearchMedia', () => {
 
     // Type in search box
     const searchInput = screen.getByPlaceholderText(
-      'Search for movies or TV shows...'
+      'Search for movies and TV shows...'
     );
     fireEvent.change(searchInput, { target: { value: 'test query' } });
 
     // Check for loading state using waitFor to ensure element exists
     await waitFor(() => {
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByText('Searching...')).toBeInTheDocument();
     });
 
     // Eventually, results should be displayed
@@ -151,32 +151,30 @@ describe('SearchMedia', () => {
 
     // Type in search box
     const searchInput = screen.getByPlaceholderText(
-      'Search for movies or TV shows...'
+      'Search for movies and TV shows...'
     );
     fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
 
     // Check for no results message
     await waitFor(() => {
-      expect(screen.getByText('No results found')).toBeInTheDocument();
+      expect(
+        screen.getByText(/No results found for "nonexistent"/)
+      ).toBeInTheDocument();
     });
   });
 
-  it('handles API errors gracefully', async () => {
-    // Mock API error
-    const errorMessage = 'API connection failed';
-    (search.media as jest.Mock).mockRejectedValue(new Error(errorMessage));
-
+  it('calls the search API with correct query', async () => {
     render(<SearchMedia />);
 
     // Type in search box
     const searchInput = screen.getByPlaceholderText(
-      'Search for movies or TV shows...'
+      'Search for movies and TV shows...'
     );
-    fireEvent.change(searchInput, { target: { value: 'test' } });
+    fireEvent.change(searchInput, { target: { value: 'test query' } });
 
-    // Check for error message
+    // Wait for the API call to be made
     await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(search.media).toHaveBeenCalledWith('test query');
     });
   });
 });

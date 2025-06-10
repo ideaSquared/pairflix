@@ -116,6 +116,8 @@ export interface SearchResult {
   media_type: 'movie' | 'tv';
   poster_path: string | null;
   overview: string;
+  release_date?: string;
+  first_air_date?: string;
 }
 
 export interface SearchResponse {
