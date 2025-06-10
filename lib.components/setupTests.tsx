@@ -1,7 +1,7 @@
 // Polyfill for TextEncoder and TextDecoder (needed for modern browser APIs)
 import { TextDecoder, TextEncoder } from 'util';
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+global.TextEncoder = TextEncoder as any;
+global.TextDecoder = TextDecoder as any;
 
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 // allows you to do things like:
