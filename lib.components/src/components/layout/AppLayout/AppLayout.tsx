@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
+import { DropdownMenu, DropdownMenuItem } from '../../overlay';
 import { Container } from '../components/Container';
 import { Flex } from '../components/Flex';
 import { layoutTokens, media } from '../utils/responsive';
@@ -14,6 +15,7 @@ export interface NavigationItem {
   children?: NavigationItem[];
   badge?: string | number;
   disabled?: boolean;
+  onSelect?: () => void;
 }
 
 export interface NavigationSection {
@@ -197,173 +199,383 @@ const MobileOverlay = styled.div<{ visible: boolean }>`
   }
 `;
 
+// Styled button for user menu trigger
+const UserMenuTrigger = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: ${({ theme }) => theme.borderRadius.sm || '0.25rem'};
+  transition: background-color 0.2s ease;
+  color: inherit;
+
+  &:hover {
+    background-color: ${({ theme }) =>
+      theme.colors.background.hover || 'rgba(0, 0, 0, 0.05)'};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary.main || '#0077cc'};
+    outline-offset: 2px;
+  }
+`;
+
+const SidebarUserMenuTrigger = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: ${({ theme }) => theme.borderRadius.sm || '0.25rem'};
+  transition: background-color 0.2s ease;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+
+  &:hover {
+    background-color: ${({ theme }) =>
+      theme.colors.background.hover || 'rgba(0, 0, 0, 0.05)'};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary.main || '#0077cc'};
+    outline-offset: 2px;
+  }
+`;
+
+// Styled containers for navigation icons
+const NavIconContainer = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    display: block;
+  }
+`;
+
+const SidebarIconContainer = styled.span<{ $collapsed?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: ${({ $collapsed }) => ($collapsed ? '0' : '0.75rem')};
+  flex-shrink: 0;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: block;
+  }
+`;
+
+const DropdownIconContainer = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    display: block;
+  }
+`;
+
 // Sub-components
 const TopNavigation: React.FC<{
   navigation: NavigationConfig;
   onMenuToggle?: () => void;
-}> = ({ navigation, onMenuToggle }) => (
-  <Container>
-    <Flex
-      alignItems="center"
-      justifyContent="space-between"
-      style={{ height: layoutTokens.header.height }}
-    >
-      <Flex alignItems="center" gap="md">
-        {navigation.logo}
-        <nav>
-          <Flex gap="md" alignItems="center">
-            {navigation.sections.flatMap(section =>
-              section.items.map(item => (
-                <Link
-                  key={item.key}
-                  to={item.path}
-                  style={{
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.25rem',
-                    transition: 'background-color 0.2s ease',
-                  }}
-                >
-                  {item.icon && (
-                    <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>
-                  )}
-                  {item.label}
-                </Link>
-              ))
-            )}
-          </Flex>
-        </nav>
-      </Flex>
+}> = ({ navigation, onMenuToggle }) => {
+  const handleMenuItemClick = (item: NavigationItem) => {
+    if (item.key === 'logout' && item.onSelect) {
+      item.onSelect();
+    }
+  };
 
-      <Flex alignItems="center" gap="md">
-        {navigation.user && (
-          <Flex alignItems="center" gap="sm">
-            {navigation.user.avatar}
-            <span>{navigation.user.name}</span>
-          </Flex>
-        )}
-        {onMenuToggle && (
-          <button
-            onClick={onMenuToggle}
-            style={{
-              display: 'none',
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-            }}
-            className="mobile-menu-toggle"
-          >
-            ☰
-          </button>
-        )}
+  return (
+    <Container>
+      <Flex
+        alignItems="center"
+        justifyContent="space-between"
+        style={{ height: layoutTokens.header.height }}
+      >
+        <Flex alignItems="center" gap="md">
+          {navigation.logo}
+          <nav>
+            <Flex gap="md" alignItems="center">
+              {navigation.sections.flatMap(section =>
+                section.items.map(item => (
+                  <Link
+                    key={item.key}
+                    to={item.path}
+                    style={{
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '0.25rem',
+                      transition: 'background-color 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {item.icon && (
+                      <NavIconContainer>{item.icon}</NavIconContainer>
+                    )}
+                    {item.label}
+                  </Link>
+                ))
+              )}
+            </Flex>
+          </nav>
+        </Flex>
+
+        <Flex alignItems="center" gap="md">
+          {navigation.user && (
+            <Flex alignItems="center" gap="sm">
+              {navigation.user.menu && navigation.user.menu.length > 0 ? (
+                <DropdownMenu
+                  trigger={
+                    <UserMenuTrigger>
+                      {navigation.user.avatar}
+                      <span>{navigation.user.name}</span>
+                      <span style={{ fontSize: '0.75rem' }}>▼</span>
+                    </UserMenuTrigger>
+                  }
+                  align="end"
+                  variant="elevated"
+                  size="medium"
+                >
+                  {navigation.user.menu.map(menuItem => (
+                    <DropdownMenuItem
+                      key={menuItem.key}
+                      icon={
+                        menuItem.icon ? (
+                          <DropdownIconContainer>
+                            {menuItem.icon}
+                          </DropdownIconContainer>
+                        ) : undefined
+                      }
+                      variant={
+                        menuItem.key === 'logout' ? 'destructive' : 'default'
+                      }
+                      onSelect={() => handleMenuItemClick(menuItem)}
+                    >
+                      {menuItem.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenu>
+              ) : (
+                <>
+                  {navigation.user.avatar}
+                  <span>{navigation.user.name}</span>
+                </>
+              )}
+            </Flex>
+          )}
+          {onMenuToggle && (
+            <button
+              onClick={onMenuToggle}
+              style={{
+                display: 'none',
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+              }}
+              className="mobile-menu-toggle"
+            >
+              ☰
+            </button>
+          )}
+        </Flex>
       </Flex>
-    </Flex>
-  </Container>
-);
+    </Container>
+  );
+};
 
 const SidebarNavigation: React.FC<{
   navigation: NavigationConfig;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
-}> = ({ navigation, collapsed, onToggleCollapse }) => (
-  <div style={{ padding: '1rem' }}>
-    {navigation.logo && (
-      <div
-        style={{
-          marginBottom: '2rem',
-          textAlign: collapsed ? 'center' : 'left',
-        }}
-      >
-        {navigation.logo}
-      </div>
-    )}
+}> = ({ navigation, collapsed, onToggleCollapse }) => {
+  const handleMenuItemClick = (item: NavigationItem) => {
+    if (item.key === 'logout' && item.onSelect) {
+      item.onSelect();
+    }
+  };
 
-    <nav>
-      {navigation.sections.map((section, sectionIndex) => (
-        <div key={sectionIndex} style={{ marginBottom: '1.5rem' }}>
-          {section.title && !collapsed && (
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                marginBottom: '0.5rem',
-                opacity: 0.7,
-              }}
+  return (
+    <div
+      style={{
+        padding: '1rem',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {navigation.logo && (
+        <div
+          style={{
+            marginBottom: '2rem',
+            textAlign: collapsed ? 'center' : 'left',
+          }}
+        >
+          {navigation.logo}
+        </div>
+      )}
+
+      <nav style={{ flex: 1 }}>
+        {navigation.sections.map((section, sectionIndex) => (
+          <div key={sectionIndex} style={{ marginBottom: '1.5rem' }}>
+            {section.title && !collapsed && (
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '0.5rem',
+                  opacity: 0.7,
+                }}
+              >
+                {section.title}
+              </div>
+            )}
+            {section.items.map(item => (
+              <Link
+                key={item.key}
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0.75rem',
+                  marginBottom: '0.25rem',
+                  borderRadius: '0.25rem',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  transition: 'background-color 0.2s ease',
+                }}
+              >
+                {item.icon && (
+                  <SidebarIconContainer $collapsed={collapsed}>
+                    {item.icon}
+                  </SidebarIconContainer>
+                )}
+                {!collapsed && (
+                  <>
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badge && (
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '0.75rem',
+                          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      {/* User menu at the bottom of sidebar */}
+      {navigation.user && !collapsed && (
+        <div
+          style={{
+            marginTop: 'auto',
+            borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+            paddingTop: '1rem',
+          }}
+        >
+          {navigation.user.menu && navigation.user.menu.length > 0 ? (
+            <DropdownMenu
+              trigger={
+                <SidebarUserMenuTrigger>
+                  {navigation.user.avatar}
+                  <span style={{ flex: 1 }}>{navigation.user.name}</span>
+                  <span style={{ fontSize: '0.75rem' }}>⋯</span>
+                </SidebarUserMenuTrigger>
+              }
+              align="start"
+              side="top"
+              variant="elevated"
+              size="medium"
             >
-              {section.title}
-            </div>
-          )}
-          {section.items.map(item => (
-            <Link
-              key={item.key}
-              to={item.path}
+              {navigation.user.menu.map(menuItem => (
+                <DropdownMenuItem
+                  key={menuItem.key}
+                  icon={
+                    menuItem.icon ? (
+                      <DropdownIconContainer>
+                        {menuItem.icon}
+                      </DropdownIconContainer>
+                    ) : undefined
+                  }
+                  variant={
+                    menuItem.key === 'logout' ? 'destructive' : 'default'
+                  }
+                  onSelect={() => handleMenuItemClick(menuItem)}
+                >
+                  {menuItem.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenu>
+          ) : (
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                gap: '0.5rem',
                 padding: '0.75rem',
-                marginBottom: '0.25rem',
-                borderRadius: '0.25rem',
-                textDecoration: 'none',
-                color: 'inherit',
-                transition: 'background-color 0.2s ease',
               }}
             >
-              {item.icon && (
-                <span
-                  style={{
-                    marginRight: collapsed ? '0' : '0.75rem',
-                    fontSize: '1rem',
-                  }}
-                >
-                  {item.icon}
-                </span>
-              )}
-              {!collapsed && (
-                <>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.badge && (
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '0.75rem',
-                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </Link>
-          ))}
+              {navigation.user.avatar}
+              <span>{navigation.user.name}</span>
+            </div>
+          )}
         </div>
-      ))}
-    </nav>
+      )}
 
-    {onToggleCollapse && (
-      <button
-        onClick={onToggleCollapse}
-        style={{
-          position: 'absolute',
-          bottom: '1rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '0.5rem',
-        }}
-      >
-        {collapsed ? '→' : '←'}
-      </button>
-    )}
-  </div>
-);
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          style={{
+            position: 'absolute',
+            bottom: '1rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0.5rem',
+          }}
+        >
+          {collapsed ? '→' : '←'}
+        </button>
+      )}
+    </div>
+  );
+};
 
 /**
  * AppLayout - Unified layout component for both client and admin applications

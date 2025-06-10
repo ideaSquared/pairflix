@@ -1,10 +1,36 @@
 import { NavigationConfig } from '@pairflix/components';
 import React from 'react';
+import {
+  HiArrowRightOnRectangle,
+  HiChartBarSquare,
+  HiClipboardDocumentList,
+  HiCog6Tooth,
+  HiFilm,
+  HiHeart,
+  HiPresentationChartBar,
+  HiSquares2X2,
+  HiUsers,
+} from 'react-icons/hi2';
 
-export const createAdminNavigation = (user?: {
-  username: string;
-  role: string;
-}): NavigationConfig => ({
+// Extend the NavigationItem type to include onSelect
+interface NavigationItemWithCallback {
+  key: string;
+  label: string;
+  path: string;
+  icon?: React.ReactNode;
+  children?: NavigationItemWithCallback[];
+  badge?: string | number;
+  disabled?: boolean;
+  onSelect?: () => void;
+}
+
+export const createAdminNavigation = (
+  user?: {
+    username: string;
+    role: string;
+  },
+  onLogout?: () => void
+): NavigationConfig => ({
   sections: [
     {
       items: [
@@ -12,9 +38,7 @@ export const createAdminNavigation = (user?: {
           key: 'dashboard',
           label: 'Dashboard',
           path: '/',
-          icon: React.createElement('i', {
-            className: 'fas fa-tachometer-alt',
-          }),
+          icon: React.createElement(HiSquares2X2),
         },
       ],
     },
@@ -25,27 +49,25 @@ export const createAdminNavigation = (user?: {
           key: 'users',
           label: 'Users',
           path: '/users',
-          icon: React.createElement('i', { className: 'fas fa-users' }),
+          icon: React.createElement(HiUsers),
         },
         {
           key: 'content',
           label: 'Content',
           path: '/content',
-          icon: React.createElement('i', { className: 'fas fa-film' }),
+          icon: React.createElement(HiFilm),
         },
         {
           key: 'activity',
           label: 'Activity',
           path: '/activity',
-          icon: React.createElement('i', { className: 'fas fa-chart-line' }),
+          icon: React.createElement(HiChartBarSquare),
         },
         {
           key: 'logs',
           label: 'Audit Logs',
           path: '/logs',
-          icon: React.createElement('i', {
-            className: 'fas fa-clipboard-list',
-          }),
+          icon: React.createElement(HiClipboardDocumentList),
         },
       ],
     },
@@ -56,19 +78,19 @@ export const createAdminNavigation = (user?: {
           key: 'monitoring',
           label: 'Monitoring',
           path: '/monitoring',
-          icon: React.createElement('i', { className: 'fas fa-heartbeat' }),
+          icon: React.createElement(HiHeart),
         },
         {
           key: 'stats',
           label: 'Statistics',
           path: '/stats',
-          icon: React.createElement('i', { className: 'fas fa-chart-bar' }),
+          icon: React.createElement(HiPresentationChartBar),
         },
         {
           key: 'settings',
           label: 'Settings',
           path: '/settings',
-          icon: React.createElement('i', { className: 'fas fa-cog' }),
+          icon: React.createElement(HiCog6Tooth),
         },
       ],
     },
@@ -89,10 +111,13 @@ export const createAdminNavigation = (user?: {
             key: 'logout',
             label: 'Logout',
             path: '/logout',
-            icon: React.createElement('i', {
-              className: 'fas fa-sign-out-alt',
-            }),
-          },
+            icon: React.createElement(HiArrowRightOnRectangle),
+            onSelect: onLogout
+              ? () => {
+                  onLogout();
+                }
+              : undefined,
+          } as NavigationItemWithCallback,
         ],
       }
     : undefined,

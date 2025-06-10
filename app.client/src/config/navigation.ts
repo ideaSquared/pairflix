@@ -1,5 +1,25 @@
 import { NavigationConfig } from '@pairflix/components';
 import React from 'react';
+import {
+  HiArrowLeftOnRectangle,
+  HiArrowRightOnRectangle,
+  HiChartBarSquare,
+  HiHeart,
+  HiListBullet,
+  HiUser,
+} from 'react-icons/hi2';
+
+// Extend the NavigationItem type to include onSelect
+interface NavigationItemWithCallback {
+  key: string;
+  label: string;
+  path: string;
+  icon?: React.ReactNode;
+  children?: NavigationItemWithCallback[];
+  badge?: string | number;
+  disabled?: boolean;
+  onSelect?: () => void;
+}
 
 /**
  * Create navigation configuration for the PairFlix client application
@@ -11,23 +31,17 @@ export const createClientNavigation = (
   user?: { name: string; id: string },
   onLogout?: () => void
 ): NavigationConfig => {
-  const menuItems = [
-    {
-      key: 'settings',
-      label: 'Settings',
-      path: '/settings',
-      icon: React.createElement('i', { className: 'fas fa-cog' }),
-    },
-  ];
+  const menuItems: NavigationItemWithCallback[] = [];
 
   if (onLogout) {
     menuItems.push({
       key: 'logout',
       label: 'Logout',
       path: '/logout',
-      icon: React.createElement('i', {
-        className: 'fas fa-sign-out-alt',
-      }),
+      icon: React.createElement(HiArrowRightOnRectangle),
+      onSelect: () => {
+        onLogout();
+      },
     });
   }
 
@@ -39,25 +53,25 @@ export const createClientNavigation = (
             key: 'watchlist',
             label: 'My Watchlist',
             path: '/watchlist',
-            icon: React.createElement('i', { className: 'fas fa-list' }),
+            icon: React.createElement(HiListBullet),
           },
           {
             key: 'matches',
             label: 'Matches',
             path: '/matches',
-            icon: React.createElement('i', { className: 'fas fa-heart' }),
+            icon: React.createElement(HiHeart),
           },
           {
             key: 'activity',
             label: 'Activity',
             path: '/activity',
-            icon: React.createElement('i', { className: 'fas fa-chart-line' }),
+            icon: React.createElement(HiChartBarSquare),
           },
           {
             key: 'profile',
             label: 'Profile',
             path: '/profile',
-            icon: React.createElement('i', { className: 'fas fa-user' }),
+            icon: React.createElement(HiUser),
           },
         ],
       },
@@ -96,7 +110,7 @@ export const createGuestNavigation = (): NavigationConfig => ({
           key: 'login',
           label: 'Login',
           path: '/login',
-          icon: React.createElement('i', { className: 'fas fa-sign-in-alt' }),
+          icon: React.createElement(HiArrowLeftOnRectangle),
         },
       ],
     },
