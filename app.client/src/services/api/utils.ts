@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * Handle API errors in a consistent way
  */
@@ -27,22 +29,54 @@ export const handleApiError = (
   return new Error(defaultMessage);
 };
 
-// Handle environment variables for both Vite and Jest environments
-const getApiUrl = (): string => {
-  // In test environment (Jest), use the test URL
-  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
-    return 'http://localhost:3000';
+// Environment variable handling that works in browser, Vite, and Jest environments
+declare const process:
+  | {
+      env: {
+        NODE_ENV?: string;
+        VITE_API_URL?: string;
+      };
+    }
+  | undefined;
+
+// Safe function to access Vite environment variables
+const getViteEnvVar = (key: string): string | undefined => {
+  // In Jest environment, we don't have import.meta, so return undefined
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+    return undefined;
   }
 
-  // Check if we're in a module environment that supports import.meta
-  // Use eval to prevent Jest from parsing import.meta at compile time
+  // Check if we're in a browser environment with Vite
+  // Use a try-catch to safely access import.meta without causing Jest parse errors
   try {
-    const importMeta = eval('import.meta');
-    return importMeta?.env?.VITE_API_URL || 'http://localhost:3000';
+    // This will be replaced by Vite at build time with actual values
+    // Jest won't execute this since it returns early in test environment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const importMeta = (globalThis as any).import?.meta;
+    return importMeta?.env?.[key];
   } catch {
-    // Fallback for any environment that doesn't support import.meta
-    return 'http://localhost:3000';
+    return undefined;
   }
+};
+
+const getApiUrl = (): string => {
+  // Check if we're in a test environment first
+  if (
+    typeof process !== 'undefined' &&
+    process.env &&
+    process.env.NODE_ENV === 'test'
+  ) {
+    return process.env.VITE_API_URL || 'http://localhost:3000';
+  }
+
+  // In browser environment, try to get from Vite environment
+  const viteApiUrl = getViteEnvVar('VITE_API_URL');
+  if (viteApiUrl) {
+    return viteApiUrl;
+  }
+
+  // Fallback for any environment that doesn't support import.meta
+  return 'http://localhost:3000';
 };
 
 export const BASE_URL = getApiUrl();

@@ -13,13 +13,13 @@ import {
   PageContainer,
   Select,
   SelectGroup,
+  TagFilter,
+  TagInput,
   Typography,
 } from '@pairflix/components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import TagFilter from '../../components/common/TagFilter';
-import TagInput from '../../components/common/TagInput';
 import { useAuth } from '../../hooks/useAuth';
 import {
   user as userService,

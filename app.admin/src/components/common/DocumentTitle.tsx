@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { DocumentTitle as SharedDocumentTitle } from '@pairflix/components';
+import React from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 
 interface DocumentTitleProps {
@@ -6,31 +7,21 @@ interface DocumentTitleProps {
 }
 
 /**
- * Component that updates the document title based on application settings.
- * Can accept a specific page title to append to the site name.
+ * App-specific wrapper for the shared DocumentTitle component
+ * Provides the necessary settings context
  */
 const DocumentTitle: React.FC<DocumentTitleProps> = ({ title }) => {
   const { settings } = useSettings();
 
-  useEffect(() => {
-    const siteName = settings?.general.siteName || 'PairFlix';
-
-    if (title) {
-      // If a specific page title is provided, format as "Page Title | Site Name"
-      document.title = `${title} | ${siteName}`;
-    } else {
-      // Otherwise just use the site name
-      document.title = siteName;
-    }
-
-    // Restore original title on unmount
-    return () => {
-      document.title = 'PairFlix';
-    };
-  }, [settings?.general.siteName, title]);
-
-  // This component doesn't render anything
-  return null;
+  return (
+    <SharedDocumentTitle
+      {...(title !== undefined && { title })}
+      {...(settings?.general.siteName && {
+        siteName: settings.general.siteName,
+      })}
+      defaultSiteName="PairFlix Admin"
+    />
+  );
 };
 
 export default DocumentTitle;
