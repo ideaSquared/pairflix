@@ -412,11 +412,7 @@ const SidebarNavigation: React.FC<{
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }> = ({ navigation, collapsed, onToggleCollapse }) => {
-  const handleMenuItemClick = (item: NavigationItem) => {
-    if (item.key === 'logout' && item.onSelect) {
-      item.onSelect();
-    }
-  };
+  const handleMenuItemClick = useSharedMenuItemClick;
 
   return (
     <div
