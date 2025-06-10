@@ -8,8 +8,8 @@ process.env.NODE_ENV = 'test';
 
 // Polyfill for TextEncoder and TextDecoder (needed for modern browser APIs)
 import { TextDecoder, TextEncoder } from 'util';
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+global.TextEncoder = TextEncoder as any;
+global.TextDecoder = TextDecoder as any;
 
 // We need to properly mock the global import.meta object for modules that use it
 Object.defineProperty(global, 'import', {

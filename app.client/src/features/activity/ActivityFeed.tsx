@@ -87,13 +87,13 @@ const getActivityDescription = (activity: Activity): string => {
 
   switch (action) {
     case 'WATCHLIST_ADD':
-      return `added ${metadata.title || 'a movie/show'} to their watchlist`;
+      return `added ${String(metadata.title) || 'a movie/show'} to their watchlist`;
     case 'WATCHLIST_UPDATE':
-      return `updated ${metadata.title || 'a movie/show'} status to ${metadata.status || 'unknown'}`;
+      return `updated ${String(metadata.title) || 'a movie/show'} status to ${String(metadata.status) || 'unknown'}`;
     case 'WATCHLIST_RATE':
-      return `rated ${metadata.title || 'a movie/show'} ${metadata.rating || '?'}/10`;
+      return `rated ${String(metadata.title) || 'a movie/show'} ${String(metadata.rating) || '?'}/10`;
     case 'WATCHLIST_REMOVE':
-      return `removed ${metadata.title || 'a movie/show'} from their watchlist`;
+      return `removed ${String(metadata.title) || 'a movie/show'} from their watchlist`;
     case 'USER_LOGIN':
       return 'logged in';
     case 'USER_PROFILE_UPDATE':
@@ -165,27 +165,30 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ limit = 20 }) => {
 
   return (
     <FeedContainer>
-      {activities.map(activity => (
-        <ActivityItem key={activity.log_id}>
-          <ActivityHeader>
-            <ActivityTitle>
-              {activity.user?.username || 'Unknown User'}
-            </ActivityTitle>
-            <ActivityTime>
-              {formatDistanceToNow(new Date(activity.created_at), {
-                addSuffix: true,
-              })}
-            </ActivityTime>
-          </ActivityHeader>
-          <ActivityContent>
-            <ActivityIcon>{getActivityIcon(activity)}</ActivityIcon>
-            {getActivityDescription(activity)}
-          </ActivityContent>
-          {activity.metadata?.note && (
-            <ActivityDetails>"{activity.metadata.note}"</ActivityDetails>
-          )}
-        </ActivityItem>
-      ))}
+      {activities.map(activity => {
+        const note = activity.metadata?.note;
+        const noteString = typeof note === 'string' ? note : null;
+
+        return (
+          <ActivityItem key={activity.log_id}>
+            <ActivityHeader>
+              <ActivityTitle>
+                {activity.user?.username || 'Unknown User'}
+              </ActivityTitle>
+              <ActivityTime>
+                {formatDistanceToNow(new Date(activity.created_at), {
+                  addSuffix: true,
+                })}
+              </ActivityTime>
+            </ActivityHeader>
+            <ActivityContent>
+              <ActivityIcon>{getActivityIcon(activity)}</ActivityIcon>
+              {getActivityDescription(activity)}
+            </ActivityContent>
+            {noteString && <ActivityDetails>"{noteString}"</ActivityDetails>}
+          </ActivityItem>
+        );
+      })}
     </FeedContainer>
   );
 };
