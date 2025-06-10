@@ -229,15 +229,16 @@ const SearchResultItem = React.memo<SearchResultItemProps>(
 
     // Safely get title and handle potential undefined values
     const title = result.title || result.name || 'Unknown Title';
-    const releaseYear = result.release_date
-      ? new Date(result.release_date).getFullYear()
+    const releaseDate = result.release_date || result.first_air_date;
+    const releaseYear = releaseDate
+      ? new Date(releaseDate).getFullYear()
       : null;
 
     const content = useMemo(
       () => (
         <>
           <PosterImage
-            src={posterUrl}
+            src={posterUrl || ''}
             alt={title}
             $isListView={viewStyle === 'list'}
           />
@@ -324,8 +325,6 @@ const SearchMedia: React.FC = () => {
       watchlist.add({
         tmdb_id: item.id,
         media_type: item.media_type,
-        overview: item.overview,
-        poster_path: item.poster_path,
         status: 'to_watch',
       }),
     {

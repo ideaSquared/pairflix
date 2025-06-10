@@ -111,8 +111,6 @@ describe('SearchMedia', () => {
       expect(watchlist.add).toHaveBeenCalledWith({
         tmdb_id: 123,
         media_type: 'movie',
-        overview: 'This is a test movie overview',
-        poster_path: '/test-movie-path.jpg',
         status: 'to_watch',
       });
     });

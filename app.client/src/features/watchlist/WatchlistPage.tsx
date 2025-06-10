@@ -556,18 +556,22 @@ const WatchlistPage: React.FC = () => {
 
   // Memoized render function for items
   const renderWatchlistItem = useCallback(
-    (entry: WatchlistEntry, virtualProps?: { style: React.CSSProperties }) => (
-      <WatchlistItem
-        key={entry.entry_id}
-        entry={entry}
-        viewStyle={viewStyle}
-        isEditingTags={isEditingTags}
-        onStatusChange={handleStatusChange}
-        onTagsChange={handleTagsChange}
-        onEditTags={handleEditTags}
-        style={virtualProps?.style}
-      />
-    ),
+    (entry: WatchlistEntry, virtualProps?: { style: React.CSSProperties }) => {
+      const props: WatchlistItemProps = {
+        entry,
+        viewStyle,
+        isEditingTags,
+        onStatusChange: handleStatusChange,
+        onTagsChange: handleTagsChange,
+        onEditTags: handleEditTags,
+      };
+
+      if (virtualProps?.style) {
+        props.style = virtualProps.style;
+      }
+
+      return <WatchlistItem key={entry.entry_id} {...props} />;
+    },
     [
       viewStyle,
       isEditingTags,
@@ -609,8 +613,9 @@ const WatchlistPage: React.FC = () => {
           onScroll={handleScroll}
         >
           <VirtualizedContent height={virtualization.totalHeight}>
-            {virtualization.visibleItems.map(({ item, top }) =>
-              renderWatchlistItem(item, {
+            {virtualization.visibleItems.map(({ item, top }) => {
+              if (!item) return null;
+              return renderWatchlistItem(item, {
                 style: {
                   position: 'absolute',
                   top,
@@ -618,8 +623,8 @@ const WatchlistPage: React.FC = () => {
                   right: 0,
                   height: VIRTUAL_ITEM_HEIGHT,
                 },
-              })
-            )}
+              });
+            })}
           </VirtualizedContent>
         </VirtualizedContainer>
       );
