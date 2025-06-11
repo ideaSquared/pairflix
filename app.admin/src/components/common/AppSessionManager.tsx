@@ -49,12 +49,18 @@ const WarningButton = styled.button`
  */
 const AppSessionManager: React.FC = () => {
   const { settings } = useSettings();
-  const { logout, refreshToken, isTokenNearExpiry } = useAuth();
+  const { logout, refreshToken, isTokenNearExpiry, isAuthenticated } =
+    useAuth();
   const [showTokenWarning, setShowTokenWarning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Check token expiry every minute
+  // Check token expiry every minute - only when authenticated
   useEffect(() => {
+    if (!isAuthenticated) {
+      setShowTokenWarning(false);
+      return;
+    }
+
     const checkTokenExpiry = () => {
       if (isTokenNearExpiry()) {
         setShowTokenWarning(true);
@@ -70,7 +76,7 @@ const AppSessionManager: React.FC = () => {
     const interval = setInterval(checkTokenExpiry, 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [isTokenNearExpiry]);
+  }, [isTokenNearExpiry, isAuthenticated]);
 
   const handleRefreshToken = useCallback(async () => {
     if (isRefreshing) return;

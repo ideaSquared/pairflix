@@ -39,88 +39,88 @@ export async function seedDatabase() {
 		console.log('✅ Database synced successfully');
 
 		// Create test users with different statuses
-		await User.bulkCreate([
-			{
-				email: 'user1@example.com',
-				username: 'user1',
-				password_hash:
-					'$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewawPddekNXxUx',
-				role: 'user',
-				status: 'active',
-				email_verified: true,
-				failed_login_attempts: 0,
-				last_login: new Date('2024-01-15T10:00:00Z'),
-				preferences: {
-					theme: 'dark',
-					viewStyle: 'grid',
-					emailNotifications: true,
-					autoArchiveDays: 30,
-					favoriteGenres: ['Action', 'Sci-Fi'],
-				},
-			},
-			{
-				email: 'user2@example.com',
-				username: 'user2',
-				password_hash:
-					'$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewawPddekNXxUx',
-				role: 'user',
-				status: 'banned',
-				email_verified: true,
-				failed_login_attempts: 0,
-				last_login: new Date('2024-01-10T15:30:00Z'),
-				preferences: {
-					theme: 'light',
-					viewStyle: 'list',
-					emailNotifications: false,
-					autoArchiveDays: 60,
-					favoriteGenres: ['Drama', 'Romance'],
-				},
-			},
-			{
-				email: 'user3@example.com',
-				username: 'user3',
-				password_hash:
-					'$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewawPddekNXxUx',
-				role: 'user',
-				status: 'suspended',
-				email_verified: false,
-				failed_login_attempts: 3,
-				locked_until: new Date(Date.now() + 15 * 60 * 1000), // Locked for 15 minutes
+		// All test users have password: "password123"
+		const testPasswordHash =
+			'$2b$12$Ov0COOP9d5vnhIkIzoK4GeLk9/XJAGLq5eEQZIU7jeD1VNcGV5SZ2';
 
-				preferences: {
-					theme: 'dark',
-					viewStyle: 'grid',
-					emailNotifications: true,
-					autoArchiveDays: 30,
-					favoriteGenres: ['Horror', 'Thriller'],
-				},
+		const user1 = await User.create({
+			email: 'user1@example.com',
+			username: 'user1',
+			password_hash: testPasswordHash,
+			role: 'user',
+			status: 'active',
+			email_verified: true,
+			failed_login_attempts: 0,
+			last_login: new Date('2024-01-15T10:00:00Z'),
+			preferences: {
+				theme: 'dark',
+				viewStyle: 'grid',
+				emailNotifications: true,
+				autoArchiveDays: 30,
+				favoriteGenres: ['Action', 'Sci-Fi'],
 			},
-			{
-				email: 'admin@example.com',
-				username: 'admin',
-				password_hash:
-					'$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewawPddekNXxUx',
-				role: 'admin',
-				status: 'active',
-				email_verified: true,
-				failed_login_attempts: 0,
-				last_login: new Date(),
-				preferences: {
-					theme: 'dark',
-					viewStyle: 'list',
-					emailNotifications: true,
-					autoArchiveDays: 7,
-					favoriteGenres: ['Documentary', 'Biography'],
-				},
+		});
+
+		const user2 = await User.create({
+			email: 'user2@example.com',
+			username: 'user2',
+			password_hash: testPasswordHash,
+			role: 'user',
+			status: 'banned',
+			email_verified: true,
+			failed_login_attempts: 0,
+			last_login: new Date('2024-01-10T15:30:00Z'),
+			preferences: {
+				theme: 'light',
+				viewStyle: 'list',
+				emailNotifications: false,
+				autoArchiveDays: 60,
+				favoriteGenres: ['Drama', 'Romance'],
 			},
-		]);
+		});
+
+		const user3 = await User.create({
+			email: 'user3@example.com',
+			username: 'user3',
+			password_hash: testPasswordHash,
+			role: 'user',
+			status: 'suspended',
+			email_verified: false,
+			failed_login_attempts: 3,
+			locked_until: new Date(Date.now() + 15 * 60 * 1000), // Locked for 15 minutes
+			preferences: {
+				theme: 'dark',
+				viewStyle: 'grid',
+				emailNotifications: true,
+				autoArchiveDays: 30,
+				favoriteGenres: ['Horror', 'Thriller'],
+			},
+		});
+
+		const adminUser = await User.create({
+			email: 'admin@example.com',
+			username: 'admin',
+			password_hash: testPasswordHash,
+			role: 'admin',
+			status: 'active',
+			email_verified: true,
+			failed_login_attempts: 0,
+			last_login: new Date(),
+			preferences: {
+				theme: 'dark',
+				viewStyle: 'list',
+				emailNotifications: true,
+				autoArchiveDays: 7,
+				favoriteGenres: ['Documentary', 'Biography'],
+			},
+		});
 
 		console.log('✅ Created test users');
 
-		// Create sample user sessions
+		// Create sample user sessions using actual user IDs
 		await UserSession.bulkCreate([
 			{
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				token_hash: 'sample-token-hash-1',
 				device_info: 'Chrome Browser',
 				ip_address: '192.168.1.100',
@@ -130,7 +130,7 @@ export async function seedDatabase() {
 				last_activity: new Date(),
 			},
 			{
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				token_hash: 'sample-token-hash-2',
 				device_info: 'Mobile Device',
 				ip_address: '192.168.1.101',
@@ -139,7 +139,7 @@ export async function seedDatabase() {
 				last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
 			},
 			{
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				token_hash: 'admin-token-hash-1',
 				device_info: 'Firefox Browser',
 				ip_address: '10.0.0.1',
@@ -161,14 +161,14 @@ export async function seedDatabase() {
 			'Initial application settings created',
 			'db-seeder',
 			{
-				userId: '550e8400-e29b-41d4-a716-446655440000',
+				userId: adminUser.user_id,
 				timestamp: new Date(),
 			}
 		);
 
 		// Create an activity log entry for the admin user creating settings
 		await ActivityLog.create({
-			user_id: '550e8400-e29b-41d4-a716-446655440000',
+			user_id: adminUser.user_id,
 			action: ActivityType.SYSTEM_CONFIG,
 			context: 'system',
 			metadata: {
@@ -180,8 +180,8 @@ export async function seedDatabase() {
 
 		// Create accepted match between user1 and user2
 		await Match.create({
-			user1_id: '550e8400-e29b-41d4-a716-446655440001',
-			user2_id: '550e8400-e29b-41d4-a716-446655440002',
+			user1_id: user1.user_id,
+			user2_id: user2.user_id,
 			status: 'accepted',
 		});
 
@@ -213,39 +213,39 @@ export async function seedDatabase() {
 		await Promise.all([
 			// User 1's entries
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
 				status: 'watch_together_focused',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[1].tmdb_id,
 				media_type: sampleContent[1].media_type,
 				status: 'watching',
 				rating: 4,
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[2].tmdb_id,
 				media_type: sampleContent[2].media_type,
 				status: 'to_watch',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[3].tmdb_id,
 				media_type: sampleContent[3].media_type,
 				status: 'watching',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[4].tmdb_id,
 				media_type: sampleContent[4].media_type,
 				status: 'finished',
 				rating: 5,
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				tmdb_id: sampleContent[5].tmdb_id,
 				media_type: sampleContent[5].media_type,
 				status: 'watch_together_focused',
@@ -253,39 +253,39 @@ export async function seedDatabase() {
 
 			// User 2's matching entries
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[0].tmdb_id,
 				media_type: sampleContent[0].media_type,
 				status: 'watch_together_focused',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[1].tmdb_id,
 				media_type: sampleContent[1].media_type,
 				status: 'watching',
 				rating: 5,
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[2].tmdb_id,
 				media_type: sampleContent[2].media_type,
 				status: 'watch_together_background',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[3].tmdb_id,
 				media_type: sampleContent[3].media_type,
 				status: 'watching',
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[4].tmdb_id,
 				media_type: sampleContent[4].media_type,
 				status: 'finished',
 				rating: 5,
 			}),
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				tmdb_id: sampleContent[5].tmdb_id,
 				media_type: sampleContent[5].media_type,
 				status: 'watch_together_background',
@@ -293,7 +293,7 @@ export async function seedDatabase() {
 
 			// User 3's unique entry
 			WatchlistEntry.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				tmdb_id: sampleContent[6].tmdb_id,
 				media_type: sampleContent[6].media_type,
 				status: 'watch_together_focused',
@@ -311,39 +311,39 @@ export async function seedDatabase() {
 		await Promise.all([
 			// Login activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(30),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(15),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(7),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(2),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(1),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: new Date(),
 			}),
 
 			// Profile updates
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_PROFILE_UPDATE,
 				metadata: {
 					changedFields: ['preferences.theme'],
@@ -353,14 +353,14 @@ export async function seedDatabase() {
 				created_at: pastDate(20),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.USER_PASSWORD_CHANGE,
 				created_at: pastDate(10),
 			}),
 
 			// Watchlist activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.WATCHLIST_ADD,
 				metadata: {
 					title: sampleContent[0].title,
@@ -370,7 +370,7 @@ export async function seedDatabase() {
 				created_at: pastDate(25),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.WATCHLIST_ADD,
 				metadata: {
 					title: sampleContent[1].title,
@@ -380,7 +380,7 @@ export async function seedDatabase() {
 				created_at: pastDate(24),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.WATCHLIST_UPDATE,
 				metadata: {
 					title: sampleContent[1].title,
@@ -396,7 +396,7 @@ export async function seedDatabase() {
 				created_at: pastDate(15),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.WATCHLIST_RATE,
 				metadata: {
 					title: sampleContent[1].title,
@@ -409,23 +409,23 @@ export async function seedDatabase() {
 
 			// Match activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.MATCH_CREATE,
 				metadata: {
 					with_user: {
-						user_id: '550e8400-e29b-41d4-a716-446655440002',
+						user_id: user2.user_id,
 						username: 'user2',
 					},
 				},
 				created_at: pastDate(22),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.MATCH_VIEW,
 				metadata: {
 					match_id: '1',
 					with_user: {
-						user_id: '550e8400-e29b-41d4-a716-446655440002',
+						user_id: user2.user_id,
 						username: 'user2',
 					},
 				},
@@ -434,7 +434,7 @@ export async function seedDatabase() {
 
 			// Media search activity
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				action: ActivityType.MEDIA_SEARCH,
 				metadata: {
 					query: 'sci-fi movies',
@@ -448,29 +448,29 @@ export async function seedDatabase() {
 		await Promise.all([
 			// Login activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(28),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(14),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(6),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(3),
 			}),
 
 			// Profile updates
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.USER_PROFILE_UPDATE,
 				metadata: {
 					changedFields: ['preferences.emailNotifications'],
@@ -482,7 +482,7 @@ export async function seedDatabase() {
 
 			// Watchlist activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.WATCHLIST_ADD,
 				metadata: {
 					title: sampleContent[0].title,
@@ -492,7 +492,7 @@ export async function seedDatabase() {
 				created_at: pastDate(26),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.WATCHLIST_ADD,
 				metadata: {
 					title: sampleContent[5].title,
@@ -502,7 +502,7 @@ export async function seedDatabase() {
 				created_at: pastDate(21),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.WATCHLIST_RATE,
 				metadata: {
 					title: sampleContent[5].title,
@@ -515,12 +515,12 @@ export async function seedDatabase() {
 
 			// Match activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.MATCH_UPDATE,
 				metadata: {
 					match_id: '1',
 					with_user: {
-						user_id: '550e8400-e29b-41d4-a716-446655440001',
+						user_id: user1.user_id,
 						username: 'user1',
 					},
 					status: {
@@ -533,7 +533,7 @@ export async function seedDatabase() {
 
 			// Media search activity
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				action: ActivityType.MEDIA_SEARCH,
 				metadata: {
 					query: 'fantasy tv shows',
@@ -547,24 +547,24 @@ export async function seedDatabase() {
 		await Promise.all([
 			// Login activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(29),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(15),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(5),
 			}),
 
 			// Watchlist activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				action: ActivityType.WATCHLIST_ADD,
 				metadata: {
 					title: sampleContent[6].title,
@@ -579,28 +579,28 @@ export async function seedDatabase() {
 		await Promise.all([
 			// Existing admin activities
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(27),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(14),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(3),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.USER_LOGIN,
 				created_at: pastDate(1),
 			}),
 			// Profile updates
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.USER_PROFILE_UPDATE,
 				metadata: {
 					changedFields: ['preferences.theme'],
@@ -611,7 +611,7 @@ export async function seedDatabase() {
 			}),
 			// Admin specific activities - system settings update
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.SYSTEM_CONFIG,
 				context: 'system',
 				metadata: {
@@ -631,7 +631,7 @@ export async function seedDatabase() {
 			}),
 			// System maintenance activity
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.SYSTEM_MAINTENANCE,
 				context: 'system',
 				metadata: {
@@ -706,49 +706,49 @@ export async function seedDatabase() {
 		const reports = [
 			{
 				content_id: createdContent[contentIndex.breakingBad]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				reason: 'Inappropriate content',
 				details: 'Contains excessive violence',
 				status: 'pending' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.breakingBad]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				reason: 'Age rating concern',
 				details: 'Content may not be suitable for the specified age group',
 				status: 'pending' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.inception]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				reason: 'Misleading description',
 				details: 'Plot summary is inaccurate',
 				status: 'pending' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.inception]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440003',
+				user_id: user3.user_id,
 				reason: 'Wrong categorization',
 				details: 'Should be categorized as sci-fi',
 				status: 'pending' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.inception]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				reason: 'Technical issue',
 				details: 'Video playback issues',
 				status: 'pending' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.gameOfThrones]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440001',
+				user_id: user1.user_id,
 				reason: 'Inappropriate content',
 				details: 'Extremely graphic content',
 				status: 'resolved' as const,
 			},
 			{
 				content_id: createdContent[contentIndex.gameOfThrones]!.id,
-				user_id: '550e8400-e29b-41d4-a716-446655440002',
+				user_id: user2.user_id,
 				reason: 'Age restriction',
 				details: 'Content needs higher age rating',
 				status: 'resolved' as const,
@@ -760,7 +760,7 @@ export async function seedDatabase() {
 		// Create activity logs for content moderation
 		await Promise.all([
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.CONTENT_MODERATION,
 				context: 'system',
 				metadata: {
@@ -771,7 +771,7 @@ export async function seedDatabase() {
 				created_at: new Date(),
 			}),
 			ActivityLog.create({
-				user_id: '550e8400-e29b-41d4-a716-446655440000',
+				user_id: adminUser.user_id,
 				action: ActivityType.CONTENT_MODERATION,
 				context: 'system',
 				metadata: {

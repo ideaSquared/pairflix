@@ -34,14 +34,14 @@ const queryClient = new QueryClient({
 });
 
 function AppWithAuth() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigation = createAdminNavigation(user, logout);
 
   return (
     <AppLayout
       variant="admin"
-      navigation={navigation}
-      sidebar={{ collapsible: true }}
+      navigation={isAuthenticated ? navigation : undefined}
+      sidebar={isAuthenticated ? { collapsible: true } : undefined}
     >
       {/* SessionManager enforces session timeout settings */}
       <AppSessionManager />
