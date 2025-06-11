@@ -1,6 +1,6 @@
 import { AppLayout } from '@pairflix/components';
 import React, { useEffect } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   createClientNavigation,
   createGuestNavigation,
@@ -25,23 +25,20 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
 };
 
 const LogoutRoute: React.FC = () => {
-  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  }, [navigate]);
+    logout();
+  }, [logout]);
 
   return <div>Logging out...</div>;
 };
 
 const AppRoutes: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout();
   };
 
   // Map AuthUser to the format expected by navigation config
