@@ -7,6 +7,9 @@ interface UserAttributes extends UserInterface {
 	username: string;
 	role: string;
 	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	email_verified: boolean;
+	failed_login_attempts: number;
+	locked_until?: Date;
 	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
@@ -23,6 +26,9 @@ interface UserCreationAttributes {
 	username: string;
 	role?: string;
 	status?: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	email_verified?: boolean;
+	failed_login_attempts?: number;
+	locked_until?: Date;
 	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
@@ -45,6 +51,12 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 	declare role: string;
 
 	declare status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+
+	declare email_verified: boolean;
+
+	declare failed_login_attempts: number;
+
+	declare locked_until?: Date;
 
 	declare last_login?: Date;
 
@@ -108,6 +120,20 @@ class User extends Model<UserAttributes, UserCreationAttributes> {
 					validate: {
 						isIn: [['active', 'inactive', 'pending', 'suspended', 'banned']],
 					},
+				},
+				email_verified: {
+					type: DataTypes.BOOLEAN,
+					allowNull: false,
+					defaultValue: false,
+				},
+				failed_login_attempts: {
+					type: DataTypes.INTEGER,
+					allowNull: false,
+					defaultValue: 0,
+				},
+				locked_until: {
+					type: DataTypes.DATE,
+					allowNull: true,
 				},
 				last_login: {
 					type: DataTypes.DATE,

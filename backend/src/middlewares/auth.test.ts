@@ -228,6 +228,7 @@ describe('Auth Middleware', () => {
 				username: 'activeuser',
 				role: 'user',
 				status: 'active',
+				email_verified: true,
 				preferences: {
 					theme: 'dark' as const,
 					viewStyle: 'grid' as const,
@@ -288,6 +289,8 @@ describe('Auth Middleware', () => {
 				username: 'regularuser',
 				role: 'user',
 				status: 'active',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'dark',
 					viewStyle: 'grid',
@@ -321,6 +324,8 @@ describe('Auth Middleware', () => {
 				username: 'adminuser',
 				role: 'admin',
 				status: 'active',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'dark',
 					viewStyle: 'grid',

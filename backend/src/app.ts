@@ -7,6 +7,7 @@ import { requestLogger } from './middlewares/request-logger';
 import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
+import emailRoutes from './routes/email.routes';
 import matchRoutes from './routes/match.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
@@ -34,6 +35,7 @@ app.use(requestLogger);
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/email', emailRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/matches', matchRoutes);

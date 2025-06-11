@@ -4,8 +4,11 @@ import AppSettings from './AppSettings';
 import AuditLog from './AuditLog';
 import Content from './Content';
 import ContentReport from './ContentReport';
+import EmailVerification from './EmailVerification';
 import Match from './Match';
+import PasswordReset from './PasswordReset';
 import User from './User';
+import UserSession from './UserSession';
 import WatchlistEntry from './WatchlistEntry';
 
 export function initializeModels(sequelize: Sequelize) {
@@ -29,6 +32,9 @@ export function initializeModels(sequelize: Sequelize) {
 		ActivityLog.initialize(sequelize);
 		AuditLog.initialize(sequelize);
 		ContentReport.initialize(sequelize);
+		EmailVerification.initialize(sequelize);
+		PasswordReset.initialize(sequelize);
+		UserSession.initialize(sequelize);
 
 		// Set up associations after all models are initialized
 		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -64,6 +70,35 @@ export function initializeModels(sequelize: Sequelize) {
 			as: 'contentReports',
 		});
 
+		// Email verification and password reset associations
+		EmailVerification.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'user',
+		});
+		User.hasMany(EmailVerification, {
+			foreignKey: 'user_id',
+			as: 'emailVerifications',
+		});
+
+		PasswordReset.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'user',
+		});
+		User.hasMany(PasswordReset, {
+			foreignKey: 'user_id',
+			as: 'passwordResets',
+		});
+
+		// User session associations
+		UserSession.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'user',
+		});
+		User.hasMany(UserSession, {
+			foreignKey: 'user_id',
+			as: 'sessions',
+		});
+
 		// Add association between Match and WatchlistEntry
 		Match.belongsTo(WatchlistEntry, {
 			foreignKey: 'entry_id',
@@ -87,4 +122,5 @@ export default {
 	AppSettings,
 	Content,
 	ContentReport,
+	UserSession,
 };

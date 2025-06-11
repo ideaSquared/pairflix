@@ -1,6 +1,7 @@
 import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
+import { emailService } from './email';
 import { matches } from './matches';
 import { search } from './search';
 import { user } from './user';
@@ -29,6 +30,7 @@ export {
   activity,
   admin,
   auth,
+  emailService,
   fetchWithAuth,
   matches,
   search,
@@ -48,6 +50,7 @@ const api = {
   matches,
   activity,
   admin,
+  email: emailService,
 };
 
 export default api;

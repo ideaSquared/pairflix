@@ -28,6 +28,8 @@ describe('Error Handler Middleware', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'dark',
 					viewStyle: 'grid',

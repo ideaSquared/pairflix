@@ -9,6 +9,7 @@ interface AuthenticatedUser {
 	username: string;
 	role?: string;
 	status?: string;
+	email_verified?: boolean;
 	preferences?: Record<string, unknown>;
 }
 

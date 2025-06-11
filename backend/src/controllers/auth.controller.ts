@@ -1,9 +1,13 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import EmailVerification from '../models/EmailVerification';
 import User from '../models/User';
+import { activityService, ActivityType } from '../services/activity.service';
 import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
+import { emailService } from '../services/email.service';
 import type { AuthenticatedRequest } from '../types';
 
 /**
@@ -150,13 +154,14 @@ export const register = async (req: Request, res: Response) => {
 		const saltRounds = 12;
 		const password_hash = await bcrypt.hash(password, saltRounds);
 
-		// Create the user
+		// Create the user with email_verified: false
 		const newUser = await User.create({
 			email,
 			username,
 			password_hash,
 			role: 'user',
-			status: 'active',
+			status: 'pending',
+			email_verified: false,
 			preferences: {
 				theme: 'dark',
 				viewStyle: 'grid',
@@ -166,7 +171,45 @@ export const register = async (req: Request, res: Response) => {
 			},
 		});
 
-		// Generate JWT token for automatic login
+		// Generate email verification token
+		const verificationToken = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+		// Save verification token to database
+		await EmailVerification.create({
+			user_id: newUser.user_id,
+			token: verificationToken,
+			expires_at: expiresAt,
+		});
+
+		// Generate verification URL
+		const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+
+		// Send verification email
+		try {
+			const emailHtml = emailService.generateEmailVerificationEmail(
+				verificationUrl,
+				newUser.username
+			);
+			await emailService.sendEmail({
+				to: newUser.email,
+				subject: 'Verify Your Email - PairFlix',
+				html: emailHtml,
+				text: `Hello ${newUser.username}, Please verify your email address by visiting: ${verificationUrl}`,
+			});
+		} catch (emailError) {
+			await auditLogService.warn(
+				'Failed to send verification email',
+				'auth-controller',
+				{
+					userId: newUser.user_id,
+					email: newUser.email,
+					emailError,
+				}
+			);
+		}
+
+		// Generate JWT token for basic access (user will need to verify email for full access)
 		const token = jwt.sign(
 			{
 				user_id: newUser.user_id,
@@ -174,6 +217,7 @@ export const register = async (req: Request, res: Response) => {
 				username: newUser.username,
 				role: newUser.role,
 				status: newUser.status,
+				email_verified: newUser.email_verified,
 				preferences: newUser.preferences,
 			},
 			process.env.JWT_SECRET!,
@@ -200,8 +244,11 @@ export const register = async (req: Request, res: Response) => {
 				username: newUser.username,
 				role: newUser.role,
 				status: newUser.status,
+				email_verified: newUser.email_verified,
 				preferences: newUser.preferences,
 			},
+			message:
+				'Account created successfully. Please check your email to verify your account.',
 		});
 	} catch (error) {
 		// Audit log - registration error
@@ -226,48 +273,48 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-	const { email, password } = req.body as { email: string; password: string };
 	try {
-		// Audit log - login attempt
-		await auditLogService.info('Login attempt', 'auth-controller', {
-			email,
-			ip: req.ip,
-			userAgent: req.get('user-agent'),
-			timestamp: new Date(),
-		});
+		const { email, password } = req.body;
 
-		const token = await authenticateUser(email, password);
+		if (!email || !password) {
+			return res.status(400).json({ error: 'Email and password are required' });
+		}
+
+		// Authenticate user and create session
+		const token = await authenticateUser(email, password, req);
 
 		// Decode token to get user_id for activity logging
 		const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
 			user_id: string;
 			email: string;
 			username: string;
-			preferences: Record<string, unknown>;
 		};
 
-		// Audit log - successful login
-		await auditLogService.info('Login successful', 'auth-controller', {
-			userId: decoded.user_id,
-			email,
-			timestamp: new Date(),
-		});
+		// Log the successful login activity
+		await activityService.logActivity(
+			decoded.user_id,
+			ActivityType.USER_LOGIN,
+			{
+				loginMethod: 'password',
+				ipAddress: req.ip || 'unknown',
+				userAgent: req.get('User-Agent') || 'unknown',
+			}
+		);
 
-		res.json({ token });
-	} catch (error) {
-		// Audit log - failed login
-		await auditLogService.warn('Login failed', 'auth-controller', {
-			email,
-			error: error instanceof Error ? error.message : 'Unknown error',
-			ip: req.ip,
-			timestamp: new Date(),
+		res.status(200).json({
+			token,
+			message: 'Login successful',
 		});
+	} catch (error) {
+		console.error('Login error:', error);
+
+		// For failed logins, we can't get user_id, so just log the attempt without user context
+		// The actual failed attempt tracking is handled in auth.service
 
 		if (error instanceof Error) {
-			res.status(401).json({ error: error.message });
-		} else {
-			res.status(500).json({ error: 'Unknown error occurred' });
+			return res.status(401).json({ error: error.message });
 		}
+		return res.status(401).json({ error: 'Authentication failed' });
 	}
 };
 

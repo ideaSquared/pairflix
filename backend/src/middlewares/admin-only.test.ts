@@ -61,6 +61,8 @@ describe('Admin Only Middleware', () => {
 			username: 'regularuser',
 			role: 'user',
 			status: 'active',
+			email_verified: true,
+			failed_login_attempts: 0,
 			preferences: {
 				theme: 'dark',
 				viewStyle: 'grid',
@@ -87,8 +89,8 @@ describe('Admin Only Middleware', () => {
 			'Unauthorized admin access attempt',
 			'admin-middleware',
 			expect.objectContaining({
-				userId: mockRequest.user.user_id,
-				email: mockRequest.user.email,
+				userId: mockRequest.user!.user_id,
+				email: mockRequest.user!.email,
 			})
 		);
 	});
@@ -101,6 +103,8 @@ describe('Admin Only Middleware', () => {
 			username: 'adminuser',
 			role: 'admin',
 			status: 'active',
+			email_verified: true,
+			failed_login_attempts: 0,
 			preferences: {
 				theme: 'dark',
 				viewStyle: 'grid',

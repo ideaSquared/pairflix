@@ -93,6 +93,11 @@ const LoginPage: React.FC = () => {
               Login
             </Button>
           </form>
+
+          <RegisterLink>
+            <Link to="/forgot-password">Forgot your password?</Link>
+          </RegisterLink>
+
           <RegisterLink>
             Don't have an account? <Link to="/register">Create one here</Link>
           </RegisterLink>

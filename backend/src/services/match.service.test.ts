@@ -26,6 +26,8 @@ const mockUser1: AuthenticatedUser = {
 	username: 'user1',
 	role: 'user',
 	status: 'active',
+	email_verified: true,
+	failed_login_attempts: 0,
 	preferences: {
 		theme: 'dark',
 		viewStyle: 'grid',

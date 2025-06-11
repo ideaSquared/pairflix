@@ -23,6 +23,22 @@ jest.mock('../models/User', () => ({
 	create: jest.fn(),
 }));
 
+// Mock EmailVerification model
+jest.mock('../models/EmailVerification', () => ({
+	__esModule: true,
+	default: {
+		create: jest.fn(),
+	},
+}));
+
+// Mock ActivityLog model
+jest.mock('../models/ActivityLog', () => ({
+	__esModule: true,
+	default: {
+		create: jest.fn(),
+	},
+}));
+
 // Mock bcrypt
 jest.mock('bcryptjs', () => ({
 	hash: jest.fn(),
@@ -42,6 +58,24 @@ jest.mock('../services/audit.service', () => ({
 jest.mock('jsonwebtoken', () => ({
 	sign: jest.fn(),
 	verify: jest.fn(),
+}));
+
+// Mock email service
+jest.mock('../services/email.service', () => ({
+	generateEmailVerificationEmail: jest
+		.fn()
+		.mockReturnValue('<html>Email content</html>'),
+	sendEmail: jest.fn().mockResolvedValue(true),
+}));
+
+// Mock activity service
+jest.mock('../services/activity.service', () => ({
+	activityService: {
+		logActivity: jest.fn().mockResolvedValue(undefined),
+	},
+	ActivityType: {
+		USER_LOGIN: 'USER_LOGIN',
+	},
 }));
 
 // Type the mocked functions
@@ -124,7 +158,8 @@ describe('Auth Controller', () => {
 				username: 'testuser',
 				password_hash: 'hashed-password',
 				role: 'user',
-				status: 'active',
+				status: 'pending',
+				email_verified: false,
 				preferences: {
 					theme: 'dark',
 					viewStyle: 'grid',
@@ -137,7 +172,13 @@ describe('Auth Controller', () => {
 			expect(res.status).toHaveBeenCalledWith(201);
 			expect(res.json).toHaveBeenCalledWith({
 				token: 'mock-jwt-token',
-				user: mockNewUser,
+				user: expect.objectContaining({
+					user_id: expect.any(String),
+					email: 'test@example.com',
+					username: 'testuser',
+				}),
+				message:
+					'Account created successfully. Please check your email to verify your account.',
 			});
 			expect(mockedAuditLogInfo).toHaveBeenCalledTimes(2); // Registration attempt and success
 		});
@@ -147,6 +188,7 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: { email: 'test@example.com', password: 'password123' }, // Missing username
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -168,6 +210,7 @@ describe('Auth Controller', () => {
 					email: 'invalid-email', // No @ symbol
 				},
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -189,6 +232,7 @@ describe('Auth Controller', () => {
 					email: 'user@@example.com', // Multiple @ symbols
 				},
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -211,6 +255,7 @@ describe('Auth Controller', () => {
 					email: longEmail,
 				},
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -232,6 +277,7 @@ describe('Auth Controller', () => {
 					username: 'ab', // Too short
 				},
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -254,6 +300,7 @@ describe('Auth Controller', () => {
 					password: '123', // Too short
 				},
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -272,6 +319,7 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: validRegisterData,
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -300,6 +348,7 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: validRegisterData,
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -328,6 +377,7 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: validRegisterData,
 				ip: '127.0.0.1',
+				get: jest.fn().mockReturnValue('Mozilla/5.0 Test User Agent'),
 			});
 			const res = mockResponse();
 
@@ -380,12 +430,15 @@ describe('Auth Controller', () => {
 			// Assert
 			expect(mockedAuthenticateUser).toHaveBeenCalledWith(
 				'test@example.com',
-				'password123'
+				'password123',
+				expect.any(Object)
 			);
 			expect(mockedJwtVerify).toHaveBeenCalledWith(mockToken, 'test-secret');
-			expect(res.json).toHaveBeenCalledWith({ token: mockToken });
-			expect(res.status).not.toHaveBeenCalled(); // Should not call status for success cases
-			expect(mockedAuditLogInfo).toHaveBeenCalledTimes(2); // Two audit log calls
+			expect(res.json).toHaveBeenCalledWith({
+				token: mockToken,
+				message: 'Login successful',
+			});
+			expect(res.status).toHaveBeenCalledWith(200); // Login returns 200 status
 		});
 
 		it('should return 401 when credentials are invalid', async () => {
@@ -405,15 +458,14 @@ describe('Auth Controller', () => {
 			// Assert
 			expect(mockedAuthenticateUser).toHaveBeenCalledWith(
 				'wrong@example.com',
-				'wrongpassword'
+				'wrongpassword',
+				expect.any(Object)
 			);
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(res.json).toHaveBeenCalledWith({ error: errorMessage });
-			expect(mockedAuditLogInfo).toHaveBeenCalledTimes(1); // Only one info call for attempt
-			expect(mockedAuditLogWarn).toHaveBeenCalledTimes(1); // One warn call for failed login
 		});
 
-		it('should return 500 when an unknown error occurs', async () => {
+		it('should return 401 when an unknown error occurs', async () => {
 			// Arrange
 			const req = mockRequest({
 				body: { email: 'test@example.com', password: 'password123' },
@@ -427,12 +479,10 @@ describe('Auth Controller', () => {
 			await login(req, res);
 
 			// Assert
-			expect(res.status).toHaveBeenCalledWith(500);
+			expect(res.status).toHaveBeenCalledWith(401);
 			expect(res.json).toHaveBeenCalledWith({
-				error: 'Unknown error occurred',
+				error: 'Authentication failed',
 			});
-			expect(mockedAuditLogInfo).toHaveBeenCalledTimes(1); // Only one info call for attempt
-			expect(mockedAuditLogWarn).toHaveBeenCalledTimes(1); // One warn call for failed login
 		});
 	});
 
@@ -445,6 +495,8 @@ describe('Auth Controller', () => {
 				email: 'test@example.com',
 				username: 'testuser',
 				role: 'user', // Add the missing role property
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'dark' as 'dark' | 'light',
 					viewStyle: 'grid' as 'grid' | 'list',

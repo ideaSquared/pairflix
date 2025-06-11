@@ -52,6 +52,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -87,6 +89,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -129,6 +133,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -164,6 +170,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -228,6 +236,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
@@ -243,8 +253,19 @@ describe('ActivityController', () => {
 				res as Response
 			);
 
-			// Activities should be sorted by date (newest first)
-			const expectedSortedActivities = [
+			expect(activityService.getUserSocialActivities).toHaveBeenCalledWith(
+				'user123',
+				10,
+				0
+			);
+			expect(activityService.getPartnerActivities).toHaveBeenCalledWith(
+				'user123',
+				10,
+				0
+			);
+			expect(res.status).toHaveBeenCalledWith(200);
+
+			const expectedCombinedActivities = [
 				{
 					log_id: '3',
 					user_id: 'user123',
@@ -264,12 +285,8 @@ describe('ActivityController', () => {
 					created_at: date1,
 				},
 			];
-
-			expect(res.status).toHaveBeenCalledWith(200);
 			expect(res.json).toHaveBeenCalledWith({
-				activities: expect.arrayContaining(
-					expectedSortedActivities.slice(0, 10)
-				) as unknown[],
+				activities: expectedCombinedActivities,
 			});
 		});
 
@@ -284,6 +301,8 @@ describe('ActivityController', () => {
 				username: 'testuser',
 				role: 'user',
 				status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+				email_verified: true,
+				failed_login_attempts: 0,
 				preferences: {
 					theme: 'light',
 					viewStyle: 'list',
