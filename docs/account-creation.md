@@ -55,7 +55,8 @@ The login page now includes a "Create one here" link that navigates to the regis
 
 #### Validation & Sanitization
 
-- Email format validation using regex
+- **ReDoS Protection**: Email validation uses safe string operations instead of complex regex to prevent Regular Expression Denial of Service attacks
+- Email format validation using multi-step verification (length, @ symbol count, domain structure)
 - Username format validation (alphanumeric + underscore/hyphen)
 - SQL injection prevention through Sequelize ORM
 - XSS prevention through input validation
@@ -70,6 +71,15 @@ All registration attempts are logged with:
 - Email/username attempted
 - Success/failure status
 - Detailed error information
+
+#### Email Validation Security
+
+The email validation function specifically protects against:
+
+- **ReDoS attacks**: Uses simple string operations instead of complex regex patterns
+- **Length limits**: Enforces RFC-compliant email length limits (254 chars total, 64 for local part)
+- **Format validation**: Ensures single @ symbol and proper domain structure
+- **Character filtering**: Blocks common malicious characters without complex patterns
 
 ## API Documentation
 

@@ -165,7 +165,50 @@ describe('Auth Controller', () => {
 			const req = mockRequest({
 				body: {
 					...validRegisterData,
-					email: 'invalid-email',
+					email: 'invalid-email', // No @ symbol
+				},
+				ip: '127.0.0.1',
+			});
+			const res = mockResponse();
+
+			// Act
+			await register(req, res);
+
+			// Assert
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalledWith({
+				error: 'Please provide a valid email address',
+			});
+		});
+
+		it('should return 400 when email has multiple @ symbols', async () => {
+			// Arrange
+			const req = mockRequest({
+				body: {
+					...validRegisterData,
+					email: 'user@@example.com', // Multiple @ symbols
+				},
+				ip: '127.0.0.1',
+			});
+			const res = mockResponse();
+
+			// Act
+			await register(req, res);
+
+			// Assert
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.json).toHaveBeenCalledWith({
+				error: 'Please provide a valid email address',
+			});
+		});
+
+		it('should return 400 when email is too long', async () => {
+			// Arrange
+			const longEmail = 'a'.repeat(250) + '@example.com'; // Over 254 character limit
+			const req = mockRequest({
+				body: {
+					...validRegisterData,
+					email: longEmail,
 				},
 				ip: '127.0.0.1',
 			});

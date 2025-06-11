@@ -55,9 +55,28 @@ const RegisterPage: React.FC = () => {
       return false;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Safe email validation without ReDoS vulnerability
+    const isValidEmail = (email: string): boolean => {
+      if (!email || email.length < 5 || email.length > 254) return false;
+
+      const atIndex = email.indexOf('@');
+      const lastAtIndex = email.lastIndexOf('@');
+      if (atIndex === -1 || atIndex !== lastAtIndex) return false;
+
+      const localPart = email.substring(0, atIndex);
+      const domainPart = email.substring(atIndex + 1);
+
+      if (localPart.length < 1 || localPart.length > 64) return false;
+      if (domainPart.length < 1 || domainPart.length > 253) return false;
+      if (domainPart.indexOf('.') === -1) return false;
+
+      // Check for basic invalid characters
+      if (/[\s<>()[\]\\,;:]/.test(email)) return false;
+
+      return true;
+    };
+
+    if (!isValidEmail(email)) {
       setError('Please provide a valid email address');
       return false;
     }
@@ -141,6 +160,7 @@ const RegisterPage: React.FC = () => {
                 onChange={e => setUsername(e.target.value)}
                 disabled={isLoading}
                 autoComplete="username"
+                isFullWidth
               />
             </InputGroup>
             <InputGroup>
@@ -151,6 +171,7 @@ const RegisterPage: React.FC = () => {
                 onChange={e => setEmail(e.target.value)}
                 disabled={isLoading}
                 autoComplete="email"
+                isFullWidth
               />
             </InputGroup>
             <InputGroup>
@@ -161,6 +182,7 @@ const RegisterPage: React.FC = () => {
                 onChange={e => setPassword(e.target.value)}
                 disabled={isLoading}
                 autoComplete="new-password"
+                isFullWidth
               />
             </InputGroup>
             <InputGroup>
@@ -171,6 +193,7 @@ const RegisterPage: React.FC = () => {
                 onChange={e => setConfirmPassword(e.target.value)}
                 disabled={isLoading}
                 autoComplete="new-password"
+                isFullWidth
               />
             </InputGroup>
             {error && <ErrorText>{error}</ErrorText>}
@@ -179,6 +202,7 @@ const RegisterPage: React.FC = () => {
               variant="primary"
               disabled={!isFormValid}
               isLoading={isLoading}
+              isFullWidth
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>

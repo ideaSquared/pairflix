@@ -4,6 +4,62 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
+import type { AuthenticatedRequest } from '../types';
+
+/**
+ * Safe email validation function that prevents ReDoS attacks
+ * Uses simple string operations instead of complex regex
+ */
+const isValidEmail = (email: string): boolean => {
+	// Basic length and character checks
+	if (!email || email.length < 5 || email.length > 254) {
+		return false;
+	}
+
+	// Must contain exactly one @ symbol
+	const atIndex = email.indexOf('@');
+	const lastAtIndex = email.lastIndexOf('@');
+	if (atIndex === -1 || atIndex !== lastAtIndex) {
+		return false;
+	}
+
+	// Split into local and domain parts
+	const localPart = email.substring(0, atIndex);
+	const domainPart = email.substring(atIndex + 1);
+
+	// Basic local part validation
+	if (localPart.length < 1 || localPart.length > 64) {
+		return false;
+	}
+
+	// Basic domain part validation
+	if (domainPart.length < 1 || domainPart.length > 253) {
+		return false;
+	}
+
+	// Domain must contain at least one dot
+	if (domainPart.indexOf('.') === -1) {
+		return false;
+	}
+
+	// Check for invalid characters (basic set)
+	const invalidChars = /[\s<>()[\]\\,;:]/;
+	if (invalidChars.test(email)) {
+		return false;
+	}
+
+	// Domain should not start or end with dot or hyphen
+	if (
+		domainPart.startsWith('.') ||
+		domainPart.endsWith('.') ||
+		domainPart.startsWith('-') ||
+		domainPart.endsWith('-')
+	) {
+		return false;
+	}
+
+	return true;
+};
 
 export const register = async (req: Request, res: Response) => {
 	const { email, password, username } = req.body as {
@@ -29,9 +85,8 @@ export const register = async (req: Request, res: Response) => {
 			});
 		}
 
-		// Validate email format
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(email)) {
+		// Validate email format using safe validation
+		if (!isValidEmail(email)) {
 			return res.status(400).json({
 				error: 'Please provide a valid email address',
 			});
@@ -216,7 +271,10 @@ export const login = async (req: Request, res: Response) => {
 	}
 };
 
-export const getCurrentUser = async (req: Request, res: Response) => {
+export const getCurrentUser = async (
+	req: AuthenticatedRequest,
+	res: Response
+) => {
 	try {
 		// req.user is set by the authenticateToken middleware
 		if (!req.user) {
@@ -232,7 +290,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 	}
 };
 
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: AuthenticatedRequest, res: Response) => {
 	try {
 		// Only log if we have a user in the request
 		if (req.user) {
