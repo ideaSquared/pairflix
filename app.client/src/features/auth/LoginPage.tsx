@@ -9,7 +9,7 @@ import {
   InputGroup,
 } from '@pairflix/components';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
@@ -25,6 +25,12 @@ const LoginContainer = styled(Container)`
 const LoginCard = styled(Card)`
   width: 100%;
   max-width: 400px;
+`;
+
+const RegisterLink = styled.div`
+  text-align: center;
+  margin-top: 1rem;
+  color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
 const LoginPage: React.FC = () => {
@@ -87,6 +93,9 @@ const LoginPage: React.FC = () => {
               Login
             </Button>
           </form>
+          <RegisterLink>
+            Don't have an account? <Link to="/register">Create one here</Link>
+          </RegisterLink>
         </CardContent>
       </LoginCard>
     </LoginContainer>

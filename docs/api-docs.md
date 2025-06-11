@@ -27,6 +27,47 @@ Authorization: Bearer <token>
 
 ## Authentication Endpoints
 
+#### POST /api/auth/register
+
+Creates a new user account and returns a JWT token for automatic login.
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "username": "johndoe"
+}
+```
+
+**Response: 201 Created**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "role": "user",
+    "status": "active",
+    "preferences": {
+      "theme": "dark",
+      "viewStyle": "grid",
+      "emailNotifications": true,
+      "autoArchiveDays": 30,
+      "favoriteGenres": []
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Validation errors (missing fields, invalid email/username format, weak password)
+- `409 Conflict`: Email or username already exists
+
 #### POST /api/auth/login
 
 Authenticates a user and returns a JWT token.

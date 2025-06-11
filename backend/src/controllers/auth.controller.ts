@@ -1,7 +1,174 @@
+import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import User from '../models/User';
 import { auditLogService } from '../services/audit.service';
 import { authenticateUser } from '../services/auth.service';
+
+export const register = async (req: Request, res: Response) => {
+	const { email, password, username } = req.body as {
+		email: string;
+		password: string;
+		username: string;
+	};
+
+	try {
+		// Audit log - registration attempt
+		await auditLogService.info('User registration attempt', 'auth-controller', {
+			email,
+			username,
+			ip: req.ip,
+			userAgent: req.get('user-agent'),
+			timestamp: new Date(),
+		});
+
+		// Validate required fields
+		if (!email || !password || !username) {
+			return res.status(400).json({
+				error: 'Email, password, and username are required',
+			});
+		}
+
+		// Validate email format
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			return res.status(400).json({
+				error: 'Please provide a valid email address',
+			});
+		}
+
+		// Validate username format
+		const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+		if (
+			!usernameRegex.test(username) ||
+			username.length < 3 ||
+			username.length > 30
+		) {
+			return res.status(400).json({
+				error:
+					'Username must be 3-30 characters and contain only letters, numbers, underscores, and hyphens',
+			});
+		}
+
+		// Validate password strength
+		if (password.length < 8) {
+			return res.status(400).json({
+				error: 'Password must be at least 8 characters long',
+			});
+		}
+
+		// Check if email already exists
+		const existingUserByEmail = await User.findOne({ where: { email } });
+		if (existingUserByEmail) {
+			await auditLogService.warn(
+				'Registration failed - email already exists',
+				'auth-controller',
+				{
+					email,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(409).json({
+				error: 'An account with this email address already exists',
+			});
+		}
+
+		// Check if username already exists
+		const existingUserByUsername = await User.findOne({ where: { username } });
+		if (existingUserByUsername) {
+			await auditLogService.warn(
+				'Registration failed - username already exists',
+				'auth-controller',
+				{
+					username,
+					ip: req.ip,
+					timestamp: new Date(),
+				}
+			);
+			return res.status(409).json({
+				error: 'This username is already taken',
+			});
+		}
+
+		// Hash the password
+		const saltRounds = 12;
+		const password_hash = await bcrypt.hash(password, saltRounds);
+
+		// Create the user
+		const newUser = await User.create({
+			email,
+			username,
+			password_hash,
+			role: 'user',
+			status: 'active',
+			preferences: {
+				theme: 'dark',
+				viewStyle: 'grid',
+				emailNotifications: true,
+				autoArchiveDays: 30,
+				favoriteGenres: [],
+			},
+		});
+
+		// Generate JWT token for automatic login
+		const token = jwt.sign(
+			{
+				user_id: newUser.user_id,
+				email: newUser.email,
+				username: newUser.username,
+				role: newUser.role,
+				status: newUser.status,
+				preferences: newUser.preferences,
+			},
+			process.env.JWT_SECRET!,
+			{ expiresIn: '7d' }
+		);
+
+		// Audit log - successful registration
+		await auditLogService.info(
+			'User registration successful',
+			'auth-controller',
+			{
+				userId: newUser.user_id,
+				email: newUser.email,
+				username: newUser.username,
+				timestamp: new Date(),
+			}
+		);
+
+		res.status(201).json({
+			token,
+			user: {
+				user_id: newUser.user_id,
+				email: newUser.email,
+				username: newUser.username,
+				role: newUser.role,
+				status: newUser.status,
+				preferences: newUser.preferences,
+			},
+		});
+	} catch (error) {
+		// Audit log - registration error
+		await auditLogService.error('User registration failed', 'auth-controller', {
+			email,
+			username,
+			error: error instanceof Error ? error.message : 'Unknown error',
+			ip: req.ip,
+			timestamp: new Date(),
+		});
+
+		console.error('Registration error:', error);
+
+		if (error instanceof Error) {
+			res.status(500).json({ error: 'Registration failed. Please try again.' });
+		} else {
+			res
+				.status(500)
+				.json({ error: 'Unknown error occurred during registration' });
+		}
+	}
+};
 
 export const login = async (req: Request, res: Response) => {
 	const { email, password } = req.body as { email: string; password: string };

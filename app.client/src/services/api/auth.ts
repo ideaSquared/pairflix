@@ -5,7 +5,38 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterCredentials {
+  email: string;
+  password: string;
+  username: string;
+}
+
 export const auth = {
+  register: async (credentials: RegisterCredentials) => {
+    const response = await fetch(
+      `${(import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || 'http://localhost:3000'}/api/auth/register`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Registration failed');
+    }
+
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+
+    return data;
+  },
+
   login: async (credentials: LoginCredentials) => {
     const response = await fetch(
       `${(import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || 'http://localhost:3000'}/api/auth/login`,

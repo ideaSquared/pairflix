@@ -8,6 +8,7 @@ import {
 import ActivityPage from '../../features/activity/ActivityPage';
 import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
+import RegisterPage from '../../features/auth/RegisterPage';
 import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
@@ -55,8 +56,9 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Login page without layout */}
+      {/* Login and register pages without layout */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       {/* Logout route */}
       <Route path="/logout" element={<LogoutRoute />} />
