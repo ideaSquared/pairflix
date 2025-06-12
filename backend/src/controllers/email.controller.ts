@@ -51,7 +51,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 		});
 
 		// Generate reset URL
-		const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+		const resetUrl = `${process.env.APP_CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
 		// Send email
 		const emailHtml = emailService.generatePasswordResetEmail(
@@ -210,7 +210,7 @@ export const sendEmailVerification = async (
 		});
 
 		// Generate verification URL
-		const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+		const verificationUrl = `${process.env.APP_CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
 
 		// Send email
 		const emailHtml = emailService.generateEmailVerificationEmail(

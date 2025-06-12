@@ -102,13 +102,13 @@ class EmailService {
 		<head>
 			<meta charset="utf-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Reset Your Password - PairFlix</title>
+			<title>Password Reset - PairFlix</title>
 			<style>
 				body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
 				.container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; }
 				.header { background-color: #1a1a2e; color: #fff; padding: 20px; text-align: center; }
 				.content { padding: 30px 20px; }
-				.button { display: inline-block; padding: 12px 25px; background-color: #e94560; color: #fff; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+				.button { display: inline-block; padding: 12px 25px; background-color: #0f3460; color: #fff; text-decoration: none; border-radius: 5px; margin: 20px 0; }
 				.footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #6c757d; }
 			</style>
 		</head>
@@ -120,12 +120,12 @@ class EmailService {
 				<div class="content">
 					<h2>Password Reset Request</h2>
 					<p>Hello ${username},</p>
-					<p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
-					<p>To reset your password, click the button below:</p>
+					<p>We received a request to reset your password. Click the button below to reset your password:</p>
 					<a href="${resetUrl}" class="button">Reset Password</a>
 					<p>Or copy and paste this link into your browser:</p>
 					<p><a href="${resetUrl}">${resetUrl}</a></p>
-					<p>This link will expire in 1 hour for security reasons.</p>
+					<p>This link will expire in 1 hour.</p>
+					<p>If you didn't request this password reset, please ignore this email.</p>
 					<p>Best regards,<br>The PairFlix Team</p>
 				</div>
 				<div class="footer">
@@ -186,7 +186,7 @@ class EmailService {
 	 * Send email verification
 	 */
 	async sendEmailVerification(email: string, username: string, token: string) {
-		const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+		const verificationUrl = `${process.env.APP_CLIENT_URL}/verify-email?token=${token}`;
 
 		const emailData: EmailData = {
 			to: email,
@@ -235,7 +235,7 @@ class EmailService {
 					<p>Your new temporary password is:</p>
 					<div class="password">${newPassword}</div>
 					<p><strong>Important:</strong> Please log in and change this password immediately for your security.</p>
-					<a href="${process.env.FRONTEND_URL}/login" class="button">Login Now</a>
+					<a href="${process.env.APP_CLIENT_URL}/login" class="button">Login Now</a>
 					<p>Best regards,<br>The PairFlix Team</p>
 				</div>
 				<div class="footer">
@@ -265,7 +265,7 @@ class EmailService {
 		token: string,
 		reason: string
 	) {
-		const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+		const resetUrl = `${process.env.APP_CLIENT_URL}/reset-password?token=${token}`;
 
 		const htmlContent = `
 		<!DOCTYPE html>
@@ -358,7 +358,7 @@ class EmailService {
 						<strong>Security Notice:</strong> ${message}
 					</div>
 					<p>If this was not you, please contact support immediately and consider changing your password.</p>
-					<a href="${process.env.FRONTEND_URL}/login" class="button">Secure My Account</a>
+					<a href="${process.env.APP_CLIENT_URL}/login" class="button">Secure My Account</a>
 					<p>Best regards,<br>The PairFlix Security Team</p>
 				</div>
 				<div class="footer">
@@ -422,7 +422,7 @@ class EmailService {
 					</div>
 					<p>If this was you, you can safely ignore this email.</p>
 					<p>If this wasn't you, please secure your account immediately:</p>
-					<a href="${process.env.FRONTEND_URL}/forgot-password" class="button">Secure My Account</a>
+					<a href="${process.env.APP_CLIENT_URL}/forgot-password" class="button">Secure My Account</a>
 					<p>Best regards,<br>The PairFlix Team</p>
 				</div>
 				<div class="footer">
@@ -481,7 +481,7 @@ class EmailService {
 					</div>
 					<p>If you ${changedBy === 'admin' ? 'did not expect this change' : 'did not make this change'}, please contact support immediately.</p>
 					${changedBy === 'admin' ? '<p><strong>Important:</strong> Please log in with your new password and change it to something secure that only you know.</p>' : ''}
-					<a href="${process.env.FRONTEND_URL}/login" class="button">${changedBy === 'admin' ? 'Update My Password' : 'Login to Account'}</a>
+					<a href="${process.env.APP_CLIENT_URL}/login" class="button">${changedBy === 'admin' ? 'Update My Password' : 'Login to Account'}</a>
 					<p>Best regards,<br>The PairFlix Security Team</p>
 				</div>
 				<div class="footer">
@@ -562,7 +562,7 @@ class EmailService {
 									? '<p>Your account has been permanently banned. If you believe this is an error, please contact support.</p>'
 									: '<p>Please contact support if you have any questions about this status change.</p>'
 					}
-					<a href="${process.env.FRONTEND_URL}/${newStatus === 'active' ? 'login' : 'contact'}" class="button">
+					<a href="${process.env.APP_CLIENT_URL}/${newStatus === 'active' ? 'login' : 'contact'}" class="button">
 						${newStatus === 'active' ? 'Login to Account' : 'Contact Support'}
 					</a>
 					<p>Best regards,<br>The PairFlix Team</p>

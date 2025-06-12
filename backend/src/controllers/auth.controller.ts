@@ -183,7 +183,7 @@ export const register = async (req: Request, res: Response) => {
 		});
 
 		// Generate verification URL
-		const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+		const verificationUrl = `${process.env.APP_CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
 
 		// Send verification email
 		try {
@@ -209,21 +209,6 @@ export const register = async (req: Request, res: Response) => {
 			);
 		}
 
-		// Generate JWT token for basic access (user will need to verify email for full access)
-		const token = jwt.sign(
-			{
-				user_id: newUser.user_id,
-				email: newUser.email,
-				username: newUser.username,
-				role: newUser.role,
-				status: newUser.status,
-				email_verified: newUser.email_verified,
-				preferences: newUser.preferences,
-			},
-			process.env.JWT_SECRET!,
-			{ expiresIn: '7d' }
-		);
-
 		// Audit log - successful registration
 		await auditLogService.info(
 			'User registration successful',
@@ -237,18 +222,8 @@ export const register = async (req: Request, res: Response) => {
 		);
 
 		res.status(201).json({
-			token,
-			user: {
-				user_id: newUser.user_id,
-				email: newUser.email,
-				username: newUser.username,
-				role: newUser.role,
-				status: newUser.status,
-				email_verified: newUser.email_verified,
-				preferences: newUser.preferences,
-			},
 			message:
-				'Account created successfully. Please check your email to verify your account.',
+				'Account created successfully. Please check your email to verify your account before logging in.',
 		});
 	} catch (error) {
 		// Audit log - registration error
