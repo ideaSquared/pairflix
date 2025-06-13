@@ -101,6 +101,40 @@ const LoginPage: React.FC = () => {
           <RegisterLink>
             Don't have an account? <Link to="/register">Create one here</Link>
           </RegisterLink>
+
+          {/* Development mode helper */}
+          {import.meta.env.MODE === 'development' && (
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '12px',
+                background: 'rgba(255, 107, 53, 0.1)',
+                border: '1px solid #ff6b35',
+                borderRadius: '4px',
+                fontSize: '12px',
+              }}
+            >
+              <strong style={{ color: '#ff6b35' }}>🔧 Dev Mode</strong>
+              <br />
+              Password for all test users:{' '}
+              <code
+                style={{
+                  background: 'rgba(0,0,0,0.1)',
+                  padding: '2px 4px',
+                  borderRadius: '2px',
+                }}
+              >
+                password123
+              </code>
+              <br />
+              <small style={{ color: '#666' }}>
+                Try: useractive@example.com, admin@example.com,
+                user1@example.com, etc.
+                <br />
+                Or use the Dev Login panel (top right) for quick switching!
+              </small>
+            </div>
+          )}
         </CardContent>
       </LoginCard>
     </LoginContainer>
