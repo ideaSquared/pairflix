@@ -7,11 +7,11 @@ import {
   H2,
   Input,
   InputGroup,
+  SuccessText,
 } from '@pairflix/components';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
 
 const RegisterContainer = styled(Container)`
@@ -39,14 +39,24 @@ const LoginLink = styled.div`
   color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
+const SuccessContainer = styled.div`
+  text-align: center;
+`;
+
+const IconWrapper = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+`;
+
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { checkAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
@@ -117,12 +127,12 @@ const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const { token } = await auth.register({ email, password, username });
-      localStorage.setItem('token', token);
-      checkAuth();
-      navigate('/watchlist');
+      const response = await auth.register({ email, password, username });
+      setSuccess(response.message);
+      setRegisteredEmail(response.email || email);
     } catch (err) {
       // Extract the specific error message from the response if available
       if (err instanceof Error) {
@@ -143,6 +153,50 @@ const RegisterPage: React.FC = () => {
     confirmPassword.trim() &&
     username.trim() &&
     !isLoading;
+
+  // Show success state after registration
+  if (success) {
+    return (
+      <RegisterContainer>
+        <RegisterCard>
+          <CardContent>
+            <SuccessContainer>
+              <IconWrapper>📧</IconWrapper>
+              <H2 style={{ marginBottom: '1rem' }}>Check Your Email!</H2>
+              <SuccessText style={{ marginBottom: '1rem' }}>
+                {success}
+              </SuccessText>
+              <p
+                style={{
+                  marginBottom: '1.5rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                We've sent a verification link to{' '}
+                <strong>{registeredEmail}</strong>. Please check your email and
+                click the link to activate your account.
+              </p>
+              <div style={{ marginBottom: '1rem' }}>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/login')}
+                  isFullWidth
+                >
+                  Go to Login
+                </Button>
+              </div>
+              <LoginLink>
+                Didn't receive the email? Check your spam folder or{' '}
+                <Link to="/register" onClick={() => window.location.reload()}>
+                  try again
+                </Link>
+              </LoginLink>
+            </SuccessContainer>
+          </CardContent>
+        </RegisterCard>
+      </RegisterContainer>
+    );
+  }
 
   return (
     <RegisterContainer>

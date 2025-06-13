@@ -168,17 +168,11 @@ describe('Auth Controller', () => {
 					favoriteGenres: [],
 				},
 			});
-			expect(mockedJwtSign).toHaveBeenCalled();
 			expect(res.status).toHaveBeenCalledWith(201);
 			expect(res.json).toHaveBeenCalledWith({
-				token: 'mock-jwt-token',
-				user: expect.objectContaining({
-					user_id: expect.any(String),
-					email: 'test@example.com',
-					username: 'testuser',
-				}),
 				message:
-					'Account created successfully. Please check your email to verify your account.',
+					'Account created successfully. Please check your email to verify your account before logging in.',
+				email: 'test@example.com',
 			});
 			expect(mockedAuditLogInfo).toHaveBeenCalledTimes(2); // Registration attempt and success
 		});

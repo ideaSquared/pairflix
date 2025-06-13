@@ -224,6 +224,7 @@ export const register = async (req: Request, res: Response) => {
 		res.status(201).json({
 			message:
 				'Account created successfully. Please check your email to verify your account before logging in.',
+			email: newUser.email, // Include email so frontend can show which email to check
 		});
 	} catch (error) {
 		// Audit log - registration error
