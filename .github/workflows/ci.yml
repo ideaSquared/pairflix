@@ -32,12 +32,21 @@ jobs:
             app.admin/node_modules
             backend/node_modules
             lib.components/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-modules-v2-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-modules-
+            ${{ runner.os }}-node-modules-v2-
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Fix Rollup optional dependencies issue
+        run: |
+          # Clear npm cache to avoid stale dependencies
+          npm cache clean --force
+          # Remove lib.components dependencies to force fresh install
+          rm -rf lib.components/node_modules lib.components/package-lock.json
+          # Reinstall lib.components dependencies
+          cd lib.components && npm install
 
       - name: Build components package (required for tests)
         run: npm run build:components
