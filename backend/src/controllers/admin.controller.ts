@@ -3,16 +3,7 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
-import { ActivityLog } from '../models/ActivityLog';
-import AuditLog from '../models/AuditLog';
-import Content from '../models/Content';
-import ContentReport from '../models/ContentReport';
-import EmailVerification from '../models/EmailVerification';
-import Match from '../models/Match';
-import PasswordReset from '../models/PasswordReset';
-import User from '../models/User';
-import UserSession from '../models/UserSession';
-import WatchlistEntry from '../models/WatchlistEntry';
+import models from '../models';
 import { activityService } from '../services/activity.service';
 import { auditLogService, LogLevel } from '../services/audit.service';
 import { invalidateAllUserSessions } from '../services/auth.service';
@@ -20,6 +11,19 @@ import { emailService } from '../services/email.service';
 import { settingsService } from '../services/settings.service';
 import { statisticsService } from '../services/statistics.service';
 import type { ActivityContext } from '../types';
+
+const {
+	ActivityLog,
+	AuditLog,
+	Content,
+	ContentReport,
+	EmailVerification,
+	Match,
+	PasswordReset,
+	User,
+	UserSession,
+	WatchlistEntry,
+} = models;
 
 // Import Express namespace to ensure the Request type includes user property
 import '../middlewares/auth';

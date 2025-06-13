@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
-import Match from '../models/Match';
+import models from '../models';
 import { ActivityType, activityService } from '../services/activity.service';
 import { getMatchesService } from '../services/match.service';
+
+const { Match } = models;
 
 // Type definition for create match request body
 interface CreateMatchBody {

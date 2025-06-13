@@ -122,5 +122,7 @@ export default {
 	AppSettings,
 	Content,
 	ContentReport,
+	EmailVerification,
+	PasswordReset,
 	UserSession,
 };
