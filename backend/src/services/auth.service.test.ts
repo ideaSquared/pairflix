@@ -32,6 +32,8 @@ describe('authenticateUser', () => {
 			password_hash: 'hashedPassword',
 			role: 'user',
 			status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+			email_verified: false,
+			failed_login_attempts: 0,
 			preferences: { theme: 'dark' as 'dark' | 'light' },
 			last_login: null,
 			save: jest.fn().mockResolvedValue(true),
@@ -51,6 +53,8 @@ describe('authenticateUser', () => {
 				username: mockUser.username,
 				role: mockUser.role,
 				status: mockUser.status,
+				email_verified: mockUser.email_verified,
+				failed_login_attempts: mockUser.failed_login_attempts,
 				preferences: mockUser.preferences,
 			},
 			expect.any(String),
@@ -73,6 +77,9 @@ describe('authenticateUser', () => {
 			email: 'test@example.com',
 			username: 'testuser',
 			password_hash: 'hashedPassword',
+			failed_login_attempts: 0,
+			locked_until: null,
+			save: jest.fn().mockResolvedValue(true),
 		});
 		(bcrypt.compare as jest.Mock).mockResolvedValue(false);
 

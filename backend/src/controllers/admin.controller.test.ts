@@ -175,17 +175,19 @@ describe('AdminController', () => {
 					message: 'Test message',
 				},
 				user: {
-					user_id: 'test-user',
-					email: 'test@example.com',
-					username: 'testuser',
+					user_id: 'admin-user-id',
+					email: 'admin@example.com',
+					username: 'adminuser',
 					role: 'admin',
 					status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended',
+					email_verified: true,
+					failed_login_attempts: 0,
 					preferences: {
-						theme: 'light' as const,
-						viewStyle: 'list' as const,
+						theme: 'light' as 'light' | 'dark',
+						viewStyle: 'list' as 'list' | 'grid',
 						emailNotifications: true,
 						autoArchiveDays: 30,
-						favoriteGenres: ['action', 'comedy'],
+						favoriteGenres: [] as string[],
 					},
 				},
 			});
@@ -211,7 +213,7 @@ describe('AdminController', () => {
 				'admin-test',
 				expect.objectContaining({
 					testMode: true,
-					userId: 'test-user',
+					userId: 'admin-user-id',
 				})
 			);
 			expect(res.status).toHaveBeenCalledWith(201);

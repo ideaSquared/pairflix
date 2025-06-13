@@ -3,18 +3,27 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
-import { ActivityLog } from '../models/ActivityLog';
-import AuditLog from '../models/AuditLog';
-import Content from '../models/Content';
-import ContentReport from '../models/ContentReport';
-import Match from '../models/Match';
-import User from '../models/User';
-import WatchlistEntry from '../models/WatchlistEntry';
+import models from '../models';
 import { activityService } from '../services/activity.service';
 import { auditLogService, LogLevel } from '../services/audit.service';
+import { invalidateAllUserSessions } from '../services/auth.service';
+import { emailService } from '../services/email.service';
 import { settingsService } from '../services/settings.service';
 import { statisticsService } from '../services/statistics.service';
 import type { ActivityContext } from '../types';
+
+const {
+	ActivityLog,
+	AuditLog,
+	Content,
+	ContentReport,
+	EmailVerification,
+	Match,
+	PasswordReset,
+	User,
+	UserSession,
+	WatchlistEntry,
+} = models;
 
 // Import Express namespace to ensure the Request type includes user property
 import '../middlewares/auth';
@@ -537,11 +546,12 @@ export const changeUserStatus = async (req: Request, res: Response) => {
 };
 
 /**
- * Reset a user's password
+ * Reset a user's password (generates new password and emails it)
  */
 export const resetUserPassword = async (req: Request, res: Response) => {
 	try {
 		const { userId } = req.params;
+		const { sendEmail = true } = req.body;
 
 		if (!userId) {
 			return res.status(400).json({ error: 'User ID is required' });
@@ -553,8 +563,8 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 			return res.status(404).json({ error: 'User not found' });
 		}
 
-		// Generate random password (8 characters) using a cryptographically secure method
-		const newPassword = crypto.randomBytes(6).toString('base64').slice(0, 8);
+		// Generate random password (12 characters) using a cryptographically secure method
+		const newPassword = crypto.randomBytes(9).toString('base64').slice(0, 12);
 
 		// Hash the new password
 		const password_hash = await bcrypt.hash(newPassword, 10);
@@ -563,18 +573,41 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 		user.password_hash = password_hash;
 		await user.save();
 
+		// Send email notification if requested
+		if (sendEmail) {
+			try {
+				await emailService.sendPasswordResetByAdmin(
+					user.email,
+					user.username,
+					newPassword
+				);
+			} catch (emailError) {
+				console.error('Failed to send password reset email:', emailError);
+				// Continue with success response but note email failure
+			}
+		}
+
 		// Audit log for password reset
-		await auditLogService.warn('Reset user password', 'admin-controller', {
-			adminId: req.user?.user_id,
-			targetUserId: userId,
-			// Don't log the new password in audit logs for security reasons
-			timestamp: new Date(),
-		});
+		await auditLogService.warn(
+			'Admin reset user password',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				emailSent: sendEmail,
+				timestamp: new Date(),
+			}
+		);
 
 		return res.status(200).json({
 			success: true,
-			message: 'Password reset successful',
-			newPassword,
+			message: sendEmail
+				? 'Password reset successful. New password sent to user via email.'
+				: 'Password reset successful.',
+			// Only return password if email wasn't sent (for admin to manually share)
+			...(sendEmail ? {} : { newPassword }),
 			user: {
 				user_id: user.user_id,
 				username: user.username,
@@ -589,13 +622,194 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 			'Failed to reset user password',
 			'admin-controller',
 			{
-				userId: req.user?.user_id,
+				adminId: req.user?.user_id,
 				targetUserId: req.params.userId,
 				error: error instanceof Error ? error.message : 'Unknown error',
 			}
 		);
 
 		return res.status(500).json({ error: 'Failed to reset user password' });
+	}
+};
+
+/**
+ * Force a user to reset their password on next login
+ */
+export const forcePasswordReset = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		const { reason } = req.body;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Generate a password reset token
+		const token = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+		// Create password reset entry
+		await PasswordReset.create({
+			user_id: user.user_id,
+			token,
+			expires_at: expiresAt,
+			forced_by_admin: true,
+		});
+
+		// Invalidate current password by setting a special status
+		user.status = 'pending'; // User must reset password before they can be active
+		await user.save();
+
+		// Send forced reset email
+		try {
+			await emailService.sendForcedPasswordReset(
+				user.email,
+				user.username,
+				token,
+				reason || 'Security policy requirement'
+			);
+		} catch (emailError) {
+			console.error('Failed to send forced password reset email:', emailError);
+		}
+
+		// Audit log for forced password reset
+		await auditLogService.warn(
+			'Admin forced password reset',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				reason: reason || 'No reason provided',
+				resetToken: token,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message:
+				'User has been forced to reset their password. They cannot login until they complete the reset.',
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+				status: user.status,
+			},
+		});
+	} catch (error) {
+		console.error('Error forcing password reset:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to force password reset',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to force password reset' });
+	}
+};
+
+/**
+ * Resend email verification for a user
+ */
+export const resendEmailVerification = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		if (user.email_verified) {
+			return res.status(400).json({ error: 'User email is already verified' });
+		}
+
+		// Delete existing verification tokens
+		await EmailVerification.destroy({
+			where: { user_id: user.user_id },
+		});
+
+		// Generate new verification token
+		const token = crypto.randomBytes(32).toString('hex');
+		const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+		// Create new verification entry
+		await EmailVerification.create({
+			user_id: user.user_id,
+			token,
+			expires_at: expiresAt,
+		});
+
+		// Send verification email
+		try {
+			await emailService.sendEmailVerification(
+				user.email,
+				user.username,
+				token
+			);
+		} catch (emailError) {
+			console.error('Failed to send verification email:', emailError);
+			throw new Error('Failed to send verification email');
+		}
+
+		// Audit log for verification resend
+		await auditLogService.info(
+			'Admin resent email verification',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'Email verification sent successfully.',
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+			},
+		});
+	} catch (error) {
+		console.error('Error resending email verification:', error);
+
+		// Audit log for error
+		await auditLogService.error(
+			'Failed to resend email verification',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res
+			.status(500)
+			.json({ error: 'Failed to resend email verification' });
 	}
 };
 
@@ -665,6 +879,7 @@ export const createUser = async (req: Request, res: Response) => {
 			password_hash,
 			role: role ?? 'user',
 			status: status ?? 'active',
+			email_verified: false,
 			preferences,
 		});
 
@@ -2195,6 +2410,406 @@ export const dismissReport = async (req: Request, res: Response) => {
 	}
 };
 
+/**
+ * Get locked accounts
+ */
+export const getLockedAccounts = async (req: Request, res: Response) => {
+	try {
+		const limit = parseInt(req.query.limit as string, 10) || 10;
+		const offset = parseInt(req.query.offset as string, 10) || 0;
+
+		const lockedUsers = await User.findAndCountAll({
+			where: {
+				[Op.or]: [
+					{ locked_until: { [Op.gt]: new Date() } },
+					{ failed_login_attempts: { [Op.gte]: 3 } },
+				],
+			},
+			attributes: [
+				'user_id',
+				'username',
+				'email',
+				'status',
+				'failed_login_attempts',
+				'locked_until',
+				'last_login',
+				'created_at',
+			],
+			limit,
+			offset,
+			order: [['locked_until', 'DESC']],
+		});
+
+		return res.status(200).json({
+			users: lockedUsers.rows,
+			total: lockedUsers.count,
+			limit,
+			offset,
+		});
+	} catch (error) {
+		console.error('Error fetching locked accounts:', error);
+		return res.status(500).json({ error: 'Failed to fetch locked accounts' });
+	}
+};
+
+/**
+ * Unlock user account
+ */
+export const unlockUserAccount = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		// Reset lockout fields
+		user.failed_login_attempts = 0;
+		user.set('locked_until', undefined);
+		await user.save();
+
+		// Send notification email to user
+		try {
+			await emailService.sendSecurityAlert(
+				user.email,
+				user.username,
+				'Account Unlocked',
+				'Your account has been unlocked by an administrator. You can now log in normally.'
+			);
+		} catch (emailError) {
+			console.error('Failed to send unlock notification:', emailError);
+		}
+
+		// Audit log
+		await auditLogService.info(
+			'Admin unlocked user account',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'Account unlocked successfully',
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+				failed_login_attempts: user.failed_login_attempts,
+				locked_until: user.locked_until,
+			},
+		});
+	} catch (error) {
+		console.error('Error unlocking user account:', error);
+
+		await auditLogService.error(
+			'Failed to unlock user account',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to unlock user account' });
+	}
+};
+
+/**
+ * Get user sessions
+ */
+export const getUserSessions = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		const sessions = await UserSession.findAll({
+			where: {
+				user_id: userId,
+				expires_at: { [Op.gt]: new Date() }, // Only active sessions
+			},
+			order: [['last_activity', 'DESC']],
+		});
+
+		return res.status(200).json({
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+			},
+			sessions: sessions.map(session => ({
+				session_id: session.session_id,
+				device_info: session.device_info,
+				ip_address: session.ip_address,
+				last_activity: session.last_activity,
+				created_at: session.created_at,
+				expires_at: session.expires_at,
+			})),
+		});
+	} catch (error) {
+		console.error('Error fetching user sessions:', error);
+		return res.status(500).json({ error: 'Failed to fetch user sessions' });
+	}
+};
+
+/**
+ * Terminate specific user session
+ */
+export const terminateUserSession = async (req: Request, res: Response) => {
+	try {
+		const { userId, sessionId } = req.params;
+
+		if (!userId || !sessionId) {
+			return res
+				.status(400)
+				.json({ error: 'User ID and Session ID are required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		const deleted = await UserSession.destroy({
+			where: {
+				session_id: sessionId,
+				user_id: userId,
+			},
+		});
+
+		if (deleted === 0) {
+			return res.status(404).json({ error: 'Session not found' });
+		}
+
+		// Audit log
+		await auditLogService.info(
+			'Admin terminated user session',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				sessionId,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'Session terminated successfully',
+		});
+	} catch (error) {
+		console.error('Error terminating user session:', error);
+
+		await auditLogService.error(
+			'Failed to terminate user session',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				sessionId: req.params.sessionId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to terminate session' });
+	}
+};
+
+/**
+ * Terminate all user sessions (force logout)
+ */
+export const terminateAllUserSessions = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		const deletedCount = await invalidateAllUserSessions(userId);
+
+		// Send notification email to user
+		try {
+			await emailService.sendSecurityAlert(
+				user.email,
+				user.username,
+				'All Sessions Terminated',
+				'All active sessions for your account have been terminated by an administrator for security reasons. Please log in again if you need to access your account.'
+			);
+		} catch (emailError) {
+			console.error(
+				'Failed to send session termination notification:',
+				emailError
+			);
+		}
+
+		// Audit log
+		await auditLogService.warn(
+			'Admin terminated all user sessions',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				sessionsTerminated: deletedCount,
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: `All user sessions terminated successfully. ${deletedCount} sessions were ended.`,
+			sessionsTerminated: deletedCount,
+		});
+	} catch (error) {
+		console.error('Error terminating all user sessions:', error);
+
+		await auditLogService.error(
+			'Failed to terminate all user sessions',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to terminate all sessions' });
+	}
+};
+
+/**
+ * Enhanced change user status with notifications
+ */
+export const changeUserStatusEnhanced = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		const { status, reason } = req.body;
+
+		if (!userId) {
+			return res.status(400).json({ error: 'User ID is required' });
+		}
+
+		if (!status) {
+			return res.status(400).json({ error: 'Status is required' });
+		}
+
+		const validStatuses = [
+			'active',
+			'inactive',
+			'pending',
+			'suspended',
+			'banned',
+		];
+		if (!validStatuses.includes(status)) {
+			return res.status(400).json({
+				error: 'Invalid status',
+				validStatuses,
+			});
+		}
+
+		const user = await User.findByPk(userId);
+
+		if (!user) {
+			return res.status(404).json({ error: 'User not found' });
+		}
+
+		const oldStatus = user.status;
+		user.status = status;
+		await user.save();
+
+		// If user is suspended or banned, terminate all their sessions
+		if (status === 'suspended' || status === 'banned') {
+			await invalidateAllUserSessions(userId);
+		}
+
+		// Send notification email to user
+		try {
+			await emailService.sendAccountStatusNotification(
+				user.email,
+				user.username,
+				status,
+				reason
+			);
+		} catch (emailError) {
+			console.error('Failed to send status change notification:', emailError);
+		}
+
+		// Audit log
+		await auditLogService.warn(
+			'Admin changed user status',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				adminEmail: req.user?.email,
+				targetUserId: userId,
+				targetEmail: user.email,
+				oldStatus,
+				newStatus: status,
+				reason: reason || 'No reason provided',
+				timestamp: new Date(),
+			}
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: 'User status updated successfully',
+			user: {
+				user_id: user.user_id,
+				username: user.username,
+				email: user.email,
+				status: user.status,
+			},
+		});
+	} catch (error) {
+		console.error('Error changing user status:', error);
+
+		await auditLogService.error(
+			'Failed to change user status',
+			'admin-controller',
+			{
+				adminId: req.user?.user_id,
+				targetUserId: req.params.userId,
+				requestedStatus: req.body.status,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			}
+		);
+
+		return res.status(500).json({ error: 'Failed to change user status' });
+	}
+};
+
 // Export controller functions with an object for backward compatibility
 export const adminController = {
 	getAuditLogs,
@@ -2209,6 +2824,7 @@ export const adminController = {
 	updateUser,
 	deleteUser,
 	changeUserStatus,
+	changeUserStatusEnhanced,
 	resetUserPassword,
 	createUser,
 	exportUsersAsCsv,
@@ -2224,9 +2840,9 @@ export const adminController = {
 	getActivitiesByContext,
 	getUserActivityPatterns,
 	// App settings methods
-	getAppSettings, // Explicitly assign the function
-	updateAppSettings, // Explicitly assign the function
-	clearCache, // Explicitly assign the function
+	getAppSettings,
+	updateAppSettings,
+	clearCache,
 	adminLogin,
 	validateAdminToken,
 	// Content management functions
@@ -2241,4 +2857,13 @@ export const adminController = {
 	getCurrentAdminUser,
 	refreshAdminToken,
 	adminLogout,
+	// Account lockout and session management functions
+	getLockedAccounts,
+	unlockUserAccount,
+	getUserSessions,
+	terminateUserSession,
+	terminateAllUserSessions,
+	// Enhanced functions
+	forcePasswordReset,
+	resendEmailVerification,
 };

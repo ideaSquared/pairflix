@@ -60,7 +60,8 @@ PairFlix is a private web application designed specifically for two users (coupl
 - [x] JWT-based authentication system with secure token storage
 - [x] Password hashing using bcrypt with appropriate salt rounds
 - [x] User profile management with validation
-- [x] No public registration (manual account setup only)
+- [x] Self-service account registration with comprehensive validation
+- [x] Secure account creation with automatic login
 
 ### Watchlist Features
 
@@ -151,7 +152,18 @@ P0 (Critical) - This is the core functionality that defines the application's pu
   - ✅ Cross-application testing and validation completed
   - ✅ Zero legacy layout components remaining
   - ✅ Performance validated with optimized bundle sizes
-  - ✅ Documentation updated and finalized
+- ✅ Documentation updated and finalized
+- Account creation system implementation ✅ **COMPLETED**
+  - ✅ Backend registration endpoint with comprehensive validation
+  - ✅ Frontend registration page with real-time validation
+  - ✅ Secure password hashing and storage
+  - ✅ Automatic login after successful registration
+  - ✅ Comprehensive test suite for registration functionality
+  - ✅ Updated authentication flow with registration link
+  - ✅ Complete API documentation for registration endpoint
+  - ✅ Security audit logging for registration attempts
+  - ✅ Input validation and sanitization
+  - ✅ Error handling with user-friendly messages
 - UI component deduplication ✅ **COMPLETED**
   - ✅ Moved DocumentTitle component to shared library with app-agnostic design
   - ✅ Moved TagInput component to shared inputs library with enhanced props

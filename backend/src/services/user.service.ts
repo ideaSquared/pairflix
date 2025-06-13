@@ -10,6 +10,7 @@ interface UserInstance {
 	password_hash: string;
 	role: string;
 	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	email_verified: boolean;
 	last_login?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
@@ -37,6 +38,7 @@ interface AuthenticatedUser {
 	username: string;
 	role: string;
 	status: string;
+	email_verified: boolean;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';

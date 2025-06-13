@@ -3,10 +3,18 @@ import {
 	adminController,
 	adminLogin,
 	adminLogout,
+	changeUserStatusEnhanced,
 	clearCache,
+	forcePasswordReset,
 	getAppSettings,
 	getCurrentAdminUser,
+	getLockedAccounts,
+	getUserSessions,
 	refreshAdminToken,
+	resendEmailVerification,
+	terminateAllUserSessions,
+	terminateUserSession,
+	unlockUserAccount,
 	updateAppSettings,
 	validateAdminToken,
 } from '../controllers/admin.controller';
@@ -76,6 +84,16 @@ router.post(
 	strictRateLimit,
 	adminController.resetUserPassword
 );
+router.post(
+	'/users/:userId/force-password-reset',
+	strictRateLimit,
+	forcePasswordReset
+);
+router.post(
+	'/users/:userId/resend-verification',
+	strictRateLimit,
+	resendEmailVerification
+);
 router.get('/users-csv', adminController.exportUsersAsCsv);
 
 // Audit log routes
@@ -140,5 +158,15 @@ router.get(
 );
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/system-stats', adminController.getSystemStats);
+
+// Account lockout and session management routes
+router.get('/locked-accounts', getLockedAccounts);
+router.post('/users/:userId/unlock', unlockUserAccount);
+router.get('/users/:userId/sessions', getUserSessions);
+router.delete('/users/:userId/sessions/:sessionId', terminateUserSession);
+router.delete('/users/:userId/sessions', terminateAllUserSessions);
+
+// Enhanced user status management
+router.put('/users/:userId/status-enhanced', changeUserStatusEnhanced);
 
 export default router;

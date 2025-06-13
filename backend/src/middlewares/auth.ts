@@ -11,6 +11,8 @@ export interface AuthenticatedRequest extends Request {
 		username: string;
 		role: string;
 		status: string;
+		email_verified: boolean;
+		failed_login_attempts: number;
 		preferences: {
 			theme: 'light' | 'dark';
 			viewStyle: 'list' | 'grid';
@@ -30,6 +32,8 @@ declare module 'express-serve-static-core' {
 			username: string;
 			role: string;
 			status: string;
+			email_verified: boolean;
+			failed_login_attempts: number;
 			preferences: {
 				theme: 'light' | 'dark';
 				viewStyle: 'list' | 'grid';
@@ -79,6 +83,8 @@ export const authenticateToken = async (
 			username: string;
 			role: string;
 			status: string;
+			email_verified: boolean;
+			failed_login_attempts: number;
 			preferences: {
 				theme: 'light' | 'dark';
 				viewStyle: 'list' | 'grid';
@@ -165,6 +171,8 @@ export const authenticateToken = async (
 			username: currentUser.username,
 			role: currentUser.role,
 			status: currentUser.status,
+			email_verified: currentUser.email_verified,
+			failed_login_attempts: currentUser.failed_login_attempts,
 			preferences: currentUser.preferences,
 		};
 

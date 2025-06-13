@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
-import Match from '../models/Match';
-import User from '../models/User';
-import WatchlistEntry from '../models/WatchlistEntry';
+import models from '../models';
+
+const { Match, User, WatchlistEntry } = models;
 
 interface AuthenticatedUser {
 	user_id: string;
@@ -9,6 +9,7 @@ interface AuthenticatedUser {
 	username: string;
 	role?: string;
 	status?: string;
+	email_verified?: boolean;
 	preferences?: Record<string, unknown>;
 }
 

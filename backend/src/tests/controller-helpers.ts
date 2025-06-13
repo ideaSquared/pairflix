@@ -12,6 +12,8 @@ export const mockRequest = (overrides: Partial<Request> = {}) => {
 			username: 'testuser',
 			role: 'user', // Adding the role property
 			status: 'active' as 'active' | 'inactive' | 'pending' | 'suspended', // Adding the properly typed status property
+			email_verified: true, // Adding email verification status
+			failed_login_attempts: 0,
 			preferences: {
 				theme: 'dark' as 'dark' | 'light',
 				viewStyle: 'grid' as 'grid' | 'list',

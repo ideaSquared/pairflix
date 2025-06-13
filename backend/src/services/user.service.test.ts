@@ -43,6 +43,7 @@ const createMockAuthenticatedUser = (overrides = {}) => ({
 	username: 'testuser',
 	role: 'user',
 	status: 'active' as const,
+	email_verified: true,
 	preferences: {
 		theme: 'dark' as const,
 		viewStyle: 'grid' as const,

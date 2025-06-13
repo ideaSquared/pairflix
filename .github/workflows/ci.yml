@@ -32,12 +32,45 @@ jobs:
             app.admin/node_modules
             backend/node_modules
             lib.components/node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-modules-v3-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-modules-
+            ${{ runner.os }}-node-modules-v3-
+
+      - name: Fix Rollup optional dependencies issue
+        run: |
+          # Clear npm cache to avoid stale dependencies
+          npm cache clean --force
+          # Remove any existing node_modules that might have corrupted optional deps
+          rm -rf node_modules package-lock.json
+          rm -rf lib.components/node_modules lib.components/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          # Install root dependencies
+          npm install
+          # Specifically reinstall lib.components dependencies to ensure Rollup works
+          cd lib.components && npm install
+
+      - name: Verify Rollup installation
+        run: |
+          # Check if the Rollup native module exists
+          cd lib.components
+          echo "Checking Rollup installation..."
+          if [ ! -d "node_modules/@rollup" ]; then
+            echo "Rollup directory not found, attempting manual installation..."
+            npm install rollup@^4.0.0 --save-dev
+            npm install @rollup/rollup-linux-x64-gnu --save-dev --optional
+          else
+            echo "Rollup directory found, checking for linux-x64-gnu module..."
+            if [ ! -f "node_modules/@rollup/rollup-linux-x64-gnu/rollup.linux-x64-gnu.node" ]; then
+              echo "Linux x64 GNU module missing, installing..."
+              npm install @rollup/rollup-linux-x64-gnu --save-dev --optional
+            fi
+          fi
+          # List rollup modules for debugging
+          ls -la node_modules/@rollup/ || echo "No @rollup directory found"
+          # Verify the specific module exists
+          ls -la node_modules/@rollup/rollup-linux-x64-gnu/ || echo "Linux x64 GNU module not found"
 
       - name: Build components package (required for tests)
         run: npm run build:components

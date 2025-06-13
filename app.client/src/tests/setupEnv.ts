@@ -8,21 +8,34 @@ process.env.NODE_ENV = 'test';
 
 // Polyfill for TextEncoder and TextDecoder (needed for modern browser APIs)
 import { TextDecoder, TextEncoder } from 'util';
-global.TextEncoder = TextEncoder as any;
-global.TextDecoder = TextDecoder as any;
+global.TextEncoder = TextEncoder as typeof global.TextEncoder;
+global.TextDecoder = TextDecoder as typeof global.TextDecoder;
 
-// We need to properly mock the global import.meta object for modules that use it
-Object.defineProperty(global, 'import', {
-  value: {
-    meta: {
-      env: {
-        VITE_API_URL: process.env.VITE_API_URL,
-        MODE: 'test',
-        DEV: true,
-        PROD: false,
-        SSR: false,
-      },
-    },
+// Mock import.meta for Jest environment
+const importMeta = {
+  env: {
+    VITE_API_URL: process.env.VITE_API_URL || 'http://localhost:3000',
+    MODE: 'test',
+    DEV: true,
+    PROD: false,
+    SSR: false,
   },
-  writable: false,
-});
+};
+
+// Safely define import.meta globally for Jest
+try {
+  if (!(globalThis as typeof globalThis & { import?: unknown }).import) {
+    Object.defineProperty(globalThis, 'import', {
+      value: {
+        meta: importMeta,
+      },
+      writable: false,
+      configurable: true,
+    });
+  }
+} catch {
+  // If it fails, try a different approach
+  (globalThis as typeof globalThis & { import: unknown }).import = {
+    meta: importMeta,
+  };
+}

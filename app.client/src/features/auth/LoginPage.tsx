@@ -9,7 +9,7 @@ import {
   InputGroup,
 } from '@pairflix/components';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
@@ -25,6 +25,12 @@ const LoginContainer = styled(Container)`
 const LoginCard = styled(Card)`
   width: 100%;
   max-width: 400px;
+`;
+
+const RegisterLink = styled.div`
+  text-align: center;
+  margin-top: 1rem;
+  color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
 const LoginPage: React.FC = () => {
@@ -87,6 +93,48 @@ const LoginPage: React.FC = () => {
               Login
             </Button>
           </form>
+
+          <RegisterLink>
+            <Link to="/forgot-password">Forgot your password?</Link>
+          </RegisterLink>
+
+          <RegisterLink>
+            Don't have an account? <Link to="/register">Create one here</Link>
+          </RegisterLink>
+
+          {/* Development mode helper */}
+          {process.env.NODE_ENV === 'development' && (
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '12px',
+                background: 'rgba(255, 107, 53, 0.1)',
+                border: '1px solid #ff6b35',
+                borderRadius: '4px',
+                fontSize: '12px',
+              }}
+            >
+              <strong style={{ color: '#ff6b35' }}>🔧 Dev Mode</strong>
+              <br />
+              Password for all test users:{' '}
+              <code
+                style={{
+                  background: 'rgba(0,0,0,0.1)',
+                  padding: '2px 4px',
+                  borderRadius: '2px',
+                }}
+              >
+                password123
+              </code>
+              <br />
+              <small style={{ color: '#666' }}>
+                Try: useractive@example.com, admin@example.com,
+                user1@example.com, etc.
+                <br />
+                Or use the Dev Login panel (bottom right) for quick switching!
+              </small>
+            </div>
+          )}
         </CardContent>
       </LoginCard>
     </LoginContainer>

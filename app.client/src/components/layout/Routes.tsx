@@ -6,8 +6,12 @@ import {
   createGuestNavigation,
 } from '../../config/navigation';
 import ActivityPage from '../../features/activity/ActivityPage';
+import EmailVerificationPage from '../../features/auth/EmailVerificationPage';
+import ForgotPasswordPage from '../../features/auth/ForgotPasswordPage';
 import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
+import RegisterPage from '../../features/auth/RegisterPage';
+import ResetPasswordPage from '../../features/auth/ResetPasswordPage';
 import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
@@ -55,8 +59,14 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Login page without layout */}
+      {/* Login and register pages without layout */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* Email-related pages without layout */}
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
 
       {/* Logout route */}
       <Route path="/logout" element={<LogoutRoute />} />

@@ -38,6 +38,9 @@ export interface User {
 	username: string;
 	role: string;
 	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	email_verified: boolean;
+	failed_login_attempts: number;
+	locked_until?: Date;
 	last_login?: Date;
 	created_at: Date;
 }
@@ -85,7 +88,10 @@ export interface AuthenticatedUser {
 	email: string;
 	username: string;
 	role: string;
-	status: 'active' | 'inactive' | 'pending' | 'suspended';
+	status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+	email_verified: boolean;
+	failed_login_attempts: number;
+	locked_until?: Date;
 	preferences: {
 		theme: 'light' | 'dark';
 		viewStyle: 'list' | 'grid';
