@@ -103,7 +103,7 @@ const LoginPage: React.FC = () => {
           </RegisterLink>
 
           {/* Development mode helper */}
-          {import.meta.env.MODE === 'development' && (
+          {process.env.NODE_ENV === 'development' && (
             <div
               style={{
                 marginTop: '1rem',
@@ -131,7 +131,7 @@ const LoginPage: React.FC = () => {
                 Try: useractive@example.com, admin@example.com,
                 user1@example.com, etc.
                 <br />
-                Or use the Dev Login panel (top right) for quick switching!
+                Or use the Dev Login panel (bottom right) for quick switching!
               </small>
             </div>
           )}
