@@ -42,6 +42,22 @@ export enum ActivityType {
 
 	// Content moderation activities
 	CONTENT_MODERATION = 'CONTENT_MODERATION',
+
+	// Group related activities
+	GROUP_CREATE = 'GROUP_CREATE',
+	GROUP_UPDATE = 'GROUP_UPDATE',
+	GROUP_DELETE = 'GROUP_DELETE',
+	GROUP_JOIN = 'GROUP_JOIN',
+	GROUP_LEAVE = 'GROUP_LEAVE',
+	GROUP_INVITE = 'GROUP_INVITE',
+	GROUP_INVITE_ACCEPT = 'GROUP_INVITE_ACCEPT',
+	GROUP_INVITE_DECLINE = 'GROUP_INVITE_DECLINE',
+	GROUP_MEMBER_REMOVE = 'GROUP_MEMBER_REMOVE',
+	GROUP_ROLE_UPDATE = 'GROUP_ROLE_UPDATE',
+	GROUP_WATCHLIST_ADD = 'GROUP_WATCHLIST_ADD',
+	GROUP_WATCHLIST_REMOVE = 'GROUP_WATCHLIST_REMOVE',
+	GROUP_WATCHLIST_VOTE = 'GROUP_WATCHLIST_VOTE',
+	GROUP_SCHEDULE_SET = 'GROUP_SCHEDULE_SET',
 }
 
 /**
@@ -98,6 +114,9 @@ export const getContextFromActivityType = (
 	}
 	if (actionString.startsWith('MATCH_')) {
 		return 'match';
+	}
+	if (actionString.startsWith('GROUP_')) {
+		return 'group';
 	}
 	if (actionString.startsWith('MEDIA_')) {
 		return 'media';

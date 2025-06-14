@@ -158,6 +158,7 @@ export type ActivityContext =
 	| 'watchlist'
 	| 'user'
 	| 'match'
+	| 'group'
 	| 'search'
 	| 'media'
 	| 'system';

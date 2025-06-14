@@ -39,6 +39,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/activity', activityRoutes);
