@@ -12,7 +12,6 @@ import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
 import RegisterPage from '../../features/auth/RegisterPage';
 import ResetPasswordPage from '../../features/auth/ResetPasswordPage';
-import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -82,9 +81,19 @@ const AppRoutes: React.FC = () => {
                 element={<ProtectedRoute element={<WatchlistPage />} />}
               />
               <Route
-                path="/matches"
-                element={<ProtectedRoute element={<MatchPage />} />}
+                path="/groups"
+                element={<ProtectedRoute element={<GroupsPage />} />}
               />
+              <Route
+                path="/groups/:groupId"
+                element={<ProtectedRoute element={<GroupsPage />} />}
+              />
+              <Route
+                path="/groups/create"
+                element={<ProtectedRoute element={<GroupsPage />} />}
+              />
+              {/* Legacy redirect for old matches route */}
+              <Route path="/matches" element={<Navigate to="/groups" />} />
               <Route
                 path="/activity"
                 element={<ProtectedRoute element={<ActivityPage />} />}

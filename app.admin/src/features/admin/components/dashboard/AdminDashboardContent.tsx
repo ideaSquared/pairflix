@@ -39,7 +39,7 @@ interface DashboardMetrics {
   };
   content: {
     watchlistEntries: number;
-    matches: number;
+    groups: number;
   };
   system: {
     status?: 'healthy' | 'unhealthy';
@@ -85,7 +85,7 @@ const AdminDashboardContent: React.FC = () => {
           },
           content: {
             watchlistEntries: metricsData.watchlistEntries,
-            matches: metricsData.totalMatches,
+            groups: metricsData.totalGroups,
           },
           // Add placeholder system data for the system health card
           system: {
@@ -130,7 +130,7 @@ const AdminDashboardContent: React.FC = () => {
         },
         content: {
           watchlistEntries: metricsData.watchlistEntries,
-          matches: metricsData.totalMatches,
+          groups: metricsData.totalGroups,
         },
         // Add placeholder system data for the system health card
         system: {
@@ -194,7 +194,7 @@ const AdminDashboardContent: React.FC = () => {
         <>
           <StatsOverview
             metrics={metrics}
-            cards={['users', 'activeUsers', 'content', 'matches']}
+            cards={['users', 'activeUsers', 'content', 'groups']}
           />
 
           <SectionTitle>Quick Actions</SectionTitle>

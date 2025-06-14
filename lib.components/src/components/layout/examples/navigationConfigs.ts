@@ -19,9 +19,9 @@ export const clientNavigationConfig: NavigationConfig = {
           icon: '📋',
         },
         {
-          key: 'matches',
-          label: 'Matches',
-          path: '/matches',
+          key: 'groups',
+          label: 'Groups',
+          path: '/groups',
           icon: '🎯',
         },
         {

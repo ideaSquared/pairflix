@@ -20,7 +20,7 @@ interface AppSettings {
   features: {
     enableNotifications: boolean;
     enableUserProfiles: boolean;
-    enableMatching: boolean; // Added new feature flag
+    enableGroups: boolean; // Added new feature flag
   };
   security: {
     sessionTimeout: number; // session timeout in minutes
@@ -53,7 +53,7 @@ const defaultSettings: AppSettings = {
   features: {
     enableNotifications: true,
     enableUserProfiles: false, // Added missing property with default value
-    enableMatching: true, // Added with default value true
+    enableGroups: true, // Added with default value true
   },
   security: {
     sessionTimeout: 30, // default session timeout in minutes
@@ -115,7 +115,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
           features: {
             enableNotifications: adminSettings.features.enableNotifications,
             enableUserProfiles: adminSettings.features.enableUserProfiles, // Added missing property
-            enableMatching: adminSettings.features.enableMatching, // Added new feature flag
+            enableGroups: adminSettings.features.enableGroups, // Added new feature flag
           },
           security: {
             sessionTimeout: adminSettings.security.sessionTimeout,
