@@ -295,6 +295,21 @@ const StyledBadge = styled.span<StyledBadgeProps>`
   ${({ variant, outlined, backgroundColor, textColor }) =>
     getVariantStyles(variant, outlined, backgroundColor, textColor)}
 
+  ${({ pill, size }) =>
+    pill &&
+    css`
+      padding-left: ${size === 'small'
+        ? '8px'
+        : size === 'large'
+          ? '16px'
+          : '12px'};
+      padding-right: ${size === 'small'
+        ? '8px'
+        : size === 'large'
+          ? '16px'
+          : '12px'};
+    `}
+
   ${({ dot, showAsDot }) =>
     (dot || showAsDot) &&
     css`
