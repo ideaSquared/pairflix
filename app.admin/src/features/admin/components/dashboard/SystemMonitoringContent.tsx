@@ -266,7 +266,7 @@ const SystemMonitoringContent: React.FC = () => {
           current: data.database?.activeUsers || 0,
           peak24h: data.database?.totalUsers || 0,
           total24h:
-            data.database?.contentStats?.matches ||
+            data.database?.contentStats?.groups ||
             Math.round(data.database?.totalUsers * 1.5) ||
             0,
         },

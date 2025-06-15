@@ -16,7 +16,7 @@ interface AuthenticatedUser {
 
 interface CreateGroupBody {
 	name: string;
-	description?: string;
+	description?: string | undefined;
 	type: 'couple' | 'friends' | 'watch_party';
 	max_members?: number;
 	settings?: {
@@ -49,19 +49,27 @@ export const createGroupService = async (
 	const { name, description, type, max_members, settings } = body;
 
 	// Create the group
-	const group = await Group.create({
+	const groupData: any = {
 		name,
-		description,
 		type,
 		created_by: user.user_id,
-		max_members,
 		settings: {
 			isPublic: false,
 			requireApproval: true,
 			allowInvites: true,
 			...settings,
 		},
-	});
+	};
+
+	if (description) {
+		groupData.description = description;
+	}
+
+	if (max_members) {
+		groupData.max_members = max_members;
+	}
+
+	const group = await Group.create(groupData);
 
 	// Add creator as owner
 	await GroupMember.create({
@@ -110,20 +118,23 @@ export const createRelationshipService = async (
 				model: Group,
 				as: 'group',
 				where: { type: 'couple' },
-				include: [
-					{
-						model: GroupMember,
-						as: 'members',
-						where: { user_id: partner.user_id, status: 'active' },
-						required: true,
-					},
-				],
 			},
 		],
 	});
 
 	if (existingRelationship) {
-		throw new Error('Relationship already exists with this user');
+		// Check if partner is also in this group
+		const partnerInGroup = await GroupMember.findOne({
+			where: {
+				group_id: existingRelationship.group_id,
+				user_id: partner.user_id,
+				status: 'active',
+			},
+		});
+
+		if (partnerInGroup) {
+			throw new Error('Relationship already exists with this user');
+		}
 	}
 
 	// Create couple group
@@ -179,32 +190,27 @@ export const getPrimaryRelationshipService = async (
 						as: 'creator',
 						attributes: ['user_id', 'username', 'email'],
 					},
-					{
-						model: GroupMember,
-						as: 'members',
-						where: { status: 'active' },
-						include: [
-							{
-								model: User,
-								as: 'user',
-								attributes: ['user_id', 'username', 'email'],
-							},
-						],
-					},
 				],
 			},
 		],
-		order: [['created_at', 'ASC']], // Get the first/primary relationship
 	});
 
-	if (!groupMembership) {
+	if (!groupMembership || !groupMembership.group) {
 		return null;
 	}
 
+	// Get member count separately
+	const memberCount = await GroupMember.count({
+		where: {
+			group_id: groupMembership.group_id,
+			status: 'active',
+		},
+	});
+
 	return {
-		...groupMembership.group?.toJSON(),
+		...groupMembership.group.toJSON(),
 		user_role: groupMembership.role,
-		member_count: groupMembership.group?.members?.length || 0,
+		member_count: memberCount,
 	};
 };
 
@@ -225,28 +231,30 @@ export const getUserGroupsService = async (user: AuthenticatedUser) => {
 						as: 'creator',
 						attributes: ['user_id', 'username', 'email'],
 					},
-					{
-						model: GroupMember,
-						as: 'members',
-						where: { status: 'active' },
-						include: [
-							{
-								model: User,
-								as: 'user',
-								attributes: ['user_id', 'username', 'email'],
-							},
-						],
-					},
 				],
 			},
 		],
 	});
 
-	return groupMemberships.map(membership => ({
-		...membership.group?.toJSON(),
-		user_role: membership.role,
-		member_count: membership.group?.members?.length || 0,
-	}));
+	// Get member counts for each group separately
+	const groupsWithDetails = await Promise.all(
+		groupMemberships.map(async membership => {
+			const memberCount = await GroupMember.count({
+				where: {
+					group_id: membership.group_id,
+					status: 'active',
+				},
+			});
+
+			return {
+				...membership.group?.toJSON(),
+				user_role: membership.role,
+				member_count: memberCount,
+			};
+		})
+	);
+
+	return groupsWithDetails;
 };
 
 // Expand relationship (e.g., couple → friends group)
@@ -516,14 +524,19 @@ export const addToGroupWatchlistService = async (
 	}
 
 	// Add to group watchlist
-	const groupEntry = await GroupWatchlist.create({
+	const watchlistData: any = {
 		group_id,
 		tmdb_id,
 		media_type,
 		suggested_by: user.user_id,
-		notes,
 		status: 'suggested',
-	});
+	};
+
+	if (notes) {
+		watchlistData.notes = notes;
+	}
+
+	const groupEntry = await GroupWatchlist.create(watchlistData);
 
 	// Log activity
 	await activityService.logActivity(
@@ -541,7 +554,9 @@ export const addToGroupWatchlistService = async (
 };
 
 // Get pending invitations for user
-export const getPendingInvitationsService = async (user: AuthenticatedUser) => {
+export const getPendingInvitationsService = async (
+	user: AuthenticatedUser
+): Promise<any[]> => {
 	const pendingInvitations = await GroupMember.findAll({
 		where: {
 			user_id: user.user_id,

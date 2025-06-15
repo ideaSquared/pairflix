@@ -1,12 +1,9 @@
+import { initializeModels } from '../models';
 import { ActivityLog } from '../models/ActivityLog';
-import AppSettings from '../models/AppSettings';
-import AuditLog from '../models/AuditLog';
 import Content from '../models/Content';
 import ContentReport from '../models/ContentReport';
-import EmailVerification from '../models/EmailVerification';
 import Group from '../models/Group';
 import GroupMember from '../models/GroupMember';
-import PasswordReset from '../models/PasswordReset';
 import User from '../models/User';
 import UserSession from '../models/UserSession';
 import WatchlistEntry from '../models/WatchlistEntry';
@@ -21,22 +18,11 @@ export async function seedDatabase() {
 	}
 
 	try {
-		// Initialize all models
-		User.initialize(sequelize);
-		WatchlistEntry.initialize(sequelize);
-		Group.initialize(sequelize);
-		GroupMember.initialize(sequelize);
-		ActivityLog.initialize(sequelize);
-		AuditLog.initialize(sequelize);
-		AppSettings.initialize(sequelize);
-		Content.initialize(sequelize);
-		ContentReport.initialize(sequelize);
-		EmailVerification.initialize(sequelize);
-		PasswordReset.initialize(sequelize);
-		UserSession.initialize(sequelize);
-
 		// Sync the database (this will create tables with the updated schema)
 		await sequelize.sync({ force: true });
+
+		// Re-initialize models and associations after sync
+		initializeModels(sequelize);
 
 		console.log('✅ Database synced successfully');
 

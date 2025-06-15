@@ -39,6 +39,11 @@ class GroupMember extends Model<
 	declare created_at: Date;
 	declare updated_at: Date;
 
+	// Association properties
+	declare group?: Group;
+	declare user?: User;
+	declare inviter?: User;
+
 	static initialize(sequelize: Sequelize): ModelStatic<GroupMember> {
 		return GroupMember.init(
 			{

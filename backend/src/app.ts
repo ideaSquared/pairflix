@@ -8,6 +8,7 @@ import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
 import emailRoutes from './routes/email.routes';
+import groupRoutes from './routes/groups';
 import matchRoutes from './routes/match.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';

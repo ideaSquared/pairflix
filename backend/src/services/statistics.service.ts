@@ -3,6 +3,7 @@ import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../db/connection';
 import ActivityLog from '../models/ActivityLog';
 import AuditLog from '../models/AuditLog';
+import Group from '../models/Group';
 import Match from '../models/Match';
 import User from '../models/User';
 import WatchlistEntry from '../models/WatchlistEntry';
@@ -27,6 +28,7 @@ export interface UserStatistics {
 export interface ContentStatistics {
 	watchlistEntries: number;
 	matches: number;
+	groups: number;
 	averageWatchlistPerUser?: number | undefined;
 }
 
@@ -103,6 +105,7 @@ export interface DashboardStats {
 	totalUsers: number;
 	activeUsers: number;
 	totalMatches: number;
+	totalGroups: number;
 	watchlistEntries: number;
 }
 
@@ -274,11 +277,13 @@ class StatisticsService {
 	 * Get content statistics
 	 */
 	async getContentStats(): Promise<ContentStatistics> {
-		const [watchlistCount, matchCount, userCount] = await Promise.all([
-			WatchlistEntry.count(),
-			Match.count(),
-			User.count(),
-		]);
+		const [watchlistCount, matchCount, groupCount, userCount] =
+			await Promise.all([
+				WatchlistEntry.count(),
+				Match.count(),
+				Group.count(),
+				User.count(),
+			]);
 
 		const averageWatchlistPerUser =
 			userCount > 0
@@ -288,6 +293,7 @@ class StatisticsService {
 		return {
 			watchlistEntries: watchlistCount,
 			matches: matchCount,
+			groups: groupCount,
 			averageWatchlistPerUser,
 		};
 	}
@@ -480,15 +486,17 @@ class StatisticsService {
 	 * Get unified statistics for dashboard
 	 */
 	async getDashboardStats(): Promise<DashboardStats> {
-		const [userStats, contentStats] = await Promise.all([
+		const [userStats, contentStats, groupCount] = await Promise.all([
 			this.getUserStats(),
 			this.getContentStats(),
+			Group.count(),
 		]);
 
 		return {
 			totalUsers: userStats.totalUsers,
 			activeUsers: userStats.activeUsers,
 			totalMatches: contentStats.matches,
+			totalGroups: groupCount,
 			watchlistEntries: contentStats.watchlistEntries,
 		};
 	}
@@ -545,6 +553,7 @@ class StatisticsService {
 				contentStats: {
 					watchlistEntries: contentStats.watchlistEntries,
 					matches: contentStats.matches,
+					groups: contentStats.groups,
 					averageWatchlistPerUser: contentStats.averageWatchlistPerUser,
 				},
 				errorCount: systemStats.recentErrors,

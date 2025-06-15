@@ -52,7 +52,7 @@ interface SystemStats {
     inactivePercentage: number;
     contentStats: {
       watchlistEntries: number;
-      matches: number;
+      groups: number;
       averageWatchlistPerUser: number;
     };
     errorCount: number;
@@ -199,9 +199,9 @@ const SystemStats: React.FC = () => {
             </StatValue>
           </StatCard>
           <StatCard>
-            <StatTitle>Total Matches</StatTitle>
+            <StatTitle>Total Groups</StatTitle>
             <StatValue>
-              {stats.database.contentStats.matches.toLocaleString()}
+              {stats.database.contentStats.groups.toLocaleString()}
             </StatValue>
           </StatCard>
           <StatCard>

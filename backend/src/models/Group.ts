@@ -1,4 +1,5 @@
 import { DataTypes, Model, type ModelStatic, type Sequelize } from 'sequelize';
+import type GroupMember from './GroupMember';
 import User from './User';
 
 type GroupType = 'couple' | 'friends' | 'watch_party';
@@ -54,6 +55,10 @@ class Group extends Model<GroupAttributes, GroupCreationAttributes> {
 	declare settings: GroupAttributes['settings'];
 	declare created_at: Date;
 	declare updated_at: Date;
+
+	// Association properties
+	declare creator?: User;
+	declare members?: GroupMember[];
 
 	static initialize(sequelize: Sequelize): ModelStatic<Group> {
 		return Group.init(

@@ -11,7 +11,6 @@ import {
   FaChartLine,
   FaClock,
   FaExclamationTriangle,
-  FaHeart,
   FaHeartbeat,
   FaList,
   FaMemory,
@@ -115,7 +114,7 @@ export type StatsCardType =
   | 'users'
   | 'activeUsers'
   | 'content'
-  | 'matches'
+  | 'groups'
   | 'activity'
   | 'errors'
   | 'systemHealth'
@@ -130,7 +129,7 @@ interface MetricsType {
   };
   content?: {
     watchlistEntries: number;
-    matches: number;
+    groups: number;
   };
   activity?: {
     last24Hours: number;
@@ -184,8 +183,8 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
         return <FaUserCheck />;
       case 'content':
         return <FaList />;
-      case 'matches':
-        return <FaHeart />;
+      case 'groups':
+        return <FaUsers />;
       case 'activity':
         return <FaChartLine />;
       case 'errors':
@@ -255,7 +254,7 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
         </StatsCard>
       );
 
-    case 'matches':
+    case 'groups':
       if (!metrics.content) return null;
       return (
         <StatsCard>
@@ -263,8 +262,8 @@ const MetricsCard: React.FC<MetricsCardProps> = ({ type, metrics, icon }) => {
             <Flex alignItems="center">
               {icon && <StatIcon>{renderIcon(type)}</StatIcon>}
               <div>
-                <StatValue>{formatNumber(metrics.content.matches)}</StatValue>
-                <StatLabel>Total Matches</StatLabel>
+                <StatValue>{formatNumber(metrics.content.groups)}</StatValue>
+                <StatLabel>Total Groups</StatLabel>
               </div>
             </Flex>
           </CardContent>
@@ -404,7 +403,7 @@ interface StatsOverviewProps {
 // Main component for displaying stats in a grid
 export const StatsOverview: React.FC<StatsOverviewProps> = ({
   metrics,
-  cards = ['users', 'activeUsers', 'content', 'matches'],
+  cards = ['users', 'activeUsers', 'content', 'groups'],
   columns = 4,
 }) => {
   if (!isValidMetrics(metrics)) return null;

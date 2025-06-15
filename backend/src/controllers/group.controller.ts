@@ -134,6 +134,10 @@ export const expandRelationship = async (req: Request, res: Response) => {
 		const { group_id } = req.params;
 		const { new_type, new_max_members, new_name } = req.body;
 
+		if (!group_id) {
+			return res.status(400).json({ error: 'group_id is required' });
+		}
+
 		if (!new_type || !['friends', 'watch_party'].includes(new_type)) {
 			return res
 				.status(400)
@@ -169,6 +173,10 @@ export const inviteToGroup = async (req: Request, res: Response) => {
 		const { group_id } = req.params;
 		const { user_ids } = req.body;
 
+		if (!group_id) {
+			return res.status(400).json({ error: 'group_id is required' });
+		}
+
 		if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
 			return res.status(400).json({ error: 'user_ids array is required' });
 		}
@@ -197,6 +205,10 @@ export const acceptGroupInvitation = async (req: Request, res: Response) => {
 		}
 
 		const { group_id } = req.params;
+
+		if (!group_id) {
+			return res.status(400).json({ error: 'group_id is required' });
+		}
 
 		const membership = await acceptGroupInvitationService(req.user, group_id);
 
@@ -251,6 +263,10 @@ export const getGroupContentMatches = async (req: Request, res: Response) => {
 
 		const { group_id } = req.params;
 
+		if (!group_id) {
+			return res.status(400).json({ error: 'group_id is required' });
+		}
+
 		const matches = await getGroupContentMatchesService(req.user, group_id);
 
 		res.json(matches);
@@ -273,6 +289,10 @@ export const addToGroupWatchlist = async (req: Request, res: Response) => {
 
 		const { group_id } = req.params;
 		const { tmdb_id, media_type, notes } = req.body;
+
+		if (!group_id) {
+			return res.status(400).json({ error: 'group_id is required' });
+		}
 
 		if (!tmdb_id || !media_type) {
 			return res
