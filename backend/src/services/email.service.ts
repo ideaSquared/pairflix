@@ -11,11 +11,20 @@ interface EmailData {
 class EmailService {
 	private transporter: nodemailer.Transporter | null = null;
 	private isInitialized = false;
-
+	private etherealCredentials: {
+		user: string;
+		pass: string;
+		previewUrl: string;
+	} | null = null;
 	async initialize() {
 		try {
 			// Create Ethereal Email test account
-			const testAccount = await nodemailer.createTestAccount();
+			const testAccount = await nodemailer.createTestAccount(); // Store credentials for later access
+			this.etherealCredentials = {
+				user: testAccount.user,
+				pass: testAccount.pass,
+				previewUrl: `https://ethereal.email/login?user=${testAccount.user}&pass=${testAccount.pass}`,
+			};
 
 			// Create transporter using Ethereal's SMTP server
 			this.transporter = nodemailer.createTransport({
@@ -31,7 +40,7 @@ class EmailService {
 			await auditLogService.info('Email service initialized', 'email-service', {
 				etherealUser: testAccount.user,
 				etherealPass: testAccount.pass,
-				previewURL: `https://ethereal.email/login?user=${testAccount.user}&pass=${testAccount.pass}`,
+				previewURL: this.etherealCredentials.previewUrl,
 			});
 
 			this.isInitialized = true;
@@ -39,10 +48,7 @@ class EmailService {
 			console.log('Ethereal Email Account Created:');
 			console.log('User:', testAccount.user);
 			console.log('Pass:', testAccount.pass);
-			console.log(
-				'Preview URL:',
-				`https://ethereal.email/login?user=${testAccount.user}&pass=${testAccount.pass}`
-			);
+			console.log('Preview URL:', this.etherealCredentials.previewUrl);
 		} catch (error) {
 			await auditLogService.error(
 				'Failed to initialize email service',
@@ -581,8 +587,18 @@ class EmailService {
 			html: htmlContent,
 			text: `Your PairFlix account status has been changed to: ${newStatus.toUpperCase()}. ${reason ? `Reason: ${reason}` : ''}`,
 		};
-
 		await this.sendEmail(emailData);
+	}
+
+	/**
+	 * Get Ethereal credentials for development/testing
+	 * Only available in development environment
+	 */
+	getEtherealCredentials() {
+		if (process.env.NODE_ENV === 'production') {
+			return null;
+		}
+		return this.etherealCredentials;
 	}
 }
 

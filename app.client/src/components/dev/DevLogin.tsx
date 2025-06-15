@@ -114,11 +114,74 @@ const DevContent = styled.div`
   padding: ${({ theme }) => theme.spacing.md};
 `;
 
+const EtherealSection = styled.div`
+  border-top: 1px solid ${({ theme }) => theme.colors.border.light};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  padding-top: ${({ theme }) => theme.spacing.sm};
+`;
+
+const EtherealHeader = styled.div`
+  font-size: 14px;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+const CredentialRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+`;
+
+const CredentialLabel = styled.span`
+  color: ${({ theme }) => theme.colors.text.secondary};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+`;
+
+const CredentialValue = styled.span`
+  font-family: monospace;
+  color: ${({ theme }) => theme.colors.text.primary};
+  background: ${({ theme }) => theme.colors.background.hover};
+  padding: 2px 4px;
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  font-size: 10px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const EtherealButton = styled(Button)`
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  padding: ${({ theme }) => theme.spacing.xs};
+  min-height: auto;
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
+`;
+
+const CopyButton = styled(Button)`
+  font-size: 10px;
+  padding: 2px 6px;
+  min-height: auto;
+  margin-left: 4px;
+`;
+
 interface TestUser {
   email: string;
   username: string;
   status: string;
   description: string;
+}
+
+interface EtherealCredentials {
+  user: string;
+  pass: string;
+  previewUrl: string;
+}
+
+interface EtherealCredentialsResponse {
+  message: string;
+  credentials: EtherealCredentials | null;
 }
 
 const testUsers: TestUser[] = [
@@ -214,6 +277,11 @@ const DevLogin: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showEthereal, setShowEthereal] = useState(false);
+  const [etherealCredentials, setEtherealCredentials] =
+    useState<EtherealCredentials | null>(null);
+  const [etherealLoading, setEtherealLoading] = useState(false);
+  const [etherealError, setEtherealError] = useState('');
 
   // Only show in development
   if (import.meta.env.MODE !== 'development') {
@@ -242,6 +310,73 @@ const DevLogin: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchEtherealCredentials = async () => {
+    setEtherealLoading(true);
+    setEtherealError('');
+
+    try {
+      console.log('Fetching Ethereal credentials...');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const fullUrl = `${apiUrl}/api/email/ethereal-credentials`;
+      console.log('Full URL:', fullUrl);
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      console.log('Response status:', response.status);
+      console.log(
+        'Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
+
+      // Get the raw response text first to debug
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      if (!response.ok) {
+        // Try to parse as JSON, fallback to text error
+        let errorMessage = 'Failed to fetch credentials';
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse the response as JSON
+      const data: EtherealCredentialsResponse = JSON.parse(responseText);
+      setEtherealCredentials(data.credentials);
+    } catch (err) {
+      console.error('Error fetching credentials:', err);
+      setEtherealError(
+        err instanceof Error ? err.message : 'Failed to fetch credentials'
+      );
+    } finally {
+      setEtherealLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
+  const openEtherealLogin = () => {
+    if (etherealCredentials?.previewUrl) {
+      window.open(etherealCredentials.previewUrl, '_blank');
     }
   };
 
@@ -291,6 +426,100 @@ const DevLogin: React.FC = () => {
               </DevTip>
             </>
           )}
+
+          <EtherealSection>
+            <ToggleButton
+              variant="secondary"
+              onClick={() => setShowEthereal(!showEthereal)}
+              isFullWidth
+            >
+              {showEthereal
+                ? 'Hide Ethereal Credentials'
+                : 'Show Ethereal Credentials'}
+            </ToggleButton>
+
+            {showEthereal && (
+              <>
+                <EtherealHeader>📧 Test Email Server</EtherealHeader>
+
+                {etherealError && <ErrorMessage>{etherealError}</ErrorMessage>}
+
+                {!etherealCredentials && !etherealLoading && (
+                  <EtherealButton
+                    variant="secondary"
+                    onClick={fetchEtherealCredentials}
+                    isFullWidth
+                  >
+                    Fetch Credentials
+                  </EtherealButton>
+                )}
+
+                {etherealLoading && (
+                  <LoadingText>Fetching credentials...</LoadingText>
+                )}
+
+                {etherealCredentials && (
+                  <>
+                    <CredentialRow>
+                      <CredentialLabel>Username:</CredentialLabel>
+                      <CredentialValue>
+                        {etherealCredentials.user}
+                      </CredentialValue>
+                      <CopyButton
+                        variant="secondary"
+                        onClick={() =>
+                          copyToClipboard(etherealCredentials.user)
+                        }
+                      >
+                        Copy
+                      </CopyButton>
+                    </CredentialRow>
+
+                    <CredentialRow>
+                      <CredentialLabel>Password:</CredentialLabel>
+                      <CredentialValue>
+                        {etherealCredentials.pass}
+                      </CredentialValue>
+                      <CopyButton
+                        variant="secondary"
+                        onClick={() =>
+                          copyToClipboard(etherealCredentials.pass)
+                        }
+                      >
+                        Copy
+                      </CopyButton>
+                    </CredentialRow>
+
+                    <EtherealButton
+                      variant="primary"
+                      onClick={openEtherealLogin}
+                      isFullWidth
+                    >
+                      🔗 Open Ethereal Mail
+                    </EtherealButton>
+
+                    <DevTip>
+                      💡 Use these credentials to view test emails at{' '}
+                      <a
+                        href="https://ethereal.email"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        ethereal.email
+                      </a>
+                    </DevTip>
+                  </>
+                )}
+
+                {!etherealCredentials && !etherealLoading && !etherealError && (
+                  <DevTip>
+                    💡 Click "Fetch Credentials" to get your test email server
+                    login details
+                  </DevTip>
+                )}
+              </>
+            )}
+          </EtherealSection>
         </DevContent>
       </DevCardWrapper>
     </DevContainer>
