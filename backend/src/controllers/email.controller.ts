@@ -11,6 +11,51 @@ import { emailService } from '../services/email.service';
 import type { AuthenticatedRequest } from '../types';
 
 /**
+ * Get Ethereal mail credentials for development
+ * Only available in development environment
+ */
+export const getEtherealCredentials = async (req: Request, res: Response) => {
+	try {
+		// Only allow in development environment
+		if (process.env.NODE_ENV === 'production') {
+			return res.status(404).json({
+				error: 'Endpoint not available in production',
+			});
+		}
+
+		let credentials = emailService.getEtherealCredentials();
+
+		// If credentials are not available, initialize the email service
+		if (!credentials) {
+			await emailService.initialize();
+			credentials = emailService.getEtherealCredentials();
+		}
+
+		if (!credentials) {
+			return res.status(500).json({
+				error: 'Failed to initialize email service or retrieve credentials',
+			});
+		}
+
+		res.status(200).json({
+			message: 'Ethereal credentials retrieved successfully',
+			credentials: credentials,
+		});
+	} catch (error) {
+		await auditLogService.error(
+			'Failed to get Ethereal credentials',
+			'email-controller',
+			{
+				error,
+			}
+		);
+		res.status(500).json({
+			error: 'Failed to retrieve Ethereal credentials',
+		});
+	}
+};
+
+/**
  * Request password reset
  */
 export const forgotPassword = async (req: Request, res: Response) => {

@@ -5,6 +5,9 @@ import AuditLog from './AuditLog';
 import Content from './Content';
 import ContentReport from './ContentReport';
 import EmailVerification from './EmailVerification';
+import Group from './Group';
+import GroupMember from './GroupMember';
+import GroupWatchlist from './GroupWatchlist';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
 import User from './User';
@@ -28,6 +31,9 @@ export function initializeModels(sequelize: Sequelize) {
 		Content.initialize(sequelize);
 
 		// Then initialize models that depend on those
+		Group.initialize(sequelize);
+		GroupMember.initialize(sequelize);
+		GroupWatchlist.initialize(sequelize);
 		Match.initialize(sequelize);
 		ActivityLog.initialize(sequelize);
 		AuditLog.initialize(sequelize);
@@ -105,6 +111,35 @@ export function initializeModels(sequelize: Sequelize) {
 			as: 'watchlistEntry',
 		});
 		WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+
+		// Group associations
+		Group.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+		User.hasMany(Group, { foreignKey: 'created_by', as: 'createdGroups' });
+
+		// Group member associations (many-to-many through GroupMember)
+		Group.hasMany(GroupMember, { foreignKey: 'group_id', as: 'members' });
+		User.hasMany(GroupMember, {
+			foreignKey: 'user_id',
+			as: 'groupMemberships',
+		});
+		GroupMember.belongsTo(Group, { foreignKey: 'group_id', as: 'group' });
+		GroupMember.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+		GroupMember.belongsTo(User, { foreignKey: 'invited_by', as: 'inviter' });
+
+		// Group watchlist associations
+		GroupWatchlist.belongsTo(Group, { foreignKey: 'group_id', as: 'group' });
+		GroupWatchlist.belongsTo(User, {
+			foreignKey: 'suggested_by',
+			as: 'suggester',
+		});
+		Group.hasMany(GroupWatchlist, {
+			foreignKey: 'group_id',
+			as: 'watchlistEntries',
+		});
+		User.hasMany(GroupWatchlist, {
+			foreignKey: 'suggested_by',
+			as: 'suggestedEntries',
+		});
 	} catch (error) {
 		console.error('Error initializing models:', error);
 		throw new Error(
@@ -125,4 +160,7 @@ export default {
 	EmailVerification,
 	PasswordReset,
 	UserSession,
+	Group,
+	GroupMember,
+	GroupWatchlist,
 };

@@ -4,9 +4,9 @@ import {
   HiArrowLeftOnRectangle,
   HiArrowRightOnRectangle,
   HiChartBarSquare,
-  HiHeart,
   HiListBullet,
   HiUser,
+  HiUserGroup,
 } from 'react-icons/hi2';
 
 // Extend the NavigationItem type to include onSelect
@@ -56,10 +56,10 @@ export const createClientNavigation = (
             icon: React.createElement(HiListBullet),
           },
           {
-            key: 'matches',
-            label: 'Matches',
-            path: '/matches',
-            icon: React.createElement(HiHeart),
+            key: 'groups',
+            label: 'Groups',
+            path: '/groups',
+            icon: React.createElement(HiUserGroup),
           },
           {
             key: 'activity',

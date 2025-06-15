@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
 	forgotPassword,
+	getEtherealCredentials,
 	resetPassword,
 	sendEmailVerification,
 	verifyEmail,
@@ -9,6 +10,9 @@ import { authenticateToken } from '../middlewares/auth';
 import { authRateLimit, strictRateLimit } from '../middlewares/rate-limiter';
 
 const router = Router();
+
+// Development endpoint for Ethereal credentials
+router.get('/ethereal-credentials', getEtherealCredentials);
 
 router.post('/forgot-password', strictRateLimit, forgotPassword);
 router.post('/reset-password', strictRateLimit, resetPassword);

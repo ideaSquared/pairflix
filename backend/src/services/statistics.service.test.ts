@@ -12,6 +12,7 @@ const mockActivityLogFindAll = jest.fn().mockResolvedValue([]);
 const mockAuditLogCount = jest.fn().mockResolvedValue(0);
 const mockAuditLogFindAll = jest.fn().mockResolvedValue([]);
 const mockMatchCount = jest.fn().mockResolvedValue(0);
+const mockGroupCount = jest.fn().mockResolvedValue(0);
 const mockWatchlistEntryCount = jest.fn().mockResolvedValue(0);
 
 // Mock all dependencies with proper type safety
@@ -64,6 +65,13 @@ jest.mock('../models/Match', () => ({
 	__esModule: true,
 	default: {
 		count: mockMatchCount,
+	},
+}));
+
+jest.mock('../models/Group', () => ({
+	__esModule: true,
+	default: {
+		count: mockGroupCount,
 	},
 }));
 
@@ -133,6 +141,7 @@ describe('StatisticsService', () => {
 		it('should return content statistics', async () => {
 			mockWatchlistEntryCount.mockResolvedValueOnce(200);
 			mockMatchCount.mockResolvedValueOnce(50);
+			mockGroupCount.mockResolvedValueOnce(15);
 			mockUserCount.mockResolvedValueOnce(10);
 
 			const result = await statisticsService.getContentStats();
@@ -140,6 +149,7 @@ describe('StatisticsService', () => {
 			expect(result).toEqual({
 				watchlistEntries: 200,
 				matches: 50,
+				groups: 15,
 				averageWatchlistPerUser: 20,
 			});
 		});
@@ -147,6 +157,7 @@ describe('StatisticsService', () => {
 		it('should handle zero users for average calculation', async () => {
 			mockWatchlistEntryCount.mockResolvedValueOnce(100);
 			mockMatchCount.mockResolvedValueOnce(25);
+			mockGroupCount.mockResolvedValueOnce(8);
 			mockUserCount.mockResolvedValueOnce(0);
 
 			const result = await statisticsService.getContentStats();
@@ -154,6 +165,7 @@ describe('StatisticsService', () => {
 			expect(result).toEqual({
 				watchlistEntries: 100,
 				matches: 25,
+				groups: 8,
 				averageWatchlistPerUser: undefined,
 			});
 		});
@@ -264,8 +276,12 @@ describe('StatisticsService', () => {
 			jest.spyOn(statisticsService, 'getContentStats').mockResolvedValue({
 				watchlistEntries: 300,
 				matches: 50,
+				groups: 10,
 				averageWatchlistPerUser: 3.0,
 			});
+
+			// Mock Group.count() directly since getDashboardStats calls it separately
+			mockGroupCount.mockResolvedValueOnce(10);
 
 			const result = await statisticsService.getDashboardStats();
 
@@ -273,6 +289,7 @@ describe('StatisticsService', () => {
 				totalUsers: 100,
 				activeUsers: 80,
 				totalMatches: 50,
+				totalGroups: 10,
 				watchlistEntries: 300,
 			});
 		});
@@ -290,6 +307,7 @@ describe('StatisticsService', () => {
 			jest.spyOn(statisticsService, 'getContentStats').mockResolvedValue({
 				watchlistEntries: 150,
 				matches: 25,
+				groups: 5,
 				averageWatchlistPerUser: 15,
 			});
 
@@ -326,6 +344,7 @@ describe('StatisticsService', () => {
 			expect(result.content).toEqual({
 				watchlistEntries: 150,
 				matches: 25,
+				groups: 5,
 				averageWatchlistPerUser: 15,
 			});
 

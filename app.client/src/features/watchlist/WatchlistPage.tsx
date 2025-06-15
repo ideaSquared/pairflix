@@ -712,7 +712,7 @@ const WatchlistPage: React.FC = () => {
             {filteredEntries.length === 0 &&
               (debouncedSearchQuery || selectedTags.length > 0) && (
                 <Typography>
-                  No matches found
+                  No content found
                   {debouncedSearchQuery ? ` for "${debouncedSearchQuery}"` : ''}
                   {selectedTags.length > 0 ? ` with selected tags` : ''}
                 </Typography>

@@ -1,11 +1,9 @@
+import { initializeModels } from '../models';
 import { ActivityLog } from '../models/ActivityLog';
-import AppSettings from '../models/AppSettings';
-import AuditLog from '../models/AuditLog';
 import Content from '../models/Content';
 import ContentReport from '../models/ContentReport';
-import EmailVerification from '../models/EmailVerification';
-import Match from '../models/Match';
-import PasswordReset from '../models/PasswordReset';
+import Group from '../models/Group';
+import GroupMember from '../models/GroupMember';
 import User from '../models/User';
 import UserSession from '../models/UserSession';
 import WatchlistEntry from '../models/WatchlistEntry';
@@ -20,21 +18,11 @@ export async function seedDatabase() {
 	}
 
 	try {
-		// Initialize all models
-		User.initialize(sequelize);
-		WatchlistEntry.initialize(sequelize);
-		Match.initialize(sequelize);
-		ActivityLog.initialize(sequelize);
-		AuditLog.initialize(sequelize);
-		AppSettings.initialize(sequelize);
-		Content.initialize(sequelize);
-		ContentReport.initialize(sequelize);
-		EmailVerification.initialize(sequelize);
-		PasswordReset.initialize(sequelize);
-		UserSession.initialize(sequelize);
-
 		// Sync the database (this will create tables with the updated schema)
 		await sequelize.sync({ force: true });
+
+		// Re-initialize models and associations after sync
+		initializeModels(sequelize);
 
 		console.log('✅ Database synced successfully');
 
@@ -361,97 +349,403 @@ export async function seedDatabase() {
 			created_at: new Date(),
 		});
 
-		// Create matches between users
+		// Create groups (couples) to replace matches
+		// Group 1: userActive + userBanned (active)
+		const group1 = await Group.create({
+			name: 'useractive & userbanned',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: userActive.user_id,
+		});
+
 		await Promise.all([
-			// Original match between userActive and userBanned
-			Match.create({
-				user1_id: userActive.user_id,
-				user2_id: userBanned.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group1.group_id,
+				user_id: userActive.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			// Additional matches between new users
-			Match.create({
-				user1_id: user1.user_id,
-				user2_id: user2.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group1.group_id,
+				user_id: userBanned.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user1.user_id,
-				user2_id: user3.user_id,
-				status: 'pending',
+		]);
+
+		// Group 2: user1 + user2 (active)
+		const group2 = await Group.create({
+			name: 'user1 & user2',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user1.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group2.group_id,
+				user_id: user1.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user2.user_id,
-				user2_id: user5.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group2.group_id,
+				user_id: user2.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user3.user_id,
-				user2_id: user6.user_id,
-				status: 'accepted',
+		]);
+
+		// Group 3: user2 + user5 (active)
+		const group3 = await Group.create({
+			name: 'user2 & user5',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user2.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group3.group_id,
+				user_id: user2.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user5.user_id,
-				user2_id: user6.user_id,
-				status: 'pending',
+			GroupMember.create({
+				group_id: group3.group_id,
+				user_id: user5.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user8.user_id,
-				user2_id: user9.user_id,
-				status: 'accepted',
+		]);
+
+		// Group 4: user3 + user6 (active)
+		const group4 = await Group.create({
+			name: 'user3 & user6',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user3.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group4.group_id,
+				user_id: user3.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user1.user_id,
-				user2_id: user9.user_id,
-				status: 'rejected',
+			GroupMember.create({
+				group_id: group4.group_id,
+				user_id: user6.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user2.user_id,
-				user2_id: user8.user_id,
-				status: 'pending',
+		]);
+
+		// Group 5: user8 + user9 (active)
+		const group5 = await Group.create({
+			name: 'user8 & user9',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user8.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group5.group_id,
+				user_id: user8.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user3.user_id,
-				user2_id: user5.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group5.group_id,
+				user_id: user9.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user6.user_id,
-				user2_id: user9.user_id,
-				status: 'accepted',
+		]);
+
+		// Group 6: user3 + user5 (active)
+		const group6 = await Group.create({
+			name: 'user3 & user5',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user3.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group6.group_id,
+				user_id: user3.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			// Include userActive in more matches
-			Match.create({
-				user1_id: userActive.user_id,
-				user2_id: user1.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group6.group_id,
+				user_id: user5.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: userActive.user_id,
-				user2_id: user5.user_id,
-				status: 'pending',
+		]);
+
+		// Group 7: user6 + user9 (active)
+		const group7 = await Group.create({
+			name: 'user6 & user9',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user6.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group7.group_id,
+				user_id: user6.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			// Include userSuspended in a match
-			Match.create({
-				user1_id: userSuspended.user_id,
-				user2_id: user8.user_id,
-				status: 'accepted',
+			GroupMember.create({
+				group_id: group7.group_id,
+				user_id: user9.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			// Additional matches to use all users
-			Match.create({
-				user1_id: user4.user_id,
-				user2_id: user7.user_id,
-				status: 'accepted',
+		]);
+
+		// Group 8: userActive + user1 (active)
+		const group8 = await Group.create({
+			name: 'useractive & user1',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: userActive.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group8.group_id,
+				user_id: userActive.user_id,
+				role: 'owner',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user4.user_id,
-				user2_id: user10.user_id,
-				status: 'pending',
+			GroupMember.create({
+				group_id: group8.group_id,
+				user_id: user1.user_id,
+				role: 'member',
+				status: 'active',
 			}),
-			Match.create({
-				user1_id: user7.user_id,
-				user2_id: user10.user_id,
-				status: 'rejected',
+		]);
+
+		// Group 9: userSuspended + user8 (active)
+		const group9 = await Group.create({
+			name: 'usersuspended & user8',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: userSuspended.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group9.group_id,
+				user_id: userSuspended.user_id,
+				role: 'owner',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: group9.group_id,
+				user_id: user8.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+		]);
+
+		// Group 10: user4 + user7 (active)
+		const group10 = await Group.create({
+			name: 'user4 & user7',
+			type: 'couple',
+			status: 'active',
+			max_members: 2,
+			created_by: user4.user_id,
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: group10.group_id,
+				user_id: user4.user_id,
+				role: 'owner',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: group10.group_id,
+				user_id: user7.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+		]);
+
+		// Create a friend group with multiple members
+		const friendGroup = await Group.create({
+			name: 'Movie Night Crew',
+			description: 'Weekly movie night friends',
+			type: 'friends',
+			status: 'active',
+			max_members: 8,
+			created_by: user1.user_id,
+			settings: {
+				isPublic: false,
+				requireApproval: true,
+				allowInvites: true,
+				scheduleSettings: {
+					recurringDay: 'friday',
+					recurringTime: '20:00',
+				},
+			},
+		});
+
+		// Add members to friend group
+		await Promise.all([
+			GroupMember.create({
+				group_id: friendGroup.group_id,
+				user_id: user1.user_id,
+				role: 'owner',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: friendGroup.group_id,
+				user_id: user3.user_id,
+				role: 'admin',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: friendGroup.group_id,
+				user_id: user5.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: friendGroup.group_id,
+				user_id: user6.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: friendGroup.group_id,
+				user_id: user8.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+		]);
+
+		// Create a watch party group
+		const watchPartyGroup = await Group.create({
+			name: 'Sunday Binge Watchers',
+			description: 'Sunday afternoon TV series binge watching',
+			type: 'watch_party',
+			status: 'active',
+			max_members: 12,
+			created_by: user2.user_id,
+			settings: {
+				isPublic: true,
+				requireApproval: false,
+				allowInvites: true,
+				scheduleSettings: {
+					recurringDay: 'sunday',
+					recurringTime: '14:00',
+				},
+			},
+		});
+
+		// Add members to watch party
+		await Promise.all([
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: user2.user_id,
+				role: 'owner',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: user4.user_id,
+				role: 'admin',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: user7.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: user9.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: user10.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: watchPartyGroup.group_id,
+				user_id: userActive.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+		]);
+
+		// Create additional couple group for testing multiple relationships
+		// User3 is now in both a couple (group4 with user6) and friend group (friendGroup)
+		// User1 is in both a couple (group2 with user2) and friend group (friendGroup)
+		// userActive is in multiple groups: couple with userBanned, couple with user1, and watch party
+
+		// Create another friend group with some overlapping members
+		const collegeGroup = await Group.create({
+			name: 'College Alumni Watch Group',
+			description: 'Old college friends catching up through movies',
+			type: 'friends',
+			status: 'active',
+			max_members: 6,
+			created_by: user5.user_id,
+			settings: {
+				isPublic: false,
+				requireApproval: true,
+				allowInvites: false,
+			},
+		});
+
+		await Promise.all([
+			GroupMember.create({
+				group_id: collegeGroup.group_id,
+				user_id: user5.user_id,
+				role: 'owner',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: collegeGroup.group_id,
+				user_id: user6.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: collegeGroup.group_id,
+				user_id: user9.user_id,
+				role: 'member',
+				status: 'active',
+			}),
+			GroupMember.create({
+				group_id: collegeGroup.group_id,
+				user_id: userBanned.user_id,
+				role: 'member',
+				status: 'active',
 			}),
 		]);
 
@@ -781,27 +1075,25 @@ export async function seedDatabase() {
 				created_at: pastDate(5),
 			}),
 
-			// Match activities
+			// Group activities
 			ActivityLog.create({
 				user_id: userActive.user_id,
-				action: ActivityType.MATCH_CREATE,
+				action: ActivityType.GROUP_CREATE,
+				context: 'group',
 				metadata: {
-					with_user: {
-						user_id: userBanned.user_id,
-						username: 'userbanned',
-					},
+					group_id: group1.group_id,
+					group_name: 'useractive & userbanned',
+					group_type: 'couple',
 				},
 				created_at: pastDate(22),
 			}),
 			ActivityLog.create({
 				user_id: userActive.user_id,
-				action: ActivityType.MATCH_VIEW,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
 				metadata: {
-					match_id: '1',
-					with_user: {
-						user_id: userBanned.user_id,
-						username: 'userbanned',
-					},
+					group_id: group1.group_id,
+					group_name: 'useractive & userbanned',
 				},
 				created_at: pastDate(4),
 			}),
@@ -887,20 +1179,15 @@ export async function seedDatabase() {
 				created_at: pastDate(6),
 			}),
 
-			// Match activities
+			// Group activities
 			ActivityLog.create({
 				user_id: userBanned.user_id,
-				action: ActivityType.MATCH_UPDATE,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
 				metadata: {
-					match_id: '1',
-					with_user: {
-						user_id: userActive.user_id,
-						username: 'useractive',
-					},
-					status: {
-						from: 'pending',
-						to: 'accepted',
-					},
+					group_id: group1.group_id,
+					group_name: 'useractive & userbanned',
+					group_type: 'couple',
 				},
 				created_at: pastDate(20),
 			}),
@@ -969,12 +1256,12 @@ export async function seedDatabase() {
 			}),
 			ActivityLog.create({
 				user_id: user1.user_id,
-				action: ActivityType.MATCH_CREATE,
+				action: ActivityType.GROUP_CREATE,
+				context: 'group',
 				metadata: {
-					with_user: {
-						user_id: user2.user_id,
-						username: 'user2',
-					},
+					group_id: group2.group_id,
+					group_name: 'user1 & user2',
+					group_type: 'couple',
 				},
 				created_at: pastDate(5),
 			}),
@@ -1106,13 +1393,12 @@ export async function seedDatabase() {
 			}),
 			ActivityLog.create({
 				user_id: user9.user_id,
-				action: ActivityType.MATCH_VIEW,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
 				metadata: {
-					match_id: '8',
-					with_user: {
-						user_id: user8.user_id,
-						username: 'user8',
-					},
+					group_id: group5.group_id,
+					group_name: 'user8 & user9',
+					group_type: 'couple',
 				},
 				created_at: pastDate(2),
 			}),
@@ -1132,6 +1418,155 @@ export async function seedDatabase() {
 					newValue: false,
 				},
 				created_at: pastDate(1),
+			}),
+		]);
+
+		// Group-related activities for the new complex groups
+		await Promise.all([
+			// Friend group creation and activities
+			ActivityLog.create({
+				user_id: user1.user_id,
+				action: ActivityType.GROUP_CREATE,
+				context: 'group',
+				metadata: {
+					group_id: friendGroup.group_id,
+					group_name: 'Movie Night Crew',
+					group_type: 'friends',
+				},
+				created_at: pastDate(18),
+			}),
+			ActivityLog.create({
+				user_id: user3.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: friendGroup.group_id,
+					group_name: 'Movie Night Crew',
+					group_type: 'friends',
+				},
+				created_at: pastDate(17),
+			}),
+			ActivityLog.create({
+				user_id: user5.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: friendGroup.group_id,
+					group_name: 'Movie Night Crew',
+					group_type: 'friends',
+				},
+				created_at: pastDate(16),
+			}),
+
+			// Watch party creation and activities
+			ActivityLog.create({
+				user_id: user2.user_id,
+				action: ActivityType.GROUP_CREATE,
+				context: 'group',
+				metadata: {
+					group_id: watchPartyGroup.group_id,
+					group_name: 'Sunday Binge Watchers',
+					group_type: 'watch_party',
+				},
+				created_at: pastDate(12),
+			}),
+			ActivityLog.create({
+				user_id: userActive.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: watchPartyGroup.group_id,
+					group_name: 'Sunday Binge Watchers',
+					group_type: 'watch_party',
+				},
+				created_at: pastDate(10),
+			}),
+			ActivityLog.create({
+				user_id: user9.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: watchPartyGroup.group_id,
+					group_name: 'Sunday Binge Watchers',
+					group_type: 'watch_party',
+				},
+				created_at: pastDate(9),
+			}),
+
+			// College group activities
+			ActivityLog.create({
+				user_id: user5.user_id,
+				action: ActivityType.GROUP_CREATE,
+				context: 'group',
+				metadata: {
+					group_id: collegeGroup.group_id,
+					group_name: 'College Alumni Watch Group',
+					group_type: 'friends',
+				},
+				created_at: pastDate(14),
+			}),
+			ActivityLog.create({
+				user_id: user6.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: collegeGroup.group_id,
+					group_name: 'College Alumni Watch Group',
+					group_type: 'friends',
+				},
+				created_at: pastDate(13),
+			}),
+			ActivityLog.create({
+				user_id: userBanned.user_id,
+				action: ActivityType.GROUP_JOIN,
+				context: 'group',
+				metadata: {
+					group_id: collegeGroup.group_id,
+					group_name: 'College Alumni Watch Group',
+					group_type: 'friends',
+				},
+				created_at: pastDate(11),
+			}),
+
+			// Some group watchlist activities
+			ActivityLog.create({
+				user_id: user1.user_id,
+				action: ActivityType.GROUP_WATCHLIST_ADD,
+				context: 'group',
+				metadata: {
+					group_id: friendGroup.group_id,
+					group_name: 'Movie Night Crew',
+					title: sampleContent[0].title,
+					tmdb_id: sampleContent[0].tmdb_id,
+					media_type: sampleContent[0].media_type,
+				},
+				created_at: pastDate(8),
+			}),
+			ActivityLog.create({
+				user_id: user3.user_id,
+				action: ActivityType.GROUP_WATCHLIST_VOTE,
+				context: 'group',
+				metadata: {
+					group_id: friendGroup.group_id,
+					group_name: 'Movie Night Crew',
+					title: sampleContent[0].title,
+					vote: 'up',
+				},
+				created_at: pastDate(7),
+			}),
+			ActivityLog.create({
+				user_id: user2.user_id,
+				action: ActivityType.GROUP_SCHEDULE_SET,
+				context: 'group',
+				metadata: {
+					group_id: watchPartyGroup.group_id,
+					group_name: 'Sunday Binge Watchers',
+					schedule: {
+						day: 'sunday',
+						time: '14:00',
+					},
+				},
+				created_at: pastDate(6),
 			}),
 		]);
 
@@ -1386,9 +1821,21 @@ export async function seedDatabase() {
 		console.warn('  user9@example.com (verified, active)');
 		console.warn('  user10@example.com (verified, suspended)');
 		console.warn('');
+		console.warn('Groups created:');
+		console.warn('  • 10 couple groups (2 members each)');
+		console.warn('  • 1 friend group: "Movie Night Crew" (5 members)');
+		console.warn('  • 1 watch party: "Sunday Binge Watchers" (6 members)');
 		console.warn(
-			'Matches created between users with different statuses (accepted, pending, rejected)'
+			'  • 1 college alumni group: "College Alumni Watch Group" (4 members)'
 		);
+		console.warn('');
+		console.warn('Users with multiple relationships:');
+		console.warn('  • userActive: 2 couples + 1 watch party');
+		console.warn('  • user1: 1 couple + 1 friend group');
+		console.warn('  • user3: 1 couple + 1 friend group');
+		console.warn('  • user5: 1 couple + 2 friend groups');
+		console.warn('  • user6: 1 couple + 2 friend groups');
+		console.warn('  • user9: 1 couple + 1 college group + 1 watch party');
 		console.warn('');
 		console.warn('Email verification tokens:');
 		console.warn('  usersuspended verification: sample-verification-token-123');

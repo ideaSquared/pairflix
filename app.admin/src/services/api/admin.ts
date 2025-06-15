@@ -31,6 +31,7 @@ export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
   totalMatches: number;
+  totalGroups: number;
   watchlistEntries: number;
 }
 
@@ -48,6 +49,7 @@ export interface SystemStats {
     contentStats: {
       watchlistEntries: number;
       matches: number;
+      groups: number;
       averageWatchlistPerUser: number;
     };
     errorCount: number;
