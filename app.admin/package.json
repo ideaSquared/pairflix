@@ -18,7 +18,7 @@
     "@pairflix/components": "^0.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@tanstack/react-query": "^4.39.2",
+    "@tanstack/react-query": "^4.41.0",
     "chart.js": "^4.4.9",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.3.0",
