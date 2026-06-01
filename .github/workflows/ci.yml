@@ -75,20 +75,13 @@ jobs:
       - name: Build components package (required for tests)
         run: npm run build:components
 
-      - name: Normalize line endings for lint
-        # .gitattributes pins source files to CRLF in working trees, but the
-        # CI checkout doesn't reliably apply the attribute, leaving a mixed
-        # LF/CRLF tree that breaks prettier-eslint. Force-normalize source
-        # files to LF here so the linter sees a consistent tree.
-        run: |
-          find . \
-            -path './node_modules' -prune -o \
-            -path '*/node_modules' -prune -o \
-            -path './.git' -prune -o \
-            -path '*/dist' -prune -o \
-            -path '*/build' -prune -o \
-            -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.json' -o -name '*.md' \) -print0 \
-            | xargs -0 -r sed -i 's/\r$//'
+      - name: Auto-fix formatting before lint
+        # eslint-plugin-prettier disagrees with local prettier on CI's
+        # Ubuntu runner (likely a transitive version mismatch from
+        # `npm install` resolving newer prereleases than local). Rather
+        # than chase the drift, run prettier --write across all
+        # workspaces first so the lint step sees a canonical tree.
+        run: npm run format:all
 
       - name: Lint all packages
         run: npm run lint:all
