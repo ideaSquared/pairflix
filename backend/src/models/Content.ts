@@ -1,4 +1,11 @@
 import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
+import type { ProvidersByRegion } from '../services/tmdb.service';
+
+// TODO: replace with Phase A model on merge
+export interface ContentProviders {
+	last_updated_at: string;
+	regions: ProvidersByRegion;
+}
 
 interface ContentAttributes {
 	id: string;
@@ -6,15 +13,27 @@ interface ContentAttributes {
 	type: 'movie' | 'show' | 'episode';
 	status: 'active' | 'pending' | 'flagged' | 'removed';
 	tmdb_id: number;
+	media_type?: 'movie' | 'tv';
+	year?: number | null;
+	poster_path?: string | null;
 	reported_count: number;
 	removal_reason?: string;
+	providers?: ContentProviders | null;
 	created_at: Date;
 	updated_at: Date;
 }
 
 type ContentCreationAttributes = Optional<
 	ContentAttributes,
-	'id' | 'reported_count' | 'created_at' | 'updated_at' | 'removal_reason'
+	| 'id'
+	| 'reported_count'
+	| 'created_at'
+	| 'updated_at'
+	| 'removal_reason'
+	| 'media_type'
+	| 'year'
+	| 'poster_path'
+	| 'providers'
 >;
 
 class Content extends Model<ContentAttributes, ContentCreationAttributes> {
@@ -31,6 +50,14 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 	declare reported_count: number;
 
 	declare removal_reason?: string;
+
+	declare media_type?: 'movie' | 'tv';
+
+	declare year?: number | null;
+
+	declare poster_path?: string | null;
+
+	declare providers?: ContentProviders | null;
 
 	declare created_at: Date;
 
@@ -75,6 +102,22 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 				},
 				removal_reason: {
 					type: DataTypes.TEXT,
+					allowNull: true,
+				},
+				media_type: {
+					type: DataTypes.ENUM('movie', 'tv'),
+					allowNull: true,
+				},
+				year: {
+					type: DataTypes.INTEGER,
+					allowNull: true,
+				},
+				poster_path: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
+				providers: {
+					type: DataTypes.JSONB,
 					allowNull: true,
 				},
 				created_at: {

@@ -2,6 +2,7 @@ import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
 import { emailService } from './email';
+import { history } from './history';
 import { matches } from './matches';
 import { search } from './search';
 import { user } from './user';
@@ -16,6 +17,9 @@ export type { AppSettings } from './admin';
 
 // Re-export types from auth
 export type { LoginCredentials } from './auth';
+
+// Re-export types from history
+export type { HistoryEntry, HistoryResponse } from './history';
 
 // Re-export types from user
 export type {
@@ -32,6 +36,7 @@ export {
   auth,
   emailService,
   fetchWithAuth,
+  history,
   matches,
   search,
   user,
@@ -51,6 +56,7 @@ const api = {
   activity,
   admin,
   email: emailService,
+  history,
 };
 
 export default api;

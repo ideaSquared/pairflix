@@ -68,3 +68,36 @@ export async function getPopular(mediaType: 'movie' | 'tv', page: number = 1) {
 		page: page.toString(),
 	});
 }
+
+export interface TMDbProvider {
+	provider_id: number;
+	provider_name: string;
+	logo_path: string;
+	display_priority?: number;
+}
+
+export interface RegionProviders {
+	link: string;
+	flatrate?: TMDbProvider[];
+	rent?: TMDbProvider[];
+	buy?: TMDbProvider[];
+	ads?: TMDbProvider[];
+	free?: TMDbProvider[];
+}
+
+export type ProvidersByRegion = Record<string, RegionProviders>;
+
+interface WatchProvidersResponse {
+	id?: number;
+	results?: ProvidersByRegion;
+}
+
+export async function fetchWatchProviders(
+	tmdbId: number,
+	mediaType: 'movie' | 'tv'
+): Promise<ProvidersByRegion> {
+	const data = await tmdbFetch<WatchProvidersResponse>(
+		`/${mediaType}/${tmdbId}/watch/providers`
+	);
+	return data.results ?? {};
+}

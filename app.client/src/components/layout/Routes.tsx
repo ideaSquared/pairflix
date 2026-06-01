@@ -12,6 +12,7 @@ import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
 import RegisterPage from '../../features/auth/RegisterPage';
 import ResetPasswordPage from '../../features/auth/ResetPasswordPage';
+import HistoryPage from '../../features/history/HistoryPage';
 import MatchPage from '../../features/match/MatchPage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
@@ -88,6 +89,10 @@ const AppRoutes: React.FC = () => {
               <Route
                 path="/activity"
                 element={<ProtectedRoute element={<ActivityPage />} />}
+              />
+              <Route
+                path="/history"
+                element={<ProtectedRoute element={<HistoryPage />} />}
               />
               <Route
                 path="/profile"

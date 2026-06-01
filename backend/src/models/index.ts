@@ -5,10 +5,14 @@ import AuditLog from './AuditLog';
 import Content from './Content';
 import ContentReport from './ContentReport';
 import EmailVerification from './EmailVerification';
+// TODO: replace with Phase A model on merge
+import { Household, HouseholdMember } from './Household';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
 import User from './User';
 import UserSession from './UserSession';
+// TODO: replace with Phase A model on merge
+import WatchedTogether from './WatchedTogether';
 import WatchlistEntry from './WatchlistEntry';
 
 export function initializeModels(sequelize: Sequelize) {
@@ -35,6 +39,9 @@ export function initializeModels(sequelize: Sequelize) {
 		EmailVerification.initialize(sequelize);
 		PasswordReset.initialize(sequelize);
 		UserSession.initialize(sequelize);
+		Household.initialize(sequelize);
+		HouseholdMember.initialize(sequelize);
+		WatchedTogether.initialize(sequelize);
 
 		// Set up associations after all models are initialized
 		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -105,6 +112,32 @@ export function initializeModels(sequelize: Sequelize) {
 			as: 'watchlistEntry',
 		});
 		WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+
+		// TODO: replace with Phase A model on merge
+		HouseholdMember.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		HouseholdMember.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'user',
+		});
+		Household.hasMany(HouseholdMember, {
+			foreignKey: 'household_id',
+			as: 'members',
+		});
+		User.hasMany(HouseholdMember, {
+			foreignKey: 'user_id',
+			as: 'householdMemberships',
+		});
+		WatchedTogether.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasMany(WatchedTogether, {
+			foreignKey: 'household_id',
+			as: 'watchedTogether',
+		});
 	} catch (error) {
 		console.error('Error initializing models:', error);
 		throw new Error(
@@ -125,4 +158,7 @@ export default {
 	EmailVerification,
 	PasswordReset,
 	UserSession,
+	Household,
+	HouseholdMember,
+	WatchedTogether,
 };

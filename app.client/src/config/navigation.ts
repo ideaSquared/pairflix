@@ -4,6 +4,7 @@ import {
   HiArrowLeftOnRectangle,
   HiArrowRightOnRectangle,
   HiChartBarSquare,
+  HiClock,
   HiHeart,
   HiListBullet,
   HiUser,
@@ -66,6 +67,12 @@ export const createClientNavigation = (
             label: 'Activity',
             path: '/activity',
             icon: React.createElement(HiChartBarSquare),
+          },
+          {
+            key: 'history',
+            label: 'History',
+            path: '/history',
+            icon: React.createElement(HiClock),
           },
           {
             key: 'profile',

@@ -8,7 +8,9 @@ import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
 import emailRoutes from './routes/email.routes';
+import historyRoutes from './routes/history.routes';
 import matchRoutes from './routes/match.routes';
+import providersRoutes from './routes/providers.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
@@ -42,6 +44,8 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/households', historyRoutes);
+app.use('/api/providers', providersRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
