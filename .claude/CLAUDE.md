@@ -81,13 +81,13 @@ Product source of truth: the **Pairflix — Business Plan** Notion page (`https:
 
 The codebase historically implemented **user-to-user matching** ("find a viewing partner"). It is pivoting to **title matching for an already-paired household** ("what should we watch"). The existing `Match` model (user pairing) is the seed for the new `Household` model — both coexist during the migration.
 
-Five in-flight phase branches off `claude/inspiring-tesla-lAShW`:
+The pivot has shipped five overlapping scaffolds, all merged onto `claude/inspiring-tesla-lAShW`:
 
-- **A — `*-phase-a-models`** — `Household`, `HouseholdMember`, `TasteProfile`, `WatchedTogether`; `Content.providers` JSONB; first real Sequelize migration.
-- **B — `*-phase-b-tonight`** — ML/CF recommender (`recommendation.service.ts`), `POST /api/v1/households/:id/pick`, `TonightPicker` UI. **No LLM in the hot path.**
-- **C — `*-phase-c-llm`** — Anthropic SDK scaffold (`claude-sonnet-4-6`), prompt-cached system + taste-profile blocks, tool-use structured output, behind `recommendation.llm_rerank` (default off).
-- **D — `*-phase-d-providers-history`** — TMDb `/watch/providers` fetch + cache, `ProviderBadges`, `WatchedTogether` history view with thumbs capture.
-- **E — `*-phase-e-pricing`** — `Subscription`, `PickUsage`, entitlements + quota middleware, **mock checkout only** (no Stripe SDK yet).
+- **A** — `Household`, `HouseholdMember`, `TasteProfile`, `WatchedTogether`; `Content.providers` JSONB; first real Sequelize migration.
+- **B** — ML/CF recommender (`recommendation.service.ts`), `POST /api/households/:id/pick`, `TonightPicker` UI. **No LLM in the hot path.**
+- **C** — Anthropic SDK (`claude-sonnet-4-6`), prompt-cached system + taste-profile blocks, tool-use structured output, behind `recommendation.llm_rerank` (default off). Hooked into the recommender via `maybeRerank` — returns `null` to fall back to pure ML.
+- **D** — TMDb `/watch/providers` fetch + cache (`providers.service.ts`), `ProviderBadges` in `lib.components`, `WatchedTogether` history view with thumbs capture.
+- **E** — `Subscription`, `PickUsage`, entitlements + quota middleware, **mock checkout only** (no Stripe SDK yet). Ownership is `HouseholdMember.role = 'owner'` — there is no `owner_id` column on `Household`.
 
 Extend along these seams. Don't introduce parallel structures.
 
@@ -116,7 +116,7 @@ npm workspaces (no Turborepo). Four workspaces:
 
 ```
 pairflix/
-├── backend/            # Express + Sequelize API (port 8000, mounted at /api/v1)
+├── backend/            # Express + Sequelize API (port 8000, mounted at /api)
 ├── app.client/         # User-facing React app (port 5173)
 ├── app.admin/          # Admin panel React app (port 5174)
 ├── lib.components/     # Shared component library (styled-components)
@@ -286,7 +286,7 @@ app.client/src/
   components/           # cross-feature UI not yet promoted to lib.components
   contexts/             # auth, theme
   hooks/                # cross-feature hooks
-  services/             # API clients calling /api/v1
+  services/             # API clients calling /api
   utils/
 ```
 
@@ -323,7 +323,7 @@ A feature owns its pages, components, hooks, and types. Promote a component to `
 
 ## API Design
 
-- REST-ish, mounted at `/api/v1`.
+- REST-ish, mounted at `/api`.
 - Resource-oriented paths: `/households`, `/households/:id/pick`, `/watchlists/:id`.
 - `POST` for create + actions, `PATCH` for partial updates, `DELETE` for delete.
 - Auth: JWT bearer in `Authorization: Bearer <token>`.
