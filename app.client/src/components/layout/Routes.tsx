@@ -13,6 +13,8 @@ import ProfilePage from '../../features/auth/ProfilePage';
 import RegisterPage from '../../features/auth/RegisterPage';
 import ResetPasswordPage from '../../features/auth/ResetPasswordPage';
 import MatchPage from '../../features/match/MatchPage';
+import TonightPicker from '../../features/tonight/TonightPicker';
+import { useTonightHomepagePreference } from '../../features/tonight/useTonightHomepage';
 import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -40,6 +42,8 @@ const LogoutRoute: React.FC = () => {
 
 const AppRoutes: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { tonightAsHomepage } = useTonightHomepagePreference();
+  const defaultPath = tonightAsHomepage ? '/tonight' : '/watchlist';
 
   const handleLogout = () => {
     logout();
@@ -78,6 +82,10 @@ const AppRoutes: React.FC = () => {
           <AppLayout variant="client" navigation={navigationConfig}>
             <Routes>
               <Route
+                path="/tonight"
+                element={<ProtectedRoute element={<TonightPicker />} />}
+              />
+              <Route
                 path="/watchlist"
                 element={<ProtectedRoute element={<WatchlistPage />} />}
               />
@@ -95,7 +103,7 @@ const AppRoutes: React.FC = () => {
               />
 
               {/* Default route */}
-              <Route path="/" element={<Navigate to="/watchlist" />} />
+              <Route path="/" element={<Navigate to={defaultPath} />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AppLayout>
