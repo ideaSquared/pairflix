@@ -6,6 +6,7 @@ import {
   HiChartBarSquare,
   HiHeart,
   HiListBullet,
+  HiSparkles,
   HiUser,
 } from 'react-icons/hi2';
 
@@ -49,6 +50,12 @@ export const createClientNavigation = (
     sections: [
       {
         items: [
+          {
+            key: 'tonight',
+            label: 'Tonight',
+            path: '/tonight',
+            icon: React.createElement(HiSparkles),
+          },
           {
             key: 'watchlist',
             label: 'My Watchlist',
