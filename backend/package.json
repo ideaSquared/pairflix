@@ -12,8 +12,8 @@
 		"test:coverage": "jest --coverage",
 		"lint": "eslint src/",
 		"lint:fix": "eslint src/ --fix",
-		"format": "prettier --write \"src/**/*.{ts,js,json}\"",
-		"format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+		"format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
+		"format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
 		"db:migrate": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate",
 		"db:migrate:undo": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate:undo",
 		"db:migrate:status": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate:status"
