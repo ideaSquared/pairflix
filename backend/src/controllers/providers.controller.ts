@@ -21,10 +21,12 @@ export const getProviders = async (req: Request, res: Response) => {
 				.json({ error: 'media_type must be "movie" or "tv"' });
 		}
 
-		const region =
-			typeof regionRaw === 'string' && regionRaw.length > 0
-				? regionRaw.toUpperCase()
-				: 'GB';
+		const regionCandidate =
+			typeof regionRaw === 'string' ? regionRaw.toUpperCase() : '';
+		if (regionCandidate && !/^[A-Z]{2}$/.test(regionCandidate)) {
+			return res.status(400).json({ error: 'region must be a 2-letter code' });
+		}
+		const region = regionCandidate || 'GB';
 
 		const providers = await getProvidersForContent(tmdbId, mediaTypeRaw, {
 			region,

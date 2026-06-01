@@ -29,6 +29,9 @@ export const pickForHousehold = async (req: Request, res: Response) => {
 
 	try {
 		const body = req.body as PickBody;
+		if (body.region !== undefined && !/^[A-Z]{2}$/.test(body.region)) {
+			return res.status(400).json({ error: 'region must be a 2-letter code' });
+		}
 		const result = await defaultRecommendationService.pickForHousehold({
 			householdId,
 			mood: body.mood,

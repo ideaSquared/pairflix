@@ -4,6 +4,7 @@ dotenv.config();
 
 const { TMDB_API_KEY } = process.env;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_HOSTNAME = 'api.themoviedb.org';
 
 export interface TMDbResponse<T> {
 	results?: T[];
@@ -48,7 +49,15 @@ async function tmdbFetch<T>(
 		...params,
 	});
 
-	const response = await fetch(`${TMDB_BASE_URL}${endpoint}?${searchParams}`);
+	// Resolve `endpoint` against the fixed base and assert the final URL
+	// stays on the TMDb origin. Defends against SSRF if any caller ever
+	// interpolates user input into `endpoint`.
+	const url = new URL(`${endpoint}?${searchParams}`, TMDB_BASE_URL);
+	if (url.hostname !== TMDB_HOSTNAME || url.protocol !== 'https:') {
+		throw new Error('TMDb endpoint must stay on api.themoviedb.org');
+	}
+
+	const response = await fetch(url.toString());
 
 	if (!response.ok) {
 		throw new Error(
