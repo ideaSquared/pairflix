@@ -9,6 +9,8 @@ import Household from './Household';
 import HouseholdMember from './HouseholdMember';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
+import PickUsage from './PickUsage';
+import Subscription from './Subscription';
 import TasteProfile from './TasteProfile';
 import User from './User';
 import UserSession from './UserSession';
@@ -43,6 +45,8 @@ export function initializeModels(sequelize: Sequelize) {
 		HouseholdMember.initialize(sequelize);
 		TasteProfile.initialize(sequelize);
 		WatchedTogether.initialize(sequelize);
+		Subscription.initialize(sequelize);
+		PickUsage.initialize(sequelize);
 
 		// Set up associations after all models are initialized
 		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -148,6 +152,26 @@ export function initializeModels(sequelize: Sequelize) {
 			foreignKey: 'household_id',
 			as: 'watchedTogether',
 		});
+
+		// Subscription association (one per household)
+		Subscription.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasOne(Subscription, {
+			foreignKey: 'household_id',
+			as: 'subscription',
+		});
+
+		// Pick usage association
+		PickUsage.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasMany(PickUsage, {
+			foreignKey: 'household_id',
+			as: 'pickUsages',
+		});
 	} catch (error) {
 		console.error('Error initializing models:', error);
 		throw new Error(
@@ -172,4 +196,6 @@ export default {
 	HouseholdMember,
 	TasteProfile,
 	WatchedTogether,
+	Subscription,
+	PickUsage,
 };

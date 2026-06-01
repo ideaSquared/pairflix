@@ -1,3 +1,4 @@
+import { getEntitlements } from './entitlements.service';
 import { settingsService } from './settings.service';
 
 const CACHE_TTL_MS = 60 * 1000;
@@ -7,7 +8,7 @@ interface CachedFlag {
 	fetchedAt: number;
 }
 
-const flagCache: Map<string, CachedFlag> = new Map();
+const flagCache = new Map<string, CachedFlag>();
 
 function envOverride(name: string): boolean | undefined {
 	const raw = process.env[name];
@@ -51,11 +52,20 @@ export async function isLlmRerankEnabled(): Promise<boolean> {
 	);
 }
 
+export async function isLlmRerankEnabledForHousehold(
+	householdId: string
+): Promise<boolean> {
+	if (!(await isLlmRerankEnabled())) return false;
+	const entitlements = await getEntitlements(householdId);
+	return entitlements.can_use_llm_rerank;
+}
+
 export function clearFeatureFlagCache(): void {
 	flagCache.clear();
 }
 
 export const featureFlagsService = {
 	isLlmRerankEnabled,
+	isLlmRerankEnabledForHousehold,
 	clearFeatureFlagCache,
 };

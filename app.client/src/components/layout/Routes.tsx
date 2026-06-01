@@ -7,6 +7,8 @@ import {
 } from '../../config/navigation';
 import ActivityPage from '../../features/activity/ActivityPage';
 import EmailVerificationPage from '../../features/auth/EmailVerificationPage';
+import MockCheckout from '../../features/billing/MockCheckout';
+import { isBillingMockEnabled } from '../../features/billing/flags';
 import ForgotPasswordPage from '../../features/auth/ForgotPasswordPage';
 import LoginPage from '../../features/auth/LoginPage';
 import ProfilePage from '../../features/auth/ProfilePage';
@@ -106,6 +108,12 @@ const AppRoutes: React.FC = () => {
                 path="/profile"
                 element={<ProtectedRoute element={<ProfilePage />} />}
               />
+              {isBillingMockEnabled() && (
+                <Route
+                  path="/billing/mock-checkout"
+                  element={<ProtectedRoute element={<MockCheckout />} />}
+                />
+              )}
 
               {/* Default route */}
               <Route path="/" element={<Navigate to={defaultPath} />} />
