@@ -23,6 +23,9 @@ interface ContentAttributes {
 	type: 'movie' | 'show' | 'episode';
 	status: 'active' | 'pending' | 'flagged' | 'removed';
 	tmdb_id: number;
+	media_type?: 'movie' | 'tv';
+	year?: number | null;
+	poster_path?: string | null;
 	reported_count: number;
 	removal_reason?: string;
 	providers: ContentProviders | null;
@@ -37,6 +40,9 @@ type ContentCreationAttributes = Optional<
 	| 'created_at'
 	| 'updated_at'
 	| 'removal_reason'
+	| 'media_type'
+	| 'year'
+	| 'poster_path'
 	| 'providers'
 >;
 
@@ -50,6 +56,12 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 	declare status: 'active' | 'pending' | 'flagged' | 'removed';
 
 	declare tmdb_id: number;
+
+	declare media_type?: 'movie' | 'tv';
+
+	declare year?: number | null;
+
+	declare poster_path?: string | null;
 
 	declare reported_count: number;
 
@@ -92,6 +104,18 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 				tmdb_id: {
 					type: DataTypes.INTEGER,
 					allowNull: false,
+				},
+				media_type: {
+					type: DataTypes.ENUM('movie', 'tv'),
+					allowNull: true,
+				},
+				year: {
+					type: DataTypes.INTEGER,
+					allowNull: true,
+				},
+				poster_path: {
+					type: DataTypes.STRING,
+					allowNull: true,
 				},
 				reported_count: {
 					type: DataTypes.INTEGER,

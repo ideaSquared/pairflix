@@ -3,4 +3,5 @@
 
 export * from './Badge';
 export * from './Card';
+export * from './ProviderBadges';
 export * from './Table/Table';

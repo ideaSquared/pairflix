@@ -2,6 +2,7 @@ import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
 import { emailService } from './email';
+import { history } from './history';
 import { households } from './households';
 import { matches } from './matches';
 import { search } from './search';
@@ -18,6 +19,9 @@ export type { AppSettings } from './admin';
 // Re-export types from auth
 export type { LoginCredentials } from './auth';
 
+// Re-export types from history
+export type { HistoryEntry, HistoryResponse } from './history';
+
 // Re-export types from user
 export type {
   EmailUpdate,
@@ -33,6 +37,7 @@ export {
   auth,
   emailService,
   fetchWithAuth,
+  history,
   households,
   matches,
   search,
@@ -53,6 +58,7 @@ const api = {
   activity,
   admin,
   email: emailService,
+  history,
   households,
 };
 

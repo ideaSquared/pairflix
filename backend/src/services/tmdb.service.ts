@@ -142,23 +142,27 @@ export async function discoverMedia(
 	);
 }
 
-interface ProviderEntryRaw {
+export interface TMDbProvider {
 	provider_id: number;
 	provider_name: string;
-	logo_path?: string;
+	logo_path: string;
+	display_priority?: number;
 }
 
-interface RegionProviders {
-	flatrate?: ProviderEntryRaw[];
-	free?: ProviderEntryRaw[];
-	ads?: ProviderEntryRaw[];
-	buy?: ProviderEntryRaw[];
-	rent?: ProviderEntryRaw[];
+export interface RegionProviders {
+	link?: string;
+	flatrate?: TMDbProvider[];
+	free?: TMDbProvider[];
+	ads?: TMDbProvider[];
+	buy?: TMDbProvider[];
+	rent?: TMDbProvider[];
 }
 
-export interface TMDbWatchProvidersResponse {
+export type ProvidersByRegion = Record<string, RegionProviders>;
+
+interface WatchProvidersResponse {
 	id?: number;
-	results?: Record<string, RegionProviders>;
+	results?: ProvidersByRegion;
 }
 
 interface CacheEntry<T> {
@@ -168,6 +172,16 @@ interface CacheEntry<T> {
 
 const watchProvidersCache = new Map<string, CacheEntry<RegionProviders>>();
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+export async function fetchWatchProviders(
+	tmdbId: number,
+	mediaType: 'movie' | 'tv'
+): Promise<ProvidersByRegion> {
+	const data = await tmdbFetch<WatchProvidersResponse>(
+		`/${mediaType}/${tmdbId}/watch/providers`
+	);
+	return data.results ?? {};
+}
 
 export async function getWatchProviders(
 	tmdbId: number,
@@ -180,10 +194,8 @@ export async function getWatchProviders(
 		return cached.value;
 	}
 
-	const response = await tmdbFetch<TMDbWatchProvidersResponse>(
-		`/${mediaType}/${tmdbId}/watch/providers`
-	);
-	const regional = response.results?.[region] ?? {};
+	const all = await fetchWatchProviders(tmdbId, mediaType);
+	const regional = all[region] ?? {};
 	watchProvidersCache.set(cacheKey, {
 		value: regional,
 		expiresAt: Date.now() + TWENTY_FOUR_HOURS_MS,
