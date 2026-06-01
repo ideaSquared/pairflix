@@ -94,10 +94,7 @@ class WatchedTogether extends Model<
 				indexes: [
 					{
 						name: 'idx_watched_together_household_watched_at',
-						fields: [
-							'household_id',
-							{ name: 'watched_at', order: 'DESC' },
-						],
+						fields: ['household_id', { name: 'watched_at', order: 'DESC' }],
 					},
 					{
 						name: 'idx_watched_together_household_tmdb',

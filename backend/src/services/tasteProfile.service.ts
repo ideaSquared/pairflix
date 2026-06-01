@@ -105,9 +105,8 @@ export async function recomputeForHousehold(
 	});
 	if (!household) return [];
 
-	const memberships = (household.get('memberships') as
-		| HouseholdMember[]
-		| undefined) ?? [];
+	const memberships =
+		(household.get('memberships') as HouseholdMember[] | undefined) ?? [];
 
 	const results: HouseholdMemberProfile[] = [];
 	const now = Date.now();

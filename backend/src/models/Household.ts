@@ -11,7 +11,10 @@ interface HouseholdCreationAttributes {
 	name?: string | null;
 }
 
-class Household extends Model<HouseholdAttributes, HouseholdCreationAttributes> {
+class Household extends Model<
+	HouseholdAttributes,
+	HouseholdCreationAttributes
+> {
 	declare id: string;
 
 	declare name: string | null;

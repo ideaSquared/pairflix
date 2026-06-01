@@ -23,7 +23,7 @@ const PCT = (n: number): number => Math.round(n * 100);
 function topGenres(
 	weights: Record<string, number> | undefined,
 	limit = 2
-): Array<[string, number]> {
+): [string, number][] {
 	if (!weights) return [];
 	const entries = Object.entries(weights).filter(([, v]) => v > 0);
 	entries.sort((a, b) => {

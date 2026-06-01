@@ -220,9 +220,8 @@ export async function down(queryInterface: QueryInterface): Promise<void> {
 			`DROP TYPE IF EXISTS "enum_watched_together_media_type"`,
 			{ transaction }
 		);
-		await sequelize.query(
-			`DROP TYPE IF EXISTS "enum_household_members_role"`,
-			{ transaction }
-		);
+		await sequelize.query(`DROP TYPE IF EXISTS "enum_household_members_role"`, {
+			transaction,
+		});
 	});
 }
