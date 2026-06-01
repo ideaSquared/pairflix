@@ -7,7 +7,9 @@ import { requestLogger } from './middlewares/request-logger';
 import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
+import billingRoutes from './routes/billing.routes';
 import emailRoutes from './routes/email.routes';
+import householdsRoutes from './routes/households.routes';
 import matchRoutes from './routes/match.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
@@ -42,6 +44,8 @@ app.use('/api/matches', matchRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/households', householdsRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

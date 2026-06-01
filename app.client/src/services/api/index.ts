@@ -1,6 +1,7 @@
 import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
+import { billing } from './billing';
 import { emailService } from './email';
 import { matches } from './matches';
 import { search } from './search';
@@ -25,11 +26,19 @@ export type {
   UpdateUsernameResponse,
 } from './user';
 
+// Re-export types from billing
+export type {
+  CheckoutSession,
+  Entitlements,
+  SubscriptionTier,
+} from './billing';
+
 // Export individual services
 export {
   activity,
   admin,
   auth,
+  billing,
   emailService,
   fetchWithAuth,
   matches,
@@ -50,6 +59,7 @@ const api = {
   matches,
   activity,
   admin,
+  billing,
   email: emailService,
 };
 

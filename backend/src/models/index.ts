@@ -5,8 +5,12 @@ import AuditLog from './AuditLog';
 import Content from './Content';
 import ContentReport from './ContentReport';
 import EmailVerification from './EmailVerification';
+import Household from './Household';
+import HouseholdMember from './HouseholdMember';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
+import PickUsage from './PickUsage';
+import Subscription from './Subscription';
 import User from './User';
 import UserSession from './UserSession';
 import WatchlistEntry from './WatchlistEntry';
@@ -35,6 +39,10 @@ export function initializeModels(sequelize: Sequelize) {
 		EmailVerification.initialize(sequelize);
 		PasswordReset.initialize(sequelize);
 		UserSession.initialize(sequelize);
+		Household.initialize(sequelize);
+		HouseholdMember.initialize(sequelize);
+		Subscription.initialize(sequelize);
+		PickUsage.initialize(sequelize);
 
 		// Set up associations after all models are initialized
 		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -105,6 +113,46 @@ export function initializeModels(sequelize: Sequelize) {
 			as: 'watchlistEntry',
 		});
 		WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+
+		// Household / membership associations
+		Household.belongsTo(User, { foreignKey: 'owner_id', as: 'owner' });
+		User.hasMany(Household, { foreignKey: 'owner_id', as: 'ownedHouseholds' });
+		HouseholdMember.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		HouseholdMember.belongsTo(User, {
+			foreignKey: 'user_id',
+			as: 'user',
+		});
+		Household.hasMany(HouseholdMember, {
+			foreignKey: 'household_id',
+			as: 'members',
+		});
+		User.hasMany(HouseholdMember, {
+			foreignKey: 'user_id',
+			as: 'householdMemberships',
+		});
+
+		// Subscription association (one per household)
+		Subscription.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasOne(Subscription, {
+			foreignKey: 'household_id',
+			as: 'subscription',
+		});
+
+		// Pick usage association
+		PickUsage.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasMany(PickUsage, {
+			foreignKey: 'household_id',
+			as: 'pickUsages',
+		});
 	} catch (error) {
 		console.error('Error initializing models:', error);
 		throw new Error(
@@ -125,4 +173,8 @@ export default {
 	EmailVerification,
 	PasswordReset,
 	UserSession,
+	Household,
+	HouseholdMember,
+	Subscription,
+	PickUsage,
 };
