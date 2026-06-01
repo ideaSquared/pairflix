@@ -48,7 +48,7 @@ export async function enforcePickQuota(
 		if (entitlements.picks_remaining <= 0) {
 			res.status(402).json({
 				error: 'pick_quota_exceeded',
-				upgrade_url: '/upgrade',
+				upgrade_url: '/billing/mock-checkout',
 				entitlements,
 			});
 			return;

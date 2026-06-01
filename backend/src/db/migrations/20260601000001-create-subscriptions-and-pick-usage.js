@@ -21,7 +21,7 @@ module.exports = {
 				type: Sequelize.UUID,
 				allowNull: false,
 				unique: true,
-				references: { model: 'households', key: 'household_id' },
+				references: { model: 'households', key: 'id' },
 				onDelete: 'CASCADE',
 			},
 			tier: {
@@ -58,7 +58,7 @@ module.exports = {
 			household_id: {
 				type: Sequelize.UUID,
 				allowNull: false,
-				references: { model: 'households', key: 'household_id' },
+				references: { model: 'households', key: 'id' },
 				onDelete: 'CASCADE',
 			},
 			picked_at: {
@@ -76,9 +76,9 @@ module.exports = {
 		// Backfill: every existing household gets a free/active subscription.
 		await queryInterface.sequelize.query(`
 			INSERT INTO subscriptions (id, household_id, tier, status, created_at, updated_at)
-			SELECT gen_random_uuid(), h.household_id, 'free', 'active', NOW(), NOW()
+			SELECT gen_random_uuid(), h.id, 'free', 'active', NOW(), NOW()
 			FROM households h
-			LEFT JOIN subscriptions s ON s.household_id = h.household_id
+			LEFT JOIN subscriptions s ON s.household_id = h.id
 			WHERE s.id IS NULL;
 		`);
 	},

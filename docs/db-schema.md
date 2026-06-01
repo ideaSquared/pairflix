@@ -340,12 +340,15 @@ CREATE INDEX idx_watched_together_household_tmdb
     ON watched_together(household_id, tmdb_id);
 ```
 
-### Content (providers)
+### Content (new columns)
 
-The `content` table gains a `providers` JSONB column for region-keyed availability fetched from TMDb `/watch/providers`. Default `{}`, nullable.
+Phase A's migration adds four columns to `content`. `providers` is the region-keyed availability map fetched from TMDb `/watch/providers`. The other three back the history view's render fields.
 
 ```sql
 ALTER TABLE content ADD COLUMN providers JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE content ADD COLUMN media_type "enum_content_media_type";  -- 'movie' | 'tv'
+ALTER TABLE content ADD COLUMN year INTEGER;
+ALTER TABLE content ADD COLUMN poster_path VARCHAR(255);
 ```
 
 Shape:
@@ -353,12 +356,48 @@ Shape:
 ```json
 {
   "US": {
-    "flatrate": [{ "provider_id": 8, "provider_name": "Netflix", "logo_path": "/..." }],
+    "flatrate": [
+      { "provider_id": 8, "provider_name": "Netflix", "logo_path": "/..." }
+    ],
     "rent": [],
     "buy": []
   },
   "last_updated_at": "2026-06-01T12:00:00Z"
 }
+```
+
+## Phase E — freemium pricing
+
+### Subscriptions
+
+One row per household. Tier defaults to `free`. Premium status requires `tier = 'premium' AND status = 'active' AND current_period_end > now()`. `stripe_*` fields are nullable until the real Stripe integration is wired (Phase E currently ships a mock checkout only).
+
+```sql
+CREATE TABLE subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    household_id UUID NOT NULL UNIQUE REFERENCES households(id) ON DELETE CASCADE,
+    tier "enum_subscriptions_tier" NOT NULL DEFAULT 'free',  -- 'free' | 'premium'
+    status "enum_subscriptions_status" NOT NULL DEFAULT 'active',  -- 'active' | 'past_due' | 'canceled'
+    stripe_customer_id VARCHAR(255),
+    stripe_subscription_id VARCHAR(255),
+    current_period_end TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+### Pick usage
+
+One row per successful `POST /api/households/:id/pick`. Drives the daily-quota check on the free tier.
+
+```sql
+CREATE TABLE pick_usage (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+    picked_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX pick_usage_household_picked_at_idx
+    ON pick_usage(household_id, picked_at DESC);
 ```
 
 ## Indexes

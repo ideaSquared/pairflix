@@ -1,7 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 import { auditLogService } from './audit.service';
-import { isLlmRerankEnabled } from './featureFlags.service';
+import {
+	isLlmRerankEnabled,
+	isLlmRerankEnabledForHousehold,
+} from './featureFlags.service';
 import { llmCacheService } from './llmCache.service';
 import {
 	LLMUnavailable,
@@ -192,7 +195,9 @@ export async function maybeRerank(
 	ctx: LlmRerankContext
 ): Promise<LlmRerankResult | null> {
 	try {
-		const enabled = await isLlmRerankEnabled();
+		const enabled = ctx.householdId
+			? await isLlmRerankEnabledForHousehold(ctx.householdId)
+			: await isLlmRerankEnabled();
 		if (!enabled) return null;
 
 		const cacheKey = llmCacheService.buildCacheKey({

@@ -5,7 +5,7 @@ import { BaseComponentProps } from '../../../types';
 export interface ProviderSummary {
   provider_id: number;
   provider_name: string;
-  logo_path: string;
+  logo_path: string | null;
 }
 
 export interface ProviderBadgesProps extends BaseComponentProps {
@@ -130,7 +130,8 @@ export const ProviderBadges = forwardRef<HTMLUListElement, ProviderBadgesProps>(
   ) => {
     const params = useMemo(() => affiliateParams ?? {}, [affiliateParams]);
 
-    if (!providers || providers.length === 0) {
+    const withLogo = providers?.filter(p => p.logo_path) ?? [];
+    if (withLogo.length === 0) {
       return null;
     }
 
@@ -142,7 +143,7 @@ export const ProviderBadges = forwardRef<HTMLUListElement, ProviderBadgesProps>(
         data-testid={dataTestId}
         aria-label={ariaLabel ?? 'Watch providers'}
       >
-        {providers.map(provider => {
+        {withLogo.map(provider => {
           const logoUrl = `${TMDB_LOGO_BASE}${provider.logo_path}`;
           const altText = provider.provider_name;
 

@@ -1,4 +1,6 @@
 import type { Request, Response } from 'express';
+import HouseholdMember from '../models/HouseholdMember';
+import WatchedTogether from '../models/WatchedTogether';
 import { defaultRecommendationService } from '../services/recommendation.service';
 import type { Mood } from '../services/recommendation.types';
 
@@ -68,16 +70,24 @@ export const commitHouseholdPick = async (req: Request, res: Response) => {
 	const body = req.body as CommitBody;
 
 	try {
-		// Phase A will own WatchedTogether persistence; for now the recommender
-		// service stubs the write so the contract is stable.
-		const payload = {
+		const member = await HouseholdMember.findOne({
+			where: { household_id: householdId, user_id: userId },
+		});
+		if (!member) {
+			return res.status(403).json({ error: 'not_a_member' });
+		}
+
+		const row = await WatchedTogether.create({
 			household_id: householdId,
 			tmdb_id: tmdbId,
 			media_type: body.media_type,
+			watched_at: new Date(),
+			enjoyed: null,
 			mood_at_pick: body.mood ?? null,
 			minutes_budget_at_pick: body.minutes ?? null,
-		};
-		return res.status(201).json({ recorded: true, ...payload });
+		});
+
+		return res.status(201).json({ recorded: true, id: row.id });
 	} catch (error) {
 		console.error('Error committing household pick:', error);
 		const message = error instanceof Error ? error.message : 'Unknown error';

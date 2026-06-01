@@ -55,6 +55,11 @@ export interface LlmRerankContext {
 	 * the cache key so a profile change invalidates cached LLM picks.
 	 */
 	tasteProfileVersions: string[];
+	/**
+	 * Required when callers want the per-household entitlement gate
+	 * (Phase E). When omitted, only the global flag is checked.
+	 */
+	householdId?: string;
 }
 
 export class LLMUnavailable extends Error {

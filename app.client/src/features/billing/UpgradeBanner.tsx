@@ -19,9 +19,13 @@ const BannerContainer = styled.div<{ theme: Theme }>`
 
 interface UpgradeBannerProps {
   entitlements: Entitlements;
+  householdId: string;
 }
 
-const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ entitlements }) => {
+const UpgradeBanner: React.FC<UpgradeBannerProps> = ({
+  entitlements,
+  householdId,
+}) => {
   const navigate = useNavigate();
 
   if (entitlements.tier === 'premium') {
@@ -41,7 +45,9 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ entitlements }) => {
       <Typography variant="body2">{message}</Typography>
       <Button
         variant="primary"
-        onClick={() => navigate('/billing/mock-checkout')}
+        onClick={() =>
+          navigate(`/billing/mock-checkout?household=${householdId}`)
+        }
       >
         Upgrade
       </Button>

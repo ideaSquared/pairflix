@@ -155,6 +155,36 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
 			{ transaction }
 		);
 
+		await queryInterface.addColumn(
+			'content',
+			'media_type',
+			{
+				type: DataTypes.ENUM('movie', 'tv'),
+				allowNull: true,
+			},
+			{ transaction }
+		);
+
+		await queryInterface.addColumn(
+			'content',
+			'year',
+			{
+				type: DataTypes.INTEGER,
+				allowNull: true,
+			},
+			{ transaction }
+		);
+
+		await queryInterface.addColumn(
+			'content',
+			'poster_path',
+			{
+				type: DataTypes.STRING,
+				allowNull: true,
+			},
+			{ transaction }
+		);
+
 		await sequelize.query(
 			`
 			INSERT INTO households (id, name, created_at, updated_at)
@@ -183,7 +213,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
 				FROM households h
 			)
 			INSERT INTO household_members (household_id, user_id, role, joined_at)
-			SELECT nh.id, a.user1_id, 'member', NOW()
+			SELECT nh.id, a.user1_id, 'owner', NOW()
 			FROM accepted a
 			JOIN new_households nh ON nh.rn = a.rn
 			UNION ALL
@@ -212,6 +242,14 @@ export async function down(queryInterface: QueryInterface): Promise<void> {
 
 	await sequelize.transaction(async transaction => {
 		await queryInterface.removeColumn('content', 'providers', { transaction });
+		await queryInterface.removeColumn('content', 'media_type', { transaction });
+		await queryInterface.removeColumn('content', 'year', { transaction });
+		await queryInterface.removeColumn('content', 'poster_path', {
+			transaction,
+		});
+		await sequelize.query(`DROP TYPE IF EXISTS "enum_content_media_type"`, {
+			transaction,
+		});
 		await queryInterface.dropTable('watched_together', { transaction });
 		await queryInterface.dropTable('taste_profiles', { transaction });
 		await queryInterface.dropTable('household_members', { transaction });

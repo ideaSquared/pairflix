@@ -277,10 +277,11 @@ export class RecommendationService {
 
 		const currentYear = new Date().getFullYear();
 		const scored = filtered.map(item => {
-			const runtime = input.minutes;
+			// /discover responses don't carry runtime; use null so the runtime
+			// component contributes a neutral 0.5 instead of the gaussian peak.
 			const { score } = scoreCandidate(
 				item,
-				runtime,
+				null,
 				merged,
 				moodCfg.genres,
 				input.minutes,
@@ -382,23 +383,46 @@ export class RecommendationService {
 }
 
 class WatchlistBackedRepository implements HouseholdRepository {
-	async getHousehold(_householdId: string): Promise<HouseholdStub | null> {
-		void _householdId;
-		return null;
+	async getHousehold(householdId: string): Promise<HouseholdStub | null> {
+		const members = await models.HouseholdMember.findAll({
+			where: { household_id: householdId },
+		});
+		if (members.length === 0) return null;
+		return {
+			household_id: householdId,
+			member_ids: members.map(m => m.user_id),
+		};
 	}
 
 	async getMemberTasteProfiles(
-		_memberIds: string[]
+		memberIds: string[]
 	): Promise<TasteProfileStub[]> {
-		void _memberIds;
-		return [];
+		if (memberIds.length === 0) return [];
+		const rows = await models.TasteProfile.findAll({
+			where: { user_id: memberIds },
+		});
+		return rows.map(r => ({
+			user_id: r.user_id,
+			weights: r.weights as TasteProfileStub['weights'],
+			embedding: r.embedding,
+		}));
 	}
 
 	async getWatchedTogether(
-		_householdId: string
+		householdId: string
 	): Promise<WatchedTogetherStub[]> {
-		void _householdId;
-		return [];
+		const rows = await models.WatchedTogether.findAll({
+			where: { household_id: householdId },
+		});
+		return rows.map<WatchedTogetherStub>(r => ({
+			household_id: r.household_id,
+			tmdb_id: r.tmdb_id,
+			media_type: r.media_type,
+			watched_at: r.watched_at,
+			enjoyed: r.enjoyed,
+			mood_at_pick: (r.mood_at_pick ?? null) as Mood | null,
+			minutes_budget_at_pick: r.minutes_budget_at_pick,
+		}));
 	}
 
 	async getFinishedTmdbIdsForMembers(memberIds: string[]): Promise<number[]> {
@@ -410,15 +434,24 @@ class WatchlistBackedRepository implements HouseholdRepository {
 	}
 
 	async recordWatchedTogether(
-		_row: Omit<WatchedTogetherStub, 'watched_at'> & { watched_at?: Date }
+		row: Omit<WatchedTogetherStub, 'watched_at'> & { watched_at?: Date }
 	): Promise<void> {
-		void _row;
+		await models.WatchedTogether.create({
+			household_id: row.household_id,
+			tmdb_id: row.tmdb_id,
+			media_type: row.media_type,
+			watched_at: row.watched_at ?? new Date(),
+			enjoyed: row.enjoyed ?? null,
+			mood_at_pick: row.mood_at_pick ?? null,
+			minutes_budget_at_pick: row.minutes_budget_at_pick ?? null,
+		});
 	}
 
-	async isMember(_householdId: string, _userId: string): Promise<boolean> {
-		void _householdId;
-		void _userId;
-		return true;
+	async isMember(householdId: string, userId: string): Promise<boolean> {
+		const m = await models.HouseholdMember.findOne({
+			where: { household_id: householdId, user_id: userId },
+		});
+		return m !== null;
 	}
 }
 

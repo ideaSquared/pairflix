@@ -16,8 +16,11 @@ import activityRoutes from './routes/activity.routes';
 import adminRoutes from './routes/admin.routes';
 import authRoutes from './routes/auth.routes';
 import billingRoutes from './routes/billing.routes';
+import historyRoutes from './routes/history.routes';
+import householdRoutes from './routes/household.routes';
 import householdsRoutes from './routes/households.routes';
 import matchRoutes from './routes/match.routes';
+import providersRoutes from './routes/providers.routes';
 import searchRoutes from './routes/search.routes';
 import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
@@ -93,7 +96,10 @@ app.use('/api/watchlist', authenticateToken, watchlistRoutes);
 app.use('/api/matches', authenticateToken, matchRoutes);
 app.use('/api/activity', authenticateToken, activityRoutes);
 app.use('/api/admin', adminRateLimit, adminRoutes); // Admin routes handle their own authentication
+app.use('/api/households', householdRoutes);
 app.use('/api/households', householdsRoutes);
+app.use('/api/households', historyRoutes);
+app.use('/api/providers', providersRoutes);
 app.use('/api/billing', billingRoutes);
 
 // Global error handler middleware (after routes)
