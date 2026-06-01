@@ -1,5 +1,22 @@
 import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
 
+export interface ProviderEntry {
+	provider_id: number;
+	provider_name: string;
+	logo_path: string | null;
+}
+
+export interface ProviderRegion {
+	flatrate?: ProviderEntry[];
+	rent?: ProviderEntry[];
+	buy?: ProviderEntry[];
+}
+
+export interface ContentProviders {
+	[region: string]: ProviderRegion | string | undefined;
+	last_updated_at?: string;
+}
+
 interface ContentAttributes {
 	id: string;
 	title: string;
@@ -8,13 +25,19 @@ interface ContentAttributes {
 	tmdb_id: number;
 	reported_count: number;
 	removal_reason?: string;
+	providers: ContentProviders | null;
 	created_at: Date;
 	updated_at: Date;
 }
 
 type ContentCreationAttributes = Optional<
 	ContentAttributes,
-	'id' | 'reported_count' | 'created_at' | 'updated_at' | 'removal_reason'
+	| 'id'
+	| 'reported_count'
+	| 'created_at'
+	| 'updated_at'
+	| 'removal_reason'
+	| 'providers'
 >;
 
 class Content extends Model<ContentAttributes, ContentCreationAttributes> {
@@ -31,6 +54,8 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 	declare reported_count: number;
 
 	declare removal_reason?: string;
+
+	declare providers: ContentProviders | null;
 
 	declare created_at: Date;
 
@@ -76,6 +101,11 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 				removal_reason: {
 					type: DataTypes.TEXT,
 					allowNull: true,
+				},
+				providers: {
+					type: DataTypes.JSONB,
+					allowNull: true,
+					defaultValue: {},
 				},
 				created_at: {
 					type: DataTypes.DATE,

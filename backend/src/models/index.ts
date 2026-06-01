@@ -5,10 +5,14 @@ import AuditLog from './AuditLog';
 import Content from './Content';
 import ContentReport from './ContentReport';
 import EmailVerification from './EmailVerification';
+import Household from './Household';
+import HouseholdMember from './HouseholdMember';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
+import TasteProfile from './TasteProfile';
 import User from './User';
 import UserSession from './UserSession';
+import WatchedTogether from './WatchedTogether';
 import WatchlistEntry from './WatchlistEntry';
 
 export function initializeModels(sequelize: Sequelize) {
@@ -35,6 +39,10 @@ export function initializeModels(sequelize: Sequelize) {
 		EmailVerification.initialize(sequelize);
 		PasswordReset.initialize(sequelize);
 		UserSession.initialize(sequelize);
+		Household.initialize(sequelize);
+		HouseholdMember.initialize(sequelize);
+		TasteProfile.initialize(sequelize);
+		WatchedTogether.initialize(sequelize);
 
 		// Set up associations after all models are initialized
 		Match.belongsTo(User, { as: 'user1', foreignKey: 'user1_id' });
@@ -105,6 +113,41 @@ export function initializeModels(sequelize: Sequelize) {
 			as: 'watchlistEntry',
 		});
 		WatchlistEntry.hasMany(Match, { foreignKey: 'entry_id', as: 'matches' });
+
+		Household.belongsToMany(User, {
+			through: HouseholdMember,
+			foreignKey: 'household_id',
+			otherKey: 'user_id',
+			as: 'members',
+		});
+		User.belongsToMany(Household, {
+			through: HouseholdMember,
+			foreignKey: 'user_id',
+			otherKey: 'household_id',
+			as: 'households',
+		});
+		HouseholdMember.belongsTo(Household, { foreignKey: 'household_id' });
+		HouseholdMember.belongsTo(User, { foreignKey: 'user_id' });
+		Household.hasMany(HouseholdMember, {
+			foreignKey: 'household_id',
+			as: 'memberships',
+		});
+		User.hasMany(HouseholdMember, {
+			foreignKey: 'user_id',
+			as: 'householdMemberships',
+		});
+
+		TasteProfile.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+		User.hasOne(TasteProfile, { foreignKey: 'user_id', as: 'tasteProfile' });
+
+		WatchedTogether.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasMany(WatchedTogether, {
+			foreignKey: 'household_id',
+			as: 'watchedTogether',
+		});
 	} catch (error) {
 		console.error('Error initializing models:', error);
 		throw new Error(
@@ -125,4 +168,8 @@ export default {
 	EmailVerification,
 	PasswordReset,
 	UserSession,
+	Household,
+	HouseholdMember,
+	TasteProfile,
+	WatchedTogether,
 };

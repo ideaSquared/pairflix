@@ -267,6 +267,100 @@ Settings are organized into these categories:
 }
 ```
 
+### Households
+
+Represents a viewing unit (usually a couple) that makes "what should WE watch" decisions together. Backfilled from accepted `matches`.
+
+```sql
+CREATE TABLE households (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Household Members
+
+Join table mapping users to households with a role.
+
+```sql
+CREATE TABLE household_members (
+    household_id UUID REFERENCES households(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+    role TEXT CHECK (role IN ('owner', 'member')) NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (household_id, user_id)
+);
+```
+
+### Taste Profiles
+
+Per-user genre / era / tone / runtime preferences derived from watchlist entries and ratings. Used by the recommender. `embedding` is reserved for a future LLM-derived vector and is currently nullable.
+
+```sql
+CREATE TABLE taste_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    weights JSONB NOT NULL DEFAULT '{}'::jsonb,
+    embedding JSONB,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+`weights` shape:
+
+```json
+{
+  "genres": { "28": 0.7, "35": 0.3 },
+  "runtime_pref": 95,
+  "era": { "2010s": 0.6 },
+  "tone": { "funny": 0.5, "dark": 0.2 }
+}
+```
+
+### Watched Together
+
+Gold-standard training signal: titles that a household actually watched together, with optional post-watch sentiment.
+
+```sql
+CREATE TABLE watched_together (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+    tmdb_id INTEGER NOT NULL,
+    media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
+    watched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    enjoyed BOOLEAN,
+    mood_at_pick TEXT,
+    minutes_budget_at_pick INTEGER
+);
+
+CREATE INDEX idx_watched_together_household_watched_at
+    ON watched_together(household_id, watched_at DESC);
+CREATE INDEX idx_watched_together_household_tmdb
+    ON watched_together(household_id, tmdb_id);
+```
+
+### Content (providers)
+
+The `content` table gains a `providers` JSONB column for region-keyed availability fetched from TMDb `/watch/providers`. Default `{}`, nullable.
+
+```sql
+ALTER TABLE content ADD COLUMN providers JSONB DEFAULT '{}'::jsonb;
+```
+
+Shape:
+
+```json
+{
+  "US": {
+    "flatrate": [{ "provider_id": 8, "provider_name": "Netflix", "logo_path": "/..." }],
+    "rent": [],
+    "buy": []
+  },
+  "last_updated_at": "2026-06-01T12:00:00Z"
+}
+```
+
 ## Indexes
 
 ```sql

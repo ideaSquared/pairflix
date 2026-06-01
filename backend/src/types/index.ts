@@ -161,3 +161,64 @@ export type ActivityContext =
 	| 'search'
 	| 'media'
 	| 'system';
+
+export type HouseholdRole = 'owner' | 'member';
+
+export interface HouseholdMemberDTO {
+	user_id: string;
+	role: HouseholdRole;
+	joined_at: Date;
+}
+
+export interface HouseholdDTO {
+	id: string;
+	name: string | null;
+	created_at: Date;
+	updated_at: Date;
+	members?: HouseholdMemberDTO[];
+}
+
+export interface CreateHouseholdRequest {
+	name?: string | null;
+	member_user_ids?: string[];
+}
+
+export interface TasteWeightsDTO {
+	genres?: Record<string, number>;
+	runtime_pref?: number | null;
+	era?: Record<string, number>;
+	tone?: Record<string, number>;
+}
+
+export interface TasteProfileDTO {
+	user_id: string;
+	weights: TasteWeightsDTO;
+	embedding: number[] | null;
+	updated_at: Date;
+}
+
+export interface WatchedTogetherDTO {
+	id: string;
+	household_id: string;
+	tmdb_id: number;
+	media_type: 'movie' | 'tv';
+	watched_at: Date;
+	enjoyed: boolean | null;
+	mood_at_pick: string | null;
+	minutes_budget_at_pick: number | null;
+}
+
+export interface CreateWatchedTogetherRequest {
+	tmdb_id: number;
+	media_type: 'movie' | 'tv';
+	watched_at?: Date;
+	enjoyed?: boolean | null;
+	mood_at_pick?: string | null;
+	minutes_budget_at_pick?: number | null;
+}
+
+export interface UpdateWatchedTogetherRequest {
+	enjoyed?: boolean | null;
+	mood_at_pick?: string | null;
+	minutes_budget_at_pick?: number | null;
+}

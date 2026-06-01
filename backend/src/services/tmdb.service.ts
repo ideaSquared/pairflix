@@ -10,12 +10,20 @@ export interface TMDbResponse<T> {
 	status_message?: string;
 }
 
+export interface TMDbGenre {
+	id: number;
+	name: string;
+}
+
 export interface TMDbMovie {
 	id: number;
 	title: string;
 	poster_path: string | null;
 	overview: string;
 	status: string;
+	genres?: TMDbGenre[];
+	runtime?: number | null;
+	release_date?: string;
 }
 
 export interface TMDbTV {
@@ -24,6 +32,9 @@ export interface TMDbTV {
 	poster_path: string | null;
 	overview: string;
 	status: string;
+	genres?: TMDbGenre[];
+	episode_run_time?: number[];
+	first_air_date?: string;
 }
 
 export type TMDbDetails = TMDbMovie | TMDbTV;
