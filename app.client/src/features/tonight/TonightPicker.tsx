@@ -134,10 +134,10 @@ const TonightPicker: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
 
   const pickMutation = useTonightPick({
-    householdId: household?.household_id ?? '',
+    householdId: household?.id ?? '',
   });
   const commitMutation = useCommitPick({
-    householdId: household?.household_id ?? '',
+    householdId: household?.id ?? '',
   });
 
   const result = pickMutation.data;
@@ -198,6 +198,28 @@ const TonightPicker: React.FC = () => {
     return (
       <PageContainer maxWidth="lg" padding="lg" centered>
         <Typography>Loading...</Typography>
+      </PageContainer>
+    );
+  }
+
+  if (!household) {
+    return (
+      <PageContainer maxWidth="lg" padding="lg" centered>
+        <Container fluid>
+          <H1 gutterBottom>Tonight</H1>
+          <Typography variant="body1" gutterBottom>
+            You're not in a household yet. Create one and invite a partner — or
+            accept an invite you've been sent.
+          </Typography>
+          <FormSection>
+            <Button
+              variant="primary"
+              onClick={() => window.location.assign('/households/new')}
+            >
+              Create a household
+            </Button>
+          </FormSection>
+        </Container>
       </PageContainer>
     );
   }

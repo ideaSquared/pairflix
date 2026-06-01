@@ -15,6 +15,9 @@ import ProfilePage from '../../features/auth/ProfilePage';
 import RegisterPage from '../../features/auth/RegisterPage';
 import ResetPasswordPage from '../../features/auth/ResetPasswordPage';
 import HistoryPage from '../../features/history/HistoryPage';
+import AcceptInvitePage from '../../features/households/AcceptInvitePage';
+import CreateHouseholdPage from '../../features/households/CreateHouseholdPage';
+import InviteToHouseholdPage from '../../features/households/InviteToHouseholdPage';
 import MatchPage from '../../features/match/MatchPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
 import { useTonightHomepagePreference } from '../../features/tonight/useTonightHomepage';
@@ -103,6 +106,18 @@ const AppRoutes: React.FC = () => {
               <Route
                 path="/history"
                 element={<ProtectedRoute element={<HistoryPage />} />}
+              />
+              <Route
+                path="/households/new"
+                element={<ProtectedRoute element={<CreateHouseholdPage />} />}
+              />
+              <Route
+                path="/households/:id/invites"
+                element={<ProtectedRoute element={<InviteToHouseholdPage />} />}
+              />
+              <Route
+                path="/household-invites/:token"
+                element={<ProtectedRoute element={<AcceptInvitePage />} />}
               />
               <Route
                 path="/profile"

@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import {
 	commitHouseholdPick,
+	createHousehold,
+	listHouseholds,
 	pickForHousehold,
+	postInvite,
 } from '../controllers/household.controller';
 import { authenticateToken } from '../middlewares/auth';
 import {
@@ -15,6 +18,9 @@ const router = Router();
 router.use(generalRateLimit);
 router.use(authenticateToken);
 
+router.get('/', listHouseholds);
+router.post('/', createHousehold);
+router.post('/:id/invites', postInvite);
 router.post('/:id/pick', enforceRegionLock, enforcePickQuota, pickForHousehold);
 router.post('/:id/picks/:tmdbId/commit', commitHouseholdPick);
 

@@ -1,6 +1,13 @@
 import type { Request, Response } from 'express';
 import HouseholdMember from '../models/HouseholdMember';
 import WatchedTogether from '../models/WatchedTogether';
+import {
+	acceptInvite,
+	createForOwner,
+	createInvite,
+	isOwner,
+	listForUser,
+} from '../services/household.service';
 import { defaultRecommendationService } from '../services/recommendation.service';
 import type { Mood } from '../services/recommendation.types';
 
@@ -92,5 +99,67 @@ export const commitHouseholdPick = async (req: Request, res: Response) => {
 		console.error('Error committing household pick:', error);
 		const message = error instanceof Error ? error.message : 'Unknown error';
 		return res.status(500).json({ error: message });
+	}
+};
+
+export const listHouseholds = async (req: Request, res: Response) => {
+	const userId = req.user?.user_id;
+	if (!userId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+	const households = await listForUser(userId);
+	return res.json({ households });
+};
+
+export const createHousehold = async (req: Request, res: Response) => {
+	const userId = req.user?.user_id;
+	if (!userId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+	const { name } = (req.body ?? {}) as { name?: string };
+	const trimmed = typeof name === 'string' ? name.trim() : '';
+	if (trimmed.length > 80) {
+		return res.status(400).json({ error: 'name_too_long' });
+	}
+	const household = await createForOwner(userId, trimmed || null);
+	return res.status(201).json({ household });
+};
+
+export const postInvite = async (req: Request, res: Response) => {
+	const userId = req.user?.user_id;
+	const householdId = req.params.id;
+	if (!userId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+	if (!householdId) {
+		return res.status(400).json({ error: 'household_id_required' });
+	}
+	if (!(await isOwner(householdId, userId))) {
+		return res.status(403).json({ error: 'owner_only' });
+	}
+	const { email } = (req.body ?? {}) as { email?: string };
+	const invitedEmail =
+		typeof email === 'string' && email.trim() ? email.trim() : null;
+	const invite = await createInvite(householdId, userId, invitedEmail);
+	return res.status(201).json({ invite });
+};
+
+export const postAcceptInvite = async (req: Request, res: Response) => {
+	const userId = req.user?.user_id;
+	const token = req.params.token;
+	if (!userId) {
+		return res.status(401).json({ error: 'Authentication required' });
+	}
+	if (!token) {
+		return res.status(400).json({ error: 'token_required' });
+	}
+	try {
+		const result = await acceptInvite(token, userId);
+		return res.status(200).json(result);
+	} catch (error) {
+		if (error instanceof Error && error.name === 'InviteInvalid') {
+			return res.status(410).json({ error: 'invite_invalid_or_expired' });
+		}
+		throw error;
 	}
 };

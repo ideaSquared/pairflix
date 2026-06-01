@@ -6,6 +6,7 @@ import Content from './Content';
 import ContentReport from './ContentReport';
 import EmailVerification from './EmailVerification';
 import Household from './Household';
+import HouseholdInvite from './HouseholdInvite';
 import HouseholdMember from './HouseholdMember';
 import Match from './Match';
 import PasswordReset from './PasswordReset';
@@ -43,6 +44,7 @@ export function initializeModels(sequelize: Sequelize) {
 		UserSession.initialize(sequelize);
 		Household.initialize(sequelize);
 		HouseholdMember.initialize(sequelize);
+		HouseholdInvite.initialize(sequelize);
 		TasteProfile.initialize(sequelize);
 		WatchedTogether.initialize(sequelize);
 		Subscription.initialize(sequelize);
@@ -144,6 +146,15 @@ export function initializeModels(sequelize: Sequelize) {
 		TasteProfile.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 		User.hasOne(TasteProfile, { foreignKey: 'user_id', as: 'tasteProfile' });
 
+		HouseholdInvite.belongsTo(Household, {
+			foreignKey: 'household_id',
+			as: 'household',
+		});
+		Household.hasMany(HouseholdInvite, {
+			foreignKey: 'household_id',
+			as: 'invites',
+		});
+
 		WatchedTogether.belongsTo(Household, {
 			foreignKey: 'household_id',
 			as: 'household',
@@ -194,6 +205,7 @@ export default {
 	UserSession,
 	Household,
 	HouseholdMember,
+	HouseholdInvite,
 	TasteProfile,
 	WatchedTogether,
 	Subscription,

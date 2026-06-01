@@ -18,6 +18,7 @@ import authRoutes from './routes/auth.routes';
 import billingRoutes from './routes/billing.routes';
 import historyRoutes from './routes/history.routes';
 import householdRoutes from './routes/household.routes';
+import householdInvitesRoutes from './routes/householdInvites.routes';
 import householdsRoutes from './routes/households.routes';
 import matchRoutes from './routes/match.routes';
 import providersRoutes from './routes/providers.routes';
@@ -99,6 +100,7 @@ app.use('/api/admin', adminRateLimit, adminRoutes); // Admin routes handle their
 app.use('/api/households', householdRoutes);
 app.use('/api/households', householdsRoutes);
 app.use('/api/households', historyRoutes);
+app.use('/api/household-invites', householdInvitesRoutes);
 app.use('/api/providers', providersRoutes);
 app.use('/api/billing', billingRoutes);
 

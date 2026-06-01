@@ -49,7 +49,52 @@ export interface PickRequest {
   excludeTmdbIds?: number[];
 }
 
+export interface HouseholdSummary {
+  id: string;
+  name: string | null;
+  role: 'owner' | 'member';
+  joined_at: string;
+  member_count: number;
+}
+
+export interface InviteSummary {
+  id: string;
+  token: string;
+  invited_email: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
 export const households = {
+  list: async (): Promise<{ households: HouseholdSummary[] }> => {
+    return fetchWithAuth('/api/households/');
+  },
+
+  create: async (
+    body: { name?: string } = {}
+  ): Promise<{ household: HouseholdSummary }> => {
+    return fetchWithAuth('/api/households/', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  invite: async (
+    householdId: string,
+    body: { email?: string } = {}
+  ): Promise<{ invite: InviteSummary }> => {
+    return fetchWithAuth(`/api/households/${householdId}/invites`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  acceptInvite: async (token: string): Promise<{ household_id: string }> => {
+    return fetchWithAuth(`/api/household-invites/${token}/accept`, {
+      method: 'POST',
+    });
+  },
+
   pick: async (
     householdId: string,
     body: PickRequest

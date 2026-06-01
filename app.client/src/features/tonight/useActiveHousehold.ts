@@ -1,21 +1,26 @@
-import { useAuth } from '../../hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { households as householdsApi } from '../../services/api';
+import type { HouseholdSummary } from '../../services/api/households';
 
-// Phase A delivers the real Household model + endpoint. Until then we derive a
-// stable id from the authed user so the Tonight flow has something to call.
-export interface ActiveHousehold {
-  household_id: string;
-  status: 'accepted';
+export interface ActiveHouseholdState {
+  household: HouseholdSummary | null;
+  households: HouseholdSummary[];
+  isLoading: boolean;
+  isError: boolean;
 }
 
-export function useActiveHousehold(): {
-  household: ActiveHousehold | null;
-  isLoading: boolean;
-} {
-  const { user, isLoading } = useAuth();
-  if (isLoading) return { household: null, isLoading: true };
-  if (!user) return { household: null, isLoading: false };
+export function useActiveHousehold(): ActiveHouseholdState {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['households'],
+    queryFn: () => householdsApi.list(),
+    staleTime: 60_000,
+  });
+
+  const list = data?.households ?? [];
   return {
-    household: { household_id: user.user_id, status: 'accepted' },
-    isLoading: false,
+    household: list[0] ?? null,
+    households: list,
+    isLoading,
+    isError,
   };
 }
