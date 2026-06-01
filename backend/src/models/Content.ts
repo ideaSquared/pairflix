@@ -1,20 +1,49 @@
 import { DataTypes, Model, type Optional, type Sequelize } from 'sequelize';
 
+export interface ProviderEntry {
+	provider_id: number;
+	provider_name: string;
+	logo_path: string | null;
+}
+
+export interface ProviderRegion {
+	flatrate?: ProviderEntry[];
+	rent?: ProviderEntry[];
+	buy?: ProviderEntry[];
+}
+
+export interface ContentProviders {
+	[region: string]: ProviderRegion | string | undefined;
+	last_updated_at?: string;
+}
+
 interface ContentAttributes {
 	id: string;
 	title: string;
 	type: 'movie' | 'show' | 'episode';
 	status: 'active' | 'pending' | 'flagged' | 'removed';
 	tmdb_id: number;
+	media_type?: 'movie' | 'tv';
+	year?: number | null;
+	poster_path?: string | null;
 	reported_count: number;
 	removal_reason?: string;
+	providers: ContentProviders | null;
 	created_at: Date;
 	updated_at: Date;
 }
 
 type ContentCreationAttributes = Optional<
 	ContentAttributes,
-	'id' | 'reported_count' | 'created_at' | 'updated_at' | 'removal_reason'
+	| 'id'
+	| 'reported_count'
+	| 'created_at'
+	| 'updated_at'
+	| 'removal_reason'
+	| 'media_type'
+	| 'year'
+	| 'poster_path'
+	| 'providers'
 >;
 
 class Content extends Model<ContentAttributes, ContentCreationAttributes> {
@@ -28,9 +57,17 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 
 	declare tmdb_id: number;
 
+	declare media_type?: 'movie' | 'tv';
+
+	declare year?: number | null;
+
+	declare poster_path?: string | null;
+
 	declare reported_count: number;
 
 	declare removal_reason?: string;
+
+	declare providers: ContentProviders | null;
 
 	declare created_at: Date;
 
@@ -68,6 +105,18 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 					type: DataTypes.INTEGER,
 					allowNull: false,
 				},
+				media_type: {
+					type: DataTypes.ENUM('movie', 'tv'),
+					allowNull: true,
+				},
+				year: {
+					type: DataTypes.INTEGER,
+					allowNull: true,
+				},
+				poster_path: {
+					type: DataTypes.STRING,
+					allowNull: true,
+				},
 				reported_count: {
 					type: DataTypes.INTEGER,
 					allowNull: false,
@@ -76,6 +125,11 @@ class Content extends Model<ContentAttributes, ContentCreationAttributes> {
 				removal_reason: {
 					type: DataTypes.TEXT,
 					allowNull: true,
+				},
+				providers: {
+					type: DataTypes.JSONB,
+					allowNull: true,
+					defaultValue: {},
 				},
 				created_at: {
 					type: DataTypes.DATE,

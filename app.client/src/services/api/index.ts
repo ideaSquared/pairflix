@@ -1,7 +1,10 @@
 import { activity } from './activity';
 import { admin } from './admin';
 import { auth } from './auth';
+import { billing } from './billing';
 import { emailService } from './email';
+import { history } from './history';
+import { households } from './households';
 import { matches } from './matches';
 import { search } from './search';
 import { user } from './user';
@@ -17,6 +20,9 @@ export type { AppSettings } from './admin';
 // Re-export types from auth
 export type { LoginCredentials } from './auth';
 
+// Re-export types from history
+export type { HistoryEntry, HistoryResponse } from './history';
+
 // Re-export types from user
 export type {
   EmailUpdate,
@@ -25,13 +31,23 @@ export type {
   UpdateUsernameResponse,
 } from './user';
 
+// Re-export types from billing
+export type {
+  CheckoutSession,
+  Entitlements,
+  SubscriptionTier,
+} from './billing';
+
 // Export individual services
 export {
   activity,
   admin,
   auth,
+  billing,
   emailService,
   fetchWithAuth,
+  history,
+  households,
   matches,
   search,
   user,
@@ -50,7 +66,10 @@ const api = {
   matches,
   activity,
   admin,
+  billing,
   email: emailService,
+  history,
+  households,
 };
 
 export default api;

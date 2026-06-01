@@ -4,8 +4,10 @@ import {
   HiArrowLeftOnRectangle,
   HiArrowRightOnRectangle,
   HiChartBarSquare,
+  HiClock,
   HiHeart,
   HiListBullet,
+  HiSparkles,
   HiUser,
 } from 'react-icons/hi2';
 
@@ -50,6 +52,12 @@ export const createClientNavigation = (
       {
         items: [
           {
+            key: 'tonight',
+            label: 'Tonight',
+            path: '/tonight',
+            icon: React.createElement(HiSparkles),
+          },
+          {
             key: 'watchlist',
             label: 'My Watchlist',
             path: '/watchlist',
@@ -66,6 +74,12 @@ export const createClientNavigation = (
             label: 'Activity',
             path: '/activity',
             icon: React.createElement(HiChartBarSquare),
+          },
+          {
+            key: 'history',
+            label: 'History',
+            path: '/history',
+            icon: React.createElement(HiClock),
           },
           {
             key: 'profile',

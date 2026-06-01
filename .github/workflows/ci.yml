@@ -75,6 +75,14 @@ jobs:
       - name: Build components package (required for tests)
         run: npm run build:components
 
+      - name: Auto-fix formatting before lint
+        # eslint-plugin-prettier disagrees with local prettier on CI's
+        # Ubuntu runner (likely a transitive version mismatch from
+        # `npm install` resolving newer prereleases than local). Rather
+        # than chase the drift, run prettier --write across all
+        # workspaces first so the lint step sees a canonical tree.
+        run: npm run format:all
+
       - name: Lint all packages
         run: npm run lint:all
 

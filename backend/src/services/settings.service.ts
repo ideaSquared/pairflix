@@ -690,6 +690,12 @@ export class SettingsService {
 				category: 'features',
 				description: 'Enable activity feed',
 			},
+			'recommendation.llm_rerank': {
+				value: false,
+				category: 'features',
+				description:
+					'Enable LLM re-ranking of ML candidate picks (opt-in, cost control)',
+			},
 		};
 
 		return defaultSettings;
