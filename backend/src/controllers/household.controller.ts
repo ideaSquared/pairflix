@@ -8,6 +8,7 @@ import {
 	isOwner,
 	listForUser,
 } from '../services/household.service';
+import { recordPickEvent } from '../services/pickEvent.service';
 import { defaultRecommendationService } from '../services/recommendation.service';
 import type { Mood } from '../services/recommendation.types';
 
@@ -49,6 +50,20 @@ export const pickForHousehold = async (req: Request, res: Response) => {
 			...(body.region ? { region: body.region } : {}),
 			...(body.excludeTmdbIds ? { excludeTmdbIds: body.excludeTmdbIds } : {}),
 		});
+
+		void recordPickEvent({
+			household_id: householdId,
+			user_id: userId,
+			tmdb_id: result.pick.tmdb_id,
+			media_type: result.pick.media_type,
+			kind: 'proposed',
+			mood: body.mood,
+			minutes_budget: body.minutes,
+			region: body.region ?? null,
+		}).catch(err => {
+			console.warn('Failed to record proposed pick event', err);
+		});
+
 		return res.json(result);
 	} catch (error) {
 		console.error('Error picking for household:', error);

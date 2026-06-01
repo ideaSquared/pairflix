@@ -16,6 +16,7 @@ import type { Theme } from '../../styles/theme';
 import { useActiveHousehold } from './useActiveHousehold';
 import { useTonightHomepagePreference } from './useTonightHomepage';
 import { useCommitPick, useTonightPick } from './useTonightPick';
+import { households } from '../../services/api/households';
 import type { Mood, RecommendationCard } from '../../services/api/households';
 
 const MOODS: { id: Mood; label: string }[] = [
@@ -100,6 +101,22 @@ const Rationale = styled(Typography)<{ theme: Theme }>`
   color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
+const ProviderLaunchButton = styled.button<{ theme: Theme }>`
+  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.primary};
+  background: ${({ theme }) => theme.colors.primary};
+  color: #ffffff;
+  cursor: pointer;
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.85;
+  }
+`;
+
 const ActionRow = styled(Flex)<{ theme: Theme }>`
   margin-top: ${({ theme }) => theme.spacing.lg};
   gap: ${({ theme }) => theme.spacing.md};
@@ -155,7 +172,24 @@ const TonightPicker: React.FC = () => {
     });
   };
 
+  const recordEvent = (
+    card: RecommendationCard,
+    kind: 'accepted' | 'swapped' | 'dismissed'
+  ) => {
+    if (!household) return;
+    void households
+      .recordPickEvent(household.id, {
+        tmdb_id: card.tmdb_id,
+        media_type: card.media_type,
+        kind,
+        mood,
+        minutes_budget: minutes,
+      })
+      .catch(() => undefined);
+  };
+
   const onSwap = (card: RecommendationCard) => {
+    recordEvent(card, 'swapped');
     const next = [...excludedTmdbIds, card.tmdb_id];
     setExcludedTmdbIds(next);
     pickMutation.mutate({
@@ -167,6 +201,7 @@ const TonightPicker: React.FC = () => {
   };
 
   const onCommit = (card: RecommendationCard) => {
+    recordEvent(card, 'accepted');
     commitMutation.mutate(
       {
         tmdbId: card.tmdb_id,
@@ -181,6 +216,33 @@ const TonightPicker: React.FC = () => {
         },
       }
     );
+  };
+
+  const onDismiss = (card: RecommendationCard) => {
+    recordEvent(card, 'dismissed');
+    setDismissed(true);
+  };
+
+  const onLaunchProvider = async (
+    card: RecommendationCard,
+    providerSlug: string
+  ) => {
+    if (!household) return;
+    try {
+      const { url } = await households.launchProvider(
+        household.id,
+        card.tmdb_id,
+        {
+          provider_slug: providerSlug,
+          media_type: card.media_type,
+          mood,
+          minutes_budget: minutes,
+        }
+      );
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      // Launch failed (provider not available in region); silently no-op
+    }
   };
 
   const toggleProvider = (id: string) => {
@@ -316,9 +378,15 @@ const TonightPicker: React.FC = () => {
                       </Badge>
                     )}
                     {providerBadges.map(p => (
-                      <Badge key={p.provider_id} variant="primary">
-                        {p.provider_name}
-                      </Badge>
+                      <ProviderLaunchButton
+                        key={p.provider_id}
+                        type="button"
+                        onClick={() =>
+                          onLaunchProvider(result.pick, p.provider_name)
+                        }
+                      >
+                        Watch on {p.provider_name}
+                      </ProviderLaunchButton>
                     ))}
                   </Flex>
                   <Rationale variant="body2">{result.rationale}</Rationale>
@@ -341,7 +409,10 @@ const TonightPicker: React.FC = () => {
                     >
                       Swap
                     </Button>
-                    <Button variant="text" onClick={() => setDismissed(true)}>
+                    <Button
+                      variant="text"
+                      onClick={() => onDismiss(result.pick)}
+                    >
                       Not tonight
                     </Button>
                   </ActionRow>
