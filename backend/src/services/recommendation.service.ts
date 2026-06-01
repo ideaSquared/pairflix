@@ -460,3 +460,7 @@ export const defaultRecommendationService = new RecommendationService(
 );
 
 export { MOOD_FILTERS };
+
+export function __clearCandidateCacheForTests(): void {
+	candidateCache.clear();
+}

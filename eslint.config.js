@@ -14,6 +14,9 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.next/**',
       '**/*.d.ts',
+      'backend/.sequelizerc',
+      'backend/src/db/config.js',
+      'backend/src/db/migrations/*.js',
     ],
   },
 
