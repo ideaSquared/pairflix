@@ -400,6 +400,36 @@ CREATE INDEX pick_usage_household_picked_at_idx
     ON pick_usage(household_id, picked_at DESC);
 ```
 
+## Phase F — pick events and provider launch tracking
+
+### Pick events
+
+Captures every interaction with a recommendation: when the recommender proposes a title (`proposed`), what the household decides (`accepted` / `swapped` / `dismissed`), and which streaming provider they launch into (`provider_launched`). Feeds the "first-pick acceptance rate" KPI and the affiliate-revenue attribution loop.
+
+```sql
+CREATE TABLE pick_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    tmdb_id INTEGER NOT NULL,
+    media_type "enum_pick_events_media_type" NOT NULL,  -- 'movie' | 'tv'
+    kind "enum_pick_events_kind" NOT NULL,
+      -- 'proposed' | 'accepted' | 'swapped' | 'dismissed' | 'provider_launched'
+    mood TEXT,
+    minutes_budget INTEGER,
+    provider_slug TEXT,
+    region VARCHAR(2),
+    occurred_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX pick_events_household_occurred_at_idx
+    ON pick_events(household_id, occurred_at DESC);
+CREATE INDEX pick_events_household_kind_idx
+    ON pick_events(household_id, kind);
+```
+
+`provider_slug` is non-null only for `provider_launched` events. `user_id` records who performed the action; nullable so that backend-emitted `proposed` events stay valid if the user is later deleted.
+
 ## Indexes
 
 ```sql

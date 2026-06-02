@@ -6,6 +6,11 @@ import {
 	pickForHousehold,
 	postInvite,
 } from '../controllers/household.controller';
+import {
+	getPickEventStatsController,
+	postPickEvent,
+	postProviderLaunch,
+} from '../controllers/pickEvent.controller';
 import { authenticateToken } from '../middlewares/auth';
 import {
 	enforcePickQuota,
@@ -23,5 +28,8 @@ router.post('/', createHousehold);
 router.post('/:id/invites', postInvite);
 router.post('/:id/pick', enforceRegionLock, enforcePickQuota, pickForHousehold);
 router.post('/:id/picks/:tmdbId/commit', commitHouseholdPick);
+router.post('/:id/picks/:tmdbId/launch', postProviderLaunch);
+router.post('/:id/pick-events', postPickEvent);
+router.get('/:id/pick-events/stats', getPickEventStatsController);
 
 export default router;

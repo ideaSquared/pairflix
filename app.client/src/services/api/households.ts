@@ -118,4 +118,59 @@ export const households = {
       }
     );
   },
+
+  recordPickEvent: async (
+    householdId: string,
+    body: PickEventBody
+  ): Promise<{ id: string }> => {
+    return fetchWithAuth(`/api/households/${householdId}/pick-events`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  launchProvider: async (
+    householdId: string,
+    tmdbId: number,
+    body: LaunchProviderBody
+  ): Promise<LaunchProviderResult> => {
+    return fetchWithAuth(
+      `/api/households/${householdId}/picks/${tmdbId}/launch`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }
+    );
+  },
 };
+
+export type PickEventKind =
+  | 'proposed'
+  | 'accepted'
+  | 'swapped'
+  | 'dismissed'
+  | 'provider_launched';
+
+export interface PickEventBody {
+  tmdb_id: number;
+  media_type: 'movie' | 'tv';
+  kind: PickEventKind;
+  mood?: Mood;
+  minutes_budget?: number;
+  provider_slug?: string;
+  region?: string;
+}
+
+export interface LaunchProviderBody {
+  provider_slug: string;
+  media_type: 'movie' | 'tv';
+  region?: string;
+  mood?: Mood;
+  minutes_budget?: number;
+}
+
+export interface LaunchProviderResult {
+  url: string;
+  provider_name: string;
+  region: string;
+}
