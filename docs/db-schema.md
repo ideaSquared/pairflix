@@ -39,7 +39,9 @@ to match column-encoding choices, only the auth/session _mechanism_ (see below).
 `users` carries more than just the identity columns — `status`, `emailVerified`,
 `failedLoginAttempts`/`lockedUntil`, `lastLogin`, and `preferences` are all live functionality (admin
 ban/suspend, account-lockout security, the client app's theme preference) carried forward from the
-current Sequelize model, not a Postgres-only detail left behind.
+current Sequelize model, not a Postgres-only detail left behind. `totpSecret`/`totpEnabled`/
+`totpBackupCodes` (migration `0001`, P3 auth domain) back TOTP 2FA — required for admin accounts (see
+`services/api/src/hono/middleware/auth.ts`'s `requireAdmin`), optional for everyone else.
 
 ```ts
 export const users = sqliteTable('users', {
@@ -58,6 +60,11 @@ export const users = sqliteTable('users', {
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: integer('locked_until', { mode: 'timestamp_ms' }),
   lastLogin: integer('last_login', { mode: 'timestamp_ms' }),
+  totpSecret: text('totp_secret'), // AES-256-GCM encrypted at rest, keyed off SESSION_SECRET
+  totpEnabled: integer('totp_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  totpBackupCodes: text('totp_backup_codes'), // JSON array of PBKDF2-hashed single-use codes
   preferences: text('preferences', { mode: 'json' })
     .$type<UserPreferences>()
     .notNull(),
@@ -98,6 +105,18 @@ export const authTokens = sqliteTable('auth_tokens', {
   forcedByAdmin: integer('forced_by_admin', { mode: 'boolean' }), // admin-initiated password reset
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
   consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+```
+
+`rateLimitHits` (migration `0001`) backs the D1-based IP rate limiter on the unauthenticated auth
+routes (`register`, `forgot-password`, `resend-verification`) — one row per request, counted rather
+than read individually; `key` is `<routeName>:<ip>` so each route's budget is independent:
+
+```ts
+export const rateLimitHits = sqliteTable('rate_limit_hits', {
+  id: text('id').primaryKey(),
+  key: text('key').notNull(), // `<routeName>:<ip>`
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 ```
@@ -384,7 +403,8 @@ pnpm --filter @pairflix/api db:migrate:remote                 # wrangler d1 migr
 Never edit a shipped migration — add a new one. `0000_init.sql` is the initial schema, authored fresh
 rather than translated 1:1 from the four Sequelize migrations (`phase-a-households`,
 `subscriptions-and-pick-usage`, `household-invites`, `pick-events`) — those defined the Postgres shape
-these tables ported from, but D1's own migration history starts clean.
+these tables ported from, but D1's own migration history starts clean. `0001_totp_and_rate_limits.sql`
+(P3 auth domain) adds the TOTP columns on `users` and the `rateLimitHits` table above.
 
 `services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
 is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until

@@ -75,13 +75,18 @@ carried into D1 — the schema is greenfield for the household product.
 
 ## Auth & CSRF
 
-Ported from creatorgrid (the Workers-native pattern; replaces JWT bearer):
+Ported from creatorgrid (the Workers-native pattern; replaces JWT bearer). Implemented as the P3
+auth domain (`services/api/src/hono/routes/auth.ts`, `routes/me.ts`, `middleware/auth.ts`,
+`middleware/csrf.ts`) — the Express app in `services/api/src/` is still what's actually deployed
+until P3's remaining domains land and P5 cuts over:
 
 - **Opaque session token**, stored in D1 (`sessions`), carried in an HttpOnly `session` cookie.
 - **Passwords hashed with PBKDF2 via Web Crypto** — Workers has no native bcrypt.
 - **Double-submit CSRF** on state-changing requests: a readable `csrfToken` cookie echoed back as an
   `x-csrf-token` header, compared with `timingSafeEqual`.
-- Sensitive changes (password reset, etc.) revoke other sessions.
+- Sensitive changes (password reset, 2FA disable, etc.) revoke other sessions.
+- **TOTP 2FA**, required for admin accounts (`requireAdmin` 403s until enrolled), optional for
+  everyone else — enroll/verify/disable at `POST /api/me/2fa/*`.
 
 ## Recommendation & LLM re-rank
 

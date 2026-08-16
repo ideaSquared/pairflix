@@ -33,6 +33,14 @@ export const users = sqliteTable('users', {
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: integer('locked_until', { mode: 'timestamp_ms' }),
   lastLogin: integer('last_login', { mode: 'timestamp_ms' }),
+  /** AES-256-GCM encrypted at rest (see services/api's lib/crypto.ts `encryptSecret`), keyed off
+   * SESSION_SECRET. Required for admin accounts (see middleware/auth.ts `requireAdmin`). */
+  totpSecret: text('totp_secret'),
+  totpEnabled: integer('totp_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  /** JSON array of PBKDF2-hashed single-use recovery codes; consumed entries are removed. */
+  totpBackupCodes: text('totp_backup_codes'),
   preferences: text('preferences', { mode: 'json' })
     .$type<UserPreferences>()
     .notNull()
@@ -101,6 +109,21 @@ export const authTokens = sqliteTable(
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   },
   table => [index('idx_auth_tokens_user').on(table.userId)]
+);
+
+/** One row per unauthenticated request against a throttled route (see
+ * services/api's `middleware/ip-rate-limit.ts`) -- counted, not read individually. `key` is
+ * `<route>:<ip>` so each route's limit is independent (e.g. `register` spam doesn't burn down
+ * `forgot-password`'s budget). No cleanup job for old rows -- D1 storage is cheap at this volume; a
+ * future cron sweep could prune rows older than a day. */
+export const rateLimitHits = sqliteTable(
+  'rate_limit_hits',
+  {
+    id: text('id').primaryKey(),
+    key: text('key').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  table => [index('idx_rate_limit_hits_key').on(table.key)]
 );
 
 export const households = sqliteTable('households', {
@@ -357,6 +380,7 @@ export const settings = sqliteTable('settings', {
 export type UserRow = typeof users.$inferSelect;
 export type SessionRow = typeof sessions.$inferSelect;
 export type AuthTokenRow = typeof authTokens.$inferSelect;
+export type RateLimitHitRow = typeof rateLimitHits.$inferSelect;
 export type HouseholdRow = typeof households.$inferSelect;
 export type HouseholdMemberRow = typeof householdMembers.$inferSelect;
 export type HouseholdInviteRow = typeof householdInvites.$inferSelect;

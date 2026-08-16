@@ -51,11 +51,26 @@ provisioned.
 **Exit:** `wrangler d1 migrations apply --local` builds the schema (verified); Drizzle client typed
 (verified — `pnpm --filter @pairflix/db type-check` is clean).
 
-### P3 — API
+### P3 — API — in progress
 
 Port route modules to a Hono Worker one domain at a time: **auth** (session cookie + PBKDF2 + CSRF, ADR 0002) →
 **households/pick** (wire in the LLM re-rank here) → **providers/history** → **billing/admin**.
 Collapse the two server entries into one; make email flows reachable.
+
+**auth — done.** `services/api/src/hono/` (routes/middleware/lib) alongside the still-deployed
+Express tree, not yet cut over — kept in a separate subdirectory with its own `tsconfig.hono.json`
+and a `vitest.config.mts` (`@cloudflare/vitest-pool-workers` against local D1) so the two frameworks'
+incompatible tooling (module system, test runner) don't collide; `pnpm --filter @pairflix/api test`
+runs both suites. Session cookie + PBKDF2 + double-submit CSRF per ADR 0002, plus **TOTP 2FA**
+(`totp_secret`/`totp_enabled`/`totp_backup_codes` on `users`, `packages/db/migrations/0001`),
+required for admin accounts (`requireAdmin`) — creatorgrid's auth ported and adapted for pairflix's
+schema (`username` field, `status` enum instead of a separate suspended flag, no creator sub-entity,
+Resend over nodemailer since Workers can't do SMTP). `packages/lib.validation` holds the shared Zod
+request schemas. 30 passing `vitest-pool-workers` tests cover register/login/lockout/suspend/ban/
+verify-email/forgot-password/reset-password/bootstrap-admin/2FA/IP rate limiting.
+
+**Pending:** households/pick, providers/history, billing/admin domains; then collapse the two server
+entries into one and cut over.
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 

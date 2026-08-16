@@ -1,0 +1,29 @@
+# Local Worker secrets for `wrangler dev`. Copy to `.dev.vars` (git-ignored).
+# In production set these with `wrangler secret put <NAME>`.
+
+# wrangler.jsonc's vars.ENVIRONMENT is "production" (needed for the real deploy -- flips the
+# session cookie to Secure and enables real email sending, see src/hono/lib/session.ts and
+# src/hono/lib/email.ts). `.dev.vars` values override wrangler.jsonc's `vars` during `wrangler
+# dev`, so this puts local dev back to normal.
+ENVIRONMENT="development"
+
+# Derives the AES-256-GCM key that encrypts TOTP secrets at rest (src/hono/lib/crypto.ts).
+SESSION_SECRET="dev-session-secret-change-me"
+
+# Comma-separated origins allowed to call the API with credentials.
+# Empty in local dev reflects the request origin (same-origin via the Vite proxy).
+ALLOWED_ORIGINS=""
+
+# Claims the admin role, once, for whichever session calls POST /api/auth/bootstrap-admin with
+# this value in an `x-bootstrap-secret` header -- self-disables permanently once any admin exists.
+# Set for real in prod with `wrangler secret put ADMIN_BOOTSTRAP_SECRET`, generating a random
+# value rather than reusing this placeholder.
+ADMIN_BOOTSTRAP_SECRET="dev-bootstrap-secret-change-me"
+
+# Email (Resend) -- leave blank to log verification/reset links to the console instead of sending
+# real email (see src/hono/lib/email.ts). Get a key at https://resend.com.
+RESEND_API_KEY=""
+EMAIL_FROM=""
+
+# Base URL of apps/client -- verification/reset email links point here.
+APP_CLIENT_URL="http://localhost:5173"
