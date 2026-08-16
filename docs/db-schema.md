@@ -11,8 +11,7 @@
 - **Engine:** Cloudflare **D1** (SQLite), one database for all households (row-level tenancy).
 - **ORM:** **Drizzle**. Tables are declared in `packages/db/src/schema.ts`; the typed client is
   `packages/db/src/client.ts`.
-- **Migrations:** authored as SQL under `packages/db/migrations/`, generated with `drizzle-kit
-generate` and applied with `wrangler d1 migrations apply pairflix-db --local|--remote`.
+- **Migrations:** authored as SQL under `packages/db/migrations/`, generated with `drizzle-kit generate` and applied with `wrangler d1 migrations apply pairflix-db --local|--remote`.
 
 ## Type conventions (Postgres → SQLite/Drizzle)
 
