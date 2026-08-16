@@ -34,28 +34,34 @@
 Staged so the app keeps running through each step. Each phase is a PR with its docs updated.
 
 ### P1 — Restructure
+
 Move to pnpm + Turborepo + `apps/*` + `services/*` + `packages/*`; lift shared eslint/tsconfig/husky
 config from the sibling repos. App still runs on the current Node runtime.
 **Exit:** `pnpm dev` runs everything; `pnpm build` / `pnpm test` green across workspaces.
 
 ### P2 — Data layer
+
 Author the household schema fresh in `packages/db` (Drizzle + D1). No data migration — alpha.
-Drop legacy tables the product doesn't use (settle the watchlist/taste question first).
+Drop the legacy tables the product doesn't use — including `watchlist_entries` (taste now comes from
+onboarding + thumbs; see `db-schema.md`).
 **Exit:** `wrangler d1 migrations apply --local` builds the schema; Drizzle client typed.
 
 ### P3 — API
-Port route modules to a Hono Worker one domain at a time: **auth** (session cookie + PBKDF2 + CSRF) →
+
+Port route modules to a Hono Worker one domain at a time: **auth** (session cookie + PBKDF2 + CSRF, ADR 0002) →
 **households/pick** (wire in the LLM re-rank here) → **providers/history** → **billing/admin**.
 Collapse the two server entries into one; make email flows reachable.
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 
 ### P4 — Frontends
+
 Move `app.client` / `app.admin` to `apps/*` on Pages; `lib.components` to `packages/`. Switch API
 clients from JWT to the cookie/CSRF flow.
 **Exit:** both SPAs run on `wrangler pages dev` against the local Worker.
 
 ### P5 — Cutover
+
 Point dev + deploy at wrangler; retire Docker/nginx from the app path; delete the old `backend/`
 Express tree.
 **Exit:** production deploys via `wrangler deploy` + Pages; the old stack is gone.
@@ -68,7 +74,9 @@ Independent of the platform, needed before opening to an invited cohort:
 - Extend the recommender to TV, and make runtime actually influence scoring.
 - Feed `ProviderBadges` real provider data on the Tonight card and history.
 - Integration tests for the pick / providers / entitlements paths.
-- Decide the taste-input model (watchlist vs onboarding + thumbs) and implement onboarding.
+- Build the **onboarding taste-starter** (genre/mood picks + a few love-it/not-for-me swipes + service
+  selection) to seed `taste_profiles` and solve cold-start — the decided taste model is onboarding +
+  watched-together thumbs, no watchlist.
 - Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.
 
 **Alpha exit criteria:** a real household can create an account, get a genuinely good first pick in
