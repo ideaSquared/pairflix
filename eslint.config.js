@@ -1,6 +1,5 @@
 // @ts-check
 import eslint from '@eslint/js';
-import prettier from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -28,9 +27,6 @@ export default tseslint.config(
 
   // TypeScript stylistic rules
   ...tseslint.configs.stylistic,
-
-  // Prettier integration
-  prettier,
 
   // General configuration for all files
   {

@@ -27,6 +27,8 @@
     "format:client": "cd app.client && npm run format",
     "format:admin": "cd app.admin && npm run format",
     "format:components": "cd lib.components && npm run format",
+    "format:check": "prettier --check \"backend/src/**/*.{ts,tsx}\" \"app.client/src/**/*.{ts,tsx}\" \"app.admin/src/**/*.{ts,tsx}\" \"lib.components/src/**/*.{ts,tsx}\" --ignore-path .prettierignore",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "prepare": "husky"
   },
   "workspaces": [

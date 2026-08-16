@@ -1,286 +1,108 @@
-# 🚀 Development Setup Guide
+# Development setup
 
-This guide will help you set up the PairFlix project for local development.
+> **Target state (ADR 0001).** This is the Cloudflare/pnpm workflow Pairflix is moving to. Until the
+> restructure phase lands, the repo still builds with npm + Docker — see git history. `docs/roadmap.md`
+> tracks the cutover.
 
 ## Prerequisites
 
-- Docker and Docker Compose (latest version)
-- Node.js (v18+)
-- npm (v8+)
-- Git
+- **Node 22** (`>=22.22 <23`; pinned via `.nvmrc` / `.tool-versions`, added in the P1 restructure)
+- **pnpm 10** (`corepack enable && corepack prepare pnpm@latest --activate`)
+- **Wrangler** — installed per-workspace as a dev dependency; run via `pnpm exec wrangler` or the
+  package scripts. No global install needed.
+- A **TMDb API key**, and (for the premium re-rank) an **Anthropic API key**
+- A **Cloudflare account** only for `--remote` / deploy; **local dev needs none** (Miniflare emulates
+  D1 and R2)
+- **No Docker** (target) — the old `docker-compose` stack is retired from the app path post-cutover; it still runs the current stack until then.
 
-## Getting Started
+## First run
 
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   cd pairflix
-   ```
-
-2. Environment Variables:
-
-   Create `.env` files for both client apps and the backend:
-
-   **Backend (.env in backend/ directory):**
-
-   ```
-   NODE_ENV=development
-   PORT=8000
-   JWT_SECRET=your_jwt_secret_key_change_this_in_production
-   JWT_REFRESH_SECRET=your_refresh_secret_key_change_this_in_production
-   JWT_EXPIRATION=1h
-   JWT_REFRESH_EXPIRATION=7d
-   DB_HOST=postgres
-   DB_PORT=5432
-   DB_NAME=pairflix
-   DB_USER=postgres
-   DB_PASSWORD=postgres
-   TMDB_API_KEY=your_tmdb_api_key
-   ```
-
-   **Client App (.env in app.client/ directory):**
-
-   ```
-   VITE_API_URL=http://localhost:8000/api/v1
-   VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
-   ADMIN_TOKEN_KEY=admin_token
-   ```
-
-   **Admin App (.env in app.admin/ directory):**
-
-   ```
-   VITE_API_URL=http://localhost:8000/api/v1
-   VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
-   ADMIN_TOKEN_KEY=admin_token
-   ```
-
-3. Start the development environment with Docker Compose:
-
-   ```bash
-   docker-compose up
-   ```
-
-   This will start:
-
-   - PostgreSQL database on port 5432
-   - Backend API server on port 3000
-   - Client app on port 5173
-   - Admin app on port 5174
-
-   **Note:** The Docker build now uses multi-stage builds to build the component library before building the client and admin apps.
-
-4. Database Initialization:
-
-   The database will be automatically set up with seeds for two users.
-
-   Default credentials:
-
-   - User 1: `user1@example.com` / `password123`
-   - User 2: `user2@example.com` / `password123`
-
-## Component Library
-
-The project uses a shared component library located in `lib.components/`. This library provides standardized UI components used by both the client and admin applications.
-
-### Working with the Component Library
-
-1. **Component Library Changes:**
-
-   If you make changes to components in the library, you need to rebuild to see the changes in the apps:
-
-   ```bash
-   cd lib.components
-   npm run build
-   ```
-
-2. **Using Components from the Library:**
-
-   Import components using the path alias:
-
-   ```typescript
-   // In app.client or app.admin
-   import { Button, Card, DataTable } from '@lib.components';
-   ```
-
-3. **Adding New Components to the Library:**
-
-   Add new components to the library when they are reusable across applications:
-
-   ```bash
-   # Create component files in lib.components/src/components
-   # Export them in lib.components/src/index.ts
-   # Build the library
-   cd lib.components
-   npm run build
-   ```
-
-## Development Workflow
-
-### Running Without Docker
-
-If you prefer to run components without Docker:
-
-**Component Library:**
+> Post-P1 layout. These commands assume the restructured `services/api` / `packages/db` workspaces;
+> they won't run against the current `backend/` tree.
 
 ```bash
-cd lib.components
-npm install
-npm run build
+git clone <repository-url> && cd pairflix
+pnpm install                     # installs every workspace
+cp services/api/.dev.vars.example services/api/.dev.vars   # local Worker vars (see below)
+pnpm --filter @pairflix/db db:migrate:local                # create + migrate the local D1
+pnpm --filter @pairflix/db db:seed:local                   # optional dev seed
+pnpm dev                         # turbo: Worker + both Pages apps in parallel
 ```
 
-**Backend:**
+- API (Worker): `http://localhost:8787`
+- Client app: `http://localhost:5173`
+- Admin app: `http://localhost:5174`
+
+## Layout
+
+```
+pairflix/
+├── apps/client/        # user SPA (Vite + React), Pages, wrangler.jsonc
+├── apps/admin/         # admin SPA (Vite + React), Pages, wrangler.jsonc
+├── services/api/       # Hono Worker, wrangler.jsonc  (routes, middleware, lib)
+├── packages/db/        # Drizzle schema + client + SQL migrations
+├── packages/lib.components/   # shared UI
+├── packages/lib.*/     # shared types / api client / utils / validation
+└── docs/
+```
+
+Workspaces are declared in `pnpm-workspace.yaml` (`apps/*`, `services/*`, `packages/*`). Turborepo
+(`turbo.json`) orchestrates `dev` / `build` / `test` / `lint` with caching. Internal deps use
+`workspace:*`.
+
+## Common commands (from the repo root)
 
 ```bash
-cd backend
-npm install
-npm run dev
+pnpm dev                         # everything, in parallel (turbo)
+pnpm --filter @pairflix/api dev  # just the Worker (wrangler dev)
+pnpm --filter @pairflix/client dev
+
+pnpm build                       # turbo build across workspaces
+pnpm test                        # turbo test (vitest; api uses @cloudflare/vitest-pool-workers)
+pnpm lint                        # eslint across workspaces
+pnpm format                      # prettier
+pnpm -r type-check               # tsc --noEmit per workspace
 ```
 
-**Client App:**
+## Local database (D1 via Miniflare)
 
 ```bash
-cd app.client
-npm install
-npm run dev
+pnpm --filter @pairflix/db db:generate         # drizzle-kit generate after editing schema.ts
+pnpm --filter @pairflix/db db:migrate:local    # wrangler d1 migrations apply pairflix-db --local
+pnpm --filter @pairflix/db db:seed:local       # wrangler d1 execute ... --local --file seed.sql
+
+# inspect the local DB
+pnpm exec wrangler d1 execute pairflix-db --local --command "select * from households"
 ```
 
-**Admin App:**
+The local D1 lives under `.wrangler/` and is disposable — delete it and re-migrate to reset.
+
+## Environment & secrets
+
+- **Local Worker vars** go in `services/api/.dev.vars` (gitignored): `TMDB_API_KEY`,
+  `ANTHROPIC_API_KEY`, `ALLOWED_ORIGINS`, etc. Missing optional keys degrade gracefully (the LLM
+  re-rank and provider fetch log-and-skip rather than fail), matching creatorgrid's
+  "unconfigured is a valid state" pattern.
+- **Production secrets** are set with `wrangler secret put <NAME>` per Worker — never committed.
+- **Frontend env** uses `VITE_*` in each app's `.env` (e.g. `VITE_API_URL`).
+
+## Deploy
 
 ```bash
-cd app.admin
-npm install
-npm run dev
+pnpm --filter @pairflix/db db:migrate:remote   # apply migrations to prod D1 first
+pnpm --filter @pairflix/api deploy             # wrangler deploy (Worker)
+# Pages apps deploy via wrangler / CI per app
 ```
 
-### Testing
-
-**Backend Tests:**
-
-```bash
-cd backend
-npm test           # Run all tests
-npm test:watch     # Run tests in watch mode
-npm test:coverage  # Run tests with coverage report
-```
-
-**Client App Tests:**
-
-```bash
-cd app.client
-npm test           # Run all tests
-npm test:watch     # Run tests in watch mode
-npm test:coverage  # Run tests with coverage report
-```
-
-**Admin App Tests:**
-
-```bash
-cd app.admin
-npm test           # Run all tests
-npm test:watch     # Run tests in watch mode
-npm test:coverage  # Run tests with coverage report
-```
-
-### Code Formatting and Linting
-
-The project uses ESLint and Prettier for code quality:
-
-```bash
-# Backend
-cd backend
-npm run lint       # Check for linting issues
-npm run lint:fix   # Fix linting issues
-npm run format     # Format code with Prettier
-
-# Client App
-cd app.client
-npm run lint       # Check for linting issues
-npm run lint:fix   # Fix linting issues
-npm run format     # Format code with Prettier
-
-# Admin App
-cd app.admin
-npm run lint       # Check for linting issues
-npm run lint:fix   # Fix linting issues
-npm run format     # Format code with Prettier
-```
-
-## API Documentation
-
-The API documentation is available at `/api-docs` when running the backend server.
-
-## Database Management
-
-### Accessing the Database
-
-Connect to the PostgreSQL database:
-
-```bash
-docker-compose exec postgres psql -U postgres -d pairflix
-```
-
-### Running Migrations
-
-```bash
-# Inside the backend container
-docker-compose exec backend npm run db:migrate
-```
-
-### Creating New Migrations
-
-```bash
-# Inside the backend container
-docker-compose exec backend npm run db:migrate:create -- --name your_migration_name
-```
-
-## TMDb API
-
-The application uses [The Movie Database (TMDb) API](https://developers.themoviedb.org/3/getting-started/introduction) for content metadata.
-
-To use it:
-
-1. Register for an account on TMDb
-2. Generate an API key
-3. Add the key to your backend `.env` file
+Worker and Pages roll back differently; the deploy runbook lives alongside this file once the cutover
+phase lands. Until then, see creatorgrid's `docs/deploying.md` for the reference procedure.
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Database Connection Issues**
-
-   - Ensure PostgreSQL is running: `docker-compose ps`
-   - Check database logs: `docker-compose logs postgres`
-   - Verify database environment variables in backend `.env`
-
-2. **API Connection Issues**
-
-   - Check that backend is running: `docker-compose ps`
-   - Verify API URL in client and admin app `.env` files
-   - Check CORS settings if modifying API origins
-
-3. **Docker Issues**
-
-   - Restart with fresh containers: `docker-compose down && docker-compose up`
-   - Rebuild images: `docker-compose build --no-cache`
-
-4. **Component Library Issues**
-
-   - If changes to the component library aren't reflecting in the apps:
-
-     - Ensure you've built the library: `cd lib.components && npm run build`
-     - Check path aliases in tsconfig.json of the app
-     - Verify the component is properly exported in the library index.ts
-
-   - If Docker builds fail with npm errors related to `@pairflix/components`:
-     - The multi-stage Docker build should handle this automatically
-     - If issues persist, rebuild with no cache: `docker-compose build --no-cache`
-
-### Getting Help
-
-If you encounter issues not covered here, please:
-
-1. Check existing issues in the project repository
-2. Create a new issue with details about the problem
-3. Include relevant logs and environment information
+- **`wrangler dev` can't find the DB** — run `db:migrate:local` first; the binding name is `DB`, the
+  database name is `pairflix-db` (see `services/api/wrangler.jsonc`).
+- **A `packages/*` change isn't picked up** — Turborepo caches builds; `pnpm build` the changed
+  package, or run `pnpm dev` which watches. Shared-package edits affect both apps — type-check both.
+- **Auth/CSRF failures in local dev** — the client must fetch `GET /api/auth/csrf-token` and echo the
+  `csrfToken` cookie back as `x-csrf-token` on writes; check `ALLOWED_ORIGINS` includes your dev
+  origin.

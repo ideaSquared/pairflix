@@ -2,15 +2,23 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  ci:
+  # Single verification job, mirroring creatorgrid's CI. Formatting is checked by a
+  # standalone `prettier --check` (format:check), NOT eslint-plugin-prettier — running
+  # Prettier as an ESLint rule is what caused the lint/format version drift the old
+  # split workflows kept fighting.
+  verify:
     name: CI (Lint, Test, Build)
     runs-on: ubuntu-latest
     steps:
@@ -21,73 +29,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            app.client/node_modules
-            app.admin/node_modules
-            backend/node_modules
-            lib.components/node_modules
-          key: ${{ runner.os }}-node-modules-v3-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-v3-
+      - name: Install
+        run: npm ci
 
-      - name: Fix Rollup optional dependencies issue
-        run: |
-          # Clear npm cache to avoid stale dependencies
-          npm cache clean --force
-          # Remove any existing node_modules that might have corrupted optional deps
-          rm -rf node_modules package-lock.json
-          rm -rf lib.components/node_modules lib.components/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          # Install root dependencies
-          npm install
-          # Specifically reinstall lib.components dependencies to ensure Rollup works
-          cd lib.components && npm install
-
-      - name: Verify Rollup installation
-        run: |
-          # Check if the Rollup native module exists
-          cd lib.components
-          echo "Checking Rollup installation..."
-          if [ ! -d "node_modules/@rollup" ]; then
-            echo "Rollup directory not found, attempting manual installation..."
-            npm install rollup@^4.0.0 --save-dev
-            npm install @rollup/rollup-linux-x64-gnu --save-dev --optional
-          else
-            echo "Rollup directory found, checking for linux-x64-gnu module..."
-            if [ ! -f "node_modules/@rollup/rollup-linux-x64-gnu/rollup.linux-x64-gnu.node" ]; then
-              echo "Linux x64 GNU module missing, installing..."
-              npm install @rollup/rollup-linux-x64-gnu --save-dev --optional
-            fi
-          fi
-          # List rollup modules for debugging
-          ls -la node_modules/@rollup/ || echo "No @rollup directory found"
-          # Verify the specific module exists
-          ls -la node_modules/@rollup/rollup-linux-x64-gnu/ || echo "Linux x64 GNU module not found"
-
-      - name: Build components package (required for tests)
+      - name: Build component library
         run: npm run build:components
 
-      - name: Auto-fix formatting before lint
-        # eslint-plugin-prettier disagrees with local prettier on CI's
-        # Ubuntu runner (likely a transitive version mismatch from
-        # `npm install` resolving newer prereleases than local). Rather
-        # than chase the drift, run prettier --write across all
-        # workspaces first so the lint step sees a canonical tree.
-        run: npm run format:all
+      - name: Format check
+        run: npm run format:check
 
-      - name: Lint all packages
+      - name: Lint
         run: npm run lint:all
 
-      - name: Test all packages
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Test
         run: npm run test:all
 
-      - name: Build all packages
+      - name: Build
         run: npm run build:all

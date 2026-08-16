@@ -2,6 +2,22 @@
 
 This document tracks all architectural and implementation decisions made during the development of PairFlix. Decisions are organized chronologically and include comprehensive context for future reference.
 
+## 2026 — Pivot and re-platform
+
+Newer significant decisions are recorded as ADRs under `docs/adr/`. The two that reframe everything
+below:
+
+- **Product pivot** — from user-to-user watchlist matching to the household "what should WE watch
+  tonight" decision layer. See `docs/prd.md` and `docs/architecture.md`. The old matching/watchlist
+  product is retired; as pre-launch alpha with no production data, its code and schema are being
+  deleted, not preserved.
+- **ADR 0001 — Cloudflare re-platform** (`docs/adr/0001-cloudflare-stack.md`, Accepted 2026-08-16).
+  Move off Express + Sequelize + Postgres + npm onto pnpm + Turborepo + Hono + Drizzle + D1 + R2 on
+  Cloudflare Workers/Pages, mirroring the `creatorgrid` sibling repo. Migration phases in
+  `docs/roadmap.md`.
+
+The table below is **pre-pivot history** — accurate for the old product, retained for context.
+
 ## Architectural Decisions
 
 | Date       | Decision                                                      | Context                                                                                                                                                                                                                                                                                                                                                                                              | Options Considered                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Selected Option                                                                        | Reasoning                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Implementation Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Future Considerations                                                                                                                                                                                                                                                                                                                                                                                       | References                                                                                                                                                   |
