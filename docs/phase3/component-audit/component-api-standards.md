@@ -24,31 +24,31 @@ All components should support these common props when appropriate:
 
 ```typescript
 interface BaseComponentProps {
-	// Core styling
-	className?: string;
-	style?: React.CSSProperties;
+  // Core styling
+  className?: string;
+  style?: React.CSSProperties;
 
-	// Accessibility
-	'aria-label'?: string;
-	'aria-labelledby'?: string;
-	'aria-describedby'?: string;
-	tabIndex?: number;
+  // Accessibility
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  tabIndex?: number;
 
-	// Testing
-	'data-testid'?: string;
+  // Testing
+  'data-testid'?: string;
 
-	// Theme variants
-	variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost';
-	size?: 'small' | 'medium' | 'large';
+  // Theme variants
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
 
-	// States
-	disabled?: boolean;
-	isLoading?: boolean;
-	isActive?: boolean;
-	isFocused?: boolean;
+  // States
+  disabled?: boolean;
+  isLoading?: boolean;
+  isActive?: boolean;
+  isFocused?: boolean;
 
-	// All HTML attributes should be allowed to pass through
-	[key: string]: any;
+  // All HTML attributes should be allowed to pass through
+  [key: string]: any;
 }
 ```
 
@@ -81,17 +81,12 @@ Consistent color props across components:
 
 ```typescript
 type ColorScheme =
-	| 'primary'
-	| 'secondary'
-	| 'success'
-	| 'warning'
-	| 'error'
-	| 'info';
+  'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
 
 interface ColorProps {
-	colorScheme?: ColorScheme;
-	textColor?: string; // Should accept theme colors or CSS colors
-	backgroundColor?: string; // Should accept theme colors or CSS colors
+  colorScheme?: ColorScheme;
+  textColor?: string; // Should accept theme colors or CSS colors
+  backgroundColor?: string; // Should accept theme colors or CSS colors
 }
 ```
 
@@ -106,16 +101,16 @@ type ChangeEventHandler = React.ChangeEventHandler<HTMLInputElement>;
 
 // Form and input component handlers
 interface InputHandlers {
-	onChange?: ChangeEventHandler;
-	onFocus?: FocusEventHandler;
-	onBlur?: FocusEventHandler;
+  onChange?: ChangeEventHandler;
+  onFocus?: FocusEventHandler;
+  onBlur?: FocusEventHandler;
 }
 
 // Interactive component handlers
 interface InteractiveHandlers {
-	onClick?: MouseEventHandler;
-	onMouseEnter?: MouseEventHandler;
-	onMouseLeave?: MouseEventHandler;
+  onClick?: MouseEventHandler;
+  onMouseEnter?: MouseEventHandler;
+  onMouseLeave?: MouseEventHandler;
 }
 ```
 
@@ -125,11 +120,11 @@ Form components should provide both raw DOM events and simplified value handling
 
 ```typescript
 interface InputProps extends InputHandlers {
-	// Raw event
-	onChange?: ChangeEventHandler;
+  // Raw event
+  onChange?: ChangeEventHandler;
 
-	// Simplified handler with just the value
-	onValueChange?: (value: string) => void;
+  // Simplified handler with just the value
+  onValueChange?: (value: string) => void;
 }
 ```
 
@@ -141,9 +136,9 @@ All components should forward refs to their underlying DOM elements:
 
 ```typescript
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	(props, ref) => {
-		// Implementation
-	}
+  (props, ref) => {
+    // Implementation
+  }
 );
 ```
 
@@ -153,8 +148,8 @@ Support for both children and render props when applicable:
 
 ```typescript
 interface RenderProps<T> {
-	children?: React.ReactNode | ((props: T) => React.ReactNode);
-	render?: (props: T) => React.ReactNode;
+  children?: React.ReactNode | ((props: T) => React.ReactNode);
+  render?: (props: T) => React.ReactNode;
 }
 ```
 
@@ -164,11 +159,11 @@ For complex components, use the Compound Component pattern:
 
 ```typescript
 const Tabs = {
-	Root: TabsRoot,
-	List: TabsList,
-	Tab: Tab,
-	Panels: TabPanels,
-	Panel: TabPanel,
+  Root: TabsRoot,
+  List: TabsList,
+  Tab: Tab,
+  Panels: TabPanels,
+  Panel: TabPanel,
 };
 ```
 
@@ -180,12 +175,12 @@ Use generics for data-driven components:
 
 ```typescript
 interface TableProps<T> {
-	data: T[];
-	columns: Column<T>[];
+  data: T[];
+  columns: Column<T>[];
 }
 
 function Table<T>(props: TableProps<T>) {
-	// Implementation
+  // Implementation
 }
 ```
 
@@ -199,9 +194,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'ghost';
 
 // Over this:
 enum ButtonVariant {
-	Primary = 'primary',
-	Secondary = 'secondary',
-	// ...
+  Primary = 'primary',
+  Secondary = 'secondary',
+  // ...
 }
 ```
 
@@ -232,11 +227,11 @@ Components should derive their styling from the theme:
 
 ```typescript
 const Button = styled.button<ButtonProps>`
-	background-color: ${(props) =>
-		props.theme.colors[props.colorScheme || 'primary']};
-	padding: ${(props) => props.theme.spacing[props.size || 'medium']};
-	font-size: ${(props) =>
-		props.theme.typography.fontSize[props.size || 'medium']};
+  background-color: ${props =>
+    props.theme.colors[props.colorScheme || 'primary']};
+  padding: ${props => props.theme.spacing[props.size || 'medium']};
+  font-size: ${props =>
+    props.theme.typography.fontSize[props.size || 'medium']};
 `;
 ```
 
@@ -247,12 +242,12 @@ Support for style overrides with styled-components:
 ```typescript
 // Allow styled-components to extend our components
 const Button = styled.button<ButtonProps>`
-	// Base styles
+  // Base styles
 `;
 
 // Usage
 const CustomButton = styled(Button)`
-	border-radius: 50%;
+  border-radius: 50%;
 `;
 ```
 

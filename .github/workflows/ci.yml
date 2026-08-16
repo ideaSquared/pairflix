@@ -14,10 +14,9 @@ permissions:
   contents: read
 
 jobs:
-  # Single verification job, mirroring creatorgrid's CI. Formatting is checked by a
-  # standalone `prettier --check` (format:check), NOT eslint-plugin-prettier — running
-  # Prettier as an ESLint rule is what caused the lint/format version drift the old
-  # split workflows kept fighting.
+  # Job name is load-bearing: branch protection requires the check named
+  # "CI (Lint, Test, Build)" — keep this exact name across any future changes
+  # to this workflow, or PRs will block waiting on a check that never reports.
   verify:
     name: CI (Lint, Test, Build)
     runs-on: ubuntu-latest
@@ -25,29 +24,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Use Node.js 20.x
+      - uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Install
-        run: npm ci
-
-      - name: Build component library
-        run: npm run build:components
+        run: pnpm install --frozen-lockfile
 
       - name: Format check
-        run: npm run format:check
+        run: pnpm format:check
 
       - name: Lint
-        run: npm run lint:all
+        run: pnpm lint
 
       - name: Type-check
-        run: npm run type-check
+        run: pnpm type-check
 
       - name: Test
-        run: npm run test:all
+        run: pnpm test
 
       - name: Build
-        run: npm run build:all
+        run: pnpm build

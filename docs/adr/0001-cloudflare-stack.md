@@ -19,15 +19,15 @@ behind nginx.
 Two sibling ventures in the ideaSquared studio set the precedent for a house monorepo convention:
 
 - **adopt-dont-shop** — pnpm + Turborepo, `apps/` + `services/` + `packages/`, shared eslint/tsconfig
-  config packages. Its *runtime* is a fleet of Fastify microservices (auth, pets, rescue,
+  config packages. Its _runtime_ is a fleet of Fastify microservices (auth, pets, rescue,
   applications, chat, moderation, matching, cms, notifications, audit + a gateway) on Postgres/PostGIS,
   NATS, and Redis, self-hosted in Docker behind nginx with a full Grafana/Loki/Prometheus/Tempo
   observability stack.
-- **creatorgrid** — the *same* pnpm + Turborepo + `apps/`/`services/`/`packages/` skeleton, but
+- **creatorgrid** — the _same_ pnpm + Turborepo + `apps/`/`services/`/`packages/` skeleton, but
   Cloudflare-native: a single Hono Worker (`services/api`), Drizzle + D1 (SQLite), R2 for blobs,
   React/Vite SPAs on Pages, cron-triggered background work, and an explicit "deploy for free" model.
 
-The monorepo *layout* is identical between the two siblings; the only real difference is the backend
+The monorepo _layout_ is identical between the two siblings; the only real difference is the backend
 **runtime and database**. That is the decision recorded here.
 
 ## Decision
@@ -88,7 +88,7 @@ House layout plus adopt's runtime: a Fastify microservice fleet on Postgres/Post
 Docker, nginx, and full observability. All of that machinery exists because adopt serves many domains;
 Pairflix is one bounded product in alpha. Always-on cost and ops burden are the opposite of what this
 stage needs, and adopt's PostGIS justification (pet geo-search) does not apply here. The valuable thing
-to borrow from adopt is its *layout, ADR discipline, and quality gates* — which are the same layout
+to borrow from adopt is its _layout, ADR discipline, and quality gates_ — which are the same layout
 creatorgrid uses anyway — not its runtime.
 
 ### D. Convention only, keep Express/Sequelize/Postgres — rejected

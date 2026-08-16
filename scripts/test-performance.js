@@ -55,7 +55,7 @@ function testComponentOptimizations() {
   console.log('\n📊 Testing Component Optimizations');
 
   // Test React.memo implementations
-  const watchlistPath = 'app.client/src/features/watchlist/WatchlistPage.tsx';
+  const watchlistPath = 'apps/client/src/features/watchlist/WatchlistPage.tsx';
   if (fs.existsSync(watchlistPath)) {
     const content = fs.readFileSync(watchlistPath, 'utf8');
     const hasMemo = content.includes('React.memo');
@@ -68,7 +68,7 @@ function testComponentOptimizations() {
   }
 
   // Test SearchMedia optimizations
-  const searchPath = 'app.client/src/features/watchlist/SearchMedia.tsx';
+  const searchPath = 'apps/client/src/features/watchlist/SearchMedia.tsx';
   if (fs.existsSync(searchPath)) {
     const content = fs.readFileSync(searchPath, 'utf8');
     const hasDebounced = content.includes('useDebounced');
@@ -85,7 +85,7 @@ function testVirtualScrolling() {
   console.log('\n📜 Testing Virtual Scrolling Implementation');
 
   // Test virtual scrolling hooks
-  const hooksPath = 'lib.components/src/hooks/useVirtualized.ts';
+  const hooksPath = 'packages/lib.components/src/hooks/useVirtualized.ts';
   const hookExists = testFileExists(hooksPath, 'Virtual scrolling hook');
 
   if (hookExists) {
@@ -100,7 +100,7 @@ function testVirtualScrolling() {
   }
 
   // Test virtualization usage in components
-  const watchlistPath = 'app.client/src/features/watchlist/WatchlistPage.tsx';
+  const watchlistPath = 'apps/client/src/features/watchlist/WatchlistPage.tsx';
   if (fs.existsSync(watchlistPath)) {
     const content = fs.readFileSync(watchlistPath, 'utf8');
     const hasVirtualizationThreshold = content.includes(
@@ -144,7 +144,7 @@ function testAdminOptimizations() {
   console.log('\n🔧 Testing Admin Component Optimizations');
 
   const contentModerationPath =
-    'app.admin/src/features/admin/components/content/ContentModerationContent.tsx';
+    'apps/admin/src/features/admin/components/content/ContentModerationContent.tsx';
   if (fs.existsSync(contentModerationPath)) {
     const content = fs.readFileSync(contentModerationPath, 'utf8');
     const hasDebounced = content.includes('useDebounced');
@@ -161,7 +161,7 @@ function testBundleOptimizations() {
   console.log('\n📦 Testing Bundle Optimizations');
 
   // Check for proper exports in component library
-  const indexPath = 'lib.components/src/hooks/index.ts';
+  const indexPath = 'packages/lib.components/src/hooks/index.ts';
   if (fs.existsSync(indexPath)) {
     const content = fs.readFileSync(indexPath, 'utf8');
     const exportsHooks = content.includes('useVirtualized');
@@ -170,7 +170,7 @@ function testBundleOptimizations() {
   }
 
   // Check for lazy loading implementations
-  const searchPath = 'app.client/src/features/watchlist/SearchMedia.tsx';
+  const searchPath = 'apps/client/src/features/watchlist/SearchMedia.tsx';
   if (fs.existsSync(searchPath)) {
     const content = fs.readFileSync(searchPath, 'utf8');
     const hasLazyLoading = content.includes('loading="lazy"');

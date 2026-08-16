@@ -21,9 +21,9 @@ applyTo: '**/models/*.{ts,js},**/db/**/*.{ts,js}'
 - ✅ Use **transactional writes** for any multi-step create/update/delete operations:
 
   ```ts
-  await sequelize.transaction(async (t) => {
-  	await User.create(data, { transaction: t });
-  	await Profile.create(profileData, { transaction: t });
+  await sequelize.transaction(async t => {
+    await User.create(data, { transaction: t });
+    await Profile.create(profileData, { transaction: t });
   });
   ```
 

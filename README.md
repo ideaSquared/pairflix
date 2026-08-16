@@ -14,13 +14,13 @@ This is a monorepo containing multiple applications and shared libraries:
 
 ### Applications
 
-- **`app.client/`** - Main user-facing React application
-- **`app.admin/`** - Administrative panel for platform management
-- **`backend/`** - Express.js API server with PostgreSQL database
+- **`apps/client/`** - Main user-facing React application
+- **`apps/admin/`** - Administrative panel for platform management
+- **`services/api/`** - Express.js API server with PostgreSQL database
 
 ### Shared Libraries
 
-- **`lib.components/`** - Reusable React component library with TypeScript and styled-components
+- **`packages/lib.components/`** - Reusable React component library with TypeScript and styled-components
 
 ### Documentation & Scripts
 
@@ -31,7 +31,7 @@ This is a monorepo containing multiple applications and shared libraries:
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22.x (see `.nvmrc`) and pnpm 10 (`corepack enable && corepack prepare pnpm@latest --activate`)
 - PostgreSQL 14+
 - Docker (optional, for containerized development)
 
@@ -47,7 +47,7 @@ This is a monorepo containing multiple applications and shared libraries:
 2. **Install dependencies**
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Set up the database**
@@ -64,8 +64,8 @@ This is a monorepo containing multiple applications and shared libraries:
 
    ```bash
    # Copy example environment files
-   cp backend/.env.example backend/.env
-   cp app.client/.env.example app.client/.env
+   cp services/api/.env.example services/api/.env
+   cp apps/client/.env.example apps/client/.env
 
    # Edit the files with your configuration
    ```
@@ -73,13 +73,13 @@ This is a monorepo containing multiple applications and shared libraries:
 5. **Start the development servers**
 
    ```bash
-   # Start all services
-   npm run dev
+   # Start all services in parallel
+   pnpm dev
 
-   # Or start individually
-   npm run dev:backend    # API server (port 3000)
-   npm run dev:client     # Client app (port 5173)
-   npm run dev:admin      # Admin panel (port 5174)
+   # Or start one workspace at a time
+   pnpm --filter @pairflix/api dev       # API server (port 3000)
+   pnpm --filter @pairflix/client dev    # Client app (port 5173)
+   pnpm --filter @pairflix/admin dev     # Admin panel (port 5174)
    ```
 
 ## 📱 Applications
@@ -124,20 +124,21 @@ RESTful API server providing:
 
 ### Available Scripts
 
-**Root Level:**
+**Root Level (Turborepo-orchestrated):**
 
-- `npm run dev` - Start all development servers
-- `npm run build` - Build all applications for production
-- `npm run test` - Run all test suites
-- `npm run lint` - Lint all projects
-- `npm run format` - Format code using Prettier
+- `pnpm dev` - Start all development servers in parallel
+- `pnpm build` - Build all workspaces for production
+- `pnpm test` - Run all test suites
+- `pnpm lint` - Lint all workspaces
+- `pnpm format` - Format code using Prettier
+- `pnpm type-check` - Type-check all workspaces
 
-**Individual Applications:**
+**Individual Workspaces** (`pnpm --filter <package> <script>`):
 
-- `npm run dev:backend` - Start backend API server
-- `npm run dev:client` - Start client development server
-- `npm run dev:admin` - Start admin panel development server
-- `npm run dev:components` - Start component library Storybook
+- `pnpm --filter @pairflix/api dev` - Start the API server
+- `pnpm --filter @pairflix/client dev` - Start the client dev server
+- `pnpm --filter @pairflix/admin dev` - Start the admin dev server
+- `pnpm --filter @pairflix/components storybook` - Start component library Storybook
 
 ### Technology Stack
 
@@ -206,10 +207,10 @@ Comprehensive testing strategy covering:
 Run tests:
 
 ```bash
-npm run test              # All tests
-npm run test:backend      # Backend tests only
-npm run test:client       # Client tests only
-npm run test:components   # Component library tests
+pnpm test                                # All tests
+pnpm --filter @pairflix/api test         # API tests only
+pnpm --filter @pairflix/client test      # Client tests only
+pnpm --filter @pairflix/components test  # Component library tests
 ```
 
 ## 📚 Documentation
@@ -222,16 +223,16 @@ npm run test:components   # Component library tests
 
 ### 🎯 Application Documentation
 
-- **[Backend API](./backend/README.md)** - Node.js/Express API server with comprehensive security features
-- **[Main Application](./app.client/README.md)** - React client application for end users
-- **[Admin Panel](./app.admin/README.md)** - Administrative interface and system management
-- **[Component Library](./lib.components/README.md)** - Shared UI component system and design standards
+- **[Backend API](./services/api/README.md)** - Node.js/Express API server with comprehensive security features
+- **[Main Application](./apps/client/README.md)** - React client application for end users
+- **[Admin Panel](./apps/admin/README.md)** - Administrative interface and system management
+- **[Component Library](./packages/lib.components/README.md)** - Shared UI component system and design standards
 
 ### 📚 Technical References
 
 - **[API Documentation](./docs/api-docs.md)** - Complete REST API reference with examples
 - **[Database Schema](./docs/db-schema.md)** - Database design and relationships
-- **[Security Guide](./backend/docs/SECURITY.md)** - Security implementation, rate limiting, and best practices
+- **[Security Guide](./services/api/docs/SECURITY.md)** - Security implementation, rate limiting, and best practices
 - **[Decision Log](./docs/decision-log.md)** - Comprehensive record of architectural and implementation decisions
 
 > 💡 **For complete documentation navigation, visit the [Documentation Index](./docs/README.md)**
@@ -287,13 +288,13 @@ npm run test:components   # Component library tests
 ### Development
 
 ```bash
-npm run dev  # Start all development servers
+pnpm dev  # Start all development servers
 ```
 
 ### Production Build
 
 ```bash
-npm run build  # Build all applications
+pnpm build  # Build all workspaces
 ```
 
 ### Docker Deployment
@@ -316,7 +317,7 @@ See [`prd.md`](./prd.md) for detailed production deployment instructions.
 1. **Fork the repository**
 2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
 3. **Make your changes** following the coding standards
-4. **Run tests** (`npm run test`)
+4. **Run tests** (`pnpm test`)
 5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
 6. **Push to the branch** (`git push origin feature/amazing-feature`)
 7. **Open a Pull Request**
