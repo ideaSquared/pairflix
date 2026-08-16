@@ -198,12 +198,12 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </select>
           </div>
 
-          <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+          <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit">
-              <FiUser style={{ marginRight: '8px' }} /> Create User
+              <FiUser className={styles.buttonIcon} /> Create User
             </Button>
           </Flex>
         </form>

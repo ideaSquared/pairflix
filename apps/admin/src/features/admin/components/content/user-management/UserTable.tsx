@@ -9,7 +9,8 @@ import {
   RiUserUnfollowLine,
 } from 'react-icons/ri';
 import type { User, UserRole, UserStatus } from './types';
-import { getBadgeVariant, getRoleBadgeVariant, IconStyle } from './utils';
+import { getBadgeVariant, getRoleBadgeVariant } from './utils';
+import { icon } from './utils.css';
 
 import {
   Badge,
@@ -98,7 +99,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
   const renderActions = (user: UserRecord) => (
     <Flex gap="xs">
       <TableActionButton onClick={() => onEditUser(user)} title="Edit user">
-        <FiEdit style={IconStyle} />
+        <FiEdit className={icon} />
       </TableActionButton>
 
       <TableActionButton
@@ -106,7 +107,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
         title="View activity"
         variant="secondary"
       >
-        <RiHistoryLine style={IconStyle} />
+        <RiHistoryLine className={icon} />
       </TableActionButton>
 
       <TableActionButton
@@ -114,7 +115,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
         title="Reset password"
         variant="secondary"
       >
-        <FiKey style={IconStyle} />
+        <FiKey className={icon} />
       </TableActionButton>
 
       <TableActionButton
@@ -122,7 +123,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
         title="Change role"
         variant="primary"
       >
-        <RiUserSettingsLine style={IconStyle} />
+        <RiUserSettingsLine className={icon} />
       </TableActionButton>
 
       <TableActionButton
@@ -130,7 +131,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
         title="Change status"
         variant="warning"
       >
-        <RiExchangeLine style={IconStyle} />
+        <RiExchangeLine className={icon} />
       </TableActionButton>
 
       {(user.status as UserStatus) === 'suspended' ||
@@ -140,7 +141,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
           title="Activate user"
           variant="primary"
         >
-          <RiUserFollowLine style={IconStyle} />
+          <RiUserFollowLine className={icon} />
         </TableActionButton>
       ) : (
         <>
@@ -150,7 +151,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
               title="Suspend user"
               variant="warning"
             >
-              <RiUserForbidLine style={IconStyle} />
+              <RiUserForbidLine className={icon} />
             </TableActionButton>
           ) : (user.status as UserStatus) === 'pending' ||
             (user.status as UserStatus) === 'inactive' ? (
@@ -159,7 +160,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
               title="Activate user"
               variant="primary"
             >
-              <RiUserFollowLine style={IconStyle} />
+              <RiUserFollowLine className={icon} />
             </TableActionButton>
           ) : null}
 
@@ -168,7 +169,7 @@ const UserTable: React.FC<UserTableProps> = (props: UserTableProps) => {
             onClick={() => onBanUser(user)}
             title="Ban user"
           >
-            <RiUserUnfollowLine style={IconStyle} />
+            <RiUserUnfollowLine className={icon} />
           </TableActionButton>
         </>
       )}

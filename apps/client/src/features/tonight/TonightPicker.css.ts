@@ -99,3 +99,11 @@ export const label = style({
   marginBottom: vars.spacing.sm,
   fontWeight: vars.typography.fontWeight.bold,
 });
+
+export const errorMessage = style({
+  marginTop: vars.spacing.md,
+});
+
+export const badgeRow = style({
+  flexWrap: 'wrap',
+});

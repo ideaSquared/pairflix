@@ -34,3 +34,16 @@ export const iconWrapper = style({
   fontSize: '3rem',
   marginBottom: '1rem',
 });
+
+export const successHeading = style({
+  marginBottom: '1rem',
+});
+
+export const successMessageSpacing = style({
+  marginBottom: '1rem',
+});
+
+export const createAccountHeading = style({
+  textAlign: 'center',
+  marginBottom: '2rem',
+});

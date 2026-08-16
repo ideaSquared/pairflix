@@ -323,13 +323,13 @@ const AuditLogContent: React.FC = () => {
               <TableBody>
                 {isLoading ? (
                   <tr>
-                    <TableCell colSpan={5} style={{ textAlign: 'center' }}>
+                    <TableCell colSpan={5} align="center">
                       Loading...
                     </TableCell>
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
-                    <TableCell colSpan={5} style={{ textAlign: 'center' }}>
+                    <TableCell colSpan={5} align="center">
                       No logs found
                     </TableCell>
                   </tr>

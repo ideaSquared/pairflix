@@ -28,3 +28,11 @@ export const modalContent = style({
   maxWidth: '500px',
   width: '100%',
 });
+
+export const modalFooter = style({
+  marginTop: '20px',
+});
+
+export const buttonIcon = style({
+  marginRight: '8px',
+});

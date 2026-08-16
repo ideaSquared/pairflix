@@ -416,7 +416,7 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <Flex direction="column" style={{ minHeight: '100vh', width: '100%' }}>
+    <Flex direction="column" className={styles.appShell}>
       <Header>
         <Container fluid>
           <HeaderContent>

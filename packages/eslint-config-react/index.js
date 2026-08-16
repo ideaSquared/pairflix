@@ -27,13 +27,8 @@ export default [
         { allowConstantExport: true },
       ],
       'react/no-danger': 'error',
-      // 'warn' rather than creatorgrid's 'error': pairflix is retrofitting this rule onto an
-      // existing codebase, and it surfaces a large pre-existing backlog of decorative inline
-      // styles in Storybook-only .stories.tsx files. Newly-introduced violations in real
-      // component code should still be fixed on sight; promote to 'error' once the backlog
-      // is cleared.
       'react/forbid-component-props': [
-        'warn',
+        'error',
         {
           forbid: [
             {

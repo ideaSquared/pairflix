@@ -163,7 +163,7 @@ const AdminDashboardContent: React.FC = () => {
         <Card variant="primary" accentColor="var(--color-error)">
           <CardContent>
             <Typography variant="body1">{error}</Typography>
-            <Button onClick={handleRefreshStats} style={{ marginTop: '1rem' }}>
+            <Button onClick={handleRefreshStats} className={styles.retryButton}>
               Try Again
             </Button>
           </CardContent>
@@ -208,7 +208,10 @@ const AdminDashboardContent: React.FC = () => {
                       {metrics.recentUsers.count} new users in the last{' '}
                       {metrics.recentUsers.days} days
                     </Typography>
-                    <Typography variant="body2" style={{ marginTop: '0.5rem' }}>
+                    <Typography
+                      variant="body2"
+                      className={styles.recentUsersTrend}
+                    >
                       {metrics.recentUsers.percentage}%{' '}
                       {metrics.recentUsers.trend === 'up'
                         ? 'increase'
@@ -237,10 +240,7 @@ const AdminDashboardContent: React.FC = () => {
                     {metrics.system.recentErrors > 0 && (
                       <Typography
                         variant="body2"
-                        style={{
-                          color: 'var(--color-error)',
-                          marginTop: '0.5rem',
-                        }}
+                        className={styles.systemErrorText}
                       >
                         {metrics.system.recentErrors} errors in the last 24
                         hours
@@ -312,17 +312,7 @@ const AdminDashboardContent: React.FC = () => {
           >
             <Typography>Test direct navigation:</Typography>
             <div style={{ marginTop: '10px' }}>
-              <Link
-                to="/users"
-                style={{
-                  display: 'inline-block',
-                  padding: '8px 16px',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  textDecoration: 'none',
-                  borderRadius: '4px',
-                }}
-              >
+              <Link to="/users" className={styles.testNavLink}>
                 Go to Users Page
               </Link>
             </div>

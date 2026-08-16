@@ -70,3 +70,20 @@ export const metricChart = style({
   height: '160px',
   marginTop: vars.spacing.md,
 });
+
+export const retryButton = style({
+  marginTop: vars.spacing.md,
+});
+
+export const detailedStatsGrid = style({
+  marginTop: vars.spacing.lg,
+});
+
+export const sectionHeading = style({
+  marginTop: vars.spacing.lg,
+  marginBottom: vars.spacing.md,
+});
+
+export const alertMessage = style({
+  fontWeight: vars.typography.fontWeight.bold,
+});

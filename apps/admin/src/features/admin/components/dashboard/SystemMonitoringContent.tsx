@@ -381,7 +381,7 @@ const SystemMonitoringContent: React.FC = () => {
       <Card variant="primary" accentColor="var(--color-error)">
         <CardContent>
           <Typography variant="body1">{error}</Typography>
-          <Button onClick={handleRefresh} style={{ marginTop: '1rem' }}>
+          <Button onClick={handleRefresh} className={styles.retryButton}>
             Try Again
           </Button>
         </CardContent>
@@ -565,7 +565,7 @@ const SystemMonitoringContent: React.FC = () => {
           </Grid>
 
           {/* Detailed System Stats */}
-          <Grid columns={3} gap="md" style={{ marginTop: '1.5rem' }}>
+          <Grid columns={3} gap="md" className={styles.detailedStatsGrid}>
             <Card className={styles.statsCard}>
               <CardContent>
                 <H3>Database Stats</H3>
@@ -672,9 +672,7 @@ const SystemMonitoringContent: React.FC = () => {
           </Grid>
 
           {/* Active Users */}
-          <H3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-            User Activity
-          </H3>
+          <H3 className={styles.sectionHeading}>User Activity</H3>
           <Card className={styles.statsCard}>
             <CardContent>
               <Grid columns={3} gap="md">
@@ -743,9 +741,7 @@ const SystemMonitoringContent: React.FC = () => {
           {/* System Alerts */}
           {monitoringData.alerts && monitoringData.alerts.length > 0 && (
             <>
-              <H3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-                System Alerts
-              </H3>
+              <H3 className={styles.sectionHeading}>System Alerts</H3>
               <Card
                 className={styles.statsCard}
                 variant="primary"
@@ -757,7 +753,7 @@ const SystemMonitoringContent: React.FC = () => {
                       <div key={index} style={{ marginBottom: '1rem' }}>
                         <Typography
                           variant="body1"
-                          style={{ fontWeight: 'bold' }}
+                          className={styles.alertMessage}
                         >
                           {alert.severity === 'critical'
                             ? '🔴'

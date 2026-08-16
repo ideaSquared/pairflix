@@ -17,6 +17,10 @@ export const sectionHeader = style({
   marginBottom: vars.spacing.md,
 });
 
+export const todayButton = style({
+  marginRight: '8px',
+});
+
 // `10` hex alpha suffix (~6%) becomes color-mix against the var() reference.
 export const tableRow = recipe({
   base: {

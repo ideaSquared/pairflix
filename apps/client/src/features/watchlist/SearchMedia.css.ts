@@ -104,3 +104,26 @@ export const searchControls = style({
   flexWrap: 'wrap',
   marginBottom: vars.spacing.lg,
 });
+
+export const searchStatusMessage = style({
+  textAlign: 'center',
+  marginTop: vars.spacing.xl,
+});
+
+export const searchInputGroup = style({
+  flex: 1,
+});
+
+export const performanceInfo = style({
+  marginBottom: vars.spacing.md,
+  opacity: 0.7,
+});
+
+export const addedMessage = style({
+  color: 'green',
+  textAlign: 'center',
+  marginTop: vars.spacing.md,
+  padding: vars.spacing.sm,
+  backgroundColor: '#f0f9ff',
+  borderRadius: vars.borderRadius.sm,
+});

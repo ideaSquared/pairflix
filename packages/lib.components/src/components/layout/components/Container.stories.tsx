@@ -1,8 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Container } from './Container';
 import { Flex } from './Flex';
+import {
+  containerBgInner,
+  containerBgInnermost,
+  containerBgLight,
+  containerBgOuter,
+  containerMarginTop,
+  contentBlock,
+  contentBlockFormPadding,
+  contentBlockSidebarContent,
+  contentBlockTallContent,
+  sectionTitle,
+} from './Container.stories.css';
 
 // Plain demo helpers for storybook documentation
 const DemoContent = ({ children }: { children: ReactNode }) => (
@@ -13,15 +25,11 @@ const DemoContent = ({ children }: { children: ReactNode }) => (
 
 const SectionTitle = ({
   children,
-  style,
+  small,
 }: {
   children: ReactNode;
-  style?: CSSProperties;
-}) => (
-  <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 500, ...style }}>
-    {children}
-  </h3>
-);
+  small?: boolean;
+}) => <h3 className={sectionTitle({ small })}>{children}</h3>;
 
 const SectionDescription = ({ children }: { children: ReactNode }) => (
   <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14 }}>
@@ -32,29 +40,14 @@ const SectionDescription = ({ children }: { children: ReactNode }) => (
 // Content block to show container boundaries
 const ContentBlock = ({
   bgColor,
-  style,
+  className = contentBlock,
   children,
 }: {
   bgColor?: string;
-  style?: CSSProperties;
+  className?: string;
   children: ReactNode;
 }) => (
-  <div
-    style={{
-      backgroundColor: bgColor || '#f5f5f5',
-      padding: 16,
-      borderRadius: 8,
-      width: '100%',
-      minHeight: 80,
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      position: 'relative',
-      ...style,
-    }}
-  >
+  <div className={className} style={{ backgroundColor: bgColor || '#f5f5f5' }}>
     {children}
   </div>
 );
@@ -295,7 +288,7 @@ export const PaddingVariations: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>padding=&quot;xs&quot; (0.25rem)</ContainerLabel>
-        <Container padding="xs" style={{ backgroundColor: '#f5f5f5' }}>
+        <Container padding="xs" className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <p>Extra Small Padding (xs)</p>
           </ContentBlock>
@@ -304,7 +297,7 @@ export const PaddingVariations: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>padding=&quot;sm&quot; (0.5rem)</ContainerLabel>
-        <Container padding="sm" style={{ backgroundColor: '#f5f5f5' }}>
+        <Container padding="sm" className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <p>Small Padding (sm)</p>
           </ContentBlock>
@@ -313,7 +306,7 @@ export const PaddingVariations: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>padding=&quot;md&quot; (1rem) - Default</ContainerLabel>
-        <Container padding="md" style={{ backgroundColor: '#f5f5f5' }}>
+        <Container padding="md" className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <p>Medium Padding (md) - Default</p>
           </ContentBlock>
@@ -322,7 +315,7 @@ export const PaddingVariations: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>padding=&quot;lg&quot; (1.5rem)</ContainerLabel>
-        <Container padding="lg" style={{ backgroundColor: '#f5f5f5' }}>
+        <Container padding="lg" className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <p>Large Padding (lg)</p>
           </ContentBlock>
@@ -331,7 +324,7 @@ export const PaddingVariations: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>padding=&quot;xl&quot; (2rem)</ContainerLabel>
-        <Container padding="xl" style={{ backgroundColor: '#f5f5f5' }}>
+        <Container padding="xl" className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <p>Extra Large Padding (xl)</p>
           </ContentBlock>
@@ -499,7 +492,7 @@ export const ResponsivePadding: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>Default Responsive Padding</ContainerLabel>
-        <Container style={{ backgroundColor: '#f5f5f5' }}>
+        <Container className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <h4>Default Padding Behavior</h4>
             <p>
@@ -512,7 +505,7 @@ export const ResponsivePadding: Story = {
 
       <ContainerVisualization>
         <ContainerLabel>No Padding on Mobile</ContainerLabel>
-        <Container noPaddingOnMobile style={{ backgroundColor: '#f5f5f5' }}>
+        <Container noPaddingOnMobile className={containerBgLight}>
           <ContentBlock bgColor="#ffffff">
             <h4>No Padding on Mobile</h4>
             <p>
@@ -531,7 +524,7 @@ export const ResponsivePadding: Story = {
             tablet: 'md',
             desktop: 'xl',
           }}
-          style={{ backgroundColor: '#f5f5f5' }}
+          className={containerBgLight}
         >
           <ContentBlock bgColor="#ffffff">
             <h4>Custom Responsive Padding</h4>
@@ -555,9 +548,7 @@ export const CommonUseCases: Story = {
         Examples of common container usage patterns in applications.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Page Layout
-      </SectionTitle>
+      <SectionTitle small>Page Layout</SectionTitle>
       <ContainerVisualization dark>
         <Container>
           <Flex direction="column" gap="md">
@@ -565,7 +556,7 @@ export const CommonUseCases: Story = {
               <h3>Page Header</h3>
               <p>Typically contains navigation, logo, user menu</p>
             </ContentBlock>
-            <ContentBlock bgColor="#e8f5e9" style={{ minHeight: '180px' }}>
+            <ContentBlock bgColor="#e8f5e9" className={contentBlockTallContent}>
               <h3>Page Content</h3>
               <p>
                 Main content area with contained width for better readability
@@ -579,14 +570,12 @@ export const CommonUseCases: Story = {
         </Container>
       </ContainerVisualization>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Form Container
-      </SectionTitle>
+      <SectionTitle small>Form Container</SectionTitle>
       <ContainerVisualization dark>
         <Container maxWidth="sm" padding="lg">
-          <ContentBlock bgColor="#f9f9f9" style={{ padding: '24px' }}>
+          <ContentBlock bgColor="#f9f9f9" className={contentBlockFormPadding}>
             <h3 style={{ marginTop: 0 }}>Sign In</h3>
-            <Flex direction="column" gap="md" style={{ width: '100%' }}>
+            <Flex direction="column" gap="md" isFullWidth>
               <Flex direction="column" gap="xs">
                 <label htmlFor="login-email" style={{ fontWeight: 500 }}>
                   Email
@@ -635,20 +624,21 @@ export const CommonUseCases: Story = {
         </Container>
       </ContainerVisualization>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Content with Sidebar
-      </SectionTitle>
+      <SectionTitle small>Content with Sidebar</SectionTitle>
       <ContainerVisualization dark>
         <Container>
           <Flex gap="md">
-            <Flex direction="column" gap="md" style={{ flex: '0 0 250px' }}>
+            <Flex direction="column" gap="md" flex="0 0 250px">
               <ContentBlock bgColor="#e3f2fd">
                 <h4>Sidebar</h4>
                 <p>Navigation or filters</p>
               </ContentBlock>
             </Flex>
-            <Flex direction="column" gap="md" style={{ flex: 1 }}>
-              <ContentBlock bgColor="#f5f5f5" style={{ minHeight: '200px' }}>
+            <Flex direction="column" gap="md" flex="1">
+              <ContentBlock
+                bgColor="#f5f5f5"
+                className={contentBlockSidebarContent}
+              >
                 <h4>Main Content</h4>
                 <p>Page content with constrained width</p>
               </ContentBlock>
@@ -657,7 +647,7 @@ export const CommonUseCases: Story = {
         </Container>
       </ContainerVisualization>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small>
         Full Width Header with Contained Content
       </SectionTitle>
       <div style={{ backgroundColor: '#3f51b5', padding: '24px 0' }}>
@@ -668,7 +658,7 @@ export const CommonUseCases: Story = {
           </p>
         </Container>
       </div>
-      <Container style={{ marginTop: '24px' }}>
+      <Container className={containerMarginTop}>
         <ContentBlock>
           <h3>Contained Content Area</h3>
           <p>Following a full-width colored section</p>
@@ -691,10 +681,7 @@ export const NestedContainers: Story = {
         <ContainerLabel>
           Outer Container (maxWidth=&quot;lg&quot;)
         </ContainerLabel>
-        <Container
-          maxWidth="lg"
-          style={{ backgroundColor: '#f0f0f0', padding: '24px' }}
-        >
+        <Container maxWidth="lg" padding="lg" className={containerBgOuter}>
           <h3>Outer Container</h3>
           <p style={{ marginBottom: '16px' }}>
             This is the outer container with maxWidth=&quot;lg&quot;
@@ -704,10 +691,7 @@ export const NestedContainers: Story = {
             <ContainerLabel>
               Inner Container (maxWidth=&quot;md&quot;)
             </ContainerLabel>
-            <Container
-              maxWidth="md"
-              style={{ backgroundColor: '#e0e0e0', padding: '16px' }}
-            >
+            <Container maxWidth="md" padding="md" className={containerBgInner}>
               <h4>Inner Container</h4>
               <p style={{ marginBottom: '16px' }}>
                 This is an inner container with maxWidth=&quot;md&quot;
@@ -719,7 +703,8 @@ export const NestedContainers: Story = {
                 </ContainerLabel>
                 <Container
                   maxWidth="sm"
-                  style={{ backgroundColor: '#d0d0d0', padding: '16px' }}
+                  padding="md"
+                  className={containerBgInnermost}
                 >
                   <ContentBlock>
                     <h5>Innermost Container</h5>

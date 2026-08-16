@@ -128,8 +128,8 @@ const RegisterPage: React.FC = () => {
           <CardContent>
             <div className={styles.successContainer}>
               <div className={styles.iconWrapper}>📧</div>
-              <H2 style={{ marginBottom: '1rem' }}>Check Your Email!</H2>
-              <SuccessText style={{ marginBottom: '1rem' }}>
+              <H2 className={styles.successHeading}>Check Your Email!</H2>
+              <SuccessText className={styles.successMessageSpacing}>
                 {success}
               </SuccessText>
               <p
@@ -168,9 +168,7 @@ const RegisterPage: React.FC = () => {
     <Container className={styles.registerContainer}>
       <Card className={styles.registerCard}>
         <CardContent>
-          <H2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            Create Account
-          </H2>
+          <H2 className={styles.createAccountHeading}>Create Account</H2>
           <form className={styles.registerForm} onSubmit={handleSubmit}>
             <InputGroup>
               <Input

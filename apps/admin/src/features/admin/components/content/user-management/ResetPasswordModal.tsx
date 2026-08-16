@@ -34,7 +34,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
         </div>
       )}
 
-      <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+      <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>

@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@pairflix/components';
 import React from 'react';
+import * as styles from './UserActivityModal.css';
 import type { User, UserActivity } from './types';
 
 interface UserActivityModalProps {
@@ -101,7 +102,7 @@ const UserActivityModal: React.FC<UserActivityModalProps> = ({
         </Card>
       )}
 
-      <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+      <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
         <Button variant="secondary" onClick={onClose}>
           Close
         </Button>

@@ -10,3 +10,7 @@ export const passwordDisplay = style({
   fontFamily: 'monospace',
   fontSize: '18px',
 });
+
+export const modalFooter = style({
+  marginTop: '20px',
+});

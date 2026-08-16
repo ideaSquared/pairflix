@@ -8,6 +8,7 @@ import {
   Typography,
 } from '@pairflix/components';
 import React from 'react';
+import * as styles from './ChangeRoleModal.css';
 import type { User, UserRole } from './types';
 import { getRoleBadgeVariant } from './utils';
 interface ChangeRoleModalProps {
@@ -84,7 +85,7 @@ const ChangeRoleModal: React.FC<ChangeRoleModalProps> = ({
           />
         </div>
 
-        <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+        <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>

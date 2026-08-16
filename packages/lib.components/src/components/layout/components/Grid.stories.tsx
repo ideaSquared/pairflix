@@ -1,8 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Grid } from './Grid';
-import { responsiveIndicator } from './Grid.stories.css';
+import {
+  gridDashboardWrapper,
+  gridDemoBordered,
+  gridStatCardsWrapper,
+  responsiveIndicator,
+  sectionDescription,
+  sectionDescriptionSpaced,
+  sectionTitle,
+} from './Grid.stories.css';
 
 // Plain demo helpers for storybook documentation
 const DemoContent = ({ children }: { children: ReactNode }) => (
@@ -13,24 +21,20 @@ const DemoContent = ({ children }: { children: ReactNode }) => (
 
 const SectionTitle = ({
   children,
-  style,
+  variant,
 }: {
   children: ReactNode;
-  style?: CSSProperties;
-}) => (
-  <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 500, ...style }}>
-    {children}
-  </h3>
-);
+  variant?: 'heading' | 'headingLg' | 'subheading';
+}) => <h3 className={sectionTitle({ variant })}>{children}</h3>;
 
 const SectionDescription = ({
   children,
-  style,
+  spaced,
 }: {
   children: ReactNode;
-  style?: CSSProperties;
+  spaced?: boolean;
 }) => (
-  <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14, ...style }}>
+  <p className={spaced ? sectionDescriptionSpaced : sectionDescription}>
     {children}
   </p>
 );
@@ -39,12 +43,14 @@ const SectionDescription = ({
 const GridItem = ({
   color,
   height,
-  style,
+  gridColumn,
+  gridRow,
   children,
 }: {
   color?: string;
   height?: string;
-  style?: CSSProperties;
+  gridColumn?: string;
+  gridRow?: string;
   children: ReactNode;
 }) => (
   <div
@@ -61,7 +67,8 @@ const GridItem = ({
       height: height || 'auto',
       minHeight: 60,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      ...style,
+      ...(gridColumn && { gridColumn }),
+      ...(gridRow && { gridRow }),
     }}
   >
     {children}
@@ -190,17 +197,13 @@ export const ColumnVariations: Story = {
         Demonstration of different column configurations.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        1 Column Grid
-      </SectionTitle>
+      <SectionTitle variant="heading">1 Column Grid</SectionTitle>
       <Grid columns={1} gap="md">
         <GridItem>Single Column</GridItem>
         <GridItem color="#7e57c2">Single Column</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        2 Column Grid
-      </SectionTitle>
+      <SectionTitle variant="heading">2 Column Grid</SectionTitle>
       <Grid columns={2} gap="md">
         <GridItem>Two Columns</GridItem>
         <GridItem color="#7e57c2">Two Columns</GridItem>
@@ -208,9 +211,7 @@ export const ColumnVariations: Story = {
         <GridItem color="#4caf50">Two Columns</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        3 Column Grid
-      </SectionTitle>
+      <SectionTitle variant="heading">3 Column Grid</SectionTitle>
       <Grid columns={3} gap="md">
         <GridItem>Three Columns</GridItem>
         <GridItem color="#7e57c2">Three Columns</GridItem>
@@ -220,9 +221,7 @@ export const ColumnVariations: Story = {
         <GridItem color="#f44336">Three Columns</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        4 Column Grid
-      </SectionTitle>
+      <SectionTitle variant="heading">4 Column Grid</SectionTitle>
       <Grid columns={4} gap="md">
         <GridItem>Four Columns</GridItem>
         <GridItem color="#7e57c2">Four Columns</GridItem>
@@ -234,9 +233,7 @@ export const ColumnVariations: Story = {
         <GridItem color="#9c27b0">Four Columns</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Custom Grid Template
-      </SectionTitle>
+      <SectionTitle variant="heading">Custom Grid Template</SectionTitle>
       <Grid columns="1fr 2fr 1fr" gap="md">
         <GridItem>1fr width</GridItem>
         <GridItem color="#7e57c2">2fr width</GridItem>
@@ -255,9 +252,7 @@ export const GapVariations: Story = {
         Demonstration of different gap sizes between grid items.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Extra Small Gap (xs)
-      </SectionTitle>
+      <SectionTitle variant="heading">Extra Small Gap (xs)</SectionTitle>
       <Grid columns={3} gap="xs">
         <GridItem>xs gap</GridItem>
         <GridItem color="#7e57c2">xs gap</GridItem>
@@ -267,9 +262,7 @@ export const GapVariations: Story = {
         <GridItem color="#f44336">xs gap</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Small Gap (sm)
-      </SectionTitle>
+      <SectionTitle variant="heading">Small Gap (sm)</SectionTitle>
       <Grid columns={3} gap="sm">
         <GridItem>sm gap</GridItem>
         <GridItem color="#7e57c2">sm gap</GridItem>
@@ -279,9 +272,7 @@ export const GapVariations: Story = {
         <GridItem color="#f44336">sm gap</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Medium Gap (md) - Default
-      </SectionTitle>
+      <SectionTitle variant="heading">Medium Gap (md) - Default</SectionTitle>
       <Grid columns={3} gap="md">
         <GridItem>md gap</GridItem>
         <GridItem color="#7e57c2">md gap</GridItem>
@@ -291,9 +282,7 @@ export const GapVariations: Story = {
         <GridItem color="#f44336">md gap</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Large Gap (lg)
-      </SectionTitle>
+      <SectionTitle variant="heading">Large Gap (lg)</SectionTitle>
       <Grid columns={3} gap="lg">
         <GridItem>lg gap</GridItem>
         <GridItem color="#7e57c2">lg gap</GridItem>
@@ -303,9 +292,7 @@ export const GapVariations: Story = {
         <GridItem color="#f44336">lg gap</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Extra Large Gap (xl)
-      </SectionTitle>
+      <SectionTitle variant="heading">Extra Large Gap (xl)</SectionTitle>
       <Grid columns={3} gap="xl">
         <GridItem>xl gap</GridItem>
         <GridItem color="#7e57c2">xl gap</GridItem>
@@ -327,20 +314,18 @@ export const AlignmentOptions: Story = {
         Demonstration of different alignment options for grid items.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle variant="heading">
         Vertical Alignment (alignItems)
       </SectionTitle>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         alignItems=&quot;start&quot;
       </SectionTitle>
       <Grid
         columns={4}
         gap="md"
         alignItems="start"
-        style={{ height: '150px', border: '1px dashed #ccc' }}
+        className={gridDemoBordered}
       >
         <GridItem height="60px">Short</GridItem>
         <GridItem height="90px" color="#7e57c2">
@@ -354,16 +339,14 @@ export const AlignmentOptions: Story = {
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         alignItems=&quot;center&quot;
       </SectionTitle>
       <Grid
         columns={4}
         gap="md"
         alignItems="center"
-        style={{ height: '150px', border: '1px dashed #ccc' }}
+        className={gridDemoBordered}
       >
         <GridItem height="60px">Short</GridItem>
         <GridItem height="90px" color="#7e57c2">
@@ -377,17 +360,10 @@ export const AlignmentOptions: Story = {
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         alignItems=&quot;end&quot;
       </SectionTitle>
-      <Grid
-        columns={4}
-        gap="md"
-        alignItems="end"
-        style={{ height: '150px', border: '1px dashed #ccc' }}
-      >
+      <Grid columns={4} gap="md" alignItems="end" className={gridDemoBordered}>
         <GridItem height="60px">Short</GridItem>
         <GridItem height="90px" color="#7e57c2">
           Medium
@@ -400,16 +376,14 @@ export const AlignmentOptions: Story = {
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         alignItems=&quot;stretch&quot; (Default)
       </SectionTitle>
       <Grid
         columns={4}
         gap="md"
         alignItems="stretch"
-        style={{ height: '150px', border: '1px dashed #ccc' }}
+        className={gridDemoBordered}
       >
         <GridItem>Stretch</GridItem>
         <GridItem color="#7e57c2">Stretch</GridItem>
@@ -417,66 +391,56 @@ export const AlignmentOptions: Story = {
         <GridItem color="#4caf50">Stretch</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '32px' }}>
+      <SectionTitle variant="headingLg">
         Horizontal Alignment (justifyContent)
       </SectionTitle>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         justifyContent=&quot;start&quot; (Default)
       </SectionTitle>
       <Grid columns={4} gap="md" justifyContent="start">
-        <GridItem style={{ gridColumn: 'span 1' }}>Item 1</GridItem>
-        <GridItem style={{ gridColumn: 'span 1' }} color="#7e57c2">
+        <GridItem gridColumn="span 1">Item 1</GridItem>
+        <GridItem gridColumn="span 1" color="#7e57c2">
           Item 2
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         justifyContent=&quot;center&quot;
       </SectionTitle>
       <Grid columns={4} gap="md" justifyContent="center">
-        <GridItem style={{ gridColumn: 'span 1' }}>Item 1</GridItem>
-        <GridItem style={{ gridColumn: 'span 1' }} color="#7e57c2">
+        <GridItem gridColumn="span 1">Item 1</GridItem>
+        <GridItem gridColumn="span 1" color="#7e57c2">
           Item 2
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         justifyContent=&quot;end&quot;
       </SectionTitle>
       <Grid columns={4} gap="md" justifyContent="end">
-        <GridItem style={{ gridColumn: 'span 1' }}>Item 1</GridItem>
-        <GridItem style={{ gridColumn: 'span 1' }} color="#7e57c2">
+        <GridItem gridColumn="span 1">Item 1</GridItem>
+        <GridItem gridColumn="span 1" color="#7e57c2">
           Item 2
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         justifyContent=&quot;space-between&quot;
       </SectionTitle>
       <Grid columns={4} gap="md" justifyContent="space-between">
-        <GridItem style={{ gridColumn: 'span 1' }}>Item 1</GridItem>
-        <GridItem style={{ gridColumn: 'span 1' }} color="#7e57c2">
+        <GridItem gridColumn="span 1">Item 1</GridItem>
+        <GridItem gridColumn="span 1" color="#7e57c2">
           Item 2
         </GridItem>
       </Grid>
 
-      <SectionTitle
-        style={{ fontSize: '14px', marginTop: '16px', color: '#666' }}
-      >
+      <SectionTitle variant="subheading">
         justifyContent=&quot;space-around&quot;
       </SectionTitle>
       <Grid columns={4} gap="md" justifyContent="space-around">
-        <GridItem style={{ gridColumn: 'span 1' }}>Item 1</GridItem>
-        <GridItem style={{ gridColumn: 'span 1' }} color="#7e57c2">
+        <GridItem gridColumn="span 1">Item 1</GridItem>
+        <GridItem gridColumn="span 1" color="#7e57c2">
           Item 2
         </GridItem>
       </Grid>
@@ -497,9 +461,7 @@ export const ResponsiveGrid: Story = {
         adapt.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Responsive Columns
-      </SectionTitle>
+      <SectionTitle variant="heading">Responsive Columns</SectionTitle>
       <Grid
         columns={4}
         desktopColumns={4}
@@ -549,7 +511,7 @@ export const ResponsiveGrid: Story = {
         </GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '32px' }}>
+      <SectionTitle variant="headingLg">
         Default Responsive Behavior
       </SectionTitle>
       <SectionDescription>
@@ -579,7 +541,7 @@ export const AutoFitGrid: Story = {
         your browser window to see columns adapt.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle variant="heading">
         Auto-fit with 150px minimum column width
       </SectionTitle>
       <Grid autoFit minColWidth="150px" gap="md">
@@ -591,7 +553,7 @@ export const AutoFitGrid: Story = {
         <GridItem color="#f44336">Auto-fit</GridItem>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle variant="heading">
         Auto-fit with 250px minimum column width
       </SectionTitle>
       <Grid autoFit minColWidth="250px" gap="md">
@@ -615,9 +577,7 @@ export const UIPatterns: Story = {
         Real-world examples of UI patterns built with the Grid component.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
-        Product Cards Grid
-      </SectionTitle>
+      <SectionTitle variant="heading">Product Cards Grid</SectionTitle>
       <Grid autoFit minColWidth="250px" gap="md">
         {[1, 2, 3, 4, 5, 6].map(item => (
           <div
@@ -678,10 +638,8 @@ export const UIPatterns: Story = {
         ))}
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '32px' }}>
-        Dashboard Layout
-      </SectionTitle>
-      <Grid columns="250px 1fr" gap="lg" style={{ minHeight: '400px' }}>
+      <SectionTitle variant="headingLg">Dashboard Layout</SectionTitle>
+      <Grid columns="250px 1fr" gap="lg" className={gridDashboardWrapper}>
         <div
           style={{
             backgroundColor: '#f5f5f5',
@@ -721,29 +679,25 @@ export const UIPatterns: Story = {
           )}
         </div>
         <div>
-          <Grid columns={3} gap="md" style={{ marginBottom: '16px' }}>
-            <GridItem style={{ height: '100px' }}>Total Sales</GridItem>
-            <GridItem style={{ height: '100px' }} color="#7e57c2">
+          <Grid columns={3} gap="md" className={gridStatCardsWrapper}>
+            <GridItem height="100px">Total Sales</GridItem>
+            <GridItem height="100px" color="#7e57c2">
               New Customers
             </GridItem>
-            <GridItem style={{ height: '100px' }} color="#5c6bc0">
+            <GridItem height="100px" color="#5c6bc0">
               Conversion Rate
             </GridItem>
           </Grid>
           <Grid columns={2} gap="md">
-            <GridItem style={{ height: '200px' }}>
-              Monthly Revenue Chart
-            </GridItem>
-            <GridItem style={{ height: '200px' }} color="#4caf50">
+            <GridItem height="200px">Monthly Revenue Chart</GridItem>
+            <GridItem height="200px" color="#4caf50">
               Traffic Sources
             </GridItem>
           </Grid>
         </div>
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '32px' }}>
-        Photo Gallery
-      </SectionTitle>
+      <SectionTitle variant="headingLg">Photo Gallery</SectionTitle>
       <Grid autoFit minColWidth="150px" gap="sm">
         {Array.from({ length: 12 }).map((_, index) => (
           <div
@@ -785,9 +739,7 @@ export const UIPatterns: Story = {
         ))}
       </Grid>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '32px' }}>
-        Content with Sidebar
-      </SectionTitle>
+      <SectionTitle variant="headingLg">Content with Sidebar</SectionTitle>
       <Grid columns="1fr 3fr" gap="lg" tabletColumns="1fr" mobileColumns="1fr">
         <div
           style={{
@@ -887,22 +839,20 @@ export const MixedSizeItems: Story = {
       </SectionDescription>
 
       <Grid columns={4} gap="md" tabletColumns={2} mobileColumns={1}>
-        <GridItem
-          style={{ gridColumn: 'span 2', gridRow: 'span 2', height: '200px' }}
-        >
+        <GridItem gridColumn="span 2" gridRow="span 2" height="200px">
           2×2 Item
         </GridItem>
         <GridItem color="#7e57c2">1×1 Item</GridItem>
         <GridItem color="#5c6bc0">1×1 Item</GridItem>
-        <GridItem color="#4caf50" style={{ gridColumn: 'span 2' }}>
+        <GridItem color="#4caf50" gridColumn="span 2">
           2×1 Item
         </GridItem>
         <GridItem color="#ff9800">1×1 Item</GridItem>
-        <GridItem color="#f44336" style={{ gridColumn: 'span 3' }}>
+        <GridItem color="#f44336" gridColumn="span 3">
           3×1 Item
         </GridItem>
         <GridItem color="#e91e63">1×1 Item</GridItem>
-        <GridItem color="#9c27b0" style={{ gridRow: 'span 2' }}>
+        <GridItem color="#9c27b0" gridRow="span 2">
           1×2 Item
         </GridItem>
         <GridItem color="#2196f3">1×1 Item</GridItem>
@@ -910,7 +860,7 @@ export const MixedSizeItems: Story = {
         <GridItem color="#ffeb3b">1×1 Item</GridItem>
       </Grid>
 
-      <SectionDescription style={{ marginTop: '24px' }}>
+      <SectionDescription spaced>
         Note: When using explicit grid spans on responsive grids, you might need
         to adjust the spans for different breakpoints or use CSS media queries
         for more complex cases.

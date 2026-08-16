@@ -28,6 +28,14 @@ export const buttonGroup = style({
   marginTop: vars.spacing.md,
 });
 
+export const overridesGrid = style({
+  marginBottom: vars.spacing.md,
+});
+
+export const note = style({
+  marginTop: vars.spacing.md,
+});
+
 // `33` hex alpha suffix (~20%) becomes color-mix against the var() reference.
 export const environmentLabel = recipe({
   base: {

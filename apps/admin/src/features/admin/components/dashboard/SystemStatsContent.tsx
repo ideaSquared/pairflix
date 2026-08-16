@@ -177,25 +177,25 @@ const SystemStatsContent: React.FC = () => {
                   <Table>
                     <TableBody>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Hostname
                         </TableCell>
                         <TableCell>{statsData.system.hostname}</TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Platform
                         </TableCell>
                         <TableCell>{statsData.system.platform}</TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Architecture
                         </TableCell>
                         <TableCell>{statsData.system.arch}</TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Server Uptime
                         </TableCell>
                         <TableCell>
@@ -213,7 +213,7 @@ const SystemStatsContent: React.FC = () => {
                   <Table>
                     <TableBody>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Node Version
                         </TableCell>
                         <TableCell>
@@ -221,7 +221,7 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           App Version
                         </TableCell>
                         <TableCell>
@@ -229,7 +229,7 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Process Uptime
                         </TableCell>
                         <TableCell>
@@ -239,7 +239,7 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Process ID
                         </TableCell>
                         <TableCell>
@@ -269,7 +269,7 @@ const SystemStatsContent: React.FC = () => {
                       {Object.entries(statsData.environment || {}).map(
                         ([key, value]) => (
                           <tr key={key}>
-                            <TableCell style={{ fontWeight: 'bold' }}>
+                            <TableCell className={styles.cellLabel}>
                               {key}
                             </TableCell>
                             <TableCell>
@@ -299,7 +299,7 @@ const SystemStatsContent: React.FC = () => {
                   <Table>
                     <TableBody>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Status
                         </TableCell>
                         <TableCell>
@@ -317,13 +317,11 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
-                          Type
-                        </TableCell>
+                        <TableCell className={styles.cellLabel}>Type</TableCell>
                         <TableCell>{statsData.database.type}</TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Version
                         </TableCell>
                         <TableCell>{statsData.database.version}</TableCell>
@@ -339,7 +337,7 @@ const SystemStatsContent: React.FC = () => {
                   <Table>
                     <TableBody>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Connections
                         </TableCell>
                         <TableCell>
@@ -348,7 +346,7 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Avg. Query Time
                         </TableCell>
                         <TableCell>
@@ -358,7 +356,7 @@ const SystemStatsContent: React.FC = () => {
                         </TableCell>
                       </tr>
                       <tr>
-                        <TableCell style={{ fontWeight: 'bold' }}>
+                        <TableCell className={styles.cellLabel}>
                           Slow Queries (24h)
                         </TableCell>
                         <TableCell>
@@ -412,10 +410,7 @@ const SystemStatsContent: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <TableCell
-                            colSpan={4}
-                            style={{ textAlign: 'center' }}
-                          >
+                          <TableCell colSpan={4} align="center">
                             No dependency information available
                           </TableCell>
                         </tr>
@@ -444,10 +439,7 @@ const SystemStatsContent: React.FC = () => {
                     <TableBody>
                       {!statsData.events || statsData.events.length === 0 ? (
                         <tr>
-                          <TableCell
-                            colSpan={4}
-                            style={{ textAlign: 'center' }}
-                          >
+                          <TableCell colSpan={4} align="center">
                             No events recorded in the last 24 hours
                           </TableCell>
                         </tr>
@@ -491,7 +483,7 @@ const SystemStatsContent: React.FC = () => {
       <Button
         variant="primary"
         onClick={fetchSystemStats}
-        style={{ marginTop: '1rem' }}
+        className={styles.refreshButton}
       >
         Refresh Stats
       </Button>
