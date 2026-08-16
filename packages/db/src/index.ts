@@ -15,12 +15,14 @@ export {
   pickEvents,
   auditLogs,
   settings,
+  rateLimitHits,
 } from './schema';
 export type {
   UserRow,
   UserPreferences,
   SessionRow,
   AuthTokenRow,
+  RateLimitHitRow,
   HouseholdRow,
   HouseholdMemberRow,
   HouseholdInviteRow,

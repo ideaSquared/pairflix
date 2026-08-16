@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ES2022"],
+		"types": ["@cloudflare/workers-types"],
+		"noEmit": true
+	},
+	"include": ["src/hono"],
+	// Test files use `cloudflare:test`/`cloudflare:workers` (from @cloudflare/vitest-pool-workers),
+	// which vitest resolves at test-run time but plain `tsc` can't without extra config -- excluded
+	// here the same way creatorgrid excludes them from its own tsconfig, not type-checked by
+	// `type-check`. Still covered indirectly: a real type error breaks the vitest run.
+	"exclude": ["**/*.test.ts", "src/hono/test/**"]
+}

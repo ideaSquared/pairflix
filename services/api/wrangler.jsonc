@@ -1,11 +1,23 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "pairflix-api",
+	"main": "src/hono/index.ts",
 	"compatibility_date": "2026-08-01",
-	// This is P2 (data layer) of docs/roadmap.md's re-platform: only the D1 binding needed for
-	// `wrangler d1 migrations apply`/local dev exists so far. `main`, routes, and vars land in P3
-	// when this becomes an actual Hono Worker -- services/api is still the Express app until then.
-	//
+	// No `nodejs_compat` flag: unlike creatorgrid's Worker, nothing under src/hono touches a `node:`
+	// built-in or `Buffer` (lib/crypto.ts and lib/totp.ts use Web Crypto / ArrayBuffer / btoa, all
+	// native to Workers) -- add it if a later P3 domain actually needs one, not preemptively.
+	"observability": {
+		"enabled": true
+	},
+	// No `routes` block yet -- no production domain/zone is provisioned for pairflix (this is
+	// pre-launch alpha, see CLAUDE.md). Deploys are reachable at the workers.dev subdomain until
+	// one exists; add a custom_domain route (see creatorgrid's wrangler.jsonc) at that point.
+	"vars": {
+		"ENVIRONMENT": "production",
+		// Placeholder, same as `database_id` below -- replace with the real app origin(s) once
+		// apps/client has a production domain. Comma-separated, matches middleware/auth.ts's `cors()`.
+		"ALLOWED_ORIGINS": "https://your-production-domain.com"
+	},
 	// `database_id` is a placeholder until a real D1 database is provisioned in a Cloudflare
 	// account (out of scope for local schema/migration work) -- `--remote` won't work until it's
 	// replaced with the real id from `wrangler d1 create pairflix-db`, but `--local` (Miniflare,
@@ -15,7 +27,8 @@
 			"binding": "DB",
 			"database_name": "pairflix-db",
 			"database_id": "00000000-0000-0000-0000-000000000000",
-			"migrations_dir": "../../packages/db/migrations"
+			"migrations_dir": "../../packages/db/migrations",
+			"remote": false
 		}
 	]
 }
