@@ -306,7 +306,7 @@ const UserActivityContent: React.FC = () => {
               setTimeout(applyFilters, 0);
             }}
             variant="secondary"
-            style={{ marginRight: '8px' }}
+            className={styles.todayButton}
           >
             Today&apos;s Activities ({findTodayActivities()})
           </Button>
@@ -376,13 +376,13 @@ const UserActivityContent: React.FC = () => {
               <TableBody>
                 {isLoading ? (
                   <tr>
-                    <TableCell colSpan={4} style={{ textAlign: 'center' }}>
+                    <TableCell colSpan={4} align="center">
                       Loading...
                     </TableCell>
                   </tr>
                 ) : activities.length === 0 ? (
                   <tr>
-                    <TableCell colSpan={4} style={{ textAlign: 'center' }}>
+                    <TableCell colSpan={4} align="center">
                       No activities found
                     </TableCell>
                   </tr>

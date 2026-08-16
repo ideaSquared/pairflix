@@ -256,7 +256,7 @@ const TonightPicker: React.FC = () => {
         </Button>
 
         {pickMutation.error && (
-          <Typography variant="body2" style={{ marginTop: 16 }}>
+          <Typography variant="body2" className={styles.errorMessage}>
             {pickMutation.error.message}
           </Typography>
         )}
@@ -274,7 +274,7 @@ const TonightPicker: React.FC = () => {
                 )}
                 <div>
                   <H2>{result.pick.title}</H2>
-                  <Flex gap="sm" style={{ flexWrap: 'wrap' }}>
+                  <Flex gap="sm" className={styles.badgeRow}>
                     {result.pick.year && (
                       <Badge variant="secondary">{result.pick.year}</Badge>
                     )}

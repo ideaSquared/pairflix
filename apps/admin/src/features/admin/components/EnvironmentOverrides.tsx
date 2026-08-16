@@ -183,7 +183,7 @@ const EnvironmentOverrides: React.FC = () => {
         </Alert>
       )}
 
-      <Grid columns={3} gap="md" style={{ marginBottom: '1rem' }}>
+      <Grid columns={3} gap="md" className={styles.overridesGrid}>
         {overrides.map(override => (
           <Card key={override.environment} className={styles.overrideCard}>
             <CardContent>
@@ -262,11 +262,7 @@ const EnvironmentOverrides: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Typography
-        variant="body2"
-        color="secondary"
-        style={{ marginTop: '1rem' }}
-      >
+      <Typography variant="body2" color="secondary" className={styles.note}>
         Note: Environment overrides apply only when enabled and in the correct
         environment. When a setting is overridden, it completely replaces the
         default value.

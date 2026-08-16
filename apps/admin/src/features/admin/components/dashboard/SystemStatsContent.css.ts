@@ -15,3 +15,11 @@ export const sectionHeader = style({
 export const statsTable = style({
   overflow: 'hidden',
 });
+
+export const cellLabel = style({
+  fontWeight: vars.typography.fontWeight.bold,
+});
+
+export const refreshButton = style({
+  marginTop: vars.spacing.md,
+});

@@ -44,6 +44,12 @@ export const header = recipe({
   },
 });
 
+// Height for the Flex row nested inside `header` (Container > Flex) so its
+// content aligns to the same fixed header height.
+export const headerRow = style({
+  height: layoutTokens.header.height,
+});
+
 export const sidebar = recipe({
   base: {
     backgroundColor: vars.colors.background.secondary,
@@ -207,6 +213,16 @@ globalStyle(`${navIconContainer} svg`, {
   display: 'block',
 });
 
+export const navLink = style({
+  textDecoration: 'none',
+  color: 'inherit',
+  padding: '0.5rem 1rem',
+  borderRadius: '0.25rem',
+  transition: 'background-color 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+});
+
 export const sidebarIconContainerBase = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -233,6 +249,17 @@ export const sidebarIconContainer = recipe({
   defaultVariants: {
     collapsed: false,
   },
+});
+
+export const sidebarNavLink = style({
+  display: 'flex',
+  alignItems: 'center',
+  padding: '0.75rem',
+  marginBottom: '0.25rem',
+  borderRadius: '0.25rem',
+  textDecoration: 'none',
+  color: 'inherit',
+  transition: 'background-color 0.2s ease',
 });
 
 export const dropdownIconContainer = style({

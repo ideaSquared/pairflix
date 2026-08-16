@@ -54,3 +54,11 @@ export const main = style({
   flex: 1,
   padding: `${vars.spacing.xl} 0`,
 });
+
+export const pageShell = style({
+  minHeight: '100vh',
+});
+
+export const brand = style({
+  cursor: 'pointer',
+});

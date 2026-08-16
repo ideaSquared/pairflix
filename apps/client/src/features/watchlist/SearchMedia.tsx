@@ -283,10 +283,7 @@ const SearchMedia: React.FC = () => {
   const renderSearchResults = useCallback(() => {
     if (!debouncedSearchQuery || debouncedSearchQuery.length < 2) {
       return (
-        <Typography
-          variant="body2"
-          style={{ textAlign: 'center', marginTop: '2rem' }}
-        >
+        <Typography variant="body2" className={styles.searchStatusMessage}>
           Enter at least 2 characters to search for movies and TV shows.
         </Typography>
       );
@@ -294,10 +291,7 @@ const SearchMedia: React.FC = () => {
 
     if (isSearching) {
       return (
-        <Typography
-          variant="body2"
-          style={{ textAlign: 'center', marginTop: '2rem' }}
-        >
+        <Typography variant="body2" className={styles.searchStatusMessage}>
           Searching...
         </Typography>
       );
@@ -305,7 +299,7 @@ const SearchMedia: React.FC = () => {
 
     if (searchError) {
       return (
-        <ErrorText style={{ textAlign: 'center', marginTop: '2rem' }}>
+        <ErrorText className={styles.searchStatusMessage}>
           Error searching:{' '}
           {searchError instanceof Error ? searchError.message : 'Unknown error'}
         </ErrorText>
@@ -314,10 +308,7 @@ const SearchMedia: React.FC = () => {
 
     if (searchResults.length === 0) {
       return (
-        <Typography
-          variant="body2"
-          style={{ textAlign: 'center', marginTop: '2rem' }}
-        >
+        <Typography variant="body2" className={styles.searchStatusMessage}>
           No results found for &quot;{debouncedSearchQuery}&quot;. Try a
           different search term.
         </Typography>
@@ -352,7 +343,7 @@ const SearchMedia: React.FC = () => {
   return (
     <>
       <div className={styles.searchControls}>
-        <InputGroup style={{ flex: 1 }}>
+        <InputGroup className={styles.searchInputGroup}>
           <Input
             type="text"
             placeholder="Search for movies and TV shows..."
@@ -379,10 +370,7 @@ const SearchMedia: React.FC = () => {
 
       {/* Performance info for development */}
       {process.env.NODE_ENV === 'development' && searchResults.length > 0 && (
-        <Typography
-          variant="caption"
-          style={{ marginBottom: '1rem', opacity: 0.7 }}
-        >
+        <Typography variant="caption" className={styles.performanceInfo}>
           Found {searchResults.length} results • Images load lazily for better
           performance
         </Typography>
@@ -392,17 +380,7 @@ const SearchMedia: React.FC = () => {
 
       {/* Success message for additions */}
       {addToWatchlistMutation.isSuccess && (
-        <Typography
-          variant="body2"
-          style={{
-            color: 'green',
-            textAlign: 'center',
-            marginTop: '1rem',
-            padding: '0.5rem',
-            backgroundColor: '#f0f9ff',
-            borderRadius: '4px',
-          }}
-        >
+        <Typography variant="body2" className={styles.addedMessage}>
           Item added to your watchlist!
         </Typography>
       )}

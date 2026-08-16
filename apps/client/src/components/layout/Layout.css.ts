@@ -172,6 +172,11 @@ export const section = recipe({
 
 // ======== Main layout shell ========
 
+export const appShell = style({
+  minHeight: '100vh',
+  width: '100%',
+});
+
 export const header = style({
   margin: 0,
   borderRadius: 0,

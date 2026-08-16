@@ -20,11 +20,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <Flex direction="column" style={{ minHeight: '100vh' }}>
+    <Flex direction="column" className={styles.pageShell}>
       <Card className={styles.header}>
         <Container>
           <Flex className={styles.headerContent}>
-            <H1 onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <H1 onClick={() => navigate('/')} className={styles.brand}>
               PairFlix
             </H1>
             {isAuthenticated && (

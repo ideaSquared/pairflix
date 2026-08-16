@@ -373,18 +373,18 @@ const ContentModerationContent: React.FC = () => {
         <CardContent>
           {/* Success/Error Messages */}
           {successMessage && (
-            <Alert variant="success" style={{ marginBottom: '1rem' }}>
+            <Alert variant="success" className={styles.alertSpacing}>
               {successMessage}
             </Alert>
           )}
           {errorMessage && (
-            <Alert variant="error" style={{ marginBottom: '1rem' }}>
+            <Alert variant="error" className={styles.alertSpacing}>
               {errorMessage}
             </Alert>
           )}
 
           {/* Optimized Filters */}
-          <Flex direction="column" gap="md" style={{ marginBottom: '1rem' }}>
+          <Flex direction="column" gap="md" className={styles.filterBar}>
             <Flex direction="row" gap="sm" wrap="wrap">
               <div style={{ flex: '1 1 300px', minWidth: '200px' }}>
                 <Input
@@ -462,7 +462,7 @@ const ContentModerationContent: React.FC = () => {
           ) : (
             <>
               {/* Optimized content grid rendering would go here */}
-              <Typography variant="body2" style={{ margin: '1rem 0' }}>
+              <Typography variant="body2" className={styles.resultsCount}>
                 Showing {filteredContent.length} items (Page {page} of{' '}
                 {totalPages})
               </Typography>
@@ -484,7 +484,7 @@ const ContentModerationContent: React.FC = () => {
                 >
                   Previous
                 </Button>
-                <Typography style={{ alignSelf: 'center' }}>
+                <Typography className={styles.pageIndicator}>
                   Page {page} of {totalPages}
                 </Typography>
                 <Button
@@ -530,7 +530,7 @@ const ContentModerationContent: React.FC = () => {
           />
         </div>
 
-        <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+        <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
           <Button variant="secondary" onClick={() => setShowRemoveModal(false)}>
             Cancel
           </Button>
@@ -596,7 +596,7 @@ const ContentModerationContent: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <Typography style={{ marginBottom: '8px' }}>
+              <Typography className={styles.fieldLabel}>
                 Content Type:
               </Typography>
               <Badge
@@ -605,18 +605,12 @@ const ContentModerationContent: React.FC = () => {
               >
                 {contentToEdit.type}
               </Badge>
-              <Typography
-                style={{
-                  marginTop: '4px',
-                  fontSize: '0.875rem',
-                  color: '#666',
-                }}
-              >
+              <Typography className={styles.contentTypeHint}>
                 Content type cannot be changed
               </Typography>
             </div>
 
-            <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+            <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
               <Button
                 variant="secondary"
                 onClick={() => setShowEditModal(false)}
@@ -667,15 +661,15 @@ const ContentModerationContent: React.FC = () => {
                     <Card className={styles.styledCard} key={report.id}>
                       <Flex justifyContent="space-between" alignItems="start">
                         <div>
-                          <Typography style={{ fontWeight: 'bold' }}>
+                          <Typography className={styles.reporterName}>
                             Reported by: {report.user_name} on{' '}
                             {new Date(report.created_at).toLocaleDateString()}
                           </Typography>
-                          <Typography style={{ marginTop: '8px' }}>
+                          <Typography className={styles.reportMeta}>
                             Reason: {report.reason}
                           </Typography>
                           {report.details && (
-                            <Typography style={{ marginTop: '8px' }}>
+                            <Typography className={styles.reportMeta}>
                               Details: {report.details}
                             </Typography>
                           )}

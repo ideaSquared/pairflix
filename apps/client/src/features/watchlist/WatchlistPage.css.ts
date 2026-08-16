@@ -133,6 +133,14 @@ export const tag = style({
   fontSize: vars.typography.fontSize.sm,
 });
 
+export const doneEditingButton = style({
+  marginTop: vars.spacing.sm,
+});
+
+export const tabsRow = style({
+  marginBottom: vars.spacing.md,
+});
+
 export const virtualizedContainer = style({
   overflow: 'auto',
   position: 'relative',

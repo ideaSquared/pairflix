@@ -42,6 +42,10 @@ export const statIcon = style({
   color: vars.colors.primary,
 });
 
+export const mostActiveLabel = style({
+  marginTop: vars.spacing.md,
+});
+
 export const statusIndicator = recipe({
   base: {
     width: '12px',

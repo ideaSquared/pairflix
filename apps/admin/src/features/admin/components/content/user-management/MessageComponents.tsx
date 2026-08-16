@@ -1,5 +1,6 @@
 import React from 'react';
 import { Typography } from '@pairflix/components';
+import * as styles from './MessageComponents.css';
 
 interface MessageProps {
   message: string;
@@ -18,7 +19,7 @@ export const SuccessMessage: React.FC<MessageProps> = ({ message }) => {
         border: '1px solid #d6e9c6',
       }}
     >
-      <Typography style={{ color: '#3c763d' }}>{message}</Typography>
+      <Typography className={styles.successText}>{message}</Typography>
     </div>
   );
 };
@@ -36,7 +37,7 @@ export const ErrorMessage: React.FC<MessageProps> = ({ message }) => {
         border: '1px solid #ebccd1',
       }}
     >
-      <Typography style={{ color: '#a94442' }}>{message}</Typography>
+      <Typography className={styles.errorText}>{message}</Typography>
     </div>
   );
 };

@@ -1,16 +1,28 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { Flex } from './Flex';
+import {
+  cardLayoutWrapper,
+  centeredContentWrapper,
+  formLayoutWrapper,
+  sectionTitle,
+} from './Flex.stories.css';
 
 // Plain demo helpers for storybook documentation
 const DemoItem = ({
   color,
-  style,
+  width,
+  height,
+  fontSize,
+  flexShrink,
   children,
 }: {
   color?: string;
-  style?: CSSProperties;
+  width?: string;
+  height?: string;
+  fontSize?: string;
+  flexShrink?: number;
   children: ReactNode;
 }) => (
   <div
@@ -22,9 +34,11 @@ const DemoItem = ({
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: 500,
-      fontSize: 14,
+      fontSize: fontSize || 14,
       borderRadius: 4,
-      ...style,
+      ...(width && { width }),
+      ...(height && { height }),
+      ...(flexShrink !== undefined && { flexShrink }),
     }}
   >
     {children}
@@ -39,15 +53,13 @@ const DemoContent = ({ children }: { children: ReactNode }) => (
 
 const SectionTitle = ({
   children,
-  style,
+  small,
+  spaced,
 }: {
   children: ReactNode;
-  style?: CSSProperties;
-}) => (
-  <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 500, ...style }}>
-    {children}
-  </h3>
-);
+  small?: boolean;
+  spaced?: boolean;
+}) => <h3 className={sectionTitle({ small, spaced })}>{children}</h3>;
 
 const SectionDescription = ({ children }: { children: ReactNode }) => (
   <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14 }}>
@@ -206,41 +218,41 @@ export const DirectionVariations: Story = {
       </SectionDescription>
 
       <Flex direction="row" gap="md">
-        <DemoItem style={{ width: '100px' }}>Row Item 1</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">Row Item 1</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           Row Item 2
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           Row Item 3
         </DemoItem>
       </Flex>
 
       <Flex direction="row" reverse gap="md">
-        <DemoItem style={{ width: '100px' }}>Row-Reverse 1</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">Row-Reverse 1</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           Row-Reverse 2
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           Row-Reverse 3
         </DemoItem>
       </Flex>
 
       <Flex direction="column" gap="sm">
-        <DemoItem style={{ height: '60px' }}>Column Item 1</DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#7e57c2">
+        <DemoItem height="60px">Column Item 1</DemoItem>
+        <DemoItem height="60px" color="#7e57c2">
           Column Item 2
         </DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#5c6bc0">
+        <DemoItem height="60px" color="#5c6bc0">
           Column Item 3
         </DemoItem>
       </Flex>
 
       <Flex direction="column" reverse gap="sm">
-        <DemoItem style={{ height: '60px' }}>Column-Reverse 1</DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#7e57c2">
+        <DemoItem height="60px">Column-Reverse 1</DemoItem>
+        <DemoItem height="60px" color="#7e57c2">
           Column-Reverse 2
         </DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#5c6bc0">
+        <DemoItem height="60px" color="#5c6bc0">
           Column-Reverse 3
         </DemoItem>
       </Flex>
@@ -258,61 +270,61 @@ export const JustifyContentVariations: Story = {
       </SectionDescription>
 
       <Flex justifyContent="flex-start" gap="md">
-        <DemoItem style={{ width: '100px' }}>flex-start</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">flex-start</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           flex-start
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           flex-start
         </DemoItem>
       </Flex>
 
       <Flex justifyContent="flex-end" gap="md">
-        <DemoItem style={{ width: '100px' }}>flex-end</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">flex-end</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           flex-end
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           flex-end
         </DemoItem>
       </Flex>
 
       <Flex justifyContent="center" gap="md">
-        <DemoItem style={{ width: '100px' }}>center</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">center</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           center
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           center
         </DemoItem>
       </Flex>
 
       <Flex justifyContent="space-between">
-        <DemoItem style={{ width: '100px' }}>space-between</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">space-between</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           space-between
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           space-between
         </DemoItem>
       </Flex>
 
       <Flex justifyContent="space-around">
-        <DemoItem style={{ width: '100px' }}>space-around</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">space-around</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           space-around
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           space-around
         </DemoItem>
       </Flex>
 
       <Flex justifyContent="space-evenly">
-        <DemoItem style={{ width: '100px' }}>space-evenly</DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#7e57c2">
+        <DemoItem width="100px">space-evenly</DemoItem>
+        <DemoItem width="100px" color="#7e57c2">
           space-evenly
         </DemoItem>
-        <DemoItem style={{ width: '100px' }} color="#5c6bc0">
+        <DemoItem width="100px" color="#5c6bc0">
           space-evenly
         </DemoItem>
       </Flex>
@@ -330,71 +342,61 @@ export const AlignItemsVariations: Story = {
       </SectionDescription>
 
       <Flex alignItems="flex-start" gap="md">
-        <DemoItem style={{ width: '100px', height: '40px' }}>
+        <DemoItem width="100px" height="40px">
           flex-start
         </DemoItem>
-        <DemoItem style={{ width: '100px', height: '60px' }} color="#7e57c2">
+        <DemoItem width="100px" height="60px" color="#7e57c2">
           flex-start
         </DemoItem>
-        <DemoItem style={{ width: '100px', height: '80px' }} color="#5c6bc0">
+        <DemoItem width="100px" height="80px" color="#5c6bc0">
           flex-start
         </DemoItem>
       </Flex>
 
       <Flex alignItems="flex-end" gap="md">
-        <DemoItem style={{ width: '100px', height: '40px' }}>flex-end</DemoItem>
-        <DemoItem style={{ width: '100px', height: '60px' }} color="#7e57c2">
+        <DemoItem width="100px" height="40px">
           flex-end
         </DemoItem>
-        <DemoItem style={{ width: '100px', height: '80px' }} color="#5c6bc0">
+        <DemoItem width="100px" height="60px" color="#7e57c2">
+          flex-end
+        </DemoItem>
+        <DemoItem width="100px" height="80px" color="#5c6bc0">
           flex-end
         </DemoItem>
       </Flex>
 
       <Flex alignItems="center" gap="md">
-        <DemoItem style={{ width: '100px', height: '40px' }}>center</DemoItem>
-        <DemoItem style={{ width: '100px', height: '60px' }} color="#7e57c2">
+        <DemoItem width="100px" height="40px">
           center
         </DemoItem>
-        <DemoItem style={{ width: '100px', height: '80px' }} color="#5c6bc0">
+        <DemoItem width="100px" height="60px" color="#7e57c2">
+          center
+        </DemoItem>
+        <DemoItem width="100px" height="80px" color="#5c6bc0">
           center
         </DemoItem>
       </Flex>
 
       <Flex alignItems="baseline" gap="md">
-        <DemoItem
-          style={{
-            width: '100px',
-            height: '40px',
-            fontSize: '12px',
-          }}
-        >
+        <DemoItem width="100px" height="40px" fontSize="12px">
           baseline
         </DemoItem>
-        <DemoItem
-          style={{
-            width: '100px',
-            height: '60px',
-            fontSize: '18px',
-          }}
-          color="#7e57c2"
-        >
+        <DemoItem width="100px" height="60px" fontSize="18px" color="#7e57c2">
           baseline
         </DemoItem>
-        <DemoItem
-          style={{ width: '100px', height: '80px', fontSize: '24px' }}
-          color="#5c6bc0"
-        >
+        <DemoItem width="100px" height="80px" fontSize="24px" color="#5c6bc0">
           baseline
         </DemoItem>
       </Flex>
 
       <Flex alignItems="stretch" gap="md">
-        <DemoItem style={{ width: '100px', height: 'auto' }}>stretch</DemoItem>
-        <DemoItem style={{ width: '100px', height: 'auto' }} color="#7e57c2">
+        <DemoItem width="100px" height="auto">
           stretch
         </DemoItem>
-        <DemoItem style={{ width: '100px', height: 'auto' }} color="#5c6bc0">
+        <DemoItem width="100px" height="auto" color="#7e57c2">
+          stretch
+        </DemoItem>
+        <DemoItem width="100px" height="auto" color="#5c6bc0">
           stretch
         </DemoItem>
       </Flex>
@@ -412,43 +414,45 @@ export const FlexWrapVariations: Story = {
       </SectionDescription>
 
       <Flex wrap="nowrap">
-        <DemoItem style={{ width: '150px', flexShrink: 0 }}>nowrap</DemoItem>
-        <DemoItem style={{ width: '150px', flexShrink: 0 }} color="#7e57c2">
+        <DemoItem width="150px" flexShrink={0}>
           nowrap
         </DemoItem>
-        <DemoItem style={{ width: '150px', flexShrink: 0 }} color="#5c6bc0">
+        <DemoItem width="150px" flexShrink={0} color="#7e57c2">
+          nowrap
+        </DemoItem>
+        <DemoItem width="150px" flexShrink={0} color="#5c6bc0">
           nowrap
         </DemoItem>
       </Flex>
 
       <Flex wrap="wrap" gap="sm">
-        <DemoItem style={{ width: '150px' }}>wrap</DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#7e57c2">
+        <DemoItem width="150px">wrap</DemoItem>
+        <DemoItem width="150px" color="#7e57c2">
           wrap
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#5c6bc0">
+        <DemoItem width="150px" color="#5c6bc0">
           wrap
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#4caf50">
+        <DemoItem width="150px" color="#4caf50">
           wrap
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#ff9800">
+        <DemoItem width="150px" color="#ff9800">
           wrap
         </DemoItem>
       </Flex>
 
       <Flex wrap="wrap-reverse" gap="sm">
-        <DemoItem style={{ width: '150px' }}>wrap-reverse</DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#7e57c2">
+        <DemoItem width="150px">wrap-reverse</DemoItem>
+        <DemoItem width="150px" color="#7e57c2">
           wrap-reverse
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#5c6bc0">
+        <DemoItem width="150px" color="#5c6bc0">
           wrap-reverse
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#4caf50">
+        <DemoItem width="150px" color="#4caf50">
           wrap-reverse
         </DemoItem>
-        <DemoItem style={{ width: '150px' }} color="#ff9800">
+        <DemoItem width="150px" color="#ff9800">
           wrap-reverse
         </DemoItem>
       </Flex>
@@ -466,30 +470,30 @@ export const FlexWithGap: Story = {
       </SectionDescription>
 
       <Flex gap="lg" wrap="wrap">
-        <DemoItem style={{ width: '120px' }}>Item 1</DemoItem>
-        <DemoItem style={{ width: '120px' }} color="#7e57c2">
+        <DemoItem width="120px">Item 1</DemoItem>
+        <DemoItem width="120px" color="#7e57c2">
           Item 2
         </DemoItem>
-        <DemoItem style={{ width: '120px' }} color="#5c6bc0">
+        <DemoItem width="120px" color="#5c6bc0">
           Item 3
         </DemoItem>
-        <DemoItem style={{ width: '120px' }} color="#4caf50">
+        <DemoItem width="120px" color="#4caf50">
           Item 4
         </DemoItem>
-        <DemoItem style={{ width: '120px' }} color="#ff9800">
+        <DemoItem width="120px" color="#ff9800">
           Item 5
         </DemoItem>
-        <DemoItem style={{ width: '120px' }} color="#f44336">
+        <DemoItem width="120px" color="#f44336">
           Item 6
         </DemoItem>
       </Flex>
 
       <Flex direction="column" gap="md">
-        <DemoItem style={{ height: '60px' }}>Item 1</DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#7e57c2">
+        <DemoItem height="60px">Item 1</DemoItem>
+        <DemoItem height="60px" color="#7e57c2">
           Item 2
         </DemoItem>
-        <DemoItem style={{ height: '60px' }} color="#5c6bc0">
+        <DemoItem height="60px" color="#5c6bc0">
           Item 3
         </DemoItem>
       </Flex>
@@ -506,13 +510,10 @@ export const CommonUIPatterns: Story = {
         Demonstration of common UI patterns using Flex.
       </SectionDescription>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small spaced>
         Card Layout
       </SectionTitle>
-      <Flex
-        direction="column"
-        style={{ overflow: 'hidden', maxWidth: '320px' }}
-      >
+      <Flex direction="column" className={cardLayoutWrapper}>
         <div
           style={{
             backgroundColor: '#5c6bc0',
@@ -551,27 +552,19 @@ export const CommonUIPatterns: Story = {
         </Flex>
       </Flex>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small spaced>
         Split Layout
       </SectionTitle>
+      {/* Flex always sets its own inline height ('100%' or 'auto'), so only an inline override can win here. */}
+      {/* eslint-disable-next-line react/forbid-component-props */}
       <Flex style={{ height: '240px', overflow: 'hidden' }}>
-        <Flex
-          direction="column"
-          justifyContent="center"
-          style={{ flex: 1 }}
-          gap="md"
-        >
+        <Flex direction="column" justifyContent="center" flex="1" gap="md">
           <h3 style={{ margin: '0 0 16px 0' }}>Left Side</h3>
           <p style={{ margin: '0', opacity: 0.8 }}>
             Content for the left side of the split layout.
           </p>
         </Flex>
-        <Flex
-          direction="column"
-          justifyContent="center"
-          style={{ flex: 1 }}
-          gap="md"
-        >
+        <Flex direction="column" justifyContent="center" flex="1" gap="md">
           <h3 style={{ margin: '0 0 16px 0' }}>Right Side</h3>
           <p style={{ margin: '0', color: '#666' }}>
             Content for the right side of the split layout.
@@ -579,7 +572,7 @@ export const CommonUIPatterns: Story = {
         </Flex>
       </Flex>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small spaced>
         Navbar Layout
       </SectionTitle>
       <Flex justifyContent="space-between" alignItems="center">
@@ -612,10 +605,10 @@ export const CommonUIPatterns: Story = {
         </button>
       </Flex>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small spaced>
         Form Layout
       </SectionTitle>
-      <Flex direction="column" gap="md" style={{ maxWidth: '400px' }}>
+      <Flex direction="column" gap="md" className={formLayoutWrapper}>
         <h3 style={{ margin: '0 0 8px 0' }}>Contact Form</h3>
         <Flex direction="column" gap="xs">
           <label htmlFor="flex-demo-name" style={{ fontWeight: 500 }}>
@@ -693,11 +686,11 @@ export const ResponsiveFlexLayouts: Story = {
       </SectionDescription>
 
       <div>
-        <SectionTitle style={{ fontSize: '16px' }}>
+        <SectionTitle small>
           Mobile-First Layout (resize browser to see changes)
         </SectionTitle>
         <Flex gap="md" direction="row" mobileDirection="column">
-          <Flex direction="column" style={{ flex: 1 }} gap="xs">
+          <Flex direction="column" flex="1" gap="xs">
             <h4 style={{ margin: '0 0 8px 0' }}>Section 1</h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
               This section will stack vertically on mobile and horizontally on
@@ -705,7 +698,7 @@ export const ResponsiveFlexLayouts: Story = {
             </p>
           </Flex>
 
-          <Flex direction="column" style={{ flex: 1 }} gap="xs">
+          <Flex direction="column" flex="1" gap="xs">
             <h4 style={{ margin: '0 0 8px 0' }}>Section 2</h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
               Resize your browser window to see how the layout changes between
@@ -713,7 +706,7 @@ export const ResponsiveFlexLayouts: Story = {
             </p>
           </Flex>
 
-          <Flex direction="column" style={{ flex: 1 }} gap="xs">
+          <Flex direction="column" flex="1" gap="xs">
             <h4 style={{ margin: '0 0 8px 0' }}>Section 3</h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
               Using Flex with proper media queries creates responsive layouts
@@ -723,12 +716,12 @@ export const ResponsiveFlexLayouts: Story = {
         </Flex>
       </div>
 
-      <SectionTitle style={{ fontSize: '16px', marginTop: '24px' }}>
+      <SectionTitle small spaced>
         Responsive Gap Examples
       </SectionTitle>
       <Flex gap="lg" mobileGap="sm" direction="row" mobileDirection="column">
         {[...Array(3)].map((_, i) => (
-          <Flex key={i} direction="column" style={{ flex: 1 }} gap="xs">
+          <Flex key={i} direction="column" flex="1" gap="xs">
             <h4 style={{ margin: '0 0 8px 0' }}>Responsive Gap</h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
               This layout uses a larger gap on desktop and a smaller gap on
@@ -751,13 +744,18 @@ export const CenterAlignment: Story = {
       </SectionDescription>
 
       <Flex center>
-        <DemoItem style={{ width: '150px', height: '80px' }}>
+        <DemoItem width="150px" height="80px">
           Centered Item
         </DemoItem>
       </Flex>
 
       <Flex center>
-        <Flex direction="column" gap="md" center style={{ maxWidth: '300px' }}>
+        <Flex
+          direction="column"
+          gap="md"
+          center
+          className={centeredContentWrapper}
+        >
           <h3 style={{ margin: '0' }}>Centered Content</h3>
           <p style={{ margin: '0', textAlign: 'center' }}>
             This content is centered both horizontally and vertically using the

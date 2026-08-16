@@ -1,14 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import clsx from 'clsx';
 
 import { Box, type BoxProps } from './Box';
+import { centerTransform, colorBoxText, sectionTitle } from './Box.stories.css';
 
-const ColorBox = ({ style, ...props }: BoxProps) => (
+const ColorBox = ({ className, ...props }: BoxProps) => (
   <Box
     display="flex"
     alignItems="center"
     justifyContent="center"
-    style={{ color: 'white', fontWeight: 500, fontSize: 14, ...style }}
+    className={clsx(colorBoxText, className)}
     {...props}
   />
 );
@@ -21,15 +23,11 @@ const DemoContent = ({ children }: { children: ReactNode }) => (
 
 const SectionTitle = ({
   children,
-  style,
+  small,
 }: {
   children: ReactNode;
-  style?: CSSProperties;
-}) => (
-  <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 500, ...style }}>
-    {children}
-  </h3>
-);
+  small?: boolean;
+}) => <h3 className={sectionTitle({ small })}>{children}</h3>;
 
 const SectionDescription = ({ children }: { children: ReactNode }) => (
   <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: 14 }}>
@@ -546,7 +544,7 @@ export const Positioning: Story = {
           padding="16px"
           backgroundColor="#2196f3"
           borderRadius="50%"
-          style={{ transform: 'translate(-50%, -50%)' }}
+          className={centerTransform}
         >
           Center
         </Box>
@@ -985,9 +983,7 @@ export const PropsReference: Story = {
       </Box>
 
       <Box>
-        <SectionTitle style={{ fontSize: '16px' }}>
-          Available Props
-        </SectionTitle>
+        <SectionTitle small>Available Props</SectionTitle>
         <PropsTable>
           <TableHeader>
             <div>Prop</div>

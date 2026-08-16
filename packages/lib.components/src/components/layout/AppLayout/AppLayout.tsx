@@ -4,19 +4,21 @@ import { Link } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuItem } from '../../overlay';
 import { Container } from '../components/Container';
 import { Flex } from '../components/Flex';
-import { layoutTokens } from '../utils/responsive';
 import {
   adminLayoutContainer,
   appLayoutContainer,
   dropdownIconContainer,
   footer as footerClass,
   header as headerClass,
+  headerRow,
   mainContent,
   mobileOverlay,
   navIconContainer,
+  navLink,
   sidebar as sidebarClass,
   sidebarIconContainer,
   sidebarIconContainerBase,
+  sidebarNavLink,
   sidebarUserMenuTrigger,
   userMenuTrigger,
 } from './AppLayout.css';
@@ -101,7 +103,7 @@ const TopNavigation: React.FC<{
       <Flex
         alignItems="center"
         justifyContent="space-between"
-        style={{ height: layoutTokens.header.height }}
+        className={headerRow}
       >
         <Flex alignItems="center" gap="md">
           {navigation.logo}
@@ -109,19 +111,7 @@ const TopNavigation: React.FC<{
             <Flex gap="md" alignItems="center">
               {navigation.sections.flatMap(section =>
                 section.items.map(item => (
-                  <Link
-                    key={item.key}
-                    to={item.path}
-                    style={{
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '0.25rem',
-                      transition: 'background-color 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <Link key={item.key} to={item.path} className={navLink}>
                     {item.icon && (
                       <span className={navIconContainer}>{item.icon}</span>
                     )}
@@ -246,20 +236,7 @@ const SidebarNavigation: React.FC<{
               </div>
             )}
             {section.items.map(item => (
-              <Link
-                key={item.key}
-                to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0.75rem',
-                  marginBottom: '0.25rem',
-                  borderRadius: '0.25rem',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  transition: 'background-color 0.2s ease',
-                }}
-              >
+              <Link key={item.key} to={item.path} className={sidebarNavLink}>
                 {item.icon && (
                   <span
                     className={clsx(
@@ -448,7 +425,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               <Flex
                 alignItems="center"
                 justifyContent="space-between"
-                style={{ height: layoutTokens.header.height }}
+                className={headerRow}
               >
                 <div>{header.title}</div>
                 <div>{header.actions}</div>

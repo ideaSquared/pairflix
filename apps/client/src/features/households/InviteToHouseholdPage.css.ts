@@ -8,6 +8,10 @@ export const form = style({
   maxWidth: '480px',
 });
 
+export const inviteLinkContainer = style({
+  marginTop: vars.spacing.lg,
+});
+
 export const linkBox = style({
   display: 'block',
   padding: vars.spacing.sm,

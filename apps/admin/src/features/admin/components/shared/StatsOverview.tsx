@@ -380,7 +380,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
             </Flex>
           ))}
 
-        <Typography variant="body2" gutterBottom style={{ marginTop: '1rem' }}>
+        <Typography
+          variant="body2"
+          gutterBottom
+          className={styles.mostActiveLabel}
+        >
           Most active users:
         </Typography>
 

@@ -9,7 +9,8 @@ import {
 import React from 'react';
 import { FiUserPlus } from 'react-icons/fi';
 import type { UserManagementFilters } from './types';
-import { IconStyle } from './utils';
+import * as styles from './UserFilter.css';
+import { icon } from './utils.css';
 
 interface UserFilterProps {
   search: string;
@@ -35,7 +36,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
       <Flex
         justifyContent="space-between"
         alignItems="center"
-        style={{ marginBottom: '20px' }}
+        className={styles.filterHeader}
       >
         <div style={{ flex: 1 }}>
           <Input
@@ -48,10 +49,10 @@ const UserFilter: React.FC<UserFilterProps> = ({
         </div>
         <Button
           variant="primary"
-          style={{ marginLeft: '20px' }}
+          className={styles.createButton}
           onClick={onCreateUser}
         >
-          <FiUserPlus style={IconStyle} /> Create User
+          <FiUserPlus className={icon} /> Create User
         </Button>
       </Flex>
 

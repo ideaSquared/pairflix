@@ -6,6 +6,7 @@ import {
   Typography,
 } from '@pairflix/components';
 import React from 'react';
+import * as styles from './BanUserModal.css';
 import type { User } from './types';
 
 interface BanUserModalProps {
@@ -51,7 +52,7 @@ const BanUserModal: React.FC<BanUserModalProps> = ({
         />
       </div>
 
-      <Flex justifyContent="end" gap="md" style={{ marginTop: '20px' }}>
+      <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>

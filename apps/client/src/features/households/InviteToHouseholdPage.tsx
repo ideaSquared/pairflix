@@ -70,7 +70,7 @@ const InviteToHouseholdPage: React.FC = () => {
         </form>
 
         {inviteUrl && (
-          <Container fluid style={{ marginTop: 24 }}>
+          <Container fluid className={styles.inviteLinkContainer}>
             <Typography variant="body2" gutterBottom>
               Send this link. It expires in 7 days.
             </Typography>

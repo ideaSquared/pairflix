@@ -325,7 +325,7 @@ const WatchlistItem = React.memo<WatchlistItemProps>(
                 />
                 <Button
                   onClick={handleDoneEditing}
-                  style={{ marginTop: '0.5rem' }}
+                  className={styles.doneEditingButton}
                 >
                   Done
                 </Button>
@@ -603,7 +603,7 @@ const WatchlistPage: React.FC = () => {
 
         <Card accentColor="#69c176">
           <CardContent>
-            <Flex gap="md" wrap="wrap" style={{ marginBottom: '1rem' }}>
+            <Flex gap="md" wrap="wrap" className={styles.tabsRow}>
               <TabButton
                 active={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}

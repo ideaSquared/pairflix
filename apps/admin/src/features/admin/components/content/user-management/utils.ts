@@ -40,6 +40,3 @@ export const getRoleBadgeVariant = (
       return 'default';
   }
 };
-
-// Define a style for the icons
-export const IconStyle = { fontSize: '1.2rem' };
