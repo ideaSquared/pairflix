@@ -1,10 +1,11 @@
 # Database schema
 
-> **Implemented (P2, ADR 0001).** Pairflix's database has moved from Postgres (Sequelize) to **D1
-> (SQLite) via Drizzle**. The source of truth is `packages/db/src/schema.ts` — this document mirrors
-> it in prose. `services/api` still runs on Express/Sequelize/Postgres against the _old_ schema until
-> the API port (P3) lands; the D1 schema below is authored and migratable today, but nothing reads or
-> writes it yet. The old Postgres DDL is preserved in git history if you need it.
+> **Implemented (P2, ADR 0001).** Pairflix's target database schema is now authored in **D1 (SQLite)
+> via Drizzle**. The source of truth is `packages/db/src/schema.ts` — this document mirrors it in
+> prose. `services/api` still runs on Express/Sequelize/Postgres against the _old_ schema until the
+> API port (P3) lands; the D1 schema below is authored and migratable today, but nothing reads or
+> writes it yet — the production runtime hasn't switched. The old Postgres DDL is preserved in git
+> history if you need it.
 
 ## Overview
 
