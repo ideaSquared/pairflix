@@ -1,10 +1,11 @@
 # Database schema
 
-> **Target state (ADR 0001).** Pairflix's database is moving from Postgres (Sequelize) to **D1
-> (SQLite) via Drizzle**. This document describes the target schema; once the data-layer phase (P2)
-> lands, the source of truth will be `packages/db/src/schema.ts`. The `docs/roadmap.md` data-layer
-> phase tracks the migration. The old
-> Postgres DDL is preserved in git history if you need it.
+> **Implemented (P2, ADR 0001).** Pairflix's target database schema is now authored in **D1 (SQLite)
+> via Drizzle**. The source of truth is `packages/db/src/schema.ts` — this document mirrors it in
+> prose. `services/api` still runs on Express/Sequelize/Postgres against the _old_ schema until the
+> API port (P3) lands; the D1 schema below is authored and migratable today, but nothing reads or
+> writes it yet — the production runtime hasn't switched. The old Postgres DDL is preserved in git
+> history if you need it.
 
 ## Overview
 
@@ -29,29 +30,60 @@ SQLite has a narrow type system; the Postgres schema maps as follows:
 `ON DELETE CASCADE` / `SET NULL` are expressed with Drizzle `references(() => t.col, { onDelete })`
 and are enforced by D1 (SQLite foreign keys are on).
 
+This is a deliberate pairflix convention, kept even though creatorgrid (the sibling repo this stack
+is ported from) uses `text` + SQL `current_timestamp` for its own timestamps — the two aren't required
+to match column-encoding choices, only the auth/session _mechanism_ (see below).
+
 ## Identity & auth
 
-`users` keeps its columns; the password hash is now **PBKDF2** (was bcrypt). Session auth adds two
-tables ported from creatorgrid.
+`users` carries more than just the identity columns — `status`, `emailVerified`,
+`failedLoginAttempts`/`lockedUntil`, `lastLogin`, and `preferences` are all live functionality (admin
+ban/suspend, account-lockout security, the client app's theme preference) carried forward from the
+current Sequelize model, not a Postgres-only detail left behind.
 
 ```ts
 export const users = sqliteTable('users', {
-  id: text('user_id').primaryKey(), // UUID string
+  id: text('user_id').primaryKey(),
   username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(), // PBKDF2 (Web Crypto)
+  passwordHash: text('password_hash').notNull(), // PBKDF2 (Web Crypto), was bcrypt
   role: text('role').$type<'user' | 'admin'>().notNull().default('user'),
+  status: text('status')
+    .$type<'active' | 'inactive' | 'pending' | 'suspended' | 'banned'>()
+    .notNull()
+    .default('active'),
+  emailVerified: integer('email_verified', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: integer('locked_until', { mode: 'timestamp_ms' }),
+  lastLogin: integer('last_login', { mode: 'timestamp_ms' }),
+  preferences: text('preferences', { mode: 'json' })
+    .$type<UserPreferences>()
+    .notNull(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 });
+```
 
+`UserPreferences`: `{ theme: 'light' | 'dark', viewStyle: 'list' | 'grid', emailNotifications:
+boolean, autoArchiveDays: number, favoriteGenres: string[] }`.
+
+Session auth (ADR 0002) adds `sessions` and `authTokens`, both ported from creatorgrid's mechanism —
+these replace the old `user_sessions`, `email_verifications`, and `password_resets` tables, which are
+dropped rather than carried forward under their old shape:
+
+```ts
 export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(), // opaque token == cookie value
+  id: text('id').primaryKey(), // opaque token == the `session` cookie value
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  ipAddress: text('ip_address'), // captured at login, account-security only, never exposed over the API
+  userAgent: text('user_agent'),
+  deviceInfo: text('device_info'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 
 export const authTokens = sqliteTable('auth_tokens', {
@@ -59,9 +91,14 @@ export const authTokens = sqliteTable('auth_tokens', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  kind: text('kind').$type<'verify_email' | 'password_reset'>().notNull(),
+  purpose: text('purpose')
+    .$type<'verify_email' | 'password_reset' | 'change_email'>()
+    .notNull(),
+  newEmail: text('new_email'), // only set for purpose: 'change_email'
+  forcedByAdmin: integer('forced_by_admin', { mode: 'boolean' }), // admin-initiated password reset
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
   consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 ```
 
@@ -87,7 +124,7 @@ export const householdMembers = sqliteTable(
     role: text('role').$type<'owner' | 'member'>().notNull().default('member'),
     joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  t => ({ pk: primaryKey({ columns: [t.householdId, t.userId] }) })
+  table => [primaryKey({ columns: [table.householdId, table.userId] })]
 );
 
 export const householdInvites = sqliteTable('household_invites', {
@@ -97,11 +134,15 @@ export const householdInvites = sqliteTable('household_invites', {
     .references(() => households.id, { onDelete: 'cascade' }),
   token: text('token').notNull().unique(),
   invitedEmail: text('invited_email'),
+  invitedBy: text('invited_by')
+    .notNull()
+    .references(() => users.id),
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
   acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
   acceptedBy: text('accepted_by').references(() => users.id, {
     onDelete: 'set null',
   }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 ```
 
@@ -146,29 +187,62 @@ export const watchedTogether = sqliteTable(
 `TasteWeights` shape (unchanged): `{ genres: Record<string, number>, runtime_pref: number, era?:
 Record<string, number>, tone?: Record<string, number> }`.
 
-## Content (TMDb cache)
+## Content
+
+`content` does double duty as both the TMDb provider-availability cache (`providers`, refreshed by
+`providers.service.ts`) _and_ the admin content-moderation registry (`status`, `reportedCount`,
+`removalReason`, referenced by `contentReports`) — this is one table serving both purposes in the
+current codebase, not two, so it stays one table here. `type` (movie/show/episode, moderation-facing)
+and `mediaType` (movie/tv, TMDb-facing) are both real, independent columns.
 
 ```ts
 export const content = sqliteTable(
   'content',
   {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    type: text('type').$type<'movie' | 'show' | 'episode'>().notNull(),
+    status: text('status')
+      .$type<'active' | 'pending' | 'flagged' | 'removed'>()
+      .notNull()
+      .default('pending'),
     tmdbId: integer('tmdb_id').notNull(),
-    mediaType: text('media_type').$type<'movie' | 'tv'>().notNull(),
-    title: text('title'),
+    mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
     posterPath: text('poster_path'),
+    reportedCount: integer('reported_count').notNull().default(0),
+    removalReason: text('removal_reason'),
     providers: text('providers', { mode: 'json' })
-      .$type<ProviderMap>()
+      .$type<ContentProviders>()
       .notNull()
-      .default('{}'),
-    // ...existing metadata columns...
+      .default({}),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  t => ({ pk: primaryKey({ columns: [t.tmdbId, t.mediaType] }) })
+  t => ({ byTmdbId: index('idx_content_tmdb').on(t.tmdbId) })
 );
+
+export const contentReports = sqliteTable('content_reports', {
+  id: text('id').primaryKey(),
+  contentId: text('content_id')
+    .notNull()
+    .references(() => content.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  reason: text('reason').notNull(),
+  details: text('details'),
+  status: text('status')
+    .$type<'pending' | 'dismissed' | 'resolved'>()
+    .notNull()
+    .default('pending'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
 ```
 
-`ProviderMap` is region-keyed, e.g. `{ GB: { flatrate: [{ provider_id, provider_name, logo_path }],
-rent: [], buy: [] }, last_updated_at: <iso> }`.
+`ContentProviders` is region-keyed, e.g. `{ GB: { flatrate: [{ provider_id, provider_name, logo_path
+}], rent: [], buy: [] }, last_updated_at: <iso> }`.
 
 ## Freemium
 
@@ -250,12 +324,43 @@ export const pickEvents = sqliteTable(
 
 Backs the first-pick acceptance-rate KPI and affiliate attribution.
 
+## Admin: audit log & settings
+
+```ts
+export const auditLogs = sqliteTable('audit_logs', {
+  id: text('log_id').primaryKey(),
+  level: text('level').$type<'info' | 'warn' | 'error' | 'debug'>().notNull(),
+  message: text('message').notNull(),
+  context: text('context', { mode: 'json' }).$type<Record<string, unknown>>(),
+  source: text('source').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value', { mode: 'json' }).$type<unknown>().notNull(),
+  category: text('category').notNull().default('general'),
+  description: text('description'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
+```
+
+`auditLogs` is general leveled application logging (ops/debugging, the admin audit-log viewer) —
+distinct from creatorgrid's own `auditLog` table, which specifically records admin moderation actions
+(suspend/unsuspend/etc). Pairflix's current `AuditLog` Sequelize model is the leveled-log shape, so
+that's what carries forward here.
+
+`settings` replaces `app_settings` — a small key/value table for feature flags and runtime config that
+needs to change without a redeploy (vs. a Worker var, which needs one).
+
 ## Dropped in the re-platform
 
 Pairflix is pre-launch alpha with **no production data**, so the old matching schema is **not** carried
 into D1 — nothing to preserve or backfill. Dropped: `matches`, `watchlist_entries`, `tags`,
-`entry_tags`, `activity_log`. Feature flags move to a small `settings` table (or Worker vars) in place
-of `app_settings`.
+`entry_tags`, `activity_log`. Superseded rather than carried forward under their old shape:
+`user_sessions` → `sessions`, `email_verifications` + `password_resets` → `authTokens`, `app_settings`
+→ `settings`.
 
 **Taste input (decided 2026-08-16):** `taste_profiles` is seeded from a light **onboarding** step
 (genre/mood picks + a few love-it/not-for-me swipes + the household's services) and refined from
@@ -263,14 +368,24 @@ of `app_settings`.
 dropped with the rest of the legacy schema. A lightweight "save for tonight" list may return later as a
 convenience, but the recommender won't depend on it.
 
+**Deferred to the API port (P3), not part of this schema yet:** a D1-backed rate-limit table
+(creatorgrid's `rate_limit_hits` pattern) — the current Express app uses in-memory `express-rate-limit`,
+which has nothing to migrate; the D1-backed middleware and its table land together when the API moves
+to Hono.
+
 ## Migrations
 
 ```bash
-pnpm --filter @pairflix/db db:generate         # drizzle-kit generate -> packages/db/migrations/*.sql
-wrangler d1 migrations apply pairflix-db --local   # dev (Miniflare)
-wrangler d1 migrations apply pairflix-db --remote  # production
+pnpm --filter @pairflix/db db:generate                        # drizzle-kit generate -> packages/db/migrations/*.sql
+pnpm --filter @pairflix/api db:migrate:local                  # wrangler d1 migrations apply pairflix-db --local (dev, Miniflare)
+pnpm --filter @pairflix/api db:migrate:remote                 # wrangler d1 migrations apply pairflix-db --remote (production)
 ```
 
-Never edit a shipped migration — add a new one. The four Sequelize migrations
-(`phase-a-households`, `subscriptions-and-pick-usage`, `household-invites`, `pick-events`) are
-translated into the initial SQL migration set during the data-layer phase.
+Never edit a shipped migration — add a new one. `0000_init.sql` is the initial schema, authored fresh
+rather than translated 1:1 from the four Sequelize migrations (`phase-a-households`,
+`subscriptions-and-pick-usage`, `household-invites`, `pick-events`) — those defined the Postgres shape
+these tables ported from, but D1's own migration history starts clean.
+
+`services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
+is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until
+then, but `--local` (Miniflare, fully offline) doesn't need it to be real.

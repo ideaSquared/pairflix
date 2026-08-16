@@ -17,7 +17,9 @@
 		"format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
 		"db:migrate": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate",
 		"db:migrate:undo": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate:undo",
-		"db:migrate:status": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate:status"
+		"db:migrate:status": "cross-env NODE_OPTIONS=\"-r ts-node/register/transpile-only\" sequelize-cli db:migrate:status",
+		"db:migrate:local": "wrangler d1 migrations apply pairflix-db --local",
+		"db:migrate:remote": "wrangler d1 migrations apply pairflix-db --remote"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.117.1",
@@ -57,6 +59,7 @@
 		"ts-jest": "^29.4.12",
 		"ts-node": "^10.9.2",
 		"ts-node-dev": "^2.0.0",
-		"typescript": "^5.7.0"
+		"typescript": "^5.7.0",
+		"wrangler": "^4.0.0"
 	}
 }

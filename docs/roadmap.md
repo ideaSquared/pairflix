@@ -33,18 +33,23 @@
 
 Staged so the app keeps running through each step. Each phase is a PR with its docs updated.
 
-### P1 — Restructure
+### P1 — Restructure — done
 
-Move to pnpm + Turborepo + `apps/*` + `services/*` + `packages/*`; lift shared eslint/tsconfig/husky
-config from the sibling repos. App still runs on the current Node runtime.
-**Exit:** `pnpm dev` runs everything; `pnpm build` / `pnpm test` green across workspaces.
+Moved to pnpm + Turborepo + `apps/*` + `services/*` + `packages/*`; lifted shared eslint/tsconfig/husky
+config from creatorgrid. Also folded in the styled-components → vanilla-extract migration (#63, #64) —
+not originally scoped to P1, but landed together once decided mid-restructure. `services/api` still
+runs on the current Node/Express runtime; the re-platform to Hono is P3.
 
-### P2 — Data layer
+### P2 — Data layer — done
 
-Author the household schema fresh in `packages/db` (Drizzle + D1). No data migration — alpha.
-Drop the legacy tables the product doesn't use — including `watchlist_entries` (taste now comes from
-onboarding + thumbs; see `db-schema.md`).
-**Exit:** `wrangler d1 migrations apply --local` builds the schema; Drizzle client typed.
+Authored the household schema fresh in `packages/db` (Drizzle + D1) — see `db-schema.md` for the full
+table list. No data migration — alpha. Dropped the legacy tables the product doesn't use, including
+`watchlist_entries` (taste now comes from onboarding + thumbs). `services/api/wrangler.jsonc` has just
+the `d1_databases` binding needed for migrations tooling so far — `main`/routes/vars land in P3 when
+this becomes an actual Hono Worker. `database_id` is a placeholder until a real D1 database is
+provisioned.
+**Exit:** `wrangler d1 migrations apply --local` builds the schema (verified); Drizzle client typed
+(verified — `pnpm --filter @pairflix/db type-check` is clean).
 
 ### P3 — API
 

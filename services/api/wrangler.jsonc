@@ -1,0 +1,21 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "pairflix-api",
+	"compatibility_date": "2026-08-01",
+	// This is P2 (data layer) of docs/roadmap.md's re-platform: only the D1 binding needed for
+	// `wrangler d1 migrations apply`/local dev exists so far. `main`, routes, and vars land in P3
+	// when this becomes an actual Hono Worker -- services/api is still the Express app until then.
+	//
+	// `database_id` is a placeholder until a real D1 database is provisioned in a Cloudflare
+	// account (out of scope for local schema/migration work) -- `--remote` won't work until it's
+	// replaced with the real id from `wrangler d1 create pairflix-db`, but `--local` (Miniflare,
+	// fully offline) doesn't need it to be real.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "pairflix-db",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "../../packages/db/migrations"
+		}
+	]
+}
