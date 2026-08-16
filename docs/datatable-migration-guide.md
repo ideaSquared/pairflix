@@ -30,9 +30,9 @@ Follow these steps for each component:
    ```tsx
    // Import DataTable from lib.components
    import {
-   	DataTable,
-   	TableColumn,
-   	TableProps,
+     DataTable,
+     TableColumn,
+     TableProps,
    } from '../../../../../../lib.components/src/components/common/Table';
    ```
 
@@ -40,8 +40,8 @@ Follow these steps for each component:
 
    ```tsx
    interface MyDataType {
-   	id: string;
-   	// Add other fields as needed
+     id: string;
+     // Add other fields as needed
    }
    ```
 
@@ -72,14 +72,14 @@ Follow these steps for each component:
 6. **Replace the old table implementation with DataTable**:
    ```tsx
    <DataTable<MyDataType>
-   	columns={columns}
-   	data={yourDataArray}
-   	emptyMessage='No data found'
-   	getRowId={(row) => row.id}
-   	rowActions={renderActions} // If you have row actions
-   	minWidth='800px' // Adjust as needed
-   	aria-label='Description of your table'
-   	stickyHeader // Optional
+     columns={columns}
+     data={yourDataArray}
+     emptyMessage="No data found"
+     getRowId={row => row.id}
+     rowActions={renderActions} // If you have row actions
+     minWidth="800px" // Adjust as needed
+     aria-label="Description of your table"
+     stickyHeader // Optional
    />
    ```
 
@@ -113,11 +113,11 @@ Follow these steps for each component:
 
 ```tsx
 <DataTable
-	columns={columns}
-	data={users}
-	actions={(
-		user // Wrong property name
-	) => <Button onClick={() => handleEdit(user)}>Edit</Button>}
+  columns={columns}
+  data={users}
+  actions={(
+    user // Wrong property name
+  ) => <Button onClick={() => handleEdit(user)}>Edit</Button>}
 />
 ```
 
@@ -125,11 +125,11 @@ Follow these steps for each component:
 
 ```tsx
 <DataTable<User>
-	columns={columns}
-	data={users}
-	rowActions={(
-		user // Correct property name is 'rowActions'
-	) => <Button onClick={() => handleEdit(user)}>Edit</Button>}
+  columns={columns}
+  data={users}
+  rowActions={(
+    user // Correct property name is 'rowActions'
+  ) => <Button onClick={() => handleEdit(user)}>Edit</Button>}
 />
 ```
 
@@ -139,14 +139,14 @@ Follow these steps for each component:
 
 ```tsx
 <DataTable
-	columns={columns}
-	data={users}
-	pagination={{
-		// Incorrect - DataTable doesn't accept a pagination object
-		currentPage: page,
-		totalPages: totalPages,
-		onPageChange: setPage,
-	}}
+  columns={columns}
+  data={users}
+  pagination={{
+    // Incorrect - DataTable doesn't accept a pagination object
+    currentPage: page,
+    totalPages: totalPages,
+    onPageChange: setPage,
+  }}
 />
 ```
 
@@ -154,18 +154,18 @@ Follow these steps for each component:
 
 ```tsx
 <>
-	<DataTable<User>
-		columns={columns}
-		data={users}
-		// No pagination prop here
-	/>
+  <DataTable<User>
+    columns={columns}
+    data={users}
+    // No pagination prop here
+  />
 
-	{/* Separate pagination component */}
-	<Pagination
-		currentPage={page}
-		totalPages={totalPages}
-		onPageChange={setPage}
-	/>
+  {/* Separate pagination component */}
+  <Pagination
+    currentPage={page}
+    totalPages={totalPages}
+    onPageChange={setPage}
+  />
 </>
 ```
 
@@ -183,28 +183,28 @@ Before:
 
 ```tsx
 <TableContainer>
-	<Table>
-		<TableHead>
-			<TableRow>
-				<TableHeaderCell>Date</TableHeaderCell>
-				<TableHeaderCell>Activity Type</TableHeaderCell>
-				<TableHeaderCell>Details</TableHeaderCell>
-			</TableRow>
-		</TableHead>
-		<TableBody>
-			{activities.map((activity) => (
-				<TableRow key={activity.log_id || activity.id}>
-					<TableCell>{formatDate(activity.created_at)}</TableCell>
-					<TableCell>{activity.action}</TableCell>
-					<TableCell>
-						<pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-							{formatMetadata(activity.metadata)}
-						</pre>
-					</TableCell>
-				</TableRow>
-			))}
-		</TableBody>
-	</Table>
+  <Table>
+    <TableHead>
+      <TableRow>
+        <TableHeaderCell>Date</TableHeaderCell>
+        <TableHeaderCell>Activity Type</TableHeaderCell>
+        <TableHeaderCell>Details</TableHeaderCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {activities.map(activity => (
+        <TableRow key={activity.log_id || activity.id}>
+          <TableCell>{formatDate(activity.created_at)}</TableCell>
+          <TableCell>{activity.action}</TableCell>
+          <TableCell>
+            <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+              {formatMetadata(activity.metadata)}
+            </pre>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
 </TableContainer>
 ```
 
@@ -212,30 +212,30 @@ After:
 
 ```tsx
 <DataTable<UserActivity>
-	columns={[
-		{
-			key: 'created_at',
-			header: 'Date',
-			render: (value) => formatDate(value as string),
-		},
-		{
-			key: 'action',
-			header: 'Activity Type',
-		},
-		{
-			key: 'metadata',
-			header: 'Details',
-			render: (value) => (
-				<pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-					{formatMetadata(value)}
-				</pre>
-			),
-		},
-	]}
-	data={activities}
-	emptyMessage='No activity found for this user'
-	getRowId={(row) => row.log_id || row.id || Math.random().toString()}
-	minWidth='700px'
-	aria-label='User activity table'
+  columns={[
+    {
+      key: 'created_at',
+      header: 'Date',
+      render: value => formatDate(value as string),
+    },
+    {
+      key: 'action',
+      header: 'Activity Type',
+    },
+    {
+      key: 'metadata',
+      header: 'Details',
+      render: value => (
+        <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+          {formatMetadata(value)}
+        </pre>
+      ),
+    },
+  ]}
+  data={activities}
+  emptyMessage="No activity found for this user"
+  getRowId={row => row.log_id || row.id || Math.random().toString()}
+  minWidth="700px"
+  aria-label="User activity table"
 />
 ```

@@ -16,34 +16,44 @@ import { DataTypes, Model, type Optional } from 'sequelize';
 import { sequelize } from '../db';
 
 export enum HouseholdRole {
-	OWNER = 'owner',
-	MEMBER = 'member',
+  OWNER = 'owner',
+  MEMBER = 'member',
 }
 
 type Attributes = {
-	id: string;
-	name: string | null;
-	createdAt: Date;
-	updatedAt: Date;
+  id: string;
+  name: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-type CreationAttributes = Optional<Attributes, 'id' | 'createdAt' | 'updatedAt' | 'name'>;
+type CreationAttributes = Optional<
+  Attributes,
+  'id' | 'createdAt' | 'updatedAt' | 'name'
+>;
 
-export class Household extends Model<Attributes, CreationAttributes> implements Attributes {
-	declare id: string;
-	declare name: string | null;
-	declare createdAt: Date;
-	declare updatedAt: Date;
+export class Household
+  extends Model<Attributes, CreationAttributes>
+  implements Attributes
+{
+  declare id: string;
+  declare name: string | null;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 Household.init(
-	{
-		id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-		name: { type: DataTypes.STRING, allowNull: true },
-		createdAt: { type: DataTypes.DATE, allowNull: false },
-		updatedAt: { type: DataTypes.DATE, allowNull: false },
-	},
-	{ sequelize, tableName: 'households', timestamps: true, underscored: true }
+  {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    name: { type: DataTypes.STRING, allowNull: true },
+    createdAt: { type: DataTypes.DATE, allowNull: false },
+    updatedAt: { type: DataTypes.DATE, allowNull: false },
+  },
+  { sequelize, tableName: 'households', timestamps: true, underscored: true }
 );
 ```
 
@@ -63,8 +73,14 @@ Two edits:
 2. Add associations in the same file, in the existing association block:
 
 ```ts
-User.belongsToMany(Household, { through: HouseholdMember, foreignKey: 'user_id' });
-Household.belongsToMany(User, { through: HouseholdMember, foreignKey: 'household_id' });
+User.belongsToMany(Household, {
+  through: HouseholdMember,
+  foreignKey: 'user_id',
+});
+Household.belongsToMany(User, {
+  through: HouseholdMember,
+  foreignKey: 'household_id',
+});
 Household.hasMany(WatchedTogether, { foreignKey: 'household_id' });
 ```
 
@@ -78,29 +94,33 @@ If you forget this, the model exists but nothing else can use it.
 import { QueryInterface, DataTypes } from 'sequelize';
 
 export default {
-	up: async (queryInterface: QueryInterface) => {
-		const t = await queryInterface.sequelize.transaction();
-		try {
-			await queryInterface.createTable(
-				'households',
-				{
-					id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-					name: { type: DataTypes.STRING, allowNull: true },
-					created_at: { type: DataTypes.DATE, allowNull: false },
-					updated_at: { type: DataTypes.DATE, allowNull: false },
-				},
-				{ transaction: t }
-			);
-			await queryInterface.addIndex('households', ['name'], { transaction: t });
-			await t.commit();
-		} catch (e) {
-			await t.rollback();
-			throw e;
-		}
-	},
-	down: async (queryInterface: QueryInterface) => {
-		await queryInterface.dropTable('households');
-	},
+  up: async (queryInterface: QueryInterface) => {
+    const t = await queryInterface.sequelize.transaction();
+    try {
+      await queryInterface.createTable(
+        'households',
+        {
+          id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            primaryKey: true,
+          },
+          name: { type: DataTypes.STRING, allowNull: true },
+          created_at: { type: DataTypes.DATE, allowNull: false },
+          updated_at: { type: DataTypes.DATE, allowNull: false },
+        },
+        { transaction: t }
+      );
+      await queryInterface.addIndex('households', ['name'], { transaction: t });
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
+  },
+  down: async (queryInterface: QueryInterface) => {
+    await queryInterface.dropTable('households');
+  },
 };
 ```
 

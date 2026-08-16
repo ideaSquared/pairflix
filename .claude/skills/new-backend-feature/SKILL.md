@@ -28,11 +28,11 @@ Service test minimum: one happy path + one failure mode.
 
 ```ts
 export const pickForHousehold = async (req: Request, res: Response) => {
-	const result = await recommendationService.pickForHousehold({
-		householdId: req.params.id,
-		...req.body,
-	});
-	res.status(200).json({ data: result });
+  const result = await recommendationService.pickForHousehold({
+    householdId: req.params.id,
+    ...req.body,
+  });
+  res.status(200).json({ data: result });
 };
 ```
 
