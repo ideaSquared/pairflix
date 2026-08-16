@@ -7,3 +7,4 @@ storybook-static
 *.tsbuildinfo
 .claude/worktrees/
 .turbo/
+.wrangler/
