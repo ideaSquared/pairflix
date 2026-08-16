@@ -37,6 +37,7 @@ rate** (the household takes the first title offered).
 ## Features
 
 ### Free tier
+
 - Household pair profile (join two+ members).
 - Mood + time-budget Tonight picker.
 - Up to **3 picks/day**, single region (GB), ad-light.
@@ -44,12 +45,14 @@ rate** (the household takes the first title offered).
 - Watch-together history with thumbs.
 
 ### Premium (per household, monthly)
+
 - **Unlimited** picks.
 - **Multi-region** providers (for households that straddle regions or travel).
 - **LLM-assisted re-ranking** of the shortlist (opt-in, off by default on the platform).
 - Richer watch-together history.
 
 ### Admin
+
 - User management, content moderation, basic platform metrics. Staff-only.
 
 ## Non-goals (explicit)
@@ -57,18 +60,20 @@ rate** (the household takes the first title offered).
 - **Not** a social network — no feeds, groups, watch parties, DMs, or comments. (The old Phase-4
   "social entertainment platform" roadmap is retired.)
 - **Not** user-to-user matchmaking / "find a viewing partner". The household is assumed already paired.
-- **Not** a personal watchlist manager as the headline product. (Whether a lightweight watchlist
-  survives as a taste input is an open question — see `db-schema.md`.)
+- **Not** a personal watchlist manager as the headline product. Taste is seeded from a light
+  onboarding step and learned from watched-together thumbs; the old personal watchlist is retired and
+  is **not** a taste input. A lightweight "save for tonight" list may return later as a convenience,
+  but taste won't depend on it.
 - **Not** a player. Pairflix hands off to the streaming app; it never streams.
 
 ## Success metrics
 
-| Metric | Target |
-|---|---|
-| Time-to-decision | < 30 seconds |
-| First-pick acceptance rate | the north-star; grow it release over release |
-| Free → premium conversion | 3% (Y1) → 7% (Y3), per the seed plan |
-| Provider click-through | tracked via `pick_events` for affiliate attribution |
+| Metric                     | Target                                              |
+| -------------------------- | --------------------------------------------------- |
+| Time-to-decision           | < 30 seconds                                        |
+| First-pick acceptance rate | the north-star; grow it release over release        |
+| Free → premium conversion  | 3% (Y1) → 7% (Y3), per the seed plan                |
+| Provider click-through     | tracked via `pick_events` for affiliate attribution |
 
 ## Current status (alpha, pre-launch)
 

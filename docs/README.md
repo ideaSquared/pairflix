@@ -7,6 +7,7 @@
 ## Start here
 
 - [**ADR 0001 — Cloudflare stack**](./adr/0001-cloudflare-stack.md) — the stack decision and why
+- [**ADR 0002 — Session-cookie auth**](./adr/0002-session-cookie-auth.md) — the auth model on Workers
 - [**Architecture**](./architecture.md) — target topology, the pick path, auth, tenancy
 - [**Product Requirements**](./prd.md) — what Pairflix is (household decision layer) and is not
 - [**Roadmap**](./roadmap.md) — real code state, the re-platform phases, path to alpha

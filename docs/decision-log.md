@@ -15,6 +15,12 @@ below:
   Move off Express + Sequelize + Postgres + npm onto pnpm + Turborepo + Hono + Drizzle + D1 + R2 on
   Cloudflare Workers/Pages, mirroring the `creatorgrid` sibling repo. Migration phases in
   `docs/roadmap.md`.
+- **ADR 0002 — Session-cookie auth** (`docs/adr/0002-session-cookie-auth.md`, Accepted 2026-08-16).
+  Retire JWT for opaque D1 sessions + PBKDF2 (Web Crypto) + double-submit CSRF, ported from
+  creatorgrid (no native bcrypt on Workers).
+- **Taste input** (decided 2026-08-16) — seed `taste_profiles` from a light onboarding step and refine
+  from watched-together thumbs; the personal watchlist is retired and is not a taste input
+  (`docs/prd.md`, `docs/db-schema.md`).
 
 The table below is **pre-pivot history** — accurate for the old product, retained for context.
 
