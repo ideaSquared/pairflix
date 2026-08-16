@@ -34,13 +34,18 @@ meRoutes.use('*', requireAuth);
 
 meRoutes.post('/2fa/enroll', async c => {
 	const userId = c.get('userId') as string;
+	const sessionSecret = c.env.SESSION_SECRET;
+	if (!sessionSecret) {
+		return c.json({ error: 'Two-factor authentication is not available' }, 501);
+	}
+
 	const db = createDb(c.env.DB);
 	const user = await db.select().from(users).where(eq(users.id, userId)).get();
 	if (!user) return c.json({ error: 'Not found' }, 404);
 	if (user.totpEnabled) return c.json({ error: '2FA is already enabled' }, 409);
 
 	const secret = generateTotpSecret();
-	const encrypted = await encryptSecret(secret, c.env.SESSION_SECRET ?? '');
+	const encrypted = await encryptSecret(secret, sessionSecret);
 	await db
 		.update(users)
 		.set({ totpSecret: encrypted })
@@ -54,6 +59,11 @@ meRoutes.post('/2fa/enroll', async c => {
 
 meRoutes.post('/2fa/verify', async c => {
 	const userId = c.get('userId') as string;
+	const sessionSecret = c.env.SESSION_SECRET;
+	if (!sessionSecret) {
+		return c.json({ error: 'Two-factor authentication is not available' }, 501);
+	}
+
 	const parsed = TotpVerifyRequestSchema.safeParse(
 		await c.req.json().catch(() => null)
 	);
@@ -73,10 +83,7 @@ meRoutes.post('/2fa/verify', async c => {
 	if (!user.totpSecret)
 		return c.json({ error: 'Start 2FA enrollment first' }, 400);
 
-	const totpSecret = await decryptSecret(
-		user.totpSecret,
-		c.env.SESSION_SECRET ?? ''
-	);
+	const totpSecret = await decryptSecret(user.totpSecret, sessionSecret);
 	if (!(await verifyTotpCode(totpSecret, parsed.data.code))) {
 		return c.json({ error: 'Invalid or expired code' }, 401);
 	}

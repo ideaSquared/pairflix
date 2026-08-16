@@ -97,6 +97,21 @@ describe('POST /api/auth/login', () => {
 		expect(result.status).toBe(403);
 	});
 
+	it('does not set last_login for correct credentials blocked by an unverified email', async () => {
+		const email = uniqueEmail();
+		const { userId } = await registerUser(email, 'Str0ngPass123');
+
+		const result = await loginUser(email, 'Str0ngPass123');
+		expect(result.status).toBe(403);
+
+		const user = await env.DB.prepare(
+			'SELECT last_login FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ last_login: number | null }>();
+		expect(user?.last_login).toBeNull();
+	});
+
 	it('logs in a verified user and sets a session cookie', async () => {
 		const email = uniqueEmail();
 		await registerAndVerify(email, 'Str0ngPass123');

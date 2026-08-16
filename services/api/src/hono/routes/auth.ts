@@ -236,7 +236,7 @@ authRoutes.post('/login', async c => {
 
 	await db
 		.update(users)
-		.set({ failedLoginAttempts: 0, lockedUntil: null, lastLogin: new Date() })
+		.set({ failedLoginAttempts: 0, lockedUntil: null })
 		.where(eq(users.id, user.id));
 
 	if (!user.emailVerified) {
@@ -259,6 +259,14 @@ authRoutes.post('/login', async c => {
 			403
 		);
 	}
+
+	// Only set once every gate above has passed -- otherwise an unverified/pending account could
+	// show a non-null "Last Login" despite never getting a session (the admin CSV export treats this
+	// column as a real last-successful-login timestamp).
+	await db
+		.update(users)
+		.set({ lastLogin: new Date() })
+		.where(eq(users.id, user.id));
 
 	await auditInfo(db, 'User logged in', 'auth', {
 		userId: user.id,
@@ -584,7 +592,7 @@ authRoutes.post('/reset-password', async c => {
  * arbitrary email, so knowing the secret alone isn't enough to take over someone else's account.
  * Adding further admins after the first is a manual `UPDATE users SET role = 'admin' ...`. Note:
  * `requireAdmin` also demands TOTP enrollment, so a freshly-bootstrapped admin still can't reach
- * other admin routes until they enroll via `/auth/2fa/enroll`.
+ * other admin routes until they enroll via `POST /api/me/2fa/enroll`.
  */
 authRoutes.post('/bootstrap-admin', requireAuth, async c => {
 	const secret = c.env.ADMIN_BOOTSTRAP_SECRET;

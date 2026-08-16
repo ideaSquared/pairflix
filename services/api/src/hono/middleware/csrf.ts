@@ -6,10 +6,10 @@ import type { AppEnv } from '../types';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * Double-submit-cookie CSRF protection (ADR 0002). Enforced only when the request is
- * cookie-authenticated, so it pairs with the frontend API client which fetches
- * `GET /api/auth/csrf-token` and echoes the `csrfToken` cookie value back as the `x-csrf-token`
- * header on writes.
+ * Double-submit-cookie CSRF protection (ADR 0002). Enforced whenever a `csrfToken` or `session`
+ * cookie is present -- not gated on being logged in -- so it pairs with the frontend API client,
+ * which always fetches `GET /api/auth/csrf-token` (seeding the cookie) before any write, whether
+ * or not the caller is authenticated yet.
  */
 export const csrfMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 	if (SAFE_METHODS.has(c.req.method)) return next();
