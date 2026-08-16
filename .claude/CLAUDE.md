@@ -4,6 +4,14 @@ Behavioral guidelines to reduce common LLM coding mistakes, plus the Pairflix-sp
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+> **Stack migration in progress — ADR 0001.** Pairflix is re-platforming onto the Cloudflare stack:
+> **pnpm + Turborepo**, `apps/*` + `services/*` + `packages/*`, a **Hono** Worker API, **Drizzle + D1**,
+> **R2**, and **Cloudflare Pages** frontends — mirroring the `creatorgrid` sibling repo. The codebase
+> is still Express + Sequelize + Postgres until the phases in `docs/roadmap.md` land. **Follow the
+> target conventions below for new `services/*` / `packages/*` work; follow the current reality for
+> existing `backend/` code you're only touching in passing.** Read `docs/adr/0001-cloudflare-stack.md`,
+> `docs/architecture.md`, and `docs/db-schema.md` before structural work.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
@@ -75,53 +83,60 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Pairflix is the "what should WE watch tonight" decision layer for couples and households. Given a household, a mood, and a time budget, the product returns **one** title in under 30 seconds, with cross-platform availability (Netflix / Prime / Disney+ …) surfaced on the card. Premium adds unlimited picks, multi-region providers, and LLM-assisted re-ranking.
 
-Product source of truth: the **Pairflix — Business Plan** Notion page (`https://www.notion.so/ba9c9af72f9a4f448b554378d8dc43b4`). When the Notion plan and the codebase disagree, the Notion plan wins for product intent; the codebase wins for engineering reality. Flag the conflict and ask.
+Product source of truth: the **Pairflix — Business Plan** Notion page (`https://www.notion.so/ba9c9af72f9a4f448b554378d8dc43b4`) and the venture page at `ideasquared-website/ventures/pairflix/`. When the plan and the codebase disagree, the plan wins for product intent; the codebase wins for engineering reality. Flag the conflict and ask.
 
-## Active pivot — required context for every change
+## Two migrations are in flight
 
-The codebase historically implemented **user-to-user matching** ("find a viewing partner"). It is pivoting to **title matching for an already-paired household** ("what should we watch"). The existing `Match` model (user pairing) is the seed for the new `Household` model — both coexist during the migration.
+1. **Product pivot (mostly shipped):** user-to-user matching → title matching for an already-paired
+   household. Scaffolds A–E (households/taste/watched-together, the ML recommender +
+   `POST /households/:id/pick`, the feature-flagged LLM re-rank, providers + history, freemium
+   entitlements) are merged. This is **pre-launch alpha with no production data** — the old matching
+   and watchlist flows are being deleted, not preserved. There is nothing to keep backwards-compatible
+   and no data to migrate; when the old code doesn't serve the household product, remove it.
+2. **Platform re-platform (in progress, ADR 0001):** Node/Express/Sequelize/Postgres → Cloudflare
+   (Hono/Drizzle/D1, pnpm/Turborepo). Tracked phase-by-phase in `docs/roadmap.md`.
 
-The pivot has shipped five overlapping scaffolds, all merged onto `claude/inspiring-tesla-lAShW`:
-
-- **A** — `Household`, `HouseholdMember`, `TasteProfile`, `WatchedTogether`; `Content.providers` JSONB; first real Sequelize migration.
-- **B** — ML/CF recommender (`recommendation.service.ts`), `POST /api/households/:id/pick`, `TonightPicker` UI. **No LLM in the hot path.**
-- **C** — Anthropic SDK (`claude-sonnet-4-6`), prompt-cached system + taste-profile blocks, tool-use structured output, behind `recommendation.llm_rerank` (default off). Hooked into the recommender via `maybeRerank` — returns `null` to fall back to pure ML.
-- **D** — TMDb `/watch/providers` fetch + cache (`providers.service.ts`), `ProviderBadges` in `lib.components`, `WatchedTogether` history view with thumbs capture.
-- **E** — `Subscription`, `PickUsage`, entitlements + quota middleware, **mock checkout only** (no Stripe SDK yet). Ownership is `HouseholdMember.role = 'owner'` — there is no `owner_id` column on `Household`.
-
-Extend along these seams. Don't introduce parallel structures.
+Extend along the existing seams. Don't introduce parallel structures, and don't invest in the parts
+being retired (Docker/nginx app deploy).
 
 ## Quick Reference
 
 - TypeScript strict everywhere; no `any` outside of test fixtures or vendored shims.
-- Jest + ts-jest in backend; Jest + RTL in the React workspaces.
-- Backend: `routes/` → `controllers/` → `services/` → `models/`. Controllers stay thin.
-- Frontend: feature folders, React Query for server state, styled-components for styling, `lib.components` for primitives.
-- One schema change = one Sequelize migration. Document it in `docs/db-schema.md` in the same PR.
-- Commits on a feature branch off `claude/inspiring-tesla-lAShW`. Never on `main`. Never push unless asked.
+- **Vitest** across all workspaces (the Worker uses `@cloudflare/vitest-pool-workers` against local D1).
+- **API (`services/api`):** Hono route modules (`src/routes/*`) → middleware (`src/middleware/*`) →
+  business logic (`src/lib/*`) → Drizzle (`packages/db`) → D1. Route modules stay thin.
+- Frontend: feature folders, React Query for server state, styled-components for styling,
+  `packages/lib.components` for primitives.
+- One schema change = one Drizzle migration. Document it in `docs/db-schema.md` in the same PR.
+- Commits on a feature branch off `master`. Never on `master` directly. Never push unless asked.
 
 **Preferred tools:**
 
 - **Language:** TypeScript (strict mode)
-- **Backend:** Express 4, Sequelize 6, PostgreSQL 14+, JWT auth
-- **Frontend:** React 18, Vite, styled-components, React Query, React Router
-- **Tests:** Jest, ts-jest, supertest (backend), React Testing Library (frontend)
-- **External:** TMDb (titles + providers), Anthropic API (LLM re-rank, opt-in), Stripe (reserved for Phase E)
+- **Package manager / build:** pnpm 10 + Turborepo
+- **API:** Hono on Cloudflare Workers
+- **Data:** Drizzle ORM on Cloudflare D1 (SQLite); R2 for blobs
+- **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF
+- **Frontend:** React 18/19, Vite, styled-components, React Query, React Router — on Cloudflare Pages
+- **Tests:** Vitest (`@cloudflare/vitest-pool-workers` for the Worker, React Testing Library for apps)
+- **External:** TMDb (titles + providers), Anthropic API (LLM re-rank, opt-in), Stripe (deferred)
 
 ---
 
 ## Monorepo Architecture
 
-npm workspaces (no Turborepo). Four workspaces:
+pnpm workspaces + Turborepo. Layout mirrors `adopt-dont-shop` / `creatorgrid`:
 
 ```
 pairflix/
-├── backend/            # Express + Sequelize API (port 8000, mounted at /api)
-├── app.client/         # User-facing React app (port 5173)
-├── app.admin/          # Admin panel React app (port 5174)
-├── lib.components/     # Shared component library (styled-components)
-├── docs/               # Architecture, schema, decision log, phase roadmaps
-└── scripts/            # Dev + migration helpers
+├── apps/client/        # user SPA (Vite + React) on Pages — wrangler.jsonc
+├── apps/admin/         # admin SPA on Pages — wrangler.jsonc
+├── services/api/       # Hono Worker — wrangler.jsonc (routes / middleware / lib)
+├── packages/db/        # Drizzle schema + client + SQL migrations
+├── packages/lib.components/   # shared UI primitives
+├── packages/lib.*/     # shared types / api client / utils / validation
+├── docs/               # ADRs, architecture, schema, decision log, roadmap
+└── e2e/                # end-to-end tests
 ```
 
 ### Key commands
@@ -129,42 +144,28 @@ pairflix/
 Run from repo root unless stated.
 
 ```bash
-# Install
-npm install
+pnpm install                     # install every workspace
+pnpm dev                         # turbo: Worker + both Pages apps in parallel
+pnpm --filter @pairflix/api dev  # just the Worker (wrangler dev, :8787)
+pnpm build                       # turbo build
+pnpm test                        # turbo test (vitest)
+pnpm lint | pnpm format
+pnpm -r type-check               # tsc --noEmit per workspace
 
-# Dev
-npm run dev:backend          # API server (port 8000)
-npm run dev:client           # User app (port 5173)
-npm run dev:admin            # Admin app (port 5174)
-
-# Build
-npm run build:all
-npm run build:backend | build:client | build:admin | build:components
-
-# Test
-npm run test:all
-npm run test:backend | test:client | test:admin | test:components
-
-# Lint / format
-npm run lint:all
-npm run format:all
-
-# Typecheck (per workspace)
-cd backend && npx tsc --noEmit
-cd app.client && npx tsc --noEmit
-cd app.admin && npx tsc --noEmit
-cd lib.components && npx tsc --noEmit
-
-# Database (Docker is easiest)
-docker-compose up -d postgres
+# database (local D1 via Miniflare)
+pnpm --filter @pairflix/db db:generate         # drizzle-kit generate
+pnpm --filter @pairflix/db db:migrate:local    # wrangler d1 migrations apply --local
+pnpm --filter @pairflix/db db:seed:local
 ```
+
+Full setup in `docs/dev-setup.md`.
 
 ### Monorepo rules
 
-1. **Workspace deps** use `*` version (e.g. `"@pairflix/lib.components": "*"`).
-2. Changes to `lib.components` affect both apps — typecheck both before declaring done.
-3. Each workspace has its own `package.json`, `tsconfig.json`, and tests.
-4. Indentation is **tabs in `backend/`**, **2-space in the React workspaces**. Match the file you're editing.
+1. **Workspace deps** use `workspace:*` (e.g. `"@pairflix/db": "workspace:*"`).
+2. Changes to a `packages/*` lib affect its consumers — type-check them before declaring done.
+3. Each workspace has its own `package.json`, `tsconfig.json`, `wrangler.jsonc` (apps/services), and tests.
+4. **2-space indentation everywhere** (Prettier-enforced), matching the sibling repos.
 
 ---
 
@@ -173,20 +174,20 @@ docker-compose up -d postgres
 ### Behaviour-driven
 
 - Test through public APIs. Don't mirror internal structure 1:1.
-- New service ⇒ one happy-path + one failure-mode test, minimum.
-- API endpoints with non-trivial logic get a `supertest` integration test.
-- Tests must follow the same TypeScript strict rules as production code.
-- Co-locate tests with their subject: `auth.service.ts` ↔ `auth.service.test.ts`.
+- New `lib` module ⇒ one happy-path + one failure-mode test, minimum.
+- API routes with non-trivial logic get an integration test via `@cloudflare/vitest-pool-workers`
+  (real Hono app, real local D1) — the equivalent of the old supertest route tests.
+- Tests follow the same TypeScript strict rules as production code.
+- Co-locate tests with their subject: `recommendation.ts` ↔ `recommendation.test.ts`.
 
 ### Tools
 
-- **Jest + ts-jest** in `backend/`.
-- **Jest + React Testing Library** in `app.client`, `app.admin`, `lib.components`.
-- **supertest** for backend route tests.
+- **Vitest** everywhere. The Worker runs under `@cloudflare/vitest-pool-workers` (Miniflare D1/R2).
+- **React Testing Library** in `apps/*` and `packages/lib.components`.
 
 ### Don't
 
-- Don't test framework code (Sequelize internals, React Router internals).
+- Don't test framework code (Drizzle internals, React Router internals).
 - Don't write snapshot tests for anything you wouldn't catch a bug in.
 - Don't mock what you own — extract a seam instead.
 
@@ -197,10 +198,12 @@ docker-compose up -d postgres
 - **No `any`.** Use `unknown` if a type is truly unknown.
 - **No `as` casts** unless commented with a one-line justification.
 - **No `@ts-ignore` / `@ts-expect-error`** without a justification comment.
-- **Prefer `type` over `interface`** for new declarations. Existing interfaces stay until touched.
+- **Prefer `type` over `interface`** for new declarations.
 - Use utility types (`Pick`, `Omit`, `Partial`, `Required`).
 - Domain types for IDs where it helps (`HouseholdId`, `UserId`).
-- Schemas (`zod` / similar) are not yet in the codebase. Don't introduce one for a single endpoint — talk first.
+- Request/response validation lives in `packages/lib.validation` (shared schemas). Reuse it; don't
+  hand-roll per-endpoint validation.
+- Run `wrangler types` (`cf-typegen`) so the Worker's `Env` bindings (DB, R2, vars) are typed.
 
 ---
 
@@ -218,115 +221,102 @@ docker-compose up -d postgres
 - Functions: `camelCase`, verb-first.
 - Types: `PascalCase`.
 - Constants: `UPPER_SNAKE_CASE` for true constants; `camelCase` for config.
-- Backend filenames: **`PascalCase.ts` for models**, **`dot.notation.ts` for everything else** (`auth.service.ts`, `match.routes.ts`).
-- Frontend filenames: `PascalCase.tsx` for components, `camelCase.ts` for hooks/utils.
+- Filenames: `dot.notation.ts` for modules (`recommendation.ts`, `auth.ts`), `PascalCase.tsx` for
+  React components, `camelCase.ts` for hooks/utils.
 - Test files: `*.test.ts` / `*.test.tsx`.
 
 ---
 
-## Backend Patterns (Express + Sequelize)
+## Backend Patterns (Hono + Drizzle on Workers)
 
 ### Layering
 
 ```
-Request → Route → Middleware → Controller → Service → Model → Postgres
-                                       ↓
-                                   Response
+Request → Hono route module → middleware → lib (business logic) → Drizzle → D1
+                                     ↓
+                                 Response
 ```
 
-- **Routes** (`backend/src/routes/`): wire middleware + controller. No logic.
-- **Controllers** (`backend/src/controllers/`): HTTP marshalling, status codes. No business logic.
-- **Services** (`backend/src/services/`): all business logic, pure-ish, easily testable.
-- **Models** (`backend/src/models/`): Sequelize schema + associations. Register in `models/index.ts`.
+- **Routes** (`services/api/src/routes/*`): wire middleware + call into `lib`. No business logic.
+- **Middleware** (`services/api/src/middleware/*`): auth (session), CSRF, rate limiting,
+  entitlements/quota. Mount explicitly per route group — no implicit gating.
+- **Business logic** (`services/api/src/lib/*`): pure-ish, easily testable (recommendation, providers,
+  entitlements, history, household, billing).
+- **Data** (`packages/db`): Drizzle schema + typed client. The DB handle comes from the Worker `Env`
+  binding, passed down — never a module-level singleton.
 
-### Sequelize models
+### Drizzle & D1
 
-- One file per model, PascalCase.
-- Register in `backend/src/models/index.ts` and define associations there, following the existing pattern.
-- Use TypeScript enums for status fields. JSONB for flexible payloads (`providers`, `weights`, settings).
+- Schema in `packages/db/src/schema.ts`. JSON columns use `text({ mode: 'json' }).$type<T>()`;
+  timestamps use `integer({ mode: 'timestamp_ms' })`; booleans `integer({ mode: 'boolean' })`.
 - Index every column you'll filter / join on.
 
 ### Migrations
 
-- Live under `backend/src/db/migrations/` (introduced in Phase A — before then, schema was sync-driven).
-- Sequentially numbered: `001-create-households.ts`, `002-add-providers-to-content.ts`.
-- **Always implement `up` AND `down`.** Test both.
-- **Never modify an existing migration.** Create a new one.
-- Wrap multi-step changes in a single transaction.
-- Document the new tables/columns in `docs/db-schema.md` in the same PR.
+- SQL under `packages/db/migrations/`, generated with `drizzle-kit generate`, applied with
+  `wrangler d1 migrations apply pairflix-db --local|--remote`.
+- **Never modify a shipped migration.** Create a new one.
+- Document new tables/columns in `docs/db-schema.md` in the same PR.
 
 ### Auth
 
-- JWT bearer; `req.user` populated by `authMiddleware` in `backend/src/middlewares/`.
-- Mount auth on every protected route explicitly — no implicit gating.
+- Session-cookie based: the `session` cookie holds an opaque token looked up in D1; `requireAuth`
+  middleware populates the caller. Passwords are PBKDF2 (Web Crypto — **no bcrypt on Workers**).
+- State-changing requests carry a double-submit CSRF token (`x-csrf-token` vs the `csrfToken` cookie).
 
 ### Rate limiting
 
-- Extend the existing `express-rate-limit` configs rather than introducing new instances.
+- D1-backed middleware (creatorgrid's `ip-rate-limit` / `admin-rate-limit` pattern) — counts recent
+  rows in a window. Extend the existing middleware; don't introduce a parallel limiter.
 
-### Logging
+### Logging & errors
 
-- Use the logger in `backend/src/utils/`. **No `console.log`** in checked-in code.
-
-### Error handling
-
-- Custom error classes (`NotFoundError`, `ValidationError`, etc.) extend `Error` with a `statusCode`.
-- Throw from services; the error middleware in `backend/src/middlewares/` translates to HTTP.
-- Don't `try/catch` to swallow — let the middleware handle it, unless you're adding context to the error and re-throwing.
+- Prefer the shared logger; the Worker's `console` output is captured by Cloudflare observability, but
+  don't leave stray debug logs in checked-in code.
+- Custom error classes (`NotFoundError`, `ValidationError`, …) carry a `statusCode`; a Hono `onError`
+  handler translates them to the error response shape. Throw from `lib`; don't `try/catch` to swallow.
 
 ---
 
-## Frontend Patterns (React + Vite)
+## Frontend Patterns (React + Vite on Pages)
 
 ### Folder layout
 
 ```
-app.client/src/
+apps/client/src/
   features/<domain>/    # pages, components, hooks, types — owned by one feature
-  components/           # cross-feature UI not yet promoted to lib.components
+  components/           # cross-feature UI not yet promoted to packages/lib.components
   contexts/             # auth, theme
   hooks/                # cross-feature hooks
   services/             # API clients calling /api
   utils/
 ```
 
-A feature owns its pages, components, hooks, and types. Promote a component to `lib.components` only when a second consumer needs it.
+Promote a component to `packages/lib.components` only when a second consumer needs it.
 
-### Components
+### Components & data
 
-- **Functional only.** No class components in new code.
-- Props as `type`, not `interface`. Destructure in the signature.
-- One component per file; export the component as a named export.
+- **Functional only.** Props as `type`, destructured in the signature. One component per file.
+- **React Query for server state.** No bare `useEffect(fetch…)`. Each feature exposes a `useThing()`
+  hook; mutations `useMutation` + invalidate query keys.
+- **styled-components** with theme tokens from `packages/lib.components`. Pull primitives from
+  `lib.components` before reaching for a `div`. No CSS modules, no Tailwind.
 
-### Data fetching
+### Auth & API
 
-- **React Query for server state.** No bare `useEffect(fetch…)`.
-- Each feature exposes a `useThing()` hook; components consume the hook.
-- Mutations use `useMutation` + invalidate the relevant query keys.
-
-### Styling
-
-- **styled-components** with theme tokens from `lib.components/src/styles/`.
-- Pull primitives from `lib.components` before reaching for a `div`.
-- No CSS modules, no Tailwind, no vanilla-extract.
-
-### Routing
-
-- React Router. Add new routes in `App.tsx` alongside the existing tree.
-
-### API calls
-
-- All API calls go through the existing service clients in `app.*/src/services/`. They handle JWT attachment and base URL.
-- Never read `localStorage` for tokens directly in a component — go through the auth context.
+- Auth is **cookie-based** — the browser sends the `session` cookie automatically. There is **no token
+  to store or attach**; never touch `localStorage` for auth. The API client fetches the CSRF token and
+  echoes it on writes.
+- All calls go through the service clients in `apps/*/src/services/` (or `packages/lib.api`).
 
 ---
 
 ## API Design
 
 - REST-ish, mounted at `/api`.
-- Resource-oriented paths: `/households`, `/households/:id/pick`, `/watchlists/:id`.
+- Resource-oriented paths: `/households`, `/households/:id/pick`, `/households/:id/history`.
 - `POST` for create + actions, `PATCH` for partial updates, `DELETE` for delete.
-- Auth: JWT bearer in `Authorization: Bearer <token>`.
+- Auth: session cookie + CSRF header on writes.
 - Error response shape: `{ error: string, details?: string[] }`.
 - Paginated response shape: `{ data: T[], pagination: { page, limit, total, totalPages } }`.
 
@@ -336,52 +326,48 @@ A feature owns its pages, components, hooks, and types. Promote a component to `
 
 ### TMDb
 
-- Single API key in `TMDB_API_KEY`.
-- Use the existing client in `backend/src/services/tmdb.service.ts`. Don't fetch from `app.*`.
-- Treat provider data as best-effort and region-locked. Degrade gracefully.
+- Single API key in the `TMDB_API_KEY` Worker var. Fetch only from the Worker (`services/api`), never
+  from `apps/*`. Edge-cache `/discover` and `/watch/providers`. Provider data is best-effort and
+  region-locked — degrade gracefully.
 
-### Anthropic API (Phase C only)
+### Anthropic API (premium LLM re-rank)
 
-- Model: `claude-sonnet-4-6`. `max_tokens: 512`. Timeout 8s.
-- **Enable prompt caching** on the system prompt and the (stable per session) per-member taste-profile blocks.
-- Use **tool use** for structured output. Never parse free-text JSON.
-- Off by default behind `recommendation.llm_rerank`. The pure-ML path must work without it.
-- Don't call from the frontend. All LLM calls go through `backend/src/services/llm.service.ts`.
+- Model `claude-sonnet-4-6`, `max_tokens: 512`, 8s timeout. Prompt-cache the system prompt and the
+  per-member taste blocks; use **tool use** for structured output (never parse free-text JSON).
+- Called from the Worker over `fetch`. Behind `recommendation.llm_rerank` (default off) and
+  premium-gated. **The pure-ML path must work without it** — `maybeRerank` returns `null` to fall back.
+- Wire it into the recommender (it is currently built but not called — see the roadmap).
 
-### Stripe (Phase E — reserved)
+### Stripe (deferred)
 
-- The `stripe` npm package is **not yet integrated.** Don't import it until go-live is signed off.
-- The mock checkout (`MockCheckout.tsx`) is for demos only.
+- Not integrated. When enabled, port creatorgrid's test-mode pattern (`lib/stripe.ts` +
+  `routes/billing.ts`, "unconfigured is a valid state"). The mock checkout is for demos only.
 
 ---
 
 ## Development Workflow
 
-1. **Branch** off `claude/inspiring-tesla-lAShW` (or the user's stated branch). Never commit on `main`.
+1. **Branch** off `master` (or the user's stated branch). Never commit on `master`.
 2. **Tests + code together** in the same commit.
-3. **Commit format** (conventional-ish):
-   - `feat: add household pick endpoint`
-   - `fix: handle missing TMDb provider data`
-   - `chore: bump tmdb client timeout`
-   - `docs: expand pick algorithm rationale in decision log`
+3. **Commit format** (conventional-ish): `feat:`, `fix:`, `chore:`, `docs:` …
 4. **No model identifiers, no marketing names** in commit messages, PR titles, or code.
 5. **Pre-commit hooks** (husky + lint-staged) run lint + format. Never `--no-verify`.
-6. **Don't push unless asked.** When asked, push and open a draft PR by default.
+6. **Don't push unless asked.** When asked, push and open a PR.
 
 ---
 
 ## Things to leave alone unless asked
 
-- The existing user-to-user `Match` flow. It still ships; the pivot is additive.
-- `app.admin` — only touch if the task explicitly names admin scope.
-- `docker-compose.prod.yml` and the `nginx/` configs — production deployment is owned outside agent scope.
+- `apps/admin` — only touch if the task explicitly names admin scope.
+- The retiring Docker/nginx app-deploy path (`docker-compose*.yml`, `nginx/`) — being removed by the
+  re-platform; don't invest in it, but don't rip it out except as part of the cutover phase.
 
 ## Working with Claude
 
-When working in this repo:
-
-1. Read this file first, then `docs/architecture.md` and `docs/db-schema.md` for context.
-2. Before touching a model or migration, confirm it doesn't conflict with the active phase branches.
+1. Read this file, then `docs/adr/0001-cloudflare-stack.md`, `docs/architecture.md`, and
+   `docs/db-schema.md` for context.
+2. Before touching schema or a migration, confirm it doesn't conflict with the migration phase in
+   `docs/roadmap.md`.
 3. State assumptions. Ask before introducing new dependencies, new top-level folders, or new external services.
 4. Match the existing style of the file you're editing — even when you'd do it differently.
 

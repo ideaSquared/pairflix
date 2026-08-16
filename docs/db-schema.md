@@ -1,512 +1,208 @@
-# 🗄️ Database Schema Documentation
+# Database schema
 
-This document outlines the database schema for the PairFlix application.
+> **Target state (ADR 0001).** Pairflix's database is moving from Postgres (Sequelize) to **D1
+> (SQLite) via Drizzle**. This document describes the target schema; the source of truth is
+> `packages/db/src/schema.ts`. The `docs/roadmap.md` data-layer phase tracks the migration. The old
+> Postgres DDL is preserved in git history if you need it.
 
 ## Overview
 
-PairFlix uses a PostgreSQL database with the following key entities:
+- **Engine:** Cloudflare **D1** (SQLite), one database for all households (row-level tenancy).
+- **ORM:** **Drizzle**. Tables are declared in `packages/db/src/schema.ts`; the typed client is
+  `packages/db/src/client.ts`.
+- **Migrations:** authored as SQL under `packages/db/migrations/`, generated with `drizzle-kit
+  generate` and applied with `wrangler d1 migrations apply pairflix-db --local|--remote`.
 
-- Users
-- Watchlist Entries
-- Tags
-- Entry Tags
-- Activity Log
-- Application Settings
+## Type conventions (Postgres → SQLite/Drizzle)
 
-## Entity Relationship Diagram
+SQLite has a narrow type system; the Postgres schema maps as follows:
 
-```
-┌───────────┐       ┌─────────────────┐       ┌───────┐
-│           │       │                 │       │       │
-│   Users   │◄──────┤ WatchlistEntries├───────┤ Tags  │
-│           │       │                 │       │       │
-└───────────┘       └─────────────────┘       └───────┘
-      ▲                      ▲
-      │                      │
-      │                      │
-┌─────┴─────┐                │      ┌──────────────┐
-│           │                │      │              │
-│ActivityLog├────────────────┘      │ AppSettings  │
-│           │                       │              │
-└───────────┘                       └──────────────┘
-```
+| Postgres | Drizzle / D1 | Notes |
+|---|---|---|
+| `UUID` PK | `text('id').primaryKey()` | app generates `crypto.randomUUID()` |
+| `TIMESTAMPTZ` | `integer('...', { mode: 'timestamp_ms' })` | stored as epoch millis |
+| `JSONB` | `text('...', { mode: 'json' }).$type<T>()` | serialized JSON |
+| `BOOLEAN` | `integer('...', { mode: 'boolean' })` | 0 / 1 |
+| enum | `text('...').$type<'a' \| 'b'>()` | + a `CHECK` in the migration |
+| `INTEGER` / `TEXT` | `integer(...)` / `text(...)` | unchanged |
 
-## Tables Structure
+`ON DELETE CASCADE` / `SET NULL` are expressed with Drizzle `references(() => t.col, { onDelete })`
+and are enforced by D1 (SQLite foreign keys are on).
 
-### Users
+## Identity & auth
 
-Stores user account information.
+`users` keeps its columns; the password hash is now **PBKDF2** (was bcrypt). Session auth adds two
+tables ported from creatorgrid.
 
-```sql
-CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username TEXT UNIQUE NOT NULL CHECK (LENGTH(username) BETWEEN 3 AND 30 AND username ~ '^[a-zA-Z0-9_-]+$'),
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
+```ts
+export const users = sqliteTable('users', {
+  id: text('user_id').primaryKey(),          // UUID string
+  username: text('username').notNull().unique(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),   // PBKDF2 (Web Crypto)
+  role: text('role').$type<'user' | 'admin'>().notNull().default('user'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
 
-#### Fields:
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),               // opaque token == cookie value
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+});
 
-- `user_id`: Unique identifier (UUID)
-- `username`: Display name (3-30 alphanumeric characters with underscores/hyphens)
-- `email`: Email address (unique)
-- `password_hash`: Bcrypt-hashed password
-- `created_at`: Account creation timestamp
-- `updated_at`: Last update timestamp
-
-#### Constraints:
-
-- Username must be 3-30 characters, containing only alphanumeric characters, underscores, or hyphens
-- Email must be unique
-
-### Watchlist Entries
-
-Stores content items added to user watchlists.
-
-```sql
-CREATE TABLE watchlist_entries (
-    entry_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
-    tmdb_id INTEGER NOT NULL,
-    media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
-    status TEXT CHECK (status IN ('to_watch', 'watch_together_focused', 'watch_together_background', 'watching', 'finished')) NOT NULL,
-    rating INTEGER CHECK (rating >= 0 AND rating <= 10),
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
+export const authTokens = sqliteTable('auth_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').$type<'verify_email' | 'password_reset'>().notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+});
 ```
 
-#### Fields:
+## Households
 
-- `entry_id`: Unique identifier (UUID)
-- `user_id`: Reference to user who added this item
-- `tmdb_id`: TMDb API identifier for the movie/show
-- `media_type`: Type of content ('movie' or 'tv')
-- `status`: Current watch status
-- `rating`: User rating on scale of 0-10 (optional)
-- `notes`: User notes about this content (optional)
-- `created_at`: Entry creation timestamp
-- `updated_at`: Last update timestamp
+```ts
+export const households = sqliteTable('households', {
+  id: text('id').primaryKey(),
+  name: text('name'),                        // nullable
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
 
-#### Constraints:
+export const householdMembers = sqliteTable('household_members', {
+  householdId: text('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').$type<'owner' | 'member'>().notNull().default('member'),
+  joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.householdId, t.userId] }) }));
 
-- Media type must be either 'movie' or 'tv'
-- Status must be one of the predefined values
-- Rating must be between 0 and 10 if provided
-
-### Tags
-
-Stores tags that can be applied to watchlist entries.
-
-```sql
-CREATE TABLE tags (
-    tag_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL UNIQUE
-);
+export const householdInvites = sqliteTable('household_invites', {
+  id: text('id').primaryKey(),
+  householdId: text('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  invitedEmail: text('invited_email'),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
+  acceptedBy: text('accepted_by').references(() => users.id, { onDelete: 'set null' }),
+});
 ```
 
-#### Fields:
+Ownership is `household_members.role = 'owner'` — there is no `owner_id` column.
 
-- `tag_id`: Unique identifier (UUID)
-- `name`: Tag name (unique)
+## Taste & history
 
-### Entry Tags
+```ts
+export const tasteProfiles = sqliteTable('taste_profiles', {
+  userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  weights: text('weights', { mode: 'json' }).$type<TasteWeights>().notNull(),
+  embedding: text('embedding', { mode: 'json' }).$type<number[]>(),   // reserved
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
 
-Junction table linking watchlist entries to tags.
-
-```sql
-CREATE TABLE entry_tags (
-    entry_id UUID REFERENCES watchlist_entries(entry_id) ON DELETE CASCADE,
-    tag_id UUID REFERENCES tags(tag_id) ON DELETE CASCADE,
-    PRIMARY KEY (entry_id, tag_id)
-);
+export const watchedTogether = sqliteTable('watched_together', {
+  id: text('id').primaryKey(),
+  householdId: text('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  tmdbId: integer('tmdb_id').notNull(),
+  mediaType: text('media_type').$type<'movie' | 'tv'>().notNull(),
+  watchedAt: integer('watched_at', { mode: 'timestamp_ms' }).notNull(),
+  enjoyed: integer('enjoyed', { mode: 'boolean' }),          // thumbs, nullable
+  moodAtPick: text('mood_at_pick'),
+  minutesBudgetAtPick: integer('minutes_budget_at_pick'),
+}, (t) => ({
+  byRecency: index('idx_wt_household_watched_at').on(t.householdId, t.watchedAt),
+  byTitle: index('idx_wt_household_tmdb').on(t.householdId, t.tmdbId),
+}));
 ```
 
-#### Fields:
+`TasteWeights` shape (unchanged): `{ genres: Record<string, number>, runtime_pref: number, era?:
+Record<string, number>, tone?: Record<string, number> }`.
 
-- `entry_id`: Reference to watchlist entry
-- `tag_id`: Reference to tag
-- Composite primary key of both fields
+## Content (TMDb cache)
 
-### Activity Log
-
-Tracks user actions within the system with enhanced contextual data and social filtering support.
-
-```sql
-CREATE TABLE activity_log (
-    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
-    action TEXT NOT NULL,
-    context TEXT NOT NULL DEFAULT 'system',
-    metadata JSONB,
-    ip_address TEXT,
-    user_agent TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+```ts
+export const content = sqliteTable('content', {
+  tmdbId: integer('tmdb_id').notNull(),
+  mediaType: text('media_type').$type<'movie' | 'tv'>().notNull(),
+  title: text('title'),
+  year: integer('year'),
+  posterPath: text('poster_path'),
+  providers: text('providers', { mode: 'json' }).$type<ProviderMap>().notNull().default('{}'),
+  // ...existing metadata columns...
+}, (t) => ({ pk: primaryKey({ columns: [t.tmdbId, t.mediaType] }) }));
 ```
 
-#### Fields:
+`ProviderMap` is region-keyed, e.g. `{ GB: { flatrate: [{ provider_id, provider_name, logo_path }],
+rent: [], buy: [] }, last_updated_at: <iso> }`.
 
-- `log_id`: Unique identifier (UUID)
-- `user_id`: Reference to user who performed the action
-- `action`: Description of the activity
-- `context`: Category of the activity (watchlist, user, match, search, media, system)
-- `metadata`: JSON data with additional details about the activity
-- `ip_address`: IP address from which the activity was performed (for security tracking)
-- `user_agent`: Browser/device information (for security tracking)
-- `created_at`: Timestamp when the activity occurred
+## Freemium
 
-#### Social Activity Types:
+```ts
+export const subscriptions = sqliteTable('subscriptions', {
+  id: text('id').primaryKey(),
+  householdId: text('household_id').notNull().unique().references(() => households.id, { onDelete: 'cascade' }),
+  tier: text('tier').$type<'free' | 'premium'>().notNull().default('free'),
+  status: text('status').$type<'active' | 'past_due' | 'canceled'>().notNull().default('active'),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id'),
+  currentPeriodEnd: integer('current_period_end', { mode: 'timestamp_ms' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
 
-The system distinguishes between social activities (visible in user feeds) and system activities (admin-only):
-
-**Social Activities** (included in user activity feeds):
-
-- `WATCHLIST_ADD`, `WATCHLIST_UPDATE`, `WATCHLIST_REMOVE`, `WATCHLIST_RATE`
-- `MATCH_ACCEPTED`, `MATCH_CREATE`
-- Other user-facing social interactions
-
-**System Activities** (excluded from user feeds):
-
-- `USER_LOGIN`, `USER_LOGOUT`, `USER_PASSWORD_CHANGE`
-- `USER_PROFILE_UPDATE`, `USER_PREFERENCES_UPDATE`
-- `MEDIA_SEARCH`, `MEDIA_VIEW`
-- Administrative and privacy-sensitive activities
-
-#### Partner Activity Queries:
-
-The activity system supports partner-based filtering through the Match model:
-
-```sql
--- Get activities from accepted match partners
-SELECT al.* FROM activity_log al
-JOIN users u ON al.user_id = u.user_id
-WHERE al.user_id IN (
-  SELECT CASE
-    WHEN m.user1_id = $currentUserId THEN m.user2_id
-    WHEN m.user2_id = $currentUserId THEN m.user1_id
-  END as partner_id
-  FROM matches m
-  WHERE (m.user1_id = $currentUserId OR m.user2_id = $currentUserId)
-  AND m.status = 'accepted'
-)
-AND al.action IN ('WATCHLIST_ADD', 'WATCHLIST_UPDATE', 'WATCHLIST_REMOVE', 'WATCHLIST_RATE', 'MATCH_ACCEPTED', 'MATCH_CREATE')
-ORDER BY al.created_at DESC
+export const pickUsage = sqliteTable('pick_usage', {
+  id: text('id').primaryKey(),
+  householdId: text('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  pickedAt: integer('picked_at', { mode: 'timestamp_ms' }).notNull(),
+}, (t) => ({ byDay: index('idx_pick_usage_household_picked_at').on(t.householdId, t.pickedAt) }));
 ```
 
-### AppSettings
+Premium is `tier = 'premium' AND status = 'active' AND current_period_end > now`. `stripe_*` stay
+null until real Stripe is wired.
 
-Stores application-wide settings and configurations in a key-value format.
+## Analytics
 
-```sql
-CREATE TABLE app_settings (
-    key TEXT PRIMARY KEY,
-    value JSONB NOT NULL,
-    category TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
+```ts
+export const pickEvents = sqliteTable('pick_events', {
+  id: text('id').primaryKey(),
+  householdId: text('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+  tmdbId: integer('tmdb_id').notNull(),
+  mediaType: text('media_type').$type<'movie' | 'tv'>().notNull(),
+  kind: text('kind').$type<'proposed' | 'accepted' | 'swapped' | 'dismissed' | 'provider_launched'>().notNull(),
+  mood: text('mood'),
+  minutesBudget: integer('minutes_budget'),
+  providerSlug: text('provider_slug'),        // non-null only for provider_launched
+  region: text('region'),                     // 2-letter
+  occurredAt: integer('occurred_at', { mode: 'timestamp_ms' }).notNull(),
+}, (t) => ({
+  byRecency: index('idx_pe_household_occurred_at').on(t.householdId, t.occurredAt),
+  byKind: index('idx_pe_household_kind').on(t.householdId, t.kind),
+}));
 ```
 
-#### Fields:
+Backs the first-pick acceptance-rate KPI and affiliate attribution.
 
-- `key`: Setting key/name (primary key)
-- `value`: Setting value stored as JSONB data
-- `category`: Logical grouping for the setting (e.g., 'general', 'security', 'email')
-- `description`: Human-readable description of the setting's purpose
-- `created_at`: Setting creation timestamp
-- `updated_at`: Last update timestamp
+## Dropped in the re-platform
 
-#### Usage:
+Pairflix is pre-launch alpha with **no production data**, so the old matching schema is **not** carried
+into D1 — nothing to preserve or backfill. Dropped: `matches`, `tags`, `entry_tags`, `activity_log`.
+Feature flags move to a small `settings` table (or Worker vars) in place of `app_settings`.
 
-The AppSettings table is designed to store application-wide configurations in a flexible format. The settings service manages these values with features like:
-
-- In-memory caching with TTL for performance optimization
-- Environment variable overrides for sensitive data
-- Hierarchical organization of settings
-- Audit logging of all settings changes
-
-Settings are organized into these categories:
-
-- `general`: Basic application information and configuration
-- `security`: Password policies, session timeouts, and authentication rules
-- `email`: SMTP configuration for transactional emails
-- `media`: File upload rules and content management settings
-- `features`: Feature flags for enabling/disabling application capabilities
-
-#### Example Structure:
-
-```json
-// Individual setting entry
-{
-  "key": "general.siteName",
-  "value": "PairFlix",
-  "category": "general",
-  "description": "Name of the application shown to users"
-}
-
-// Compiled hierarchical settings object
-{
-  "general": {
-    "siteName": "PairFlix",
-    "siteDescription": "Find your perfect movie match",
-    "maintenanceMode": false
-  },
-  "security": {
-    "sessionTimeout": 120,
-    "passwordPolicy": {
-      "minLength": 8,
-      "requireUppercase": true
-    }
-  }
-}
-```
-
-### Households
-
-Represents a viewing unit (usually a couple) that makes "what should WE watch" decisions together. Backfilled from accepted `matches`.
-
-```sql
-CREATE TABLE households (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### Household Members
-
-Join table mapping users to households with a role.
-
-```sql
-CREATE TABLE household_members (
-    household_id UUID REFERENCES households(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
-    role TEXT CHECK (role IN ('owner', 'member')) NOT NULL DEFAULT 'member',
-    joined_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (household_id, user_id)
-);
-```
-
-### Taste Profiles
-
-Per-user genre / era / tone / runtime preferences derived from watchlist entries and ratings. Used by the recommender. `embedding` is reserved for a future LLM-derived vector and is currently nullable.
-
-```sql
-CREATE TABLE taste_profiles (
-    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    weights JSONB NOT NULL DEFAULT '{}'::jsonb,
-    embedding JSONB,
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-`weights` shape:
-
-```json
-{
-  "genres": { "28": 0.7, "35": 0.3 },
-  "runtime_pref": 95,
-  "era": { "2010s": 0.6 },
-  "tone": { "funny": 0.5, "dark": 0.2 }
-}
-```
-
-### Watched Together
-
-Gold-standard training signal: titles that a household actually watched together, with optional post-watch sentiment.
-
-```sql
-CREATE TABLE watched_together (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-    tmdb_id INTEGER NOT NULL,
-    media_type TEXT CHECK (media_type IN ('movie', 'tv')) NOT NULL,
-    watched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    enjoyed BOOLEAN,
-    mood_at_pick TEXT,
-    minutes_budget_at_pick INTEGER
-);
-
-CREATE INDEX idx_watched_together_household_watched_at
-    ON watched_together(household_id, watched_at DESC);
-CREATE INDEX idx_watched_together_household_tmdb
-    ON watched_together(household_id, tmdb_id);
-```
-
-### Content (new columns)
-
-Phase A's migration adds four columns to `content`. `providers` is the region-keyed availability map fetched from TMDb `/watch/providers`. The other three back the history view's render fields.
-
-```sql
-ALTER TABLE content ADD COLUMN providers JSONB DEFAULT '{}'::jsonb;
-ALTER TABLE content ADD COLUMN media_type "enum_content_media_type";  -- 'movie' | 'tv'
-ALTER TABLE content ADD COLUMN year INTEGER;
-ALTER TABLE content ADD COLUMN poster_path VARCHAR(255);
-```
-
-Shape:
-
-```json
-{
-  "US": {
-    "flatrate": [
-      { "provider_id": 8, "provider_name": "Netflix", "logo_path": "/..." }
-    ],
-    "rent": [],
-    "buy": []
-  },
-  "last_updated_at": "2026-06-01T12:00:00Z"
-}
-```
-
-## Phase E — freemium pricing
-
-### Subscriptions
-
-One row per household. Tier defaults to `free`. Premium status requires `tier = 'premium' AND status = 'active' AND current_period_end > now()`. `stripe_*` fields are nullable until the real Stripe integration is wired (Phase E currently ships a mock checkout only).
-
-```sql
-CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    household_id UUID NOT NULL UNIQUE REFERENCES households(id) ON DELETE CASCADE,
-    tier "enum_subscriptions_tier" NOT NULL DEFAULT 'free',  -- 'free' | 'premium'
-    status "enum_subscriptions_status" NOT NULL DEFAULT 'active',  -- 'active' | 'past_due' | 'canceled'
-    stripe_customer_id VARCHAR(255),
-    stripe_subscription_id VARCHAR(255),
-    current_period_end TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-```
-
-### Pick usage
-
-One row per successful `POST /api/households/:id/pick`. Drives the daily-quota check on the free tier.
-
-```sql
-CREATE TABLE pick_usage (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-    picked_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-CREATE INDEX pick_usage_household_picked_at_idx
-    ON pick_usage(household_id, picked_at DESC);
-```
-
-## Phase F — pick events and provider launch tracking
-
-### Pick events
-
-Captures every interaction with a recommendation: when the recommender proposes a title (`proposed`), what the household decides (`accepted` / `swapped` / `dismissed`), and which streaming provider they launch into (`provider_launched`). Feeds the "first-pick acceptance rate" KPI and the affiliate-revenue attribution loop.
-
-```sql
-CREATE TABLE pick_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    tmdb_id INTEGER NOT NULL,
-    media_type "enum_pick_events_media_type" NOT NULL,  -- 'movie' | 'tv'
-    kind "enum_pick_events_kind" NOT NULL,
-      -- 'proposed' | 'accepted' | 'swapped' | 'dismissed' | 'provider_launched'
-    mood TEXT,
-    minutes_budget INTEGER,
-    provider_slug TEXT,
-    region VARCHAR(2),
-    occurred_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX pick_events_household_occurred_at_idx
-    ON pick_events(household_id, occurred_at DESC);
-CREATE INDEX pick_events_household_kind_idx
-    ON pick_events(household_id, kind);
-```
-
-`provider_slug` is non-null only for `provider_launched` events. `user_id` records who performed the action; nullable so that backend-emitted `proposed` events stay valid if the user is later deleted.
-
-## Indexes
-
-```sql
--- User lookup by email (for login)
-CREATE INDEX idx_users_email ON users(email);
-
--- Watchlist lookup by user
-CREATE INDEX idx_watchlist_user_id ON watchlist_entries(user_id);
-
--- Watchlist lookup by TMDB ID (for matches)
-CREATE INDEX idx_watchlist_tmdb_id ON watchlist_entries(tmdb_id);
-
--- Composite index for match lookups
-CREATE INDEX idx_watchlist_user_tmdb ON watchlist_entries(user_id, tmdb_id);
-
--- Activity log by user
-CREATE INDEX idx_activity_user_id ON activity_log(user_id);
-```
-
-## Relationships
-
-1. **Users to WatchlistEntries**: One-to-many
-
-   - A user can have multiple watchlist entries
-   - Each watchlist entry belongs to exactly one user
-
-2. **WatchlistEntries to Tags**: Many-to-many
-
-   - A watchlist entry can have multiple tags
-   - A tag can be applied to multiple watchlist entries
-   - Relationship managed through the entry_tags junction table
-
-3. **Users to ActivityLog**: One-to-many
-   - A user can have multiple activity log entries
-   - Each activity log entry is associated with exactly one user
-
-## Data Types
-
-- **UUID**: Used for all primary keys to ensure global uniqueness
-- **TEXT**: Used for string fields with variable length
-- **INTEGER**: Used for numeric values like ratings
-- **TIMESTAMPTZ**: Timezone-aware timestamps for all date/time fields
-- **JSONB**: Binary JSON format for flexible metadata storage
+**One open product question:** `watchlist_entries` currently feeds `taste_profiles`. Decide whether the
+household product keeps a personal watchlist as a taste input, or seeds taste from onboarding +
+`watched_together` thumbs only. That decision is the only thing keeping `watchlist_entries` on the
+table; everything else legacy goes.
 
 ## Migrations
 
-The database structure is managed through migration files located in the `backend/src/db/migrations` directory. These follow the Sequelize migration pattern.
+```bash
+pnpm --filter @pairflix/db db:generate         # drizzle-kit generate -> packages/db/migrations/*.sql
+wrangler d1 migrations apply pairflix-db --local   # dev (Miniflare)
+wrangler d1 migrations apply pairflix-db --remote  # production
+```
 
-## Seeding
-
-Initial data seeding is provided for development and testing purposes:
-
-- Two default user accounts
-- Sample watchlist entries
-- Common tags
-
-## Data Access Patterns
-
-1. **Matching Algorithm**
-
-   ```sql
-   SELECT * FROM watchlist_entries w1
-   JOIN watchlist_entries w2 ON w1.tmdb_id = w2.tmdb_id
-   WHERE w1.user_id = $user1 AND w2.user_id = $user2
-   ```
-
-2. **User Activity Feed**
-
-   ```sql
-   SELECT * FROM activity_log
-   WHERE user_id = $userId
-   ORDER BY created_at DESC
-   LIMIT 20
-   ```
-
-3. **Rating Stats**
-   ```sql
-   SELECT AVG(rating) FROM watchlist_entries
-   WHERE user_id = $userId AND rating IS NOT NULL
-   ```
+Never edit a shipped migration — add a new one. The four Sequelize migrations
+(`phase-a-households`, `subscriptions-and-pick-usage`, `household-invites`, `pick-events`) are
+translated into the initial SQL migration set during the data-layer phase.

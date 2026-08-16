@@ -1,195 +1,86 @@
-# 📄 Product Requirements Document (PRD)
+# Product Requirements — Pairflix
 
-## Product Name
-
-**PairFlix**
+> Rewritten 2026-08-16 for the household pivot. The previous PRD described the retired two-user
+> watchlist-matching product; that direction is dead. Product intent tracks the venture page
+> (`ideasquared-website/ventures/pairflix/`) and the Notion business plan.
 
 ## Summary
 
-PairFlix is a private web application designed specifically for two users (couples or close friends) to:
+Pairflix is the **"what should WE watch tonight" decision layer** for couples and households. Given a
+household, a mood, and a time budget, it returns **one** agreed title in under 30 seconds, with the
+streaming services it's actually available on surfaced on the card. It sits on top of the
+subscriptions a household already pays for; it does not replace them.
 
-- Track TV shows and movies they're watching or want to watch
-- See overlaps and differences in their viewing preferences
-- Get personalized match recommendations for content they both may enjoy
-- Manage content through an admin interface with robust monitoring tools
+The product solves a **decision**, not discovery and not playback. Netflix profiles are
+single-platform and individual-first; Teleparty syncs playback; generic recommenders optimise for one
+viewer. Pairflix is the only layer designed around the **household** choice.
 
-## User Stories
+## Who it's for
 
-### User Accounts
+UK couples and households (initially) who share streaming subscriptions and lose time every night to
+"what shall we watch?". One household = two or more members with joined taste profiles.
 
-- As a user, I want to securely log in to a private account so that my watchlist remains private
-- As a user, I want to update my profile information so that my account stays current
-- As a user, I want to change my password periodically to ensure account security
+## The core loop
 
-### Watchlist Management
+1. A household member opens the Tonight picker and sets **mood** + **time budget** (e.g. "30 minutes,
+   something funny"), optionally a region.
+2. Pairflix merges the members' taste profiles, asks TMDb what fits, scores candidates against mood /
+   time / taste, and filters to titles streamable on the household's services.
+3. It returns **one** title with provider deep-links. The household **accepts**, **swaps** for the
+   next candidate, or **dismisses**.
+4. On accept + launch, it records what they actually watched (`watched_together`) and captures a
+   thumbs signal afterwards, which sharpens the household's taste over time.
 
-- As a user, I want to add movies/shows to my watchlist so I can keep track of what I want to watch
-- As a user, I want to categorize content as "To Watch," "Watching," or "Finished" to organize my viewing
-- As a user, I want to rate content on a scale of 1-10 to remember my preferences
-- As a user, I want to add personal notes to watchlist entries to record my thoughts
+Success is measured on the loop: **time-to-decision** (target: under 30s) and **first-pick acceptance
+rate** (the household takes the first title offered).
 
-### Content Discovery
+## Features
 
-- As a user, I want to search for movies and TV shows by title to find specific content
-- As a user, I want to view detailed information about shows/movies to make informed decisions
-- As a user, I want to see movie/show metadata including synopsis, year, and genre
+### Free tier
+- Household pair profile (join two+ members).
+- Mood + time-budget Tonight picker.
+- Up to **3 picks/day**, single region (GB), ad-light.
+- Cross-platform provider badges with deep-links.
+- Watch-together history with thumbs.
 
-### Match System
+### Premium (per household, monthly)
+- **Unlimited** picks.
+- **Multi-region** providers (for households that straddle regions or travel).
+- **LLM-assisted re-ranking** of the shortlist (opt-in, off by default on the platform).
+- Richer watch-together history.
 
-- As a user, I want to see content that both my partner and I want to watch to make viewing decisions easier
-- As a user, I want personalized recommendations based on our mutual preferences to discover new content
-- As a user, I want to see similarities in our watchlists to understand our shared tastes
+### Admin
+- User management, content moderation, basic platform metrics. Staff-only.
 
-### Activity Tracking
+## Non-goals (explicit)
 
-- As a user, I want to see a record of my partner's watchlist activities to stay updated
-- As a user, I want to know when my partner rates something we've both watched to compare opinions
+- **Not** a social network — no feeds, groups, watch parties, DMs, or comments. (The old Phase-4
+  "social entertainment platform" roadmap is retired.)
+- **Not** user-to-user matchmaking / "find a viewing partner". The household is assumed already paired.
+- **Not** a personal watchlist manager as the headline product. (Whether a lightweight watchlist
+  survives as a taste input is an open question — see `db-schema.md`.)
+- **Not** a player. Pairflix hands off to the streaming app; it never streams.
 
-### Admin Management
+## Success metrics
 
-- As an administrator, I want to manage user accounts to ensure proper system access
-- As an administrator, I want to view system statistics to monitor application performance
-- As an administrator, I want to configure system settings through a dedicated interface
-- As an administrator, I want to moderate watchlist content for policy compliance
-- As an administrator, I want to review activity logs for security monitoring
+| Metric | Target |
+|---|---|
+| Time-to-decision | < 30 seconds |
+| First-pick acceptance rate | the north-star; grow it release over release |
+| Free → premium conversion | 3% (Y1) → 7% (Y3), per the seed plan |
+| Provider click-through | tracked via `pick_events` for affiliate attribution |
 
-## Acceptance Criteria
+## Current status (alpha, pre-launch)
 
-### User Authentication
+No public users, no waitlist, no launch date. The household model, the pick endpoint, providers,
+entitlements/quota, and the Tonight / History / Households / Billing frontends are built. Known gaps
+before a closed alpha: the LLM re-rank is built but not wired into the recommender; billing is
+mock-only (no Stripe); the recommender is movie-only; pivot endpoints lack integration tests; and the
+platform is mid re-platform onto Cloudflare (ADR 0001). See `docs/roadmap.md`.
 
-- [x] JWT-based authentication system with secure token storage
-- [x] Password hashing using bcrypt with appropriate salt rounds
-- [x] User profile management with validation
-- [x] Self-service account registration with comprehensive validation
-- [x] Secure account creation with automatic login
+## Constraints
 
-### Watchlist Features
-
-- [x] Add/remove content from personal watchlist
-- [x] Update watch status (To Watch/Watching/Finished)
-- [x] Rating system (1-10 scale)
-- [x] Notes/comments on watchlist items
-- [x] Tag system for content categorization
-
-### Search & Discovery
-
-- [x] Search functionality using TMDb API
-- [x] Content details display with comprehensive metadata
-- [x] Responsive content cards with visual elements
-
-### Match System
-
-- [x] Match view showing overlapping watchlist items
-- [x] Recommendation algorithm based on mutual preferences
-- [x] Filtering and sorting of matched content
-
-### Admin Interface
-
-- [x] Comprehensive admin dashboard with system metrics
-- [x] User management with account controls
-- [x] Content moderation tools
-- [x] System settings configuration interface
-- [x] Activity analytics and audit logs
-- [x] Secure admin-only access controls
-
-### Technical Requirements
-
-- [x] Responsive design (mobile and desktop)
-- [x] Secure access limited to two authorized users
-- [x] PostgreSQL database for data persistence
-- [x] API-first architecture for potential future expansion
-- [x] Performance optimization for key user flows
-- [x] Shared component library for consistent UI across applications
-- [x] Type-safe implementation with full TypeScript support
-
-## Technical Constraints & Notes
-
-- The application must use the TMDb API for content metadata
-- The system must comply with TMDb API rate limits (40 requests/10 seconds)
-- Authentication must use short-lived JWTs with refresh token rotation
-- The database schema must support UUIDs for primary keys
-- The application must support modern browsers only
-- The system must use Docker for containerized deployment
-- Component library must be shared between client and admin applications
-
-## Priority Level
-
-P0 (Critical) - This is the core functionality that defines the application's purpose and unique value proposition.
-
-## Development Roadmap
-
-### Phase 1 - MVP (Completed)
-
-- User authentication for two users
-- Basic watchlist management
-- Movie/TV show search via TMDb
-- Match view for overlapping content
-- Core database schema and API endpoints
-- Basic admin functionality
-
-### Phase 2 - Enhancement (Completed)
-
-- Activity feed implementation
-- Smart recommendations based on shared preferences
-- Tag system for content organization
-- UI/UX improvements for mobile responsiveness
-- Comprehensive admin dashboard
-- Settings management system
-- Type-safe component library standardization
-
-### Phase 3 - Current Development (In Progress)
-
-- Component library refinement and standardization
-- Docker build optimization for production deployment
-- Admin authentication flow improvements
-- Cross-application layout standardization ✅ **COMPLETED**
-  - ✅ Unified AppLayout component for both client and admin applications
-  - ✅ Standardized responsive design system with consistent breakpoints
-  - ✅ Shared navigation patterns and configuration system
-  - ✅ PageContainer component for consistent content layout
-  - ✅ Client application migration completed successfully
-  - ✅ Admin application migration completed successfully
-  - ✅ Cross-application testing and validation completed
-  - ✅ Zero legacy layout components remaining
-  - ✅ Performance validated with optimized bundle sizes
-- ✅ Documentation updated and finalized
-- Account creation system implementation ✅ **COMPLETED**
-  - ✅ Backend registration endpoint with comprehensive validation
-  - ✅ Frontend registration page with real-time validation
-  - ✅ Secure password hashing and storage
-  - ✅ Automatic login after successful registration
-  - ✅ Comprehensive test suite for registration functionality
-  - ✅ Updated authentication flow with registration link
-  - ✅ Complete API documentation for registration endpoint
-  - ✅ Security audit logging for registration attempts
-  - ✅ Input validation and sanitization
-  - ✅ Error handling with user-friendly messages
-- UI component deduplication ✅ **COMPLETED**
-  - ✅ Moved DocumentTitle component to shared library with app-agnostic design
-  - ✅ Moved TagInput component to shared inputs library with enhanced props
-  - ✅ Moved TagFilter component to shared inputs library with configuration options
-  - ✅ Removed duplicate Pagination component from admin app (shared version already in use)
-  - ✅ Created comprehensive test suites for all new shared components
-  - ✅ Added Storybook documentation for TagInput and TagFilter components
-  - ✅ Updated client and admin applications to use shared components
-  - ✅ Verified cross-application compatibility and consistent theming
-  - ✅ Cleaned up unused component files and improved type safety
-- Performance optimizations for data-heavy views ✅ **COMPLETED**
-  - ✅ Implemented React.memo, useMemo, and useCallback optimizations across all components
-  - ✅ Added virtual scrolling for large lists (50+ items) with configurable thresholds
-  - ✅ Implemented debounced search and filtering for improved responsiveness
-  - ✅ Created lazy-loading image components for better performance
-  - ✅ Optimized data processing with early returns and efficient algorithms
-  - ✅ Enhanced admin tables with server-side pagination and memoized rendering
-  - ✅ Added performance monitoring hooks for development insights
-  - ✅ Achieved 60%+ improvement in rendering performance for large datasets
-  - ✅ Created comprehensive performance optimization documentation
-
-### Phase 4 - Future Features (Planned)
-
-- Optional notifications system
-- Potential mobile app using React Native
-- Enhanced recommendation algorithms
-- Streaming service availability indicators
-- Advanced analytics for user behavior
-- Integration with additional content metadata sources
+- TMDb is the metadata + provider source; respect its rate limits; treat provider data as best-effort
+  and region-locked.
+- The pure-ML pick path must work without the LLM; the LLM only ever re-ranks, never gates.
+- Premium billing stays mock until Stripe go-live is signed off.
