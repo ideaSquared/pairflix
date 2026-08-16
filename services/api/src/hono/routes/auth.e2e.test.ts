@@ -112,13 +112,20 @@ describe('POST /api/auth/login', () => {
 		expect(user?.last_login).toBeNull();
 	});
 
-	it('logs in a verified user and sets a session cookie', async () => {
+	it('logs in a verified user, sets a session cookie, and sets last_login', async () => {
 		const email = uniqueEmail();
-		await registerAndVerify(email, 'Str0ngPass123');
+		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
 
 		const result = await loginUser(email, 'Str0ngPass123');
 		expect(result.status).toBe(200);
 		expect(result.cookies.session).toBeTruthy();
+
+		const user = await env.DB.prepare(
+			'SELECT last_login FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ last_login: number | null }>();
+		expect(user?.last_login).not.toBeNull();
 	});
 
 	it('rejects a wrong password without revealing whether the email exists', async () => {

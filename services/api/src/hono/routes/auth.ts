@@ -260,20 +260,28 @@ authRoutes.post('/login', async c => {
 		);
 	}
 
-	// Only set once every gate above has passed -- otherwise an unverified/pending account could
-	// show a non-null "Last Login" despite never getting a session (the admin CSV export treats this
-	// column as a real last-successful-login timestamp).
-	await db
-		.update(users)
-		.set({ lastLogin: new Date() })
-		.where(eq(users.id, user.id));
-
 	await auditInfo(db, 'User logged in', 'auth', {
 		userId: user.id,
 		email: user.email,
 	});
 
 	await startSession(c, db, user.id);
+
+	// Only set once the session actually exists -- best-effort from here on, since the login has
+	// already succeeded (the client already has a session cookie): a failure updating this
+	// bookkeeping column shouldn't turn an otherwise-successful login into a 500. Setting it any
+	// earlier risks the reverse problem this fixes -- a non-null "Last Login" (which the admin CSV
+	// export treats as a real last-successful-login timestamp) even though `startSession` itself
+	// then failed and no session was actually granted.
+	try {
+		await db
+			.update(users)
+			.set({ lastLogin: new Date() })
+			.where(eq(users.id, user.id));
+	} catch (error) {
+		console.error('[auth] failed to update lastLogin', error);
+	}
+
 	return c.json({
 		data: { id: user.id, username: user.username, email: user.email },
 	});

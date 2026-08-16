@@ -83,7 +83,15 @@ meRoutes.post('/2fa/verify', async c => {
 	if (!user.totpSecret)
 		return c.json({ error: 'Start 2FA enrollment first' }, 400);
 
-	const totpSecret = await decryptSecret(user.totpSecret, sessionSecret);
+	// A corrupted secret or a SESSION_SECRET rotated since /2fa/enroll shouldn't 500 a user-facing
+	// auth flow -- treat it the same as an invalid code below.
+	let totpSecret: string;
+	try {
+		totpSecret = await decryptSecret(user.totpSecret, sessionSecret);
+	} catch (error) {
+		console.error('[me] 2FA verify: TOTP secret decrypt failed', error);
+		return c.json({ error: 'Invalid or expired code' }, 401);
+	}
 	if (!(await verifyTotpCode(totpSecret, parsed.data.code))) {
 		return c.json({ error: 'Invalid or expired code' }, 401);
 	}
