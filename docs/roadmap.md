@@ -9,7 +9,7 @@
 **Built and wired** (product pivot scaffolds A–E, merged):
 
 - Household model + membership/ownership, invites, create/accept flow.
-- `POST /households/:id/pick` — heuristic recommender (taste merge → TMDb `/discover` → score →
+- `POST /api/households/:id/pick` — heuristic recommender (taste merge → TMDb `/discover` → score →
   provider filter) behind region-lock + daily-quota middleware.
 - Providers fetch + cache; provider deep-links; watch-together history with thumbs.
 - Freemium entitlements (free = 3 picks/day + GB lock; premium = unlimited + multi-region).

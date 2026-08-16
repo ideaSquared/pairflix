@@ -6,16 +6,19 @@
 
 ## Prerequisites
 
-- **Node 22** (`>=22.22 <23`; see `.nvmrc` / `.tool-versions`)
+- **Node 22** (`>=22.22 <23`; pinned via `.nvmrc` / `.tool-versions`, added in the P1 restructure)
 - **pnpm 10** (`corepack enable && corepack prepare pnpm@latest --activate`)
 - **Wrangler** — installed per-workspace as a dev dependency; run via `pnpm exec wrangler` or the
   package scripts. No global install needed.
 - A **TMDb API key**, and (for the premium re-rank) an **Anthropic API key**
 - A **Cloudflare account** only for `--remote` / deploy; **local dev needs none** (Miniflare emulates
   D1 and R2)
-- **No Docker.** The old `docker-compose` stack is retired from the app path.
+- **No Docker** (target) — the old `docker-compose` stack is retired from the app path post-cutover; it still runs the current stack until then.
 
 ## First run
+
+> Post-P1 layout. These commands assume the restructured `services/api` / `packages/db` workspaces;
+> they won't run against the current `backend/` tree.
 
 ```bash
 git clone <repository-url> && cd pairflix

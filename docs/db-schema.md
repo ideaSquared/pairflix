@@ -1,8 +1,9 @@
 # Database schema
 
 > **Target state (ADR 0001).** Pairflix's database is moving from Postgres (Sequelize) to **D1
-> (SQLite) via Drizzle**. This document describes the target schema; the source of truth is
-> `packages/db/src/schema.ts`. The `docs/roadmap.md` data-layer phase tracks the migration. The old
+> (SQLite) via Drizzle**. This document describes the target schema; once the data-layer phase (P2)
+> lands, the source of truth will be `packages/db/src/schema.ts`. The `docs/roadmap.md` data-layer
+> phase tracks the migration. The old
 > Postgres DDL is preserved in git history if you need it.
 
 ## Overview
