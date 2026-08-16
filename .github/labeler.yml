@@ -1,21 +1,21 @@
 client:
   - changed-files:
-    - any-glob-to-any-file: 'app.client/**'
+    - any-glob-to-any-file: 'apps/client/**'
 
 admin:
   - changed-files:
-    - any-glob-to-any-file: 'app.admin/**'
+    - any-glob-to-any-file: 'apps/admin/**'
 
-backend:
+api:
   - changed-files:
-    - any-glob-to-any-file: 'backend/**'
+    - any-glob-to-any-file: 'services/api/**'
 
 components:
   - changed-files:
-    - any-glob-to-any-file: 'lib.components/**'
+    - any-glob-to-any-file: 'packages/lib.components/**'
 
 docs:
   - changed-files:
-    - any-glob-to-any-file: 
+    - any-glob-to-any-file:
       - 'docs/*'
       - '**/*.md'

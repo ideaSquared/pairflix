@@ -1,0 +1,54 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local", ".prettierrc.json", ".editorconfig"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"],
+      "env": ["NODE_ENV", "VITE_*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": [],
+      "env": ["NODE_ENV", "VITE_*"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "jest.config.ts",
+        "package.json",
+        "$TURBO_ROOT$/tsconfig.base.json"
+      ]
+    },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": [],
+      "inputs": ["src/**", "*.config.{js,ts,mjs}"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/tsconfig.lib.base.json"
+      ]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

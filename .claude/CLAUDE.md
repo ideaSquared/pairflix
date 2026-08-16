@@ -105,7 +105,7 @@ being retired (Docker/nginx app deploy).
 - **Vitest** across all workspaces (the Worker uses `@cloudflare/vitest-pool-workers` against local D1).
 - **API (`services/api`):** Hono route modules (`src/routes/*`) → middleware (`src/middleware/*`) →
   business logic (`src/lib/*`) → Drizzle (`packages/db`) → D1. Route modules stay thin.
-- Frontend: feature folders, React Query for server state, styled-components for styling,
+- Frontend: feature folders, React Query for server state, vanilla-extract for styling,
   `packages/lib.components` for primitives.
 - One schema change = one Drizzle migration. Document it in `docs/db-schema.md` in the same PR.
 - Commits on a feature branch off `master`. Never on `master` directly. Never push unless asked.
@@ -117,7 +117,7 @@ being retired (Docker/nginx app deploy).
 - **API:** Hono on Cloudflare Workers
 - **Data:** Drizzle ORM on Cloudflare D1 (SQLite); R2 for blobs
 - **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF
-- **Frontend:** React 18/19, Vite, styled-components, React Query, React Router — on Cloudflare Pages
+- **Frontend:** React 18/19, Vite, vanilla-extract, React Query, React Router — on Cloudflare Pages
 - **Tests:** Vitest (`@cloudflare/vitest-pool-workers` for the Worker, React Testing Library for apps)
 - **External:** TMDb (titles + providers), Anthropic API (LLM re-rank, opt-in), Stripe (deferred)
 
@@ -299,8 +299,9 @@ Promote a component to `packages/lib.components` only when a second consumer nee
 - **Functional only.** Props as `type`, destructured in the signature. One component per file.
 - **React Query for server state.** No bare `useEffect(fetch…)`. Each feature exposes a `useThing()`
   hook; mutations `useMutation` + invalidate query keys.
-- **styled-components** with theme tokens from `packages/lib.components`. Pull primitives from
-  `lib.components` before reaching for a `div`. No CSS modules, no Tailwind.
+- **vanilla-extract** (`Component.css.ts` colocated with `Component.tsx`) with theme tokens (`vars`)
+  from `packages/lib.components`. Pull primitives from `lib.components` before reaching for a `div`.
+  No CSS modules, no Tailwind, no styled-components.
 
 ### Auth & API
 
