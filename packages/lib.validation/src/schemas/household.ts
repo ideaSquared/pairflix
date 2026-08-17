@@ -55,6 +55,7 @@ export type CommitPickRequest = z.infer<typeof CommitPickRequestSchema>;
 export const HistoryQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  region: RegionSchema.optional(),
 });
 export type HistoryQuery = z.infer<typeof HistoryQuerySchema>;
 

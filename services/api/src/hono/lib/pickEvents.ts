@@ -24,9 +24,10 @@ export type RecordPickEventInput = {
 export const recordPickEvent = async (
 	db: Database,
 	input: RecordPickEventInput
-): Promise<void> => {
+): Promise<{ id: string }> => {
+	const id = newId('pickevent');
 	await db.insert(pickEvents).values({
-		id: newId('pickevent'),
+		id,
 		householdId: input.householdId,
 		userId: input.userId ?? null,
 		tmdbId: input.tmdbId,
@@ -38,4 +39,5 @@ export const recordPickEvent = async (
 		region: input.region ?? null,
 		occurredAt: new Date(),
 	});
+	return { id };
 };

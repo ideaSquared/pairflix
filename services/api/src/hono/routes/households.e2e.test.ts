@@ -31,6 +31,7 @@ type MockMovie = {
 			provider_name: string;
 			logo_path: string;
 		}>;
+		link?: string;
 	};
 };
 
@@ -61,6 +62,7 @@ const MOVIE_B: MockMovie = {
 		flatrate: [
 			{ provider_id: 8, provider_name: 'Netflix', logo_path: '/x.jpg' },
 		],
+		link: 'https://www.themoviedb.org/movie/102/watch?locale=GB',
 	},
 };
 const MOVIE_C: MockMovie = {
@@ -496,5 +498,316 @@ describe('LLM re-rank wiring', () => {
 		);
 		expect(result.status).toBe(200);
 		expect(DEFAULT_MOVIES.map(m => m.id)).toContain(result.body.pick.tmdbId);
+	});
+});
+
+describe('GET /api/households/:id/history', () => {
+	it('rejects a non-member', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const outsider = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(owner.cookies);
+
+		const result = await callApp(`/api/households/${householdId}/history`, {
+			cookies: outsider.cookies,
+		});
+		expect(result.status).toBe(403);
+	});
+
+	it('returns an empty page when nothing has been watched yet', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const result = await callApp<{
+			data: unknown[];
+			pagination: {
+				page: number;
+				limit: number;
+				total: number;
+				totalPages: number;
+			};
+		}>(`/api/households/${householdId}/history`, { cookies });
+		expect(result.status).toBe(200);
+		expect(result.body.data).toEqual([]);
+		expect(result.body.pagination).toEqual({
+			page: 1,
+			limit: 20,
+			total: 0,
+			totalPages: 0,
+		});
+	});
+
+	it('includes joined providers for a committed pick', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const providersLookup = await callApp(
+			`/api/providers/${MOVIE_B.id}?mediaType=movie`,
+			{ cookies }
+		);
+		expect(providersLookup.status).toBe(200);
+
+		const commit = await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_B.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		const history = await callApp<{
+			data: Array<{
+				tmdbId: number;
+				title: string | null;
+				providers: { flatrate?: unknown[] };
+			}>;
+		}>(`/api/households/${householdId}/history`, { cookies });
+		expect(history.status).toBe(200);
+		expect(history.body.data).toHaveLength(1);
+		expect(history.body.data[0]?.tmdbId).toBe(MOVIE_B.id);
+		// Title is a placeholder ("Untitled movie") rather than MOVIE_B.title -- the provider-cache
+		// write path never fetches real title/poster data (a pre-existing gap ported faithfully
+		// from Express, see docs/roadmap.md). This test asserts the providers join, which is the
+		// actual behavior this domain adds.
+		expect(history.body.data[0]?.providers.flatrate?.length).toBeGreaterThan(0);
+	});
+
+	it('paginates', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		for (const movie of DEFAULT_MOVIES) {
+			const commit = await postJson(
+				`/api/households/${householdId}/picks/${movie.id}/commit`,
+				{ mediaType: 'movie' },
+				cookies
+			);
+			expect(commit.status).toBe(201);
+		}
+
+		const page1 = await callApp<{
+			data: unknown[];
+			pagination: { total: number; totalPages: number };
+		}>(`/api/households/${householdId}/history?page=1&limit=2`, { cookies });
+		expect(page1.status).toBe(200);
+		expect(page1.body.data).toHaveLength(2);
+		expect(page1.body.pagination.total).toBe(3);
+		expect(page1.body.pagination.totalPages).toBe(2);
+
+		const page2 = await callApp<{ data: unknown[] }>(
+			`/api/households/${householdId}/history?page=2&limit=2`,
+			{ cookies }
+		);
+		expect(page2.status).toBe(200);
+		expect(page2.body.data).toHaveLength(1);
+	});
+});
+
+describe('PATCH /api/households/:id/history/:watchedId', () => {
+	it('rejects a non-member', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const outsider = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(owner.cookies);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			owner.cookies
+		);
+
+		const result = await postJson(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			outsider.cookies,
+			{ method: 'PATCH' }
+		);
+		expect(result.status).toBe(403);
+	});
+
+	it('sets and clears enjoyed', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+
+		const thumbsUp = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(thumbsUp.status).toBe(200);
+		expect(thumbsUp.body.entry.enjoyed).toBe(true);
+
+		const cleared = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: null },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(cleared.status).toBe(200);
+		expect(cleared.body.entry.enjoyed).toBeNull();
+	});
+
+	it('returns 404 for an unknown watchedId', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const result = await postJson(
+			`/api/households/${householdId}/history/not-a-real-id`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(result.status).toBe(404);
+	});
+});
+
+describe('POST /api/households/:id/picks/:tmdbId/launch', () => {
+	it('rejects a non-member', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const outsider = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(owner.cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const result = await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_B.id}/launch`,
+			{ providerSlug: 'netflix', mediaType: 'movie' },
+			outsider.cookies
+		);
+		expect(result.status).toBe(403);
+	});
+
+	it('resolves a deep link and records a provider_launched event', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const result = await postJson<{
+			url: string;
+			providerName: string;
+			region: string;
+		}>(
+			`/api/households/${householdId}/picks/${MOVIE_B.id}/launch`,
+			{ providerSlug: 'netflix', mediaType: 'movie' },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.providerName).toBe('Netflix');
+		expect(result.body.url).toBe(MOVIE_B.providers?.link);
+		expect(result.body.region).toBe('GB');
+
+		const event = await env.DB.prepare(
+			"SELECT kind, user_id, provider_slug FROM pick_events WHERE household_id = ?1 AND kind = 'provider_launched' ORDER BY occurred_at DESC LIMIT 1"
+		)
+			.bind(householdId)
+			.first<{ kind: string; user_id: string; provider_slug: string }>();
+		expect(event?.kind).toBe('provider_launched');
+		expect(event?.user_id).toBe(userId);
+		expect(event?.provider_slug).toBe('netflix');
+	});
+
+	it('returns 404 when the provider is not available', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const result = await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/launch`,
+			{ providerSlug: 'some_provider_not_offered', mediaType: 'movie' },
+			cookies
+		);
+		expect(result.status).toBe(404);
+	});
+});
+
+describe('POST /api/households/:id/pick-events', () => {
+	it('rejects a non-member', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const outsider = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(owner.cookies);
+
+		const result = await postJson(
+			`/api/households/${householdId}/pick-events`,
+			{ tmdbId: MOVIE_A.id, mediaType: 'movie', kind: 'dismissed' },
+			outsider.cookies
+		);
+		expect(result.status).toBe(403);
+	});
+
+	it('records a swapped or dismissed event', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const result = await postJson<{ recorded: boolean; id: string }>(
+			`/api/households/${householdId}/pick-events`,
+			{ tmdbId: MOVIE_A.id, mediaType: 'movie', kind: 'dismissed' },
+			cookies
+		);
+		expect(result.status).toBe(201);
+		expect(result.body.recorded).toBe(true);
+	});
+
+	it('rejects a kind that has its own dedicated write path', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const result = await postJson(
+			`/api/households/${householdId}/pick-events`,
+			{ tmdbId: MOVIE_A.id, mediaType: 'movie', kind: 'accepted' },
+			cookies
+		);
+		expect(result.status).toBe(400);
+	});
+});
+
+describe('GET /api/households/:id/pick-events/stats', () => {
+	it('rejects a non-member', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const outsider = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(owner.cookies);
+
+		const result = await callApp(
+			`/api/households/${householdId}/pick-events/stats`,
+			{ cookies: outsider.cookies }
+		);
+		expect(result.status).toBe(403);
+	});
+
+	it('aggregates totals, acceptance rate, and provider clicks', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		await postJson(
+			`/api/households/${householdId}/pick-events`,
+			{ tmdbId: MOVIE_C.id, mediaType: 'movie', kind: 'dismissed' },
+			cookies
+		);
+		mockExternalApis(DEFAULT_MOVIES);
+		await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_B.id}/launch`,
+			{ providerSlug: 'netflix', mediaType: 'movie' },
+			cookies
+		);
+
+		const stats = await callApp<{
+			windowDays: number;
+			totals: Record<string, number>;
+			firstPickAcceptanceRate: number | null;
+			providerClicksBySlug: Record<string, number>;
+		}>(`/api/households/${householdId}/pick-events/stats`, { cookies });
+		expect(stats.status).toBe(200);
+		expect(stats.body.windowDays).toBe(30);
+		expect(stats.body.totals.accepted).toBe(1);
+		expect(stats.body.totals.dismissed).toBe(1);
+		expect(stats.body.totals.provider_launched).toBe(1);
+		expect(stats.body.firstPickAcceptanceRate).toBe(0.5);
+		expect(stats.body.providerClicksBySlug.netflix).toBe(1);
 	});
 });
