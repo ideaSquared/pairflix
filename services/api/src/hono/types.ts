@@ -18,8 +18,9 @@ export type Bindings = {
 	APP_CLIENT_URL?: string;
 	/** TMDb API key -- titles, discover, and watch-provider lookups (lib/tmdb.ts). */
 	TMDB_API_KEY?: string;
-	/** Premium LLM re-rank (lib/llm.ts) -- absent means `maybeRerank` always returns null, same
-	 * "unconfigured is a valid state" degrade as the current Express `llm.service.ts`. */
+	/** Premium LLM re-rank (lib/llm.ts) -- absent means `rerankCandidates` always throws
+	 * `LLMUnavailable`, which `lib/recommendation.ts` catches to fall back to the pure-ML pick,
+	 * same "unconfigured is a valid state" degrade as the current Express `llm.service.ts`. */
 	ANTHROPIC_API_KEY?: string;
 };
 

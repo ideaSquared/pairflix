@@ -53,7 +53,7 @@ householdsRoutes.get('/', async c => {
 householdsRoutes.post('/', async c => {
 	const userId = c.get('userId') as string;
 	const parsed = CreateHouseholdRequestSchema.safeParse(
-		await c.req.json().catch(() => ({}))
+		await c.req.json().catch(() => null)
 	);
 	if (!parsed.success) {
 		return c.json(
@@ -73,7 +73,7 @@ householdsRoutes.post('/:id/invites', requireHouseholdOwner, async c => {
 	const householdId = c.req.param('id');
 	const userId = c.get('userId') as string;
 	const parsed = CreateInviteRequestSchema.safeParse(
-		await c.req.json().catch(() => ({}))
+		await c.req.json().catch(() => null)
 	);
 	if (!parsed.success) {
 		return c.json(

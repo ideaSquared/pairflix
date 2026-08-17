@@ -1,9 +1,4 @@
-import type { Database } from '@pairflix/db';
 import type { Bindings } from '../types';
-import {
-	isLlmRerankEnabled,
-	isLlmRerankEnabledForHousehold,
-} from './featureFlags';
 
 /**
  * LLM re-rank client -- fetch-based (Workers-native, no SDK), matching `lib/email.ts` and
@@ -13,8 +8,12 @@ import {
  * reasoning `lib/tmdb.ts` used to drop its watch-providers cache), and `console.warn` instead of
  * `auditLogService`, matching the logging convention already used elsewhere in this port.
  *
- * `maybeRerank` is the integration point for `lib/recommendation.ts`: it never throws, and a
- * `null` return means the caller must fall back to its pure-ML top-1 pick.
+ * `rerankCandidates` throws `LLMUnavailable` on any failure (not configured, network error, bad
+ * response shape) -- deciding whether to call it at all (feature flag, premium entitlement) and
+ * catching that failure to fall back to a pure-ML pick are both `lib/recommendation.ts`'s job, not
+ * this module's: the caller already has to check eligibility once to size its candidate hydration,
+ * so a self-checking wrapper here would just re-read the same `settings`/`subscriptions` rows on
+ * every call.
  */
 
 const MODEL = 'claude-sonnet-4-6';
@@ -93,15 +92,6 @@ export type LlmRerankInput = {
 	tasteProfiles: LlmTasteProfile[];
 	mood: string;
 	minutes: number;
-};
-
-/** Context passed to `maybeRerank`. `householdId` gates the per-household premium check; when
- * omitted only the global `recommendation.llm_rerank` flag is checked. */
-export type LlmRerankContext = {
-	mood: string;
-	minutes: number;
-	tasteProfiles: LlmTasteProfile[];
-	householdId?: string;
 };
 
 export class LLMUnavailable extends Error {
@@ -193,6 +183,10 @@ const extractUsage = (usage: AnthropicMessageResponse['usage']): LlmUsage => {
 	return result;
 };
 
+/** Throws `LLMUnavailable` if not configured or the call fails for any reason. On success,
+ * `pickTmdbId`/`alternatesTmdbIds` are expected (not guaranteed) to be drawn from
+ * `input.candidates` -- the model is instructed to do so, but callers should still validate
+ * before surfacing. */
 export const rerankCandidates = async (
 	env: Bindings,
 	input: LlmRerankInput
@@ -270,41 +264,5 @@ export const rerankCandidates = async (
 		throw new LLMUnavailable('Anthropic call failed', err);
 	} finally {
 		clearTimeout(timeout);
-	}
-};
-
-/**
- * Integration point for `lib/recommendation.ts`.
- *
- * Contract: returns `null` if the LLM rerank flag is off or the call fails for any reason --
- * callers MUST fall back to their pure-ML top-1 pick when this returns `null`. When a result is
- * returned, `pickTmdbId`/`alternatesTmdbIds` are expected (not guaranteed) to be drawn from the
- * input candidate list -- the model is instructed to do so, but callers should still validate
- * before surfacing.
- */
-export const maybeRerank = async (
-	env: Bindings,
-	db: Database,
-	candidates: LlmCandidate[],
-	ctx: LlmRerankContext
-): Promise<LlmRerankResult | null> => {
-	try {
-		const enabled = ctx.householdId
-			? await isLlmRerankEnabledForHousehold(db, ctx.householdId)
-			: await isLlmRerankEnabled(db);
-		if (!enabled) return null;
-
-		return await rerankCandidates(env, {
-			candidates,
-			tasteProfiles: ctx.tasteProfiles,
-			mood: ctx.mood,
-			minutes: ctx.minutes,
-		});
-	} catch (err) {
-		console.warn(
-			'[llm] rerank unavailable',
-			err instanceof Error ? err.message : 'Unknown error'
-		);
-		return null;
 	}
 };

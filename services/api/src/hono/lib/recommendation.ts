@@ -11,7 +11,12 @@ import type { Bindings } from '../types';
 import { isLlmRerankEnabledForHousehold } from './featureFlags';
 import { GENRE_NAMES, MOOD_FILTERS } from './genres';
 import { newId } from './id';
-import { maybeRerank, type LlmCandidate, type LlmTasteProfile } from './llm';
+import {
+	rerankCandidates,
+	type LlmCandidate,
+	type LlmRerankResult,
+	type LlmTasteProfile,
+} from './llm';
 import { recordPickEvent } from './pickEvents';
 import { summariseTasteProfile } from './tasteSummary';
 import {
@@ -430,12 +435,23 @@ export const pickForHousehold = async (
 			.filter((name): name is string => Boolean(name)),
 	}));
 
-	const llmResult = await maybeRerank(env, db, llmCandidates, {
-		mood: request.mood,
-		minutes: request.minutes,
-		tasteProfiles: tasteProfilesForLlm,
-		householdId,
-	});
+	// llmEligible is already known (checked once above, to size hydration) -- call the Anthropic
+	// client directly instead of through a self-checking wrapper that would re-read the same
+	// settings/subscriptions rows for no reason.
+	let llmResult: LlmRerankResult | null = null;
+	try {
+		llmResult = await rerankCandidates(env, {
+			candidates: llmCandidates,
+			tasteProfiles: tasteProfilesForLlm,
+			mood: request.mood,
+			minutes: request.minutes,
+		});
+	} catch (err) {
+		console.warn(
+			'[recommendation] LLM rerank unavailable',
+			err instanceof Error ? err.message : 'Unknown error'
+		);
+	}
 	if (!llmResult) return mlResult;
 
 	const byTmdbId = new Map(paired.map(p => [p.card.tmdbId, p]));

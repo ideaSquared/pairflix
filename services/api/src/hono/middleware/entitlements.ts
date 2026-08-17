@@ -7,7 +7,8 @@ import type { AppEnv } from '../types';
  * Computes entitlements once and stores them on context for `enforcePickQuota` (and the pick
  * route handler, which applies `entitlements.regionLock` over the request's own region) to
  * reuse -- the current Express app recomputes entitlements independently in both of its
- * equivalent middleware. Never rejects by itself.
+ * equivalent middleware. Never rejects for entitlement reasons; the only rejection is a missing
+ * `:id` path param, which would mean this middleware was mounted on the wrong route.
  *
  * Must run after `requireHouseholdMember`; must run before `enforcePickQuota`.
  */

@@ -47,8 +47,10 @@ many households** — not per-tenant infrastructure, and not a fleet of services
 3. **Entitlement + quota middleware** — region lock (free = GB) and the daily pick limit (free = 3);
    premium is unlimited and multi-region.
 4. **Recommendation service** (`services/api/src/hono/lib/recommendation.ts`): merge the members'
-   taste profiles (D1) → TMDb `/discover` (edge-cached) → score against mood/time/taste → hydrate
-   the top candidates and filter to titles actually streamable on the household's providers (cached).
+   taste profiles (D1) → TMDb `/discover` → score against mood/time/taste → hydrate the top
+   candidates and filter to titles actually streamable on the household's providers. Edge-caching
+   `/discover` and `/watch/providers` (Topology, above) isn't implemented yet in the Hono port --
+   deferred to the providers/history domain (see `lib/tmdb.ts`).
 5. **LLM re-rank** — premium only, behind `recommendation.llm_rerank`: the Worker calls Anthropic
    over `fetch` to re-order the shortlist; returns `null` to fall back to the pure-ML order. Never on
    the free path.

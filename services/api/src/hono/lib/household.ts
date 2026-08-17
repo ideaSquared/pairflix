@@ -180,14 +180,18 @@ export const acceptInvite = async (
 		.get();
 	if (!invite) throw new InviteInvalidError();
 
-	if (!(await isMember(db, invite.householdId, userId))) {
-		await db.insert(householdMembers).values({
+	// onConflictDoNothing rather than an isMember check-then-insert: the check and the insert
+	// aren't atomic, so a concurrent accept (double-click, retry) could pass the check twice and
+	// hit the (householdId, userId) primary key on the second insert.
+	await db
+		.insert(householdMembers)
+		.values({
 			householdId: invite.householdId,
 			userId,
 			role: 'member',
 			joinedAt: new Date(),
-		});
-	}
+		})
+		.onConflictDoNothing();
 
 	await db
 		.update(householdInvites)
