@@ -1,5 +1,5 @@
 import { AppLayout } from '@pairflix/components';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   createClientNavigation,
@@ -34,8 +34,14 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
 
 const LogoutRoute: React.FC = () => {
   const { logout } = useAuth();
+  const hasLoggedOut = useRef(false);
 
   useEffect(() => {
+    // Re-renders (e.g. the auth query settling) hand back a new `logout` reference, and
+    // StrictMode double-invokes effects -- both would otherwise fire a second, concurrent
+    // /api/auth/logout call that can 403 by racing the first call's CSRF cookie.
+    if (hasLoggedOut.current) return;
+    hasLoggedOut.current = true;
     logout();
   }, [logout]);
 

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '../services/api';
 import type { AuthUser } from '../services/api/auth';
@@ -30,7 +30,9 @@ export function useAuth() {
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
-  const logout = async () => {
+  // Stable references -- both are common useEffect deps (see Routes.tsx's LogoutRoute and
+  // ProfilePage.tsx), and a fresh function identity on every render would re-fire those effects.
+  const logout = useCallback(async () => {
     // Call the server-side logout endpoint to record in audit logs
     await authApi.auth.logout();
 
@@ -38,9 +40,9 @@ export function useAuth() {
     queryClient.setQueryData(['auth'], null);
     queryClient.invalidateQueries();
     navigate('/login');
-  };
+  }, [queryClient, navigate]);
 
-  const checkAuth = () => {
+  const checkAuth = useCallback(() => {
     // Debounce the auth check to prevent multiple calls
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
@@ -50,7 +52,7 @@ export function useAuth() {
       queryClient.invalidateQueries({ queryKey: ['auth'] });
       refreshTimeoutRef.current = null;
     }, 300);
-  };
+  }, [queryClient]);
 
   const isAuthenticated = Boolean(user);
 

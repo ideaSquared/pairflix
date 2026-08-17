@@ -9,7 +9,7 @@ import {
   Container,
   SuccessText,
 } from '@pairflix/components';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { emailService } from '../../services/api';
@@ -18,8 +18,10 @@ import * as styles from './EmailVerificationPage.css';
 const EmailVerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { checkAuth } = useAuth();
+  const { checkAuth, isAuthenticated } = useAuth();
   const token = searchParams.get('token');
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,7 +53,7 @@ const EmailVerificationPage: React.FC = () => {
       checkAuth();
 
       setTimeout(() => {
-        navigate('/tonight');
+        navigate(isAuthenticatedRef.current ? '/tonight' : '/login');
       }, 3000);
     } catch (err) {
       if (err instanceof Error) {
@@ -106,7 +108,7 @@ const EmailVerificationPage: React.FC = () => {
               <div className={styles.iconWrapper}>✅</div>
               <H2 gutterBottom>Email Verified!</H2>
               <SuccessText gutterBottom>{success}</SuccessText>
-              <p>Redirecting to Tonight...</p>
+              <p>Redirecting...</p>
             </>
           ) : error ? (
             <>
