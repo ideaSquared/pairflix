@@ -811,3 +811,100 @@ describe('GET /api/households/:id/pick-events/stats', () => {
 		expect(stats.body.providerClicksBySlug.netflix).toBe(1);
 	});
 });
+
+describe('GET /api/households/:id/entitlements', () => {
+	it('rejects a non-member', async () => {
+		const { cookies: ownerCookies } = await createLoggedInUser(uniqueEmail());
+		const { cookies: outsiderCookies } =
+			await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(ownerCookies);
+
+		const result = await callApp(
+			`/api/households/${householdId}/entitlements`,
+			{
+				cookies: outsiderCookies,
+			}
+		);
+		expect(result.status).toBe(403);
+	});
+
+	it('returns free-tier defaults for a new household', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const result = await callApp<{
+			tier: string;
+			dailyPickLimit: number;
+			canUseMultiRegion: boolean;
+		}>(`/api/households/${householdId}/entitlements`, { cookies });
+		expect(result.status).toBe(200);
+		expect(result.body.tier).toBe('free');
+		expect(result.body.dailyPickLimit).toBe(3);
+		expect(result.body.canUseMultiRegion).toBe(false);
+	});
+});
+
+describe('billing routes', () => {
+	it('POST /:id/billing/checkout is owner-only and returns a checkout URL', async () => {
+		const { cookies: ownerCookies } = await createLoggedInUser(uniqueEmail());
+		const { cookies: memberCookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(ownerCookies);
+		const invite = await postJson<{ invite: { token: string } }>(
+			`/api/households/${householdId}/invites`,
+			{},
+			ownerCookies
+		);
+		await postJson(
+			`/api/households/invites/${invite.body.invite.token}/accept`,
+			{},
+			memberCookies
+		);
+
+		const asMember = await postJson(
+			`/api/households/${householdId}/billing/checkout`,
+			{},
+			memberCookies
+		);
+		expect(asMember.status).toBe(403);
+
+		const asOwner = await postJson<{ checkoutUrl: string }>(
+			`/api/households/${householdId}/billing/checkout`,
+			{},
+			ownerCookies
+		);
+		expect(asOwner.status).toBe(200);
+		expect(asOwner.body.checkoutUrl).toContain(householdId);
+	});
+
+	it('mock-activate flips the household to premium, cancel reverts it', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		const activated = await postJson(
+			`/api/households/${householdId}/billing/mock-activate`,
+			{},
+			cookies
+		);
+		expect(activated.status).toBe(200);
+
+		const afterActivate = await callApp<{
+			tier: string;
+			canUseMultiRegion: boolean;
+		}>(`/api/households/${householdId}/entitlements`, { cookies });
+		expect(afterActivate.body.tier).toBe('premium');
+		expect(afterActivate.body.canUseMultiRegion).toBe(true);
+
+		const canceled = await postJson(
+			`/api/households/${householdId}/billing/cancel`,
+			{},
+			cookies
+		);
+		expect(canceled.status).toBe(204);
+
+		const afterCancel = await callApp<{ tier: string }>(
+			`/api/households/${householdId}/entitlements`,
+			{ cookies }
+		);
+		expect(afterCancel.body.tier).toBe('free');
+	});
+});

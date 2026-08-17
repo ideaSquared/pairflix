@@ -46,6 +46,16 @@ export const sendEmail = async (
 const clientUrl = (env: Bindings): string =>
 	env.APP_CLIENT_URL ?? 'http://localhost:5173';
 
+/** Escapes free-text values before interpolating them into an HTML email body -- the only such
+ * value in this file is `sendAccountStatusEmail`'s admin-supplied `reason`. */
+const escapeHtml = (value: string): string =>
+	value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+
 export const sendVerificationEmail = async (
 	env: Bindings,
 	email: string,
@@ -69,5 +79,41 @@ export const sendPasswordResetEmail = async (
 		to: email,
 		subject: 'Reset your Pairflix password',
 		html: `<p>Reset your password:</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
+	});
+};
+
+/** Delivers a plaintext password an admin just generated for a user (`lib/adminUsers.ts`'s
+ * `resetPassword`) -- a deliberate, existing product behavior (not a bug to design around): the
+ * admin chooses whether to email it or have it returned in the API response instead. */
+export const sendAdminPasswordResetEmail = async (
+	env: Bindings,
+	email: string,
+	newPassword: string
+): Promise<void> => {
+	await sendEmail(env, {
+		to: email,
+		subject: 'Your Pairflix password was reset',
+		html: `<p>An administrator reset your password.</p><p>Your new password: <strong>${newPassword}</strong></p><p>Sign in and change it as soon as possible.</p>`,
+	});
+};
+
+/** Notifies a user their account status changed at an admin's hand -- suspend/ban/reactivate are
+ * the statuses worth a user-facing explanation; other transitions (e.g. 'pending') don't come
+ * through this admin-initiated path. */
+export const sendAccountStatusEmail = async (
+	env: Bindings,
+	email: string,
+	status: 'active' | 'suspended' | 'banned',
+	reason?: string
+): Promise<void> => {
+	const subject =
+		status === 'active'
+			? 'Your Pairflix account has been reactivated'
+			: `Your Pairflix account has been ${status}`;
+	const reasonHtml = reason ? `<p>Reason: ${escapeHtml(reason)}</p>` : '';
+	await sendEmail(env, {
+		to: email,
+		subject,
+		html: `<p>${subject}.</p>${reasonHtml}<p>Contact support if you have questions.</p>`,
 	});
 };

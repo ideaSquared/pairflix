@@ -28,6 +28,12 @@ export default defineConfig(async () => {
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,
+            // wrangler.jsonc's own `vars.ENVIRONMENT` is 'production' (a placeholder -- there's no
+            // per-environment wrangler config split yet, see that file's own comment). Overridden
+            // here so the four `ENVIRONMENT !== 'production'` / `=== 'development'` checks in
+            // routes/auth.ts, lib/session.ts, lib/email.ts, and lib/billing.ts behave like the
+            // non-production deployment a test run actually is.
+            ENVIRONMENT: 'development',
             // .dev.vars.example ships with every secret blank (fine for manual `wrangler dev` --
             // routes that need one just degrade gracefully, e.g. bootstrap-admin 501s, 2FA
             // enroll/verify 501s). Tests that exercise those routes need a real value; this only
