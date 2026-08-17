@@ -82,6 +82,21 @@ export const sendPasswordResetEmail = async (
 	});
 };
 
+/** Delivers a plaintext password an admin just generated for a user (`lib/adminUsers.ts`'s
+ * `resetPassword`) -- a deliberate, existing product behavior (not a bug to design around): the
+ * admin chooses whether to email it or have it returned in the API response instead. */
+export const sendAdminPasswordResetEmail = async (
+	env: Bindings,
+	email: string,
+	newPassword: string
+): Promise<void> => {
+	await sendEmail(env, {
+		to: email,
+		subject: 'Your Pairflix password was reset',
+		html: `<p>An administrator reset your password.</p><p>Your new password: <strong>${newPassword}</strong></p><p>Sign in and change it as soon as possible.</p>`,
+	});
+};
+
 /** Notifies a user their account status changed at an admin's hand -- suspend/ban/reactivate are
  * the statuses worth a user-facing explanation; other transitions (e.g. 'pending') don't come
  * through this admin-initiated path. */

@@ -12,6 +12,13 @@ import {
 	type PickRequest,
 } from '@pairflix/lib.validation';
 import { Hono } from 'hono';
+import {
+	cancelSubscription,
+	isBillingMockEnabled,
+	mockActivatePremium,
+	startCheckout,
+} from '../lib/billing';
+import { getEntitlements } from '../lib/entitlements';
 import { listHistory, setEnjoyed } from '../lib/history';
 import {
 	InviteInvalidError,
@@ -45,10 +52,13 @@ import type { AppEnv } from '../types';
 
 /**
  * Covers what the current Express `household.routes.ts` mounts under `/api/households` (CRUD,
- * invites, pick, commit, provider-launch, pick-events) plus `history.routes.ts`'s two routes --
- * minus `GET /:id/entitlements`, which stays deferred to billing/admin. Also mounts accept-invite,
- * which exists in Express (`householdInvites.routes.ts`) but is never actually registered on the
- * app router there -- without it, an invite can be created but never accepted.
+ * invites, pick, commit, provider-launch, pick-events) plus `history.routes.ts`'s two routes and
+ * `billing.routes.ts`'s household-scoped entitlements/checkout/cancel/mock-activate (the flat
+ * `/api/billing/*` + body `household_id` shape in Express becomes `/:id/billing/*`, matching every
+ * other household-scoped route here and reusing `requireHouseholdOwner` instead of Express's own
+ * per-handler owner check). Also mounts accept-invite, which exists in Express
+ * (`householdInvites.routes.ts`) but is never actually registered on the app router there --
+ * without it, an invite can be created but never accepted.
  *
  * `/:id/history` and `/:id/picks/:tmdbId/launch` both run `enforceRegionLock` even though neither
  * is the pick endpoint -- they're the other two places a caller picks which region's provider data
@@ -407,5 +417,42 @@ householdsRoutes.get(
 			parsed.data.windowDays
 		);
 		return c.json(stats);
+	}
+);
+
+householdsRoutes.get('/:id/entitlements', requireHouseholdMember, async c => {
+	const householdId = c.req.param('id');
+	const db = createDb(c.env.DB);
+	const entitlements = await getEntitlements(db, householdId);
+	return c.json(entitlements);
+});
+
+householdsRoutes.post('/:id/billing/checkout', requireHouseholdOwner, c => {
+	const householdId = c.req.param('id');
+	return c.json(startCheckout(householdId));
+});
+
+householdsRoutes.post('/:id/billing/cancel', requireHouseholdOwner, async c => {
+	const householdId = c.req.param('id');
+	const db = createDb(c.env.DB);
+	await cancelSubscription(db, householdId);
+	return c.body(null, 204);
+});
+
+/**
+ * Pretends not to exist (404) when the mock is disabled, matching Express's
+ * `isBillingMockEnabled()` gate -- there's no real Stripe integration behind this route, so it
+ * shouldn't be discoverable outside dev/demo use.
+ */
+householdsRoutes.post(
+	'/:id/billing/mock-activate',
+	requireHouseholdOwner,
+	async c => {
+		if (!isBillingMockEnabled(c.env))
+			return c.json({ error: 'not_found' }, 404);
+		const householdId = c.req.param('id');
+		const db = createDb(c.env.DB);
+		await mockActivatePremium(db, householdId);
+		return c.json({ ok: true });
 	}
 );
