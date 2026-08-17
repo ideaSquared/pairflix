@@ -46,6 +46,16 @@ export const sendEmail = async (
 const clientUrl = (env: Bindings): string =>
 	env.APP_CLIENT_URL ?? 'http://localhost:5173';
 
+/** Escapes free-text values before interpolating them into an HTML email body -- the only such
+ * value in this file is `sendAccountStatusEmail`'s admin-supplied `reason`. */
+const escapeHtml = (value: string): string =>
+	value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+
 export const sendVerificationEmail = async (
 	env: Bindings,
 	email: string,
@@ -85,7 +95,7 @@ export const sendAccountStatusEmail = async (
 		status === 'active'
 			? 'Your Pairflix account has been reactivated'
 			: `Your Pairflix account has been ${status}`;
-	const reasonHtml = reason ? `<p>Reason: ${reason}</p>` : '';
+	const reasonHtml = reason ? `<p>Reason: ${escapeHtml(reason)}</p>` : '';
 	await sendEmail(env, {
 		to: email,
 		subject,
