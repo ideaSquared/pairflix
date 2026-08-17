@@ -101,16 +101,6 @@ describe('ProfilePage', () => {
       message: 'Preferences updated successfully',
       token: 'new-token',
     });
-
-    // Mock localStorage
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-      },
-      writable: true,
-    });
   });
 
   it('renders user profile information', () => {
@@ -149,12 +139,6 @@ describe('ProfilePage', () => {
         screen.getByText('Username updated successfully')
       ).toBeInTheDocument();
     });
-
-    // Verify the localStorage was updated with the new token
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      'token',
-      'new-token'
-    );
 
     // Verify the auth check was triggered
     expect(mockCheckAuth).toHaveBeenCalled();

@@ -2,9 +2,11 @@ import {
   Button,
   Card,
   CardContent,
-  Container,
   ErrorText,
   H2,
+  Input,
+  InputGroup,
+  Container,
   SuccessText,
 } from '@pairflix/components';
 import React, { useState } from 'react';
@@ -23,6 +25,7 @@ const EmailVerificationPage: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasVerified, setHasVerified] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
 
   React.useEffect(() => {
     if (token && !hasVerified) {
@@ -42,19 +45,13 @@ const EmailVerificationPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await emailService.verifyEmail({ token });
-      setSuccess(response.message);
+      await emailService.verifyEmail({ token });
+      setSuccess('Your email has been verified.');
       setHasVerified(true);
+      checkAuth();
 
-      // If we get a token back, store it and update auth
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
-
-      // Redirect to watchlist after successful verification
       setTimeout(() => {
-        navigate('/watchlist');
+        navigate('/tonight');
       }, 3000);
     } catch (err) {
       if (err instanceof Error) {
@@ -70,12 +67,17 @@ const EmailVerificationPage: React.FC = () => {
   };
 
   const handleResendVerification = async () => {
+    if (!resendEmail) {
+      setError('Enter your email address to resend the verification link');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      const response = await emailService.sendEmailVerification();
-      setSuccess(response.message);
+      await emailService.resendVerification({ email: resendEmail });
+      setSuccess('If that address is registered, a new link is on its way.');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -104,7 +106,7 @@ const EmailVerificationPage: React.FC = () => {
               <div className={styles.iconWrapper}>✅</div>
               <H2 gutterBottom>Email Verified!</H2>
               <SuccessText gutterBottom>{success}</SuccessText>
-              <p>Redirecting to your watchlist...</p>
+              <p>Redirecting to Tonight...</p>
             </>
           ) : error ? (
             <>
@@ -115,9 +117,19 @@ const EmailVerificationPage: React.FC = () => {
               {error.includes('expired') && (
                 <>
                   <p>
-                    Your verification link has expired. You can request a new
-                    one below.
+                    Your verification link has expired. Enter your email to
+                    request a new one.
                   </p>
+                  <InputGroup $isFullWidth>
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={resendEmail}
+                      onChange={e => setResendEmail(e.target.value)}
+                      isFullWidth
+                      disabled={isLoading}
+                    />
+                  </InputGroup>
                   <Button
                     variant="primary"
                     onClick={handleResendVerification}

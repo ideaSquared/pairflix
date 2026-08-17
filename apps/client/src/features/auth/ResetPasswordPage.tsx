@@ -11,12 +11,14 @@ import {
 } from '@pairflix/components';
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { emailService } from '../../services/api';
 import * as styles from './ResetPasswordPage.css';
 
 const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { checkAuth } = useAuth();
   const token = searchParams.get('token');
 
   const [password, setPassword] = useState('');
@@ -54,12 +56,12 @@ const ResetPasswordPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await emailService.resetPassword({ token, password });
-      setSuccess(response.message);
+      await emailService.resetPassword({ token, password });
+      setSuccess('Your password has been reset.');
+      checkAuth();
 
-      // Redirect to login after successful reset
       setTimeout(() => {
-        navigate('/login');
+        navigate('/tonight');
       }, 2000);
     } catch (err) {
       if (err instanceof Error) {
@@ -83,9 +85,7 @@ const ResetPasswordPage: React.FC = () => {
 
             {error && <ErrorText gutterBottom>{error}</ErrorText>}
             {success && (
-              <SuccessText gutterBottom>
-                {success} Redirecting to login...
-              </SuccessText>
+              <SuccessText gutterBottom>{success} Redirecting...</SuccessText>
             )}
 
             <p style={{ marginBottom: '1.5rem', color: '#666' }}>

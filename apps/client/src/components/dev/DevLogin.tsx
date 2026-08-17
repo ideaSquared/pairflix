@@ -117,14 +117,13 @@ const DevLogin: React.FC = () => {
 
     try {
       // All test users have the same password
-      const { token } = await auth.login({
+      await auth.login({
         email,
         password: 'password123',
       });
 
-      localStorage.setItem('token', token);
       checkAuth();
-      navigate('/watchlist');
+      navigate('/tonight');
     } catch (err) {
       if (err instanceof Error) {
         setError(`Failed to login as ${username}: ${err.message}`);
@@ -181,8 +180,8 @@ const DevLogin: React.FC = () => {
               </div>
 
               <div className={styles.devTip}>
-                💡 Different users have matches and different watchlists for
-                testing
+                💡 Users vary by account status (active/banned/suspended/admin)
+                for testing
               </div>
             </>
           )}

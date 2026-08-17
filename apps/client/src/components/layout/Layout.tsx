@@ -390,15 +390,14 @@ const Layout: React.FC<LayoutProps> = ({
   hideFooter = false,
 }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const currentPath = window.location.pathname;
 
   // Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout();
   };
 
   const toggleMobileMenu = () => {

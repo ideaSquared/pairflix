@@ -1,35 +1,19 @@
-import { activity } from './activity';
-import { admin } from './admin';
 import { auth } from './auth';
 import { billing } from './billing';
 import { emailService } from './email';
 import { history } from './history';
 import { households } from './households';
-import { matches } from './matches';
-import { search } from './search';
 import { user } from './user';
 import { fetchWithAuth } from './utils';
-import { watchlist } from './watchlist';
-
-// Re-export the Activity type from activity
-export type { Activity } from './activity';
-
-// Re-export types from admin
-export type { AppSettings } from './admin';
 
 // Re-export types from auth
-export type { LoginCredentials } from './auth';
+export type { AuthUser, LoginCredentials } from './auth';
 
 // Re-export types from history
 export type { HistoryEntry, HistoryResponse } from './history';
 
 // Re-export types from user
-export type {
-  EmailUpdate,
-  PasswordUpdate,
-  UpdateEmailResponse,
-  UpdateUsernameResponse,
-} from './user';
+export type { EmailUpdate, PasswordUpdate } from './user';
 
 // Re-export types from billing
 export type {
@@ -40,18 +24,13 @@ export type {
 
 // Export individual services
 export {
-  activity,
-  admin,
   auth,
   billing,
   emailService,
   fetchWithAuth,
   history,
   households,
-  matches,
-  search,
   user,
-  watchlist,
 };
 
 // Export types from utils
@@ -61,11 +40,6 @@ export * from './utils';
 const api = {
   auth,
   user,
-  search,
-  watchlist,
-  matches,
-  activity,
-  admin,
   billing,
   email: emailService,
   history,

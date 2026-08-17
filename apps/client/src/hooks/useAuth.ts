@@ -2,20 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '../services/api';
-
-interface AuthUser {
-  user_id: string;
-  email: string;
-  username: string;
-  role: string;
-  preferences?: {
-    theme: 'light' | 'dark';
-    viewStyle: 'list' | 'grid';
-    emailNotifications: boolean;
-    autoArchiveDays: number;
-    favoriteGenres: string[];
-  };
-}
+import type { AuthUser } from '../services/api/auth';
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -32,8 +19,7 @@ export function useAuth() {
     retry: (failureCount, error) => {
       if (
         error instanceof Error &&
-        (error.message === 'Authentication required' ||
-          error.message === 'Session expired. Please login again.')
+        error.message === 'Authentication required'
       ) {
         return false;
       }
@@ -42,7 +28,6 @@ export function useAuth() {
     staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 60000, // Keep data in cache for 1 minute
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    enabled: !!localStorage.getItem('token'), // Only run the query if there's a token
   });
 
   const logout = async () => {
@@ -67,7 +52,7 @@ export function useAuth() {
     }, 300);
   };
 
-  const isAuthenticated = Boolean(user && localStorage.getItem('token'));
+  const isAuthenticated = Boolean(user);
 
   return { user, isLoading, error, logout, checkAuth, isAuthenticated };
 }

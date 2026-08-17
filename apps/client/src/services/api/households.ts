@@ -15,7 +15,8 @@ export interface ProviderEntry {
   logo_path?: string;
 }
 
-export interface WatchProviders {
+export interface ProviderRegion {
+  link?: string;
   flatrate?: ProviderEntry[];
   free?: ProviderEntry[];
   ads?: ProviderEntry[];
@@ -24,14 +25,14 @@ export interface WatchProviders {
 }
 
 export interface RecommendationCard {
-  tmdb_id: number;
-  media_type: 'movie' | 'tv';
+  tmdbId: number;
+  mediaType: 'movie' | 'tv';
   title: string;
   year: number | null;
   runtime: number | null;
   overview: string;
-  poster_path: string | null;
-  providers: WatchProviders;
+  posterPath: string | null;
+  providers: ProviderRegion;
 }
 
 export interface RecommendationResult {
@@ -53,27 +54,27 @@ export interface HouseholdSummary {
   id: string;
   name: string | null;
   role: 'owner' | 'member';
-  joined_at: string;
-  member_count: number;
+  joinedAt: string;
+  memberCount: number;
 }
 
 export interface InviteSummary {
   id: string;
   token: string;
-  invited_email: string | null;
-  expires_at: string;
-  accepted_at: string | null;
+  invitedEmail: string | null;
+  expiresAt: string;
+  acceptedAt: string | null;
 }
 
 export const households = {
   list: async (): Promise<{ households: HouseholdSummary[] }> => {
-    return fetchWithAuth('/api/households/');
+    return fetchWithAuth('/api/households');
   },
 
   create: async (
     body: { name?: string } = {}
   ): Promise<{ household: HouseholdSummary }> => {
-    return fetchWithAuth('/api/households/', {
+    return fetchWithAuth('/api/households', {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -89,8 +90,8 @@ export const households = {
     });
   },
 
-  acceptInvite: async (token: string): Promise<{ household_id: string }> => {
-    return fetchWithAuth(`/api/household-invites/${token}/accept`, {
+  acceptInvite: async (token: string): Promise<{ householdId: string }> => {
+    return fetchWithAuth(`/api/households/invites/${token}/accept`, {
       method: 'POST',
     });
   },
@@ -108,8 +109,8 @@ export const households = {
   commit: async (
     householdId: string,
     tmdbId: number,
-    body: { media_type: 'movie' | 'tv'; mood?: Mood; minutes?: number }
-  ) => {
+    body: { mediaType: 'movie' | 'tv'; mood?: Mood; minutes?: number }
+  ): Promise<{ id: string }> => {
     return fetchWithAuth(
       `/api/households/${householdId}/picks/${tmdbId}/commit`,
       {
@@ -144,29 +145,24 @@ export const households = {
   },
 };
 
-export type PickEventKind =
-  'proposed' | 'accepted' | 'swapped' | 'dismissed' | 'provider_launched';
+export type PickEventKind = 'swapped' | 'dismissed';
 
 export interface PickEventBody {
-  tmdb_id: number;
-  media_type: 'movie' | 'tv';
+  tmdbId: number;
+  mediaType: 'movie' | 'tv';
   kind: PickEventKind;
   mood?: Mood;
-  minutes_budget?: number;
-  provider_slug?: string;
-  region?: string;
+  minutesBudget?: number;
 }
 
 export interface LaunchProviderBody {
-  provider_slug: string;
-  media_type: 'movie' | 'tv';
+  providerSlug: string;
+  mediaType: 'movie' | 'tv';
   region?: string;
-  mood?: Mood;
-  minutes_budget?: number;
 }
 
 export interface LaunchProviderResult {
   url: string;
-  provider_name: string;
+  providerName: string;
   region: string;
 }

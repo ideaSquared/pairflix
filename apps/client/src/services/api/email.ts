@@ -13,65 +13,64 @@ export interface VerifyEmailRequest {
   token: string;
 }
 
-export interface EmailResponse {
-  message: string;
-}
-
-export interface EmailVerificationResponse {
-  message: string;
-  token?: string;
-  user?: {
-    user_id: string;
-    email: string;
-    username: string;
-    role: string;
-    status: string;
-    email_verified: boolean;
-    preferences: Record<string, unknown>;
-  };
+export interface ResendVerificationRequest {
+  email: string;
 }
 
 export const emailService = {
   /**
-   * Request password reset email
+   * Request password reset email. Always reports success, regardless of
+   * whether the address is registered.
    */
   forgotPassword: async (
     data: ForgotPasswordRequest
-  ): Promise<EmailResponse> => {
-    return fetchWithAuth('/api/email/forgot-password', {
+  ): Promise<{ sent: boolean }> => {
+    const response = await fetchWithAuth('/api/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   },
 
   /**
-   * Reset password with token
+   * Reset password with token. Signs the caller into a new session on success.
    */
-  resetPassword: async (data: ResetPasswordRequest): Promise<EmailResponse> => {
-    return fetchWithAuth('/api/email/reset-password', {
+  resetPassword: async (
+    data: ResetPasswordRequest
+  ): Promise<{ id: string; email: string }> => {
+    const response = await fetchWithAuth('/api/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   },
 
   /**
-   * Send email verification
+   * Resend the verification email by address. Registering doesn't start a
+   * session, so a caller here has no session to resend a verification
+   * email with -- always reports success, regardless of whether the
+   * address is registered or already verified.
    */
-  sendEmailVerification: async (): Promise<EmailResponse> => {
-    return fetchWithAuth('/api/email/send-verification', {
+  resendVerification: async (
+    data: ResendVerificationRequest
+  ): Promise<{ sent: boolean }> => {
+    const response = await fetchWithAuth('/api/auth/resend-verification', {
       method: 'POST',
+      body: JSON.stringify(data),
     });
+    return response.data;
   },
 
   /**
-   * Verify email with token
+   * Verify email with token. Does not start a session.
    */
   verifyEmail: async (
     data: VerifyEmailRequest
-  ): Promise<EmailVerificationResponse> => {
-    return fetchWithAuth('/api/email/verify-email', {
+  ): Promise<{ verified: boolean }> => {
+    const response = await fetchWithAuth('/api/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   },
 };

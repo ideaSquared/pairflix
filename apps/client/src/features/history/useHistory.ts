@@ -6,7 +6,10 @@ export function useHistory(householdId: string | undefined, limit = 50) {
     queryKey: ['history', householdId, limit],
     queryFn: () => {
       if (!householdId) {
-        return Promise.resolve({ history: [] });
+        return Promise.resolve({
+          data: [],
+          pagination: { page: 1, limit, total: 0, totalPages: 0 },
+        });
       }
       return history.list(householdId, limit);
     },

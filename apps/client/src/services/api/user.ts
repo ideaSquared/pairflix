@@ -1,5 +1,4 @@
-// filepath: c:\Users\thete\Desktop\localdev\pairflix\frontend\src\services\api\user.ts
-import { fetchWithAuth } from './utils';
+import { fetchWithAuth, type UserPreferences } from './utils';
 
 export interface PasswordUpdate {
   currentPassword: string;
@@ -11,64 +10,39 @@ export interface EmailUpdate {
   password: string;
 }
 
-export interface UpdateEmailResponse {
-  message: string;
-  user: {
-    user_id: string;
-    email: string;
-    username: string;
-  };
-  token: string;
-}
-
-export interface UpdateUsernameResponse {
-  message: string;
-  user: {
-    user_id: string;
-    email: string;
-    username: string;
-  };
-  token: string;
-}
-
 export const user = {
-  updatePassword: async (data: PasswordUpdate) => {
-    return fetchWithAuth('/api/user/password', {
-      method: 'PUT',
+  updatePassword: async (data: PasswordUpdate): Promise<void> => {
+    await fetchWithAuth('/api/me/password', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  updateEmail: async (data: EmailUpdate): Promise<UpdateEmailResponse> => {
-    return fetchWithAuth('/api/user/email', {
-      method: 'PUT',
+  updateEmail: async (data: EmailUpdate): Promise<{ pending: boolean }> => {
+    const response = await fetchWithAuth('/api/me/email', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   },
 
   updateUsername: async (data: {
     username: string;
-  }): Promise<UpdateUsernameResponse> => {
-    return fetchWithAuth('/api/user/username', {
-      method: 'PUT',
+  }): Promise<{ id: string; username: string }> => {
+    const response = await fetchWithAuth('/api/me/username', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
+    return response.data;
   },
 
-  findByEmail: async (email: string) => {
-    return fetchWithAuth(`/api/user/search?email=${encodeURIComponent(email)}`);
-  },
-
-  updatePreferences: async (preferences: {
-    theme?: 'light' | 'dark';
-    viewStyle?: 'list' | 'grid';
-    emailNotifications?: boolean;
-    autoArchiveDays?: number;
-    favoriteGenres?: string[];
-  }) => {
-    return fetchWithAuth('/api/user/preferences', {
-      method: 'PUT',
+  updatePreferences: async (
+    preferences: Partial<UserPreferences>
+  ): Promise<{ preferences: UserPreferences }> => {
+    const response = await fetchWithAuth('/api/me/preferences', {
+      method: 'PATCH',
       body: JSON.stringify({ preferences }),
     });
+    return response.data;
   },
 };

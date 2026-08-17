@@ -31,33 +31,13 @@ jest.mock('../../../hooks/useAuth', () => ({
 }));
 
 describe('LoginPage', () => {
-  // Setup localStorage mock
-  const localStorageMock = (() => {
-    let store: Record<string, string> = {};
-    return {
-      getItem: jest.fn((key: string) => store[key] || null),
-      setItem: jest.fn((key: string, value: string) => {
-        store[key] = value;
-      }),
-      removeItem: jest.fn((key: string) => {
-        delete store[key];
-      }),
-      clear: jest.fn(() => {
-        store = {};
-      }),
-    };
-  })();
-
-  // Replace the global localStorage with our mock before each test
-  Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
-    writable: true,
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (auth.login as jest.Mock).mockResolvedValue({ token: 'fake-token' });
-    localStorageMock.clear();
+    (auth.login as jest.Mock).mockResolvedValue({
+      id: 'user-1',
+      username: 'testuser',
+      email: 'test@example.com',
+    });
   });
 
   it('renders login form correctly', () => {
@@ -93,13 +73,9 @@ describe('LoginPage', () => {
       });
     });
 
-    // Verify token was saved and navigation occurred
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      'token',
-      'fake-token'
-    );
+    // Verify auth was refreshed and navigation occurred
     expect(mockCheckAuth).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith('/watchlist');
+    expect(mockNavigate).toHaveBeenCalledWith('/tonight');
   });
 
   it('handles login error correctly', async () => {

@@ -4,17 +4,20 @@ export type SubscriptionTier = 'free' | 'premium';
 
 export interface Entitlements {
   tier: SubscriptionTier;
-  daily_pick_limit: number;
-  picks_used_today: number;
-  picks_remaining: number;
-  can_use_llm_rerank: boolean;
-  can_use_multi_region: boolean;
-  region_lock: string | null;
+  dailyPickLimit: number;
+  picksUsedToday: number;
+  picksRemaining: number;
+  canUseLlmRerank: boolean;
+  canUseMultiRegion: boolean;
+  regionLock: string | null;
 }
 
 export interface CheckoutSession {
-  checkout_url: string;
+  checkoutUrl: string;
 }
+
+const billingPath = (householdId: string, action: string) =>
+  `/api/households/${encodeURIComponent(householdId)}/billing/${action}`;
 
 export const billing = {
   getEntitlements: (householdId: string): Promise<Entitlements> =>
@@ -25,18 +28,17 @@ export const billing = {
     householdId: string,
     tier: SubscriptionTier = 'premium'
   ): Promise<CheckoutSession> =>
-    fetchWithAuth('/api/billing/checkout', {
+    fetchWithAuth(billingPath(householdId, 'checkout'), {
       method: 'POST',
-      body: JSON.stringify({ household_id: householdId, tier }),
+      body: JSON.stringify({ tier }),
     }),
-  cancel: (householdId: string): Promise<void> =>
-    fetchWithAuth('/api/billing/cancel', {
+  cancel: async (householdId: string): Promise<void> => {
+    await fetchWithAuth(billingPath(householdId, 'cancel'), {
       method: 'POST',
-      body: JSON.stringify({ household_id: householdId }),
-    }),
+    });
+  },
   mockActivate: (householdId: string): Promise<{ ok: true }> =>
-    fetchWithAuth('/api/billing/mock-activate', {
+    fetchWithAuth(billingPath(householdId, 'mock-activate'), {
       method: 'POST',
-      body: JSON.stringify({ household_id: householdId }),
     }),
 };

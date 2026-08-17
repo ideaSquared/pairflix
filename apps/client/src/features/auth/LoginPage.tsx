@@ -24,10 +24,9 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { token } = await auth.login({ email, password });
-      localStorage.setItem('token', token);
+      await auth.login({ email, password });
       checkAuth();
-      navigate('/watchlist');
+      navigate('/tonight');
     } catch (err) {
       // Extract the specific error message from the response if available
       if (err instanceof Error) {

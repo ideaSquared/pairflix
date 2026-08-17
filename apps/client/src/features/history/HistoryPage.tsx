@@ -86,7 +86,7 @@ const HistoryPage: React.FC = () => {
     );
   }
 
-  const entries = data?.history ?? [];
+  const entries = data?.data ?? [];
 
   return (
     <PageContainer maxWidth="lg" padding="lg" centered>
@@ -108,9 +108,9 @@ const HistoryPage: React.FC = () => {
             <Card key={entry.id} variant="primary">
               <CardContent>
                 <li className={styles.historyRow}>
-                  {entry.poster_path ? (
+                  {entry.posterPath ? (
                     <Poster
-                      src={`${POSTER_BASE}${entry.poster_path}`}
+                      src={`${POSTER_BASE}${entry.posterPath}`}
                       alt={entry.title ?? 'Poster'}
                       loading="lazy"
                     />
@@ -123,7 +123,7 @@ const HistoryPage: React.FC = () => {
                       {formatYear(entry)}
                     </Typography>
                     <Typography variant="body2">
-                      Watched {formatWatchedAt(entry.watched_at)}
+                      Watched {formatWatchedAt(entry.watchedAt)}
                     </Typography>
                     <ProviderBadges providers={[]} />
                   </div>

@@ -97,8 +97,8 @@ const RegisterPage: React.FC = () => {
 
     try {
       const response = await auth.register({ email, password, username });
-      setSuccess(response.message);
-      setRegisteredEmail(response.email || email);
+      setSuccess('Registration successful!');
+      setRegisteredEmail(response.email);
     } catch (err) {
       // Extract the specific error message from the response if available
       if (err instanceof Error) {

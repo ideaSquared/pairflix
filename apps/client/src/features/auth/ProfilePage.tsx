@@ -15,28 +15,9 @@ import React, { useEffect, useState } from 'react';
 import DocumentTitle from '../../components/common/DocumentTitle';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAuth } from '../../hooks/useAuth';
-import { user as userService } from '../../services/api';
+import { user as userService, type UserPreferences } from '../../services/api';
 import { validatePassword } from '../../utils/passwordPolicy';
 import * as styles from './ProfilePage.css';
-
-// Define response types for API calls
-type ApiResponse = {
-  token: string;
-  message?: string;
-  user?: {
-    preferences?: UserPreferences;
-    [key: string]: unknown;
-  };
-};
-
-type UserPreferences = {
-  theme: 'light' | 'dark';
-  emailNotifications: boolean;
-  autoArchiveDays: number;
-  favoriteGenres: string[];
-  viewStyle?: 'grid' | 'list';
-  [key: string]: unknown;
-};
 
 const FormCard = ({ children }: { children: React.ReactNode }) => (
   <Card variant="secondary" className={styles.formCard}>
@@ -111,29 +92,21 @@ const ProfilePage: React.FC = () => {
   }, [user, logout]);
 
   const handleAuthError = (error: Error) => {
-    if (
-      error.message === 'Authentication required' ||
-      error.message === 'Session expired. Please login again.' ||
-      error.message === 'Invalid or expired token'
-    ) {
+    if (error.message === 'Authentication required') {
       logout();
       return;
     }
   };
 
   const passwordMutation = useMutation<
-    ApiResponse,
+    void,
     Error,
     { currentPassword: string; newPassword: string }
   >({
     mutationFn: data => userService.updatePassword(data),
-    onSuccess: response => {
+    onSuccess: () => {
       setPasswordSuccess('Password updated successfully');
       setPasswordError('');
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
     },
     onError: (error: Error) => {
       setPasswordError(error.message);
@@ -143,18 +116,16 @@ const ProfilePage: React.FC = () => {
   });
 
   const emailMutation = useMutation<
-    ApiResponse,
+    { pending: boolean },
     Error,
     { email: string; password: string }
   >({
     mutationFn: data => userService.updateEmail(data),
-    onSuccess: response => {
-      setEmailSuccess('Email updated successfully');
+    onSuccess: () => {
+      setEmailSuccess(
+        'Check your new email address for a link to confirm the change'
+      );
       setEmailError('');
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
     },
     onError: (error: Error) => {
       setEmailError(error.message);
@@ -164,18 +135,15 @@ const ProfilePage: React.FC = () => {
   });
 
   const usernameMutation = useMutation<
-    ApiResponse,
+    { id: string; username: string },
     Error,
     { username: string }
   >({
     mutationFn: data => userService.updateUsername(data),
-    onSuccess: response => {
+    onSuccess: () => {
       setUsernameSuccess('Username updated successfully');
       setUsernameError('');
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
+      checkAuth();
     },
     onError: (error: Error) => {
       setUsernameError(error.message);
@@ -185,18 +153,15 @@ const ProfilePage: React.FC = () => {
   });
 
   const preferenceMutation = useMutation<
-    ApiResponse,
+    { preferences: UserPreferences },
     Error,
     Partial<UserPreferences>
   >({
     mutationFn: data => userService.updatePreferences(data),
-    onSuccess: response => {
+    onSuccess: () => {
       setPreferenceSuccess('Preferences updated successfully');
       setPreferenceError('');
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
+      checkAuth();
     },
     onError: (error: Error) => {
       setPreferenceError(error.message);
@@ -284,16 +249,10 @@ const ProfilePage: React.FC = () => {
     setPreferenceSuccess('');
 
     try {
-      const response = await preferenceMutation.mutateAsync({
+      await preferenceMutation.mutateAsync({
         [key]: value,
       });
-
-      // Update the stored token and auth state
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        checkAuth();
-      }
-
+      checkAuth();
       setPreferenceSuccess('Preferences updated successfully');
     } catch (error) {
       if (error instanceof Error) {
