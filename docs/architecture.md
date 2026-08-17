@@ -46,9 +46,9 @@ many households** — not per-tenant infrastructure, and not a fleet of services
 2. **Membership check** — caller must be a `household_members` row for `:id`.
 3. **Entitlement + quota middleware** — region lock (free = GB) and the daily pick limit (free = 3);
    premium is unlimited and multi-region.
-4. **Recommendation service** (`services/api/src/lib/recommendation`): merge the members' taste
-   profiles (D1) → TMDb `/discover` (edge-cached) → score against mood/time/taste → hydrate the top
-   candidates and filter to titles actually streamable on the household's providers (cached).
+4. **Recommendation service** (`services/api/src/hono/lib/recommendation.ts`): merge the members'
+   taste profiles (D1) → TMDb `/discover` (edge-cached) → score against mood/time/taste → hydrate
+   the top candidates and filter to titles actually streamable on the household's providers (cached).
 5. **LLM re-rank** — premium only, behind `recommendation.llm_rerank`: the Worker calls Anthropic
    over `fetch` to re-order the shortlist; returns `null` to fall back to the pure-ML order. Never on
    the free path.
@@ -91,10 +91,15 @@ until P3's remaining domains land and P5 cuts over:
 ## Recommendation & LLM re-rank
 
 The recommender is **heuristic**, not a heavyweight ML pipeline: taste-profile merge → TMDb
-`/discover` → score → provider filter. The optional Anthropic re-rank (`claude-sonnet-4-6`,
-`max_tokens: 512`, 8s timeout, prompt-cached system + taste blocks, tool-use for structured output)
-is premium-gated and **must be wired into the recommender** — in the current code it is built but
-never called (tracked in the roadmap).
+`/discover` → score → provider filter. Implemented as the P3 households/pick domain
+(`services/api/src/hono/lib/recommendation.ts`, `lib/llm.ts`) — same Express-vs-Hono caveat as Auth
+& CSRF above. The optional Anthropic re-rank (`claude-sonnet-4-6`, `max_tokens: 512`, 8s timeout,
+prompt-cached system + taste blocks, tool-use for structured output) is premium-gated
+(`recommendation.llm_rerank` plus a per-household entitlement check) and **is wired into the
+recommender** in the Hono port: eligible households hydrate the top 10 scored candidates instead of
+3 and pass them to `maybeRerank`, which validates the model's chosen id against what was actually
+sent and falls back to the pure-ML top-1 pick on any failure (flag off, not premium, API error,
+timeout). The Express `llm.service` remains unwired dead code, retired at cutover.
 
 ## Providers & regions
 

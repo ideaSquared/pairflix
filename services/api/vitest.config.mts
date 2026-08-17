@@ -37,6 +37,11 @@ export default defineConfig(async () => {
             // src/hono/lib/crypto.ts). Without this, 2FA enroll/verify 501 (see
             // src/hono/routes/me.ts's fail-fast guard).
             SESSION_SECRET: 'test-session-secret',
+            // households.e2e.test.ts stubs globalThis.fetch, so these never reach a real API --
+            // ANTHROPIC_API_KEY only needs to be non-empty so lib/llm.ts's fail-fast guard doesn't
+            // short-circuit before the stub is called.
+            TMDB_API_KEY: 'test-tmdb-key',
+            ANTHROPIC_API_KEY: 'test-anthropic-key',
           },
         },
       }),

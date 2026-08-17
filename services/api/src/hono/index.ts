@@ -5,6 +5,7 @@ import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { authRoutes } from './routes/auth';
 import { healthRoutes } from './routes/health';
+import { householdsRoutes } from './routes/households';
 import { meRoutes } from './routes/me';
 import type { AppEnv, Bindings } from './types';
 
@@ -37,6 +38,7 @@ app.use('/api/*', csrfMiddleware);
 app.route('/health', healthRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/me', meRoutes);
+app.route('/api/households', householdsRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((error, c) => {

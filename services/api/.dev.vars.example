@@ -27,3 +27,12 @@ EMAIL_FROM=""
 
 # Base URL of apps/client -- verification/reset email links point here.
 APP_CLIENT_URL="http://localhost:5173"
+
+# TMDb -- titles, discover, and watch-provider lookups (src/hono/lib/tmdb.ts). Required for
+# POST /api/households/:id/pick to return anything. Get a key at https://www.themoviedb.org/settings/api.
+TMDB_API_KEY=""
+
+# Anthropic (premium LLM re-rank, src/hono/lib/llm.ts) -- leave blank to keep maybeRerank returning
+# null (falls back to the pure-ML pick, same "unconfigured is a valid state" pattern as email).
+# Also gated behind the recommendation.llm_rerank setting and premium entitlements either way.
+ANTHROPIC_API_KEY=""
