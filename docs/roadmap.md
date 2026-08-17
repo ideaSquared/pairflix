@@ -140,7 +140,53 @@ generic `POST /:id/pick-events` endpoint's `kind` is narrowed to `swapped`/`dism
 TMDb-failure degrade, history list/pagination/thumbs, provider-launch including its recorded
 `pick_events` row, the generic pick-events endpoint's kind restriction, and stats aggregation).
 
-**Pending:** billing/admin domain; then collapse the two server entries into one and cut over.
+**billing/admin — done.** The last P3 domain. `services/api/src/hono/lib/{adminUsers,adminContent,
+adminAuditLogs,adminSettings,adminDashboard,billing}.ts`, `routes/admin.ts` (new, mounted at
+`/api/admin` behind `requireAdmin`), `routes/households.ts` extended with `/:id/entitlements` and
+`/:id/billing/{checkout,cancel,mock-activate}` (household-scoped and owner-gated, replacing
+Express's flat `/api/billing/*` + body `household_id` shape). No new migration -- every table this
+domain touches (`content`, `content_reports`, `audit_logs`, `settings`, `subscriptions`, `sessions`)
+already had the columns it needed, several with doc comments in `packages/db/src/schema.ts` already
+anticipating this port.
+
+Most of Express's admin surface ports faithfully: user management, audit logs, content moderation.
+Two things don't:
+
+- The separate admin JWT login/validate-token/refresh/logout endpoints are dropped entirely --
+  confirmed structurally identical to regular auth (same `JWT_SECRET`, same `authenticateToken`),
+  fully subsumed by the session-cookie + `requireAdmin` (role + TOTP) gate every other admin route
+  already uses.
+- 8 of Express's 12 stats/activity endpoints are dropped -- backed by the `activity_log` table the
+  re-platform drops, or Postgres/Node-process introspection (`pg_stat_activity`, `os.*`,
+  `process.memoryUsage()`) with no D1/Workers-isolate equivalent at all; several of those numbers
+  are already hardcoded random fallbacks in Express, not real telemetry. Replaced with one new
+  `GET /api/admin/dashboard-stats` built from tables that still exist post-pivot (users, households,
+  subscriptions, audit-log errors) rather than porting dead or unportable code.
+
+Also fixes several bugs found while porting: the two competing Express status-change endpoints
+(`status`/`status-enhanced`, with materially different side effects) are consolidated into one that
+always does the fuller behavior; `listUsers`/`listContent`'s `sortBy` is whitelisted instead of
+splicing the query string into the ORM's order clause; `getLockedAccounts` uses the real login
+lockout threshold (`FAILED_ATTEMPT_LIMIT`, now shared from `lib/session.ts`) instead of Express's
+drifted hardcoded `3`; `forcePasswordReset` only moves a user to `pending` from `active`/`inactive`,
+not unconditionally (Express's version would silently un-suspend/un-ban an account); dismissing a
+content report only decrements `reportedCount` once, not on every repeat dismissal; and an
+admin-supplied status-change `reason` is HTML-escaped before it reaches an email body (a real
+Copilot review finding on this PR). Terminating a user's session is also now genuinely enforced --
+a Hono `sessions` row is the live credential `sessionMiddleware` checks on every request, unlike
+Express's `user_sessions` rows, which were never consulted by its own auth middleware.
+
+**Known gap, not fixed here:** the automatic daily audit-log retention sweep (Express: a
+`node-cron` job) isn't ported -- a stateless Worker has no equivalent always-running process for it.
+`POST /api/admin/audit-logs/rotation` covers the manual/on-demand half; the automatic half needs a
+Cloudflare Cron Trigger, same "not implemented yet" status as the provider-cache refresh cron noted
+below.
+
+22 new `vitest-pool-workers` tests (`admin.e2e.test.ts`, new, plus `households.e2e.test.ts`
+extended) covering the auth gate, each of the behavior fixes above, and the billing/entitlements
+roundtrip (mock-activate flips a household to premium, cancel reverts it).
+
+**Pending:** collapse the two server entries into one and cut over (P5).
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 

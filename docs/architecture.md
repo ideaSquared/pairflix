@@ -125,9 +125,32 @@ current_period_end > now`.
 
 ## Billing
 
-Deferred. When enabled, port creatorgrid's test-mode Stripe pattern (`lib/stripe.ts` +
-`routes/billing.ts`, "unconfigured is a valid state" — endpoints 501 until a key is set, webhook is
-HMAC-verified). Until then the mock checkout stays for demos only.
+Real Stripe is still deferred (CLAUDE.md). What's implemented as the P3 billing/admin domain
+(`services/api/src/hono/lib/billing.ts`) is Pairflix's existing mock pattern, household-scoped
+under `/households/:id/billing/*` (owner-only): `checkout` returns a fake URL with no DB write,
+`mock-activate` unconditionally flips the household to premium for 30 days behind a
+`BILLING_MOCK_ENABLED` var ("unconfigured is a valid state" — enabled outside `production`,
+matching the pattern CLAUDE.md's Stripe section describes; 404s when disabled, so it isn't
+discoverable outside dev/demo use), and `cancel` sets `status: 'canceled'` without touching
+`current_period_end`. There's no webhook yet — the current one is a no-op stub with no signature
+verification and no DB effect, so it isn't ported; it lands for real, HMAC-verified, alongside
+actual Stripe.
+
+## Admin
+
+Implemented as the P3 billing/admin domain (`services/api/src/hono/routes/admin.ts`), mounted at
+`/api/admin` behind `requireAdmin` (role + TOTP, same session as everyone else — no separate admin
+login). Covers user management (CRUD, a single consolidated status-change endpoint that revokes
+sessions and emails the user on suspend/ban, forced password reset, locked-accounts using the same
+threshold `/auth/login` enforces, session termination that's genuinely immediate since a Hono
+session row is the live credential), audit logs, settings
+(`services/api/src/hono/lib/adminSettings.ts` -- generic key/value CRUD over `settings`, matching
+`lib/featureFlags.ts`'s existing no-cache read pattern), and content moderation over
+`content`/`content_reports`. Express's larger
+stats/activity surface mostly isn't ported -- it read the `activity_log`/`matches`/
+`watchlist_entries` tables the re-platform drops, or Postgres/Node-process introspection with no
+Workers equivalent -- replaced with one `GET /api/admin/dashboard-stats` built from tables that
+still exist.
 
 ## Background work (cron)
 
