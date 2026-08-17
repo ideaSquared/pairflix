@@ -367,7 +367,18 @@ authRoutes.post('/verify-email', async c => {
 	}
 
 	// A 'change_email' token swaps in its `newEmail` (already proven reachable by this click) --
-	// a 'verify_email' token just confirms the address the account already has.
+	// a 'verify_email' token just confirms the address the account already has. `/api/me/email`
+	// already checked `newEmail` was free when this token was issued, but that was possibly days
+	// ago -- re-check immediately before the write so a since-claimed address 409s cleanly instead
+	// of throwing on the `users.email` unique constraint.
+	if (row.purpose === 'change_email' && row.newEmail) {
+		const claimed = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.email, row.newEmail))
+			.get();
+		if (claimed) return c.json({ error: 'email_taken' }, 409);
+	}
 	const updates =
 		row.purpose === 'change_email' && row.newEmail
 			? { email: row.newEmail, emailVerified: true }

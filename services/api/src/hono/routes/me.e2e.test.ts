@@ -131,6 +131,27 @@ describe('profile updates', () => {
 		expect(meAfterConfirm.body.data.email).toBe(newEmail);
 	});
 
+	it('rejects confirming an email change if the address was claimed in the meantime', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const contestedEmail = uniqueEmail();
+
+		const requested = await postJson(
+			'/api/me/email',
+			{ email: contestedEmail, password: PASSWORD },
+			cookies
+		);
+		expect(requested.status).toBe(200);
+
+		const token = await getLatestAuthToken(userId, 'change_email');
+
+		// Someone else registers (and claims) the contested address before the first user confirms.
+		await createLoggedInUser(contestedEmail);
+
+		const confirmed = await postJson('/api/auth/verify-email', { token }, {});
+		expect(confirmed.status).toBe(409);
+		expect(JSON.stringify(confirmed.body)).toContain('email_taken');
+	});
+
 	it('password change requires the current password and revokes other sessions', async () => {
 		const email = uniqueEmail();
 		const { cookies: sessionA } = await createLoggedInUser(email);

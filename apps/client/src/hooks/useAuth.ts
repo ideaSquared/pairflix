@@ -13,7 +13,7 @@ export function useAuth() {
     data: user,
     isLoading,
     error,
-  } = useQuery<AuthUser>({
+  } = useQuery<AuthUser | null>({
     queryKey: ['auth'],
     queryFn: authApi.auth.getCurrentUser,
     retry: (failureCount, error) => {
