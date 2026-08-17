@@ -3,10 +3,11 @@ import type { Bindings } from '../types';
 /**
  * TMDb client -- fetch-based (Workers-native, no SDK). Ported from the current Express
  * `tmdb.service.ts`; deliberately dropped its in-memory `Map`-based watch-providers cache since a
- * per-isolate cache doesn't reliably persist across requests on Workers anyway. No replacement
- * cache yet -- edge-caching `/discover` and `/watch/providers` (CLAUDE.md) is deferred to the
- * providers/history domain, which needs to decide a Workers-appropriate mechanism (e.g. the Cache
- * API or a `content` table read-through) rather than inventing one here for a single call site.
+ * per-isolate cache doesn't reliably persist across requests on Workers anyway. Everything in this
+ * file is an uncached, direct-to-TMDb primitive; `lib/providers.ts`'s `content`-table read-through
+ * cache is the Workers-appropriate replacement, built on top of `getAllWatchProviders` below --
+ * `discoverMedia`/`getMovieFullDetails`/`getTVFullDetails` (used by the recommender's candidate
+ * scan, which needs fresh results every call) are left uncached.
  */
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const SAFE_ENDPOINT = /^\/[a-z][a-z_]*(?:\/[a-z0-9_]+)*$/;
@@ -149,15 +150,24 @@ type WatchProvidersResponse = {
 	results?: Record<string, RegionProviders>;
 };
 
+export const getAllWatchProviders = async (
+	env: Bindings,
+	tmdbId: number,
+	mediaType: 'movie' | 'tv'
+): Promise<Record<string, RegionProviders>> => {
+	const data = await tmdbFetch<WatchProvidersResponse>(
+		env,
+		`/${mediaType}/${tmdbId}/watch/providers`
+	);
+	return data.results ?? {};
+};
+
 export const getWatchProviders = async (
 	env: Bindings,
 	tmdbId: number,
 	mediaType: 'movie' | 'tv',
 	region: string
 ): Promise<RegionProviders> => {
-	const data = await tmdbFetch<WatchProvidersResponse>(
-		env,
-		`/${mediaType}/${tmdbId}/watch/providers`
-	);
-	return data.results?.[region] ?? {};
+	const all = await getAllWatchProviders(env, tmdbId, mediaType);
+	return all[region] ?? {};
 };

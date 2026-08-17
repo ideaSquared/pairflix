@@ -105,9 +105,16 @@ timeout). The Express `llm.service` remains unwired dead code, retired at cutove
 
 ## Providers & regions
 
-TMDb `/watch/providers` responses are cached into `content.providers` (region-keyed) with a staleness
-check, refreshed by cron. Region is UK-first; detected at the edge from the request, overridable by
-premium multi-region. Provider badges deep-link into Netflix / Prime / Disney+ with affiliate params.
+TMDb `/watch/providers` responses are read-through cached into `content.providers` (region-keyed,
+one row per `(tmdbId, mediaType)`) with a 24h blob-level staleness check -- implemented as the P3
+providers/history domain (`services/api/src/hono/lib/providers.ts`). Caching is lazy/on-demand only;
+there's no cron-driven proactive refresh yet (see Background work, below). Region defaults to GB,
+overridable by premium multi-region wherever a household context exists (`/:id/pick`, `/:id/history`,
+`/:id/picks/:tmdbId/launch`) -- the standalone `GET /api/providers/:tmdbId` has no household to
+resolve entitlements from and is a known, deliberately deferred gap (`docs/roadmap.md`).
+Provider-launch (`lib/providerLaunch.ts`) resolves a provider slug + region to a deep link through
+the same cache; the link is TMDb's own "watch this title" page, not a per-provider affiliate URL --
+there's no affiliate-tagging scheme anywhere in this codebase today.
 
 ## Entitlements & quota
 
@@ -124,9 +131,11 @@ HMAC-verified). Until then the mock checkout stays for demos only.
 
 ## Background work (cron)
 
-A Workers **cron trigger** runs provider-cache refresh and taste-profile recompute. Processing is
-inline to start (no Cloudflare Queues, which need the Workers Paid plan); move to a queue only when
-volume justifies the plan, exactly as creatorgrid defers it.
+Target: a Workers **cron trigger** running provider-cache refresh and taste-profile recompute, so a
+cache miss never blocks a request. Not implemented yet -- today provider caching is entirely
+lazy/on-demand (see Providers & regions, above), matching what the Express version it replaces did.
+Processing would be inline to start (no Cloudflare Queues, which need the Workers Paid plan); move
+to a queue only when volume justifies the plan, exactly as creatorgrid defers it.
 
 ## Deploying
 

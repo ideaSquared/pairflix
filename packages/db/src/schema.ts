@@ -4,6 +4,7 @@ import {
   primaryKey,
   sqliteTable,
   text,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
 // Timestamps are `integer(..., { mode: 'timestamp_ms' })` (epoch millis, app-generated via
@@ -239,7 +240,16 @@ export const content = sqliteTable(
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  table => [index('idx_content_tmdb').on(table.tmdbId)]
+  table => [
+    index('idx_content_tmdb').on(table.tmdbId),
+    // The provider-cache read-through path always supplies a concrete mediaType, so this is
+    // effectively "one content row per (tmdbId, mediaType)" for that path -- without it, two
+    // concurrent cache-miss requests for the same title could each create a row.
+    uniqueIndex('idx_content_tmdb_media_type').on(
+      table.tmdbId,
+      table.mediaType
+    ),
+  ]
 );
 
 export type ProviderEntry = {
@@ -250,8 +260,13 @@ export type ProviderEntry = {
 
 export type ProviderRegion = {
   flatrate?: ProviderEntry[];
+  free?: ProviderEntry[];
+  ads?: ProviderEntry[];
   rent?: ProviderEntry[];
   buy?: ProviderEntry[];
+  /** TMDb's own "watch this title" page for this title+region -- used to build provider-launch
+   * deep links without a separate per-provider URL scheme (TMDb doesn't expose one). */
+  link?: string;
 };
 
 export type ContentProviders = {

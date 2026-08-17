@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_content_tmdb_media_type` ON `content` (`tmdb_id`,`media_type`);

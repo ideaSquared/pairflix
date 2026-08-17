@@ -238,7 +238,13 @@ export const content = sqliteTable(
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  t => ({ byTmdbId: index('idx_content_tmdb').on(t.tmdbId) })
+  table => [
+    index('idx_content_tmdb').on(table.tmdbId),
+    uniqueIndex('idx_content_tmdb_media_type').on(
+      table.tmdbId,
+      table.mediaType
+    ),
+  ]
 );
 
 export const contentReports = sqliteTable('content_reports', {
@@ -261,7 +267,17 @@ export const contentReports = sqliteTable('content_reports', {
 ```
 
 `ContentProviders` is region-keyed, e.g. `{ GB: { flatrate: [{ provider_id, provider_name, logo_path
-}], rent: [], buy: [] }, last_updated_at: <iso> }`.
+}], free: [], ads: [], rent: [], buy: [], link: <url> }, last_updated_at: <iso> }` -- `free`/`ads`/
+`link` (P3 providers/history) were added so `lib/providerLaunch.ts` can read a title's deep-link
+straight from this cache instead of a third, disconnected TMDb fetch path.
+
+`idx_content_tmdb_media_type` is a **unique** index (P3 providers/history,
+`0002_content_provider_unique_index.sql`) -- the provider-cache read-through path always supplies a
+concrete `mediaType`, so `(tmdbId, mediaType)` is a real upsert target (`onConflictDoUpdate`)
+instead of a plain find-then-create, closing a duplicate-row race under concurrent cache misses for
+the same title. It also gives `lib/history.ts`'s join something correct to match on -- joining on
+`tmdbId` alone (a movie and a TV show can share a numeric TMDb id) risked attaching the wrong
+title/poster to a watched-together row.
 
 ## Freemium
 
@@ -405,6 +421,9 @@ rather than translated 1:1 from the four Sequelize migrations (`phase-a-househol
 `subscriptions-and-pick-usage`, `household-invites`, `pick-events`) — those defined the Postgres shape
 these tables ported from, but D1's own migration history starts clean. `0001_totp_and_rate_limits.sql`
 (P3 auth domain) adds the TOTP columns on `users` and the `rateLimitHits` table above.
+`0002_content_provider_unique_index.sql` (P3 providers/history domain) adds the unique
+`(tmdbId, mediaType)` index on `content` described above -- `ProviderRegion`'s widened shape is a
+JSON-column type change only, no migration needed for it.
 
 `services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
 is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until

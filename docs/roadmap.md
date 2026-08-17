@@ -24,7 +24,9 @@
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
   this to one app and fixes it.
-- **`ProviderBadges` is fed an empty array** on the history page — placeholder wiring.
+- **`ProviderBadges` is fed an empty array** on the history page — the P3 providers/history Hono
+  port fixes the backend cause (the history endpoint now includes provider data), but the frontend
+  still hardcodes `providers={[]}` until it's wired up in P4.
 - **Recommender is movie-only** and runtime-blind (neutral runtime score) despite `movie | tv`
   plumbing.
 - **Billing is mock-only** (no Stripe).
@@ -95,8 +97,50 @@ signal, what decay) left for a follow-up rather than decided inline here.
 commit, and the LLM wiring (including the Anthropic-failure fallback) — the pick path returns a
 title end-to-end on Miniflare, meeting this phase's exit criterion for this domain.
 
-**Pending:** providers/history, billing/admin domains; then collapse the two server entries into
-one and cut over.
+**providers/history — done.** `services/api/src/hono/lib/{providers,providerLaunch,history,
+pickEventStats}.ts`, `routes/providers.ts` (new, standalone `GET /api/providers/:tmdbId`),
+`routes/households.ts` extended with `/:id/history` (GET + PATCH), `/:id/picks/:tmdbId/launch`,
+`/:id/pick-events`, `/:id/pick-events/stats`. The headline change: Express had three disconnected
+paths independently fetching TMDb watch-provider data (a `content`-table cache only the standalone
+endpoint used, an in-process cache only the recommender used and already dropped in the households/
+pick port, and provider-launch's own uncached raw fetch) — now there's one D1-backed read-through
+cache (`lib/providers.ts`) all of them share, widened to carry `free`/`ads`/`link` (Express's
+stored shape dropped all three, which is why provider-launch never read from it).
+
+Fixes two more bugs found while porting: a duplicate-row race in the provider cache under
+concurrent misses for the same title (new unique `(tmdbId, mediaType)` index, migration `0002`),
+and a `tmdbId`-only history join that could attach the wrong title/poster to a watched-together row
+when a movie and a TV show share a numeric TMDb id (now joins on both columns). History's list/PATCH
+responses are also unified to the same shape (Express's PATCH returned a bare row while its GET
+returned a joined one), `PATCH .../history/:watchedId` now accepts `enjoyed: null` to un-rate
+(Express's validator rejected it even though the column is nullable), and history pagination follows
+CLAUDE.md's house `{ data, pagination }` shape rather than Express's flat capped-at-200 list. The
+generic `POST /:id/pick-events` endpoint's `kind` is narrowed to `swapped`/`dismissed` only --
+`proposed`/`accepted` are already auto-recorded by the pick and commit routes, and
+`provider_launched` is only recordable through the TMDb-verified launch endpoint.
+
+**Known gaps, not fixed here:**
+
+- `content` rows created by the provider-cache write path get a placeholder title
+  (`"Untitled movie"`/`"Untitled show"`) — the caching path never fetches real title/poster data,
+  matching Express exactly (a pre-existing gap, not a regression). History entries' `providers`
+  field is real; `title`/`year`/`posterPath` read as the placeholder until something enriches
+  `content` with real metadata -- the natural place is `lib/recommendation.ts`'s hydration step,
+  which already fetches real title/runtime per candidate but doesn't write it back to `content`.
+  Deliberately not bundled into this change; a small, low-risk follow-up.
+- The standalone `GET /api/providers/:tmdbId` has no household context, so it can't apply the
+  free-tier GB region-lock the way `/:id/pick`, `/:id/history`, and `/:id/picks/:tmdbId/launch` now
+  all do -- a free-tier caller can request any region directly through this one endpoint. Closing it
+  needs a product decision (which household's entitlement applies, for a caller in more than one)
+  rather than a silent pick.
+- No cron-driven provider-cache refresh -- caching is lazy/on-demand only (matches Express; the
+  cron trigger `docs/architecture.md` describes was already aspirational, not a ported behavior).
+
+21 new `vitest-pool-workers` tests (provider caching including the movie/tv collision case and a
+TMDb-failure degrade, history list/pagination/thumbs, provider-launch including its recorded
+`pick_events` row, the generic pick-events endpoint's kind restriction, and stats aggregation).
+
+**Pending:** billing/admin domain; then collapse the two server entries into one and cut over.
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 
