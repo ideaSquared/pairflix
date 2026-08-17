@@ -7,7 +7,7 @@ import {
 	ResetPasswordRequestSchema,
 	VerifyEmailRequestSchema,
 } from '@pairflix/lib.validation';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
@@ -355,7 +355,10 @@ authRoutes.post('/verify-email', async c => {
 		.where(
 			and(
 				eq(authTokens.id, parsed.data.token),
-				eq(authTokens.purpose, 'verify_email')
+				or(
+					eq(authTokens.purpose, 'verify_email'),
+					eq(authTokens.purpose, 'change_email')
+				)
 			)
 		)
 		.get();
@@ -363,9 +366,16 @@ authRoutes.post('/verify-email', async c => {
 		return c.json({ error: 'Invalid or expired verification link' }, 400);
 	}
 
+	// A 'change_email' token swaps in its `newEmail` (already proven reachable by this click) --
+	// a 'verify_email' token just confirms the address the account already has.
+	const updates =
+		row.purpose === 'change_email' && row.newEmail
+			? { email: row.newEmail, emailVerified: true }
+			: { emailVerified: true };
+
 	const verified = await db
 		.update(users)
-		.set({ emailVerified: true })
+		.set(updates)
 		.where(eq(users.id, row.userId))
 		.returning({ id: users.id, email: users.email })
 		.get();
