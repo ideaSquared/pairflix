@@ -1,21 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as authApi from '../services/api';
-
-interface AuthUser {
-  user_id: string;
-  email: string;
-  username: string;
-  role: string;
-  preferences?: {
-    theme: 'light' | 'dark';
-    viewStyle: 'list' | 'grid';
-    emailNotifications: boolean;
-    autoArchiveDays: number;
-    favoriteGenres: string[];
-  };
-}
+import type { AuthUser } from '../services/api/auth';
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -26,14 +13,13 @@ export function useAuth() {
     data: user,
     isLoading,
     error,
-  } = useQuery<AuthUser>({
+  } = useQuery<AuthUser | null>({
     queryKey: ['auth'],
     queryFn: authApi.auth.getCurrentUser,
     retry: (failureCount, error) => {
       if (
         error instanceof Error &&
-        (error.message === 'Authentication required' ||
-          error.message === 'Session expired. Please login again.')
+        error.message === 'Authentication required'
       ) {
         return false;
       }
@@ -42,10 +28,11 @@ export function useAuth() {
     staleTime: 60000, // Consider data fresh for 1 minute
     gcTime: 60000, // Keep data in cache for 1 minute
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    enabled: !!localStorage.getItem('token'), // Only run the query if there's a token
   });
 
-  const logout = async () => {
+  // Stable references -- both are common useEffect deps (see Routes.tsx's LogoutRoute and
+  // ProfilePage.tsx), and a fresh function identity on every render would re-fire those effects.
+  const logout = useCallback(async () => {
     // Call the server-side logout endpoint to record in audit logs
     await authApi.auth.logout();
 
@@ -53,9 +40,9 @@ export function useAuth() {
     queryClient.setQueryData(['auth'], null);
     queryClient.invalidateQueries();
     navigate('/login');
-  };
+  }, [queryClient, navigate]);
 
-  const checkAuth = () => {
+  const checkAuth = useCallback(() => {
     // Debounce the auth check to prevent multiple calls
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
@@ -65,9 +52,9 @@ export function useAuth() {
       queryClient.invalidateQueries({ queryKey: ['auth'] });
       refreshTimeoutRef.current = null;
     }, 300);
-  };
+  }, [queryClient]);
 
-  const isAuthenticated = Boolean(user && localStorage.getItem('token'));
+  const isAuthenticated = Boolean(user);
 
   return { user, isLoading, error, logout, checkAuth, isAuthenticated };
 }

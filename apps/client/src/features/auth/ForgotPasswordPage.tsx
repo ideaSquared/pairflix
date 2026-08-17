@@ -27,8 +27,8 @@ const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await emailService.forgotPassword({ email });
-      setSuccess(response.message);
+      await emailService.forgotPassword({ email });
+      setSuccess('If that address is registered, a reset link is on its way.');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

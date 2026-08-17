@@ -11,6 +11,14 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      // Same-origin in dev so the session/CSRF cookies (SameSite=Lax) reach the Worker --
+      // see services/api/.dev.vars.example's ALLOWED_ORIGINS comment.
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],

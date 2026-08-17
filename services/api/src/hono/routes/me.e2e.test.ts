@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { currentTotpCode } from '../lib/totp';
 import {
+	callApp,
 	createLoggedInUser,
 	enrollTotp,
+	getLatestAuthToken,
 	loginUser,
 	postJson,
 } from '../test/test-helpers';
@@ -63,5 +65,146 @@ describe('2FA enroll / verify / login / disable', () => {
 
 		const login = await loginUser(email, PASSWORD);
 		expect(login.status).toBe(200);
+	});
+});
+
+describe('profile updates', () => {
+	it('changes username, then rejects one already taken', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+
+		const newUsername = `renamed${Date.now()}`;
+		const renamed = await postJson(
+			'/api/me/username',
+			{ username: newUsername },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(renamed.status).toBe(200);
+
+		const me = await callApp<{ data: { username: string } }>('/api/auth/me', {
+			cookies,
+		});
+		expect(me.body.data.username).toBe(newUsername);
+
+		const { cookies: otherCookies } = await createLoggedInUser(uniqueEmail());
+		const taken = await postJson(
+			'/api/me/username',
+			{ username: newUsername },
+			otherCookies,
+			{ method: 'PATCH' }
+		);
+		expect(taken.status).toBe(409);
+	});
+
+	it('email change requires the current password and only takes effect once confirmed', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const newEmail = uniqueEmail();
+
+		const wrongPassword = await postJson(
+			'/api/me/email',
+			{ email: newEmail, password: 'WrongPassword1' },
+			cookies
+		);
+		expect(wrongPassword.status).toBe(401);
+
+		const requested = await postJson(
+			'/api/me/email',
+			{ email: newEmail, password: PASSWORD },
+			cookies
+		);
+		expect(requested.status).toBe(200);
+
+		const meBeforeConfirm = await callApp<{ data: { email: string } }>(
+			'/api/auth/me',
+			{ cookies }
+		);
+		expect(meBeforeConfirm.body.data.email).not.toBe(newEmail);
+
+		const token = await getLatestAuthToken(userId, 'change_email');
+		const confirmed = await postJson('/api/auth/verify-email', { token }, {});
+		expect(confirmed.status).toBe(200);
+
+		const meAfterConfirm = await callApp<{ data: { email: string } }>(
+			'/api/auth/me',
+			{ cookies }
+		);
+		expect(meAfterConfirm.body.data.email).toBe(newEmail);
+	});
+
+	it('rejects confirming an email change if the address was claimed in the meantime', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const contestedEmail = uniqueEmail();
+
+		const requested = await postJson(
+			'/api/me/email',
+			{ email: contestedEmail, password: PASSWORD },
+			cookies
+		);
+		expect(requested.status).toBe(200);
+
+		const token = await getLatestAuthToken(userId, 'change_email');
+
+		// Someone else registers (and claims) the contested address before the first user confirms.
+		await createLoggedInUser(contestedEmail);
+
+		const confirmed = await postJson('/api/auth/verify-email', { token }, {});
+		expect(confirmed.status).toBe(409);
+		expect(JSON.stringify(confirmed.body)).toContain('email_taken');
+	});
+
+	it('password change requires the current password and revokes other sessions', async () => {
+		const email = uniqueEmail();
+		const { cookies: sessionA } = await createLoggedInUser(email);
+		const sessionB = (await loginUser(email, PASSWORD)).cookies;
+
+		const wrongPassword = await postJson(
+			'/api/me/password',
+			{ currentPassword: 'WrongPassword1', newPassword: 'NewStr0ngPass1' },
+			sessionA
+		);
+		expect(wrongPassword.status).toBe(401);
+
+		const changed = await postJson(
+			'/api/me/password',
+			{ currentPassword: PASSWORD, newPassword: 'NewStr0ngPass1' },
+			sessionA
+		);
+		expect(changed.status).toBe(204);
+
+		const stillWorksA = await callApp('/api/auth/me', { cookies: sessionA });
+		expect(stillWorksA.status).toBe(200);
+
+		const revokedB = await callApp('/api/auth/me', { cookies: sessionB });
+		expect(revokedB.status).toBe(401);
+
+		const reloginOldPassword = await loginUser(email, PASSWORD);
+		expect(reloginOldPassword.status).toBe(401);
+
+		const reloginNewPassword = await loginUser(email, 'NewStr0ngPass1');
+		expect(reloginNewPassword.status).toBe(200);
+	});
+
+	it('preferences update merges rather than replaces', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+
+		const first = await postJson(
+			'/api/me/preferences',
+			{ preferences: { theme: 'light' } },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(first.status).toBe(200);
+
+		const second = await postJson<{
+			data: { preferences: { theme: string; autoArchiveDays: number } };
+		}>(
+			'/api/me/preferences',
+			{ preferences: { autoArchiveDays: 7 } },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(second.status).toBe(200);
+		expect(second.body.data.preferences.theme).toBe('light');
+		expect(second.body.data.preferences.autoArchiveDays).toBe(7);
 	});
 });

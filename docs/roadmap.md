@@ -24,9 +24,6 @@
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
   this to one app and fixes it.
-- **`ProviderBadges` is fed an empty array** on the history page — the P3 providers/history Hono
-  port fixes the backend cause (the history endpoint now includes provider data), but the frontend
-  still hardcodes `providers={[]}` until it's wired up in P4.
 - **Recommender is movie-only** and runtime-blind (neutral runtime score) despite `movie | tv`
   plumbing.
 - **Billing is mock-only** (no Stripe).
@@ -190,11 +187,29 @@ roundtrip (mock-activate flips a household to premium, cancel reverts it).
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 
-### P4 — Frontends
+### P4 — Frontends — in progress
 
 Move `app.client` / `app.admin` to `apps/*` on Pages; `lib.components` to `packages/`. Switch API
 clients from JWT to the cookie/CSRF flow.
 **Exit:** both SPAs run on `wrangler pages dev` against the local Worker.
+
+**apps/client (P4a) — done.** Auth foundation rewritten onto the session-cookie + double-submit
+CSRF flow (`apps/client/src/services/api/utils.ts`'s `fetchWithAuth`, no more `localStorage`
+token) with a Vite dev-server proxy (`/api` -> the Worker at `:8787`) so local dev stays
+same-origin, which the `SameSite=Lax` session cookie requires. Every service client (`households`, `history`, `billing`,
+`user`, `email`, `auth`) rewritten to match the Hono routes' actual request/response shapes, and
+those fixes propagated through the consumers (Tonight, History, Profile, forgot/reset-password,
+email verification). Removed the pre-pivot dead weight -- `activity`/`match`/`watchlist` features
+and their routes/nav, the decorative admin-settings fetch in `SettingsContext`, `admin.ts`,
+`mediaUpload.ts`, a duplicate `emailService.ts`. Added `apps/client/wrangler.jsonc`
+(`pages_build_output_dir`) and a `public/_redirects` SPA fallback. Verified end to end in a real
+browser against a local Worker + D1 (register -> verify-email -> login -> create a household ->
+Tonight -> history -> profile updates -> logout -> re-login), which caught and fixed two real bugs
+along the way: `usePrimaryHousehold` was still the pre-Phase-A localStorage stub (History
+permanently read "not in a household"), and `LogoutRoute`'s effect could fire `/api/auth/logout`
+more than once concurrently, occasionally 403'ing on a CSRF-cookie race between the duplicate
+calls.
+**apps/admin (P4b) — not started.**
 
 ### P5 — Cutover
 

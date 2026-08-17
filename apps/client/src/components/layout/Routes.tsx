@@ -1,11 +1,10 @@
 import { AppLayout } from '@pairflix/components';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import {
   createClientNavigation,
   createGuestNavigation,
 } from '../../config/navigation';
-import ActivityPage from '../../features/activity/ActivityPage';
 import EmailVerificationPage from '../../features/auth/EmailVerificationPage';
 import MockCheckout from '../../features/billing/MockCheckout';
 import { isBillingMockEnabled } from '../../features/billing/flags';
@@ -18,10 +17,7 @@ import HistoryPage from '../../features/history/HistoryPage';
 import AcceptInvitePage from '../../features/households/AcceptInvitePage';
 import CreateHouseholdPage from '../../features/households/CreateHouseholdPage';
 import InviteToHouseholdPage from '../../features/households/InviteToHouseholdPage';
-import MatchPage from '../../features/match/MatchPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
-import { useTonightHomepagePreference } from '../../features/tonight/useTonightHomepage';
-import WatchlistPage from '../../features/watchlist/WatchlistPage';
 import { useAuth } from '../../hooks/useAuth';
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
@@ -38,8 +34,14 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
 
 const LogoutRoute: React.FC = () => {
   const { logout } = useAuth();
+  const hasLoggedOut = useRef(false);
 
   useEffect(() => {
+    // Re-renders (e.g. the auth query settling) hand back a new `logout` reference, and
+    // StrictMode double-invokes effects -- both would otherwise fire a second, concurrent
+    // /api/auth/logout call that can 403 by racing the first call's CSRF cookie.
+    if (hasLoggedOut.current) return;
+    hasLoggedOut.current = true;
     logout();
   }, [logout]);
 
@@ -48,8 +50,7 @@ const LogoutRoute: React.FC = () => {
 
 const AppRoutes: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { tonightAsHomepage } = useTonightHomepagePreference();
-  const defaultPath = tonightAsHomepage ? '/tonight' : '/watchlist';
+  const defaultPath = '/tonight';
 
   const handleLogout = () => {
     logout();
@@ -59,7 +60,7 @@ const AppRoutes: React.FC = () => {
   const userForNav = user
     ? {
         name: user.username,
-        id: user.user_id,
+        id: user.id,
       }
     : undefined;
 
@@ -90,18 +91,6 @@ const AppRoutes: React.FC = () => {
               <Route
                 path="/tonight"
                 element={<ProtectedRoute element={<TonightPicker />} />}
-              />
-              <Route
-                path="/watchlist"
-                element={<ProtectedRoute element={<WatchlistPage />} />}
-              />
-              <Route
-                path="/matches"
-                element={<ProtectedRoute element={<MatchPage />} />}
-              />
-              <Route
-                path="/activity"
-                element={<ProtectedRoute element={<ActivityPage />} />}
               />
               <Route
                 path="/history"

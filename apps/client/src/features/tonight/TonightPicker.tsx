@@ -70,23 +70,23 @@ const TonightPicker: React.FC = () => {
 
   const recordEvent = (
     card: RecommendationCard,
-    kind: 'accepted' | 'swapped' | 'dismissed'
+    kind: 'swapped' | 'dismissed'
   ) => {
     if (!household) return;
     void households
       .recordPickEvent(household.id, {
-        tmdb_id: card.tmdb_id,
-        media_type: card.media_type,
+        tmdbId: card.tmdbId,
+        mediaType: card.mediaType,
         kind,
         mood,
-        minutes_budget: minutes,
+        minutesBudget: minutes,
       })
       .catch(() => undefined);
   };
 
   const onSwap = (card: RecommendationCard) => {
     recordEvent(card, 'swapped');
-    const next = [...excludedTmdbIds, card.tmdb_id];
+    const next = [...excludedTmdbIds, card.tmdbId];
     setExcludedTmdbIds(next);
     pickMutation.mutate({
       mood,
@@ -97,11 +97,11 @@ const TonightPicker: React.FC = () => {
   };
 
   const onCommit = (card: RecommendationCard) => {
-    recordEvent(card, 'accepted');
+    // No explicit 'accepted' pick-event here -- the commit endpoint records it server-side.
     commitMutation.mutate(
       {
-        tmdbId: card.tmdb_id,
-        mediaType: card.media_type,
+        tmdbId: card.tmdbId,
+        mediaType: card.mediaType,
         mood,
         minutes,
       },
@@ -127,12 +127,10 @@ const TonightPicker: React.FC = () => {
     try {
       const { url } = await households.launchProvider(
         household.id,
-        card.tmdb_id,
+        card.tmdbId,
         {
-          provider_slug: providerSlug,
-          media_type: card.media_type,
-          mood,
-          minutes_budget: minutes,
+          providerSlug,
+          mediaType: card.mediaType,
         }
       );
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -265,10 +263,10 @@ const TonightPicker: React.FC = () => {
           <Card variant="primary" className={styles.resultCard}>
             <CardContent>
               <Flex gap="lg" alignItems="flex-start">
-                {result.pick.poster_path && (
+                {result.pick.posterPath && (
                   <img
                     className={styles.poster}
-                    src={`https://image.tmdb.org/t/p/w500${result.pick.poster_path}`}
+                    src={`https://image.tmdb.org/t/p/w500${result.pick.posterPath}`}
                     alt={result.pick.title}
                   />
                 )}

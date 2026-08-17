@@ -18,14 +18,14 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({
   if (entitlements.tier === 'premium') {
     return null;
   }
-  if (entitlements.picks_remaining > 1) {
+  if (entitlements.picksRemaining > 1) {
     return null;
   }
 
   const message =
-    entitlements.picks_remaining === 0
+    entitlements.picksRemaining === 0
       ? 'No picks left today — upgrade for unlimited.'
-      : `${entitlements.picks_remaining} pick left today — upgrade for unlimited.`;
+      : `${entitlements.picksRemaining} pick left today — upgrade for unlimited.`;
 
   return (
     <div className={styles.bannerContainer} role="status">

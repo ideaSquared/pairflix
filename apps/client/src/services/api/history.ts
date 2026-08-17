@@ -1,19 +1,28 @@
 import { fetchWithAuth } from './utils';
+import type { ProviderRegion } from './households';
 
 export interface HistoryEntry {
   id: string;
-  household_id: string;
-  tmdb_id: number;
-  media_type: 'movie' | 'tv';
-  watched_at: string;
+  tmdbId: number;
+  mediaType: 'movie' | 'tv';
+  watchedAt: string;
   enjoyed: boolean | null;
+  moodAtPick: string | null;
+  minutesBudgetAtPick: number | null;
   title: string | null;
   year: number | null;
-  poster_path: string | null;
+  posterPath: string | null;
+  providers: ProviderRegion;
 }
 
 export interface HistoryResponse {
-  history: HistoryEntry[];
+  data: HistoryEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export const history = {

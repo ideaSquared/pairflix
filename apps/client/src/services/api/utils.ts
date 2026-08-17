@@ -59,95 +59,25 @@ const getViteEnvVar = (key: string): string | undefined => {
   }
 };
 
+// Empty by default -- '/api/...' then resolves relative to the current origin, which the Vite
+// dev server proxies to the Worker (see vite.config.ts) and which a production same-site domain
+// setup would route directly. Cross-origin (SameSite=Lax cookies) only works if VITE_API_URL is
+// explicitly set to a same-site Worker URL.
 const getApiUrl = (): string => {
-  // Check if we're in a test environment first
   if (
     typeof process !== 'undefined' &&
     process.env &&
     process.env.NODE_ENV === 'test'
   ) {
-    return process.env.VITE_API_URL || 'http://localhost:3000';
+    return process.env.VITE_API_URL || '';
   }
 
-  // In browser environment, try to get from Vite environment
-  const viteApiUrl = getViteEnvVar('VITE_API_URL');
-  if (viteApiUrl) {
-    return viteApiUrl;
-  }
-
-  // Fallback for any environment that doesn't support import.meta
-  return 'http://localhost:3000';
+  return getViteEnvVar('VITE_API_URL') || '';
 };
 
 export const BASE_URL = getApiUrl();
 
 // Common interfaces used across multiple services
-export interface WatchlistEntry {
-  entry_id: string;
-  user_id: string;
-  tmdb_id: number;
-  media_type: 'movie' | 'tv';
-  status: WatchlistEntryStatus;
-  rating?: number;
-  notes?: string;
-  tags?: string[];
-  created_at: Date;
-  updated_at: Date;
-  tmdb_status?: string;
-  title?: string;
-  overview?: string;
-  poster_path?: string;
-}
-
-export type WatchlistEntryStatus =
-  | 'to_watch'
-  | 'watch_together_focused'
-  | 'watch_together_background'
-  | 'watching'
-  | 'finished'
-  | 'flagged'
-  | 'removed'
-  | 'active';
-
-export interface SearchResult {
-  id: number;
-  title?: string;
-  name?: string;
-  media_type: 'movie' | 'tv';
-  poster_path: string | null;
-  overview: string;
-  release_date?: string;
-  first_air_date?: string;
-}
-
-export interface SearchResponse {
-  page: number;
-  results: SearchResult[];
-  total_pages: number;
-  total_results: number;
-}
-
-export interface Match {
-  match_id: string;
-  user1_id: string;
-  user2_id: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  created_at: Date;
-  updated_at: Date;
-  user1?: { email: string };
-  user2?: { email: string };
-}
-
-export interface ContentMatch {
-  tmdb_id: number;
-  media_type: 'movie' | 'tv';
-  title: string;
-  poster_path?: string;
-  overview?: string;
-  user1_status: WatchlistEntry['status'];
-  user2_status: WatchlistEntry['status'];
-}
-
 export interface User {
   id: string;
   username: string;
@@ -160,6 +90,7 @@ export interface UserPreferences {
   viewStyle: 'grid' | 'list';
   emailNotifications: boolean;
   autoArchiveDays: number;
+  favoriteGenres: string[];
 }
 
 export interface PaginatedResponse<T> {
@@ -172,24 +103,48 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Common fetch utility function with authentication
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** Seeds the `csrfToken` cookie and returns its value to echo back as the `x-csrf-token` header --
+ * fetched fresh before every mutating call (matching the Hono API's own e2e test helper, and its
+ * `csrfMiddleware`'s doc comment, which describes exactly this pattern) rather than cached, so
+ * there's no staleness/invalidation logic to get wrong. */
+const fetchCsrfToken = async (): Promise<string> => {
+  const response = await fetch(`${BASE_URL}/api/auth/csrf-token`, {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch CSRF token: ${response.status} ${response.statusText}`
+    );
+  }
+  const data = (await response.json()) as { csrfToken: string };
+  return data.csrfToken;
+};
+
+// Common fetch utility -- auth is cookie-based (see CLAUDE.md's "Auth & API" section): the
+// browser sends the session cookie automatically, there's no token to attach, and mutating
+// requests carry a double-submit CSRF header.
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const method = (options.method ?? 'GET').toUpperCase();
   const headers = new Headers({
     'Content-Type': 'application/json',
     ...Object.fromEntries(Object.entries(options.headers || {})),
   });
 
-  const token = localStorage.getItem('token');
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (MUTATING_METHODS.has(method)) {
+    headers.set('x-csrf-token', await fetchCsrfToken());
   }
 
   try {
     const fullUrl = url.startsWith('/api') ? `${BASE_URL}${url}` : url;
-    const response = await fetch(fullUrl, { ...options, headers });
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
 
     if (response.status === 401) {
-      localStorage.removeItem('token');
       throw new Error('Authentication required');
     }
 
@@ -209,6 +164,9 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       }
     }
 
+    if (response.status === 204) {
+      return undefined;
+    }
     return response.json();
   } catch (error) {
     if (error instanceof Error) {

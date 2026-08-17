@@ -1,4 +1,10 @@
-import type { AppSettings } from '../services/api';
+export interface PasswordPolicy {
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+}
 
 export interface PasswordValidationResult {
   isValid: boolean;
@@ -14,7 +20,7 @@ export interface PasswordValidationResult {
  */
 export function validatePassword(
   password: string,
-  policySettings: AppSettings['security']['passwordPolicy']
+  policySettings: PasswordPolicy
 ): PasswordValidationResult {
   const errors: string[] = [];
 

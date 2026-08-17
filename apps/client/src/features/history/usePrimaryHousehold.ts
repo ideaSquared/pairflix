@@ -1,26 +1,14 @@
-// TODO: replace with Phase A model on merge
-// Stub hook: Phase A will add a real household membership query. Until then
-// we read an optional override from `localStorage` so the page is usable
-// during development.
 import { useQuery } from '@tanstack/react-query';
+import { households as householdsApi } from '../../services/api';
 
-export interface PrimaryHousehold {
-  id: string;
-  name: string;
-}
-
+// Same '['households']' query key as useActiveHousehold (Tonight) -- shares its cache entry
+// rather than issuing a second, redundant fetch for the same list.
 export function usePrimaryHousehold() {
-  return useQuery<PrimaryHousehold | null>({
-    queryKey: ['primary-household'],
-    queryFn: async () => {
-      const overrideId =
-        typeof window !== 'undefined'
-          ? window.localStorage.getItem('primaryHouseholdId')
-          : null;
-      if (overrideId) {
-        return { id: overrideId, name: 'Household' };
-      }
-      return null;
-    },
+  const query = useQuery({
+    queryKey: ['households'],
+    queryFn: () => householdsApi.list(),
+    staleTime: 60_000,
   });
+
+  return { ...query, data: query.data?.households[0] ?? null };
 }

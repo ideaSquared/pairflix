@@ -1,8 +1,9 @@
-import { fetchWithAuth } from './utils';
+import { fetchWithAuth, type UserPreferences } from './utils';
 
 export interface LoginCredentials {
   email: string;
   password: string;
+  totpCode?: string;
 }
 
 export interface RegisterCredentials {
@@ -11,72 +12,52 @@ export interface RegisterCredentials {
   username: string;
 }
 
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+  emailVerified: boolean;
+  totpEnabled: boolean;
+  preferences: UserPreferences;
+  createdAt: string;
+}
+
 export const auth = {
-  register: async (credentials: RegisterCredentials) => {
-    const response = await fetch(
-      `${(import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || 'http://localhost:3000'}/api/auth/register`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
-    }
-
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-    }
-
-    return data;
+  register: async (
+    credentials: RegisterCredentials
+  ): Promise<{ id: string; username: string; email: string }> => {
+    const response = await fetchWithAuth('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    return response.data;
   },
 
-  login: async (credentials: LoginCredentials) => {
-    const response = await fetch(
-      `${(import.meta as unknown as { env: Record<string, string> }).env.VITE_API_URL || 'http://localhost:3000'}/api/auth/login`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Invalid email or password');
-    }
-
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-    }
-
-    return data;
+  login: async (
+    credentials: LoginCredentials
+  ): Promise<{ id: string; username: string; email: string }> => {
+    const response = await fetchWithAuth('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    return response.data;
   },
 
-  getCurrentUser: async () => {
-    return fetchWithAuth('/api/auth/me');
+  getCurrentUser: async (): Promise<AuthUser> => {
+    const response = await fetchWithAuth('/api/auth/me');
+    return response.data;
   },
 
-  logout: async () => {
+  logout: async (): Promise<void> => {
     try {
       // Call the logout endpoint to record the event in audit logs
       await fetchWithAuth('/api/auth/logout', {
         method: 'POST',
       });
     } catch (error) {
-      // If there's an error logging out, we still want to clear local storage
       console.error('Error logging out:', error);
     }
-    // Remove token from localStorage regardless of server response
-    localStorage.removeItem('token');
   },
 };

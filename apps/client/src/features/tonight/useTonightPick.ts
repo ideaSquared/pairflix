@@ -30,7 +30,7 @@ export function useCommitPick({ householdId }: UseTonightPickArgs) {
       minutes?: number;
     }) =>
       households.commit(householdId, tmdbId, {
-        media_type: mediaType,
+        mediaType,
         ...(mood ? { mood } : {}),
         ...(minutes !== undefined ? { minutes } : {}),
       }),

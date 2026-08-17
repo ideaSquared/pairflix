@@ -68,3 +68,35 @@ export const TotpDisableRequestSchema = z.object({
   code: z.string().trim().min(6, 'Enter a code or backup code'),
 });
 export type TotpDisableRequest = z.infer<typeof TotpDisableRequestSchema>;
+
+export const UpdateUsernameRequestSchema = z.object({
+  username: UsernameSchema,
+});
+export type UpdateUsernameRequest = z.infer<typeof UpdateUsernameRequestSchema>;
+
+export const UpdateEmailRequestSchema = z.object({
+  email: EmailSchema,
+  password: z.string().min(1, 'Enter your password'),
+});
+export type UpdateEmailRequest = z.infer<typeof UpdateEmailRequestSchema>;
+
+export const UpdatePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password'),
+  newPassword: StrongPasswordSchema,
+});
+export type UpdatePasswordRequest = z.infer<typeof UpdatePasswordRequestSchema>;
+
+const PreferencesPatchSchema = z.object({
+  theme: z.enum(['light', 'dark']).optional(),
+  viewStyle: z.enum(['list', 'grid']).optional(),
+  emailNotifications: z.boolean().optional(),
+  autoArchiveDays: z.number().int().min(0).optional(),
+  favoriteGenres: z.array(z.string()).optional(),
+});
+
+export const UpdatePreferencesRequestSchema = z.object({
+  preferences: PreferencesPatchSchema,
+});
+export type UpdatePreferencesRequest = z.infer<
+  typeof UpdatePreferencesRequestSchema
+>;

@@ -1,7 +1,11 @@
-import { createDb, users } from '@pairflix/db';
+import { authTokens, createDb, users } from '@pairflix/db';
 import {
 	TotpDisableRequestSchema,
 	TotpVerifyRequestSchema,
+	UpdateEmailRequestSchema,
+	UpdatePasswordRequestSchema,
+	UpdatePreferencesRequestSchema,
+	UpdateUsernameRequestSchema,
 } from '@pairflix/lib.validation';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -19,14 +23,18 @@ import {
 	hashPassword,
 	verifyPassword,
 } from '../lib/crypto';
+import { sendVerificationEmail } from '../lib/email';
+import { randomToken } from '../lib/id';
 import { revokeOtherSessions } from '../lib/session';
 import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
 
+const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Scoped to 2FA management for now -- the rest of creatorgrid's `me.ts` (profile updates, email
- * change, avatar) isn't part of this P3 auth-domain pass. Grows as later domains need it.
+ * 2FA management plus profile updates (username/email/password/preferences) -- avatar isn't part
+ * of this pass, nothing in the schema or either frontend app references one yet.
  */
 export const meRoutes = new Hono<AppEnv>();
 
@@ -160,4 +168,170 @@ meRoutes.post('/2fa/disable', async c => {
 	await auditInfo(db, '2FA disabled', 'auth', { userId, email: user.email });
 
 	return c.body(null, 204);
+});
+
+meRoutes.patch('/username', async c => {
+	const userId = c.get('userId') as string;
+	const parsed = UpdateUsernameRequestSchema.safeParse(
+		await c.req.json().catch(() => null)
+	);
+	if (!parsed.success) {
+		return c.json(
+			{
+				error: 'Invalid input',
+				details: parsed.error.issues.map(i => i.message),
+			},
+			400
+		);
+	}
+
+	const db = createDb(c.env.DB);
+	const existing = await db
+		.select({ id: users.id })
+		.from(users)
+		.where(eq(users.username, parsed.data.username))
+		.get();
+	if (existing && existing.id !== userId) {
+		return c.json({ error: 'username_taken' }, 409);
+	}
+
+	const updated = await db
+		.update(users)
+		.set({ username: parsed.data.username, updatedAt: new Date() })
+		.where(eq(users.id, userId))
+		.returning({ id: users.id, username: users.username })
+		.get();
+	if (!updated) return c.json({ error: 'Not found' }, 404);
+
+	await auditInfo(db, 'Username changed', 'auth', { userId });
+	return c.json({ data: updated });
+});
+
+/**
+ * Doesn't change `users.email` directly -- creates a 'change_email' auth token (see
+ * `authTokens.newEmail`) and emails the confirmation link to the NEW address, so the swap only
+ * happens once the caller has proven they actually control it (same token consumed by
+ * `POST /api/auth/verify-email`). Mirrors how registration itself requires verification before
+ * the address is trusted.
+ */
+meRoutes.post('/email', async c => {
+	const userId = c.get('userId') as string;
+	const parsed = UpdateEmailRequestSchema.safeParse(
+		await c.req.json().catch(() => null)
+	);
+	if (!parsed.success) {
+		return c.json(
+			{
+				error: 'Invalid input',
+				details: parsed.error.issues.map(i => i.message),
+			},
+			400
+		);
+	}
+
+	const db = createDb(c.env.DB);
+	const user = await db.select().from(users).where(eq(users.id, userId)).get();
+	if (!user) return c.json({ error: 'Not found' }, 404);
+	if (!(await verifyPassword(parsed.data.password, user.passwordHash))) {
+		return c.json({ error: 'Current password is incorrect' }, 401);
+	}
+	if (parsed.data.email === user.email) {
+		return c.json({ error: 'That is already your email address' }, 400);
+	}
+
+	const existing = await db
+		.select({ id: users.id })
+		.from(users)
+		.where(eq(users.email, parsed.data.email))
+		.get();
+	if (existing) return c.json({ error: 'email_taken' }, 409);
+
+	const token = randomToken();
+	const now = new Date();
+	await db.insert(authTokens).values({
+		id: token,
+		userId,
+		purpose: 'change_email',
+		newEmail: parsed.data.email,
+		expiresAt: new Date(now.getTime() + VERIFY_EMAIL_TTL_MS),
+		createdAt: now,
+	});
+	await sendVerificationEmail(c.env, parsed.data.email, token);
+
+	await auditInfo(db, 'Email change requested', 'auth', {
+		userId,
+		newEmail: parsed.data.email,
+	});
+	return c.json({ data: { pending: true } });
+});
+
+meRoutes.post('/password', async c => {
+	const userId = c.get('userId') as string;
+	const parsed = UpdatePasswordRequestSchema.safeParse(
+		await c.req.json().catch(() => null)
+	);
+	if (!parsed.success) {
+		return c.json(
+			{
+				error: 'Invalid input',
+				details: parsed.error.issues.map(i => i.message),
+			},
+			400
+		);
+	}
+
+	const db = createDb(c.env.DB);
+	const user = await db.select().from(users).where(eq(users.id, userId)).get();
+	if (!user) return c.json({ error: 'Not found' }, 404);
+	if (!(await verifyPassword(parsed.data.currentPassword, user.passwordHash))) {
+		return c.json({ error: 'Current password is incorrect' }, 401);
+	}
+
+	await db
+		.update(users)
+		.set({
+			passwordHash: await hashPassword(parsed.data.newPassword),
+			updatedAt: new Date(),
+		})
+		.where(eq(users.id, userId));
+
+	const currentSessionId = getCookie(c, 'session');
+	if (currentSessionId) {
+		await revokeOtherSessions(db, userId, currentSessionId);
+	}
+
+	await auditInfo(db, 'Password changed', 'auth', { userId });
+	return c.body(null, 204);
+});
+
+meRoutes.patch('/preferences', async c => {
+	const userId = c.get('userId') as string;
+	const parsed = UpdatePreferencesRequestSchema.safeParse(
+		await c.req.json().catch(() => null)
+	);
+	if (!parsed.success) {
+		return c.json(
+			{
+				error: 'Invalid input',
+				details: parsed.error.issues.map(i => i.message),
+			},
+			400
+		);
+	}
+
+	const db = createDb(c.env.DB);
+	const user = await db
+		.select({ preferences: users.preferences })
+		.from(users)
+		.where(eq(users.id, userId))
+		.get();
+	if (!user) return c.json({ error: 'Not found' }, 404);
+
+	const preferences = { ...user.preferences, ...parsed.data.preferences };
+	await db
+		.update(users)
+		.set({ preferences, updatedAt: new Date() })
+		.where(eq(users.id, userId));
+
+	return c.json({ data: { preferences } });
 });
