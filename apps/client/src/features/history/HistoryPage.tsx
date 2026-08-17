@@ -125,7 +125,12 @@ const HistoryPage: React.FC = () => {
                     <Typography variant="body2">
                       Watched {formatWatchedAt(entry.watchedAt)}
                     </Typography>
-                    <ProviderBadges providers={[]} />
+                    <ProviderBadges
+                      providers={(entry.providers.flatrate ?? []).map(p => ({
+                        ...p,
+                        logo_path: p.logo_path ?? null,
+                      }))}
+                    />
                   </div>
                   <div className={styles.actions}>
                     <Button
