@@ -59,24 +59,20 @@ const getViteEnvVar = (key: string): string | undefined => {
   }
 };
 
+// Empty by default -- '/api/...' then resolves relative to the current origin, which the Vite
+// dev server proxies to the Worker (see vite.config.ts) and which a production same-site domain
+// setup would route directly. Cross-origin (SameSite=Lax cookies) only works if VITE_API_URL is
+// explicitly set to a same-site Worker URL.
 const getApiUrl = (): string => {
-  // Check if we're in a test environment first
   if (
     typeof process !== 'undefined' &&
     process.env &&
     process.env.NODE_ENV === 'test'
   ) {
-    return process.env.VITE_API_URL || 'http://localhost:3000';
+    return process.env.VITE_API_URL || '';
   }
 
-  // In browser environment, try to get from Vite environment
-  const viteApiUrl = getViteEnvVar('VITE_API_URL');
-  if (viteApiUrl) {
-    return viteApiUrl;
-  }
-
-  // Fallback for any environment that doesn't support import.meta
-  return 'http://localhost:3000';
+  return getViteEnvVar('VITE_API_URL') || '';
 };
 
 export const BASE_URL = getApiUrl();

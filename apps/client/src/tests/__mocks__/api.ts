@@ -3,108 +3,149 @@
  * This mock replaces all the actual API functions with Jest mock functions
  */
 
-export const BASE_URL = 'http://localhost:3000';
+export const BASE_URL = '';
 
 // Mock all API functions
 export const fetchWithAuth = jest.fn();
 
 export const auth = {
+  register: jest.fn().mockResolvedValue({
+    id: '1',
+    username: 'testuser',
+    email: 'test@example.com',
+  }),
   login: jest.fn().mockResolvedValue({
-    token: 'fake-token',
-    user: { id: '1', email: 'test@example.com' },
+    id: '1',
+    username: 'testuser',
+    email: 'test@example.com',
   }),
   getCurrentUser: jest.fn().mockResolvedValue({
     id: '1',
-    email: 'test@example.com',
     username: 'testuser',
+    email: 'test@example.com',
+    role: 'user',
+    status: 'active',
+    emailVerified: true,
+    totpEnabled: false,
+    preferences: {
+      theme: 'dark',
+      viewStyle: 'grid',
+      emailNotifications: true,
+      autoArchiveDays: 30,
+      favoriteGenres: [],
+    },
+    createdAt: '2026-01-01T00:00:00.000Z',
   }),
+  logout: jest.fn().mockResolvedValue(undefined),
 };
 
 export const user = {
-  updatePassword: jest.fn().mockResolvedValue({ message: 'Password updated' }),
-  updateEmail: jest.fn().mockResolvedValue({
-    message: 'Email updated',
-    user: { user_id: '1', email: 'new@example.com', username: 'testuser' },
-    token: 'new-token',
-  }),
-  updateUsername: jest.fn().mockResolvedValue({
-    message: 'Username updated',
-    user: { user_id: '1', email: 'test@example.com', username: 'newusername' },
-    token: 'new-token',
-  }),
-  findByEmail: jest.fn().mockResolvedValue({
-    id: '2',
-    email: 'found@example.com',
-    username: 'founduser',
-  }),
-  updatePreferences: jest
+  updatePassword: jest.fn().mockResolvedValue(undefined),
+  updateEmail: jest.fn().mockResolvedValue({ pending: true }),
+  updateUsername: jest
     .fn()
-    .mockResolvedValue({ message: 'Preferences updated' }),
+    .mockResolvedValue({ id: '1', username: 'newusername' }),
+  updatePreferences: jest.fn().mockResolvedValue({
+    preferences: {
+      theme: 'dark',
+      viewStyle: 'grid',
+      emailNotifications: true,
+      autoArchiveDays: 30,
+      favoriteGenres: [],
+    },
+  }),
 };
 
-export const search = {
-  media: jest.fn().mockResolvedValue([
-    {
-      id: 1,
+export const emailService = {
+  forgotPassword: jest.fn().mockResolvedValue({ sent: true }),
+  resetPassword: jest
+    .fn()
+    .mockResolvedValue({ id: '1', email: 'test@example.com' }),
+  sendEmailVerification: jest.fn().mockResolvedValue({ sent: true }),
+  resendVerification: jest.fn().mockResolvedValue({ sent: true }),
+  verifyEmail: jest.fn().mockResolvedValue({ verified: true }),
+};
+
+export const billing = {
+  getEntitlements: jest.fn().mockResolvedValue({
+    tier: 'free',
+    dailyPickLimit: 1,
+    picksUsedToday: 0,
+    picksRemaining: 1,
+    canUseLlmRerank: false,
+    canUseMultiRegion: false,
+    regionLock: null,
+  }),
+  startCheckout: jest
+    .fn()
+    .mockResolvedValue({ checkoutUrl: 'https://example.com/checkout' }),
+  cancel: jest.fn().mockResolvedValue(undefined),
+  mockActivate: jest.fn().mockResolvedValue({ ok: true }),
+};
+
+export const history = {
+  list: jest.fn().mockResolvedValue({
+    data: [],
+    pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
+  }),
+  setEnjoyed: jest.fn().mockResolvedValue({
+    entry: {
+      id: '1',
+      tmdbId: 1,
+      mediaType: 'movie',
+      watchedAt: '2026-01-01T00:00:00.000Z',
+      enjoyed: true,
+      moodAtPick: null,
+      minutesBudgetAtPick: null,
       title: 'Test Movie',
-      media_type: 'movie',
-      poster_path: '/path.jpg',
-      overview: 'Test overview',
+      year: 2026,
+      posterPath: null,
+      providers: {},
     },
-  ]),
+  }),
 };
 
-export const watchlist = {
-  getAll: jest.fn().mockResolvedValue([
-    {
-      entry_id: '1',
-      user_id: '1',
-      tmdb_id: 1,
-      media_type: 'movie',
-      status: 'to_watch',
-    },
-  ]),
-  add: jest.fn().mockResolvedValue({
-    entry_id: '2',
-    user_id: '1',
-    tmdb_id: 2,
-    media_type: 'tv',
-    status: 'watching',
-  }),
-  update: jest.fn().mockResolvedValue({
-    entry_id: '1',
-    user_id: '1',
-    tmdb_id: 1,
-    media_type: 'movie',
-    status: 'finished',
-  }),
-  getMatches: jest.fn().mockResolvedValue([
-    {
-      tmdb_id: 1,
-      media_type: 'movie',
-      title: 'Matched Movie',
-      user1_status: 'to_watch',
-      user2_status: 'to_watch',
-    },
-  ]),
-};
-
-export const matches = {
-  getAll: jest
-    .fn()
-    .mockResolvedValue([
-      { match_id: '1', user1_id: '1', user2_id: '2', status: 'pending' },
-    ]),
+export const households = {
+  list: jest.fn().mockResolvedValue({ households: [] }),
   create: jest.fn().mockResolvedValue({
-    match_id: '2',
-    user1_id: '1',
-    user2_id: '3',
-    status: 'pending',
+    household: {
+      id: '1',
+      name: null,
+      role: 'owner',
+      joinedAt: '2026-01-01T00:00:00.000Z',
+      memberCount: 1,
+    },
   }),
-  updateStatus: jest.fn().mockResolvedValue({
-    match_id: '1',
-    user1_id: '1',
-    user2_id: '2',
-    status: 'accepted',
+  invite: jest.fn().mockResolvedValue({
+    invite: {
+      id: '1',
+      token: 'invite-token',
+      invitedEmail: null,
+      expiresAt: '2026-01-08T00:00:00.000Z',
+      acceptedAt: null,
+    },
+  }),
+  acceptInvite: jest.fn().mockResolvedValue({ householdId: '1' }),
+  pick: jest.fn().mockResolvedValue({
+    pick: {
+      tmdbId: 1,
+      mediaType: 'movie',
+      title: 'Test Movie',
+      year: 2026,
+      runtime: 100,
+      overview: 'Test overview',
+      posterPath: null,
+      providers: {},
+    },
+    alternates: [],
+    rationale: 'Test rationale',
+    score: 1,
+  }),
+  commit: jest.fn().mockResolvedValue({ id: '1' }),
+  recordPickEvent: jest.fn().mockResolvedValue({ id: '1' }),
+  launchProvider: jest.fn().mockResolvedValue({
+    url: 'https://example.com/watch',
+    providerName: 'Netflix',
+    region: 'US',
   }),
 };

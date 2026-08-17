@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "deploy": "pnpm build && wrangler pages deploy",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -50,6 +51,7 @@
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.0",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "wrangler": "^4.0.0"
   }
 }
