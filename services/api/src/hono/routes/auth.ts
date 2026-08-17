@@ -236,7 +236,7 @@ authRoutes.post('/login', async c => {
 
 	await db
 		.update(users)
-		.set({ failedLoginAttempts: 0, lockedUntil: null, lastLogin: new Date() })
+		.set({ failedLoginAttempts: 0, lockedUntil: null })
 		.where(eq(users.id, user.id));
 
 	if (!user.emailVerified) {
@@ -266,6 +266,22 @@ authRoutes.post('/login', async c => {
 	});
 
 	await startSession(c, db, user.id);
+
+	// Only set once the session actually exists -- best-effort from here on, since the login has
+	// already succeeded (the client already has a session cookie): a failure updating this
+	// bookkeeping column shouldn't turn an otherwise-successful login into a 500. Setting it any
+	// earlier risks the reverse problem this fixes -- a non-null "Last Login" (which the admin CSV
+	// export treats as a real last-successful-login timestamp) even though `startSession` itself
+	// then failed and no session was actually granted.
+	try {
+		await db
+			.update(users)
+			.set({ lastLogin: new Date() })
+			.where(eq(users.id, user.id));
+	} catch (error) {
+		console.error('[auth] failed to update lastLogin', error);
+	}
+
 	return c.json({
 		data: { id: user.id, username: user.username, email: user.email },
 	});
@@ -584,7 +600,7 @@ authRoutes.post('/reset-password', async c => {
  * arbitrary email, so knowing the secret alone isn't enough to take over someone else's account.
  * Adding further admins after the first is a manual `UPDATE users SET role = 'admin' ...`. Note:
  * `requireAdmin` also demands TOTP enrollment, so a freshly-bootstrapped admin still can't reach
- * other admin routes until they enroll via `/auth/2fa/enroll`.
+ * other admin routes until they enroll via `POST /api/me/2fa/enroll`.
  */
 authRoutes.post('/bootstrap-admin', requireAuth, async c => {
 	const secret = c.env.ADMIN_BOOTSTRAP_SECRET;

@@ -33,8 +33,9 @@ export const users = sqliteTable('users', {
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: integer('locked_until', { mode: 'timestamp_ms' }),
   lastLogin: integer('last_login', { mode: 'timestamp_ms' }),
-  /** AES-256-GCM encrypted at rest (see services/api's lib/crypto.ts `encryptSecret`), keyed off
-   * SESSION_SECRET. Required for admin accounts (see middleware/auth.ts `requireAdmin`). */
+  /** AES-256-GCM encrypted at rest (see services/api/src/hono/lib/crypto.ts `encryptSecret`), keyed
+   * off SESSION_SECRET. Required for admin accounts (see
+   * services/api/src/hono/middleware/auth.ts `requireAdmin`). */
   totpSecret: text('totp_secret'),
   totpEnabled: integer('totp_enabled', { mode: 'boolean' })
     .notNull()
