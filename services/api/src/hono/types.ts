@@ -22,6 +22,10 @@ export type Bindings = {
 	 * `LLMUnavailable`, which `lib/recommendation.ts` catches to fall back to the pure-ML pick,
 	 * same "unconfigured is a valid state" degrade as the current Express `llm.service.ts`. */
 	ANTHROPIC_API_KEY?: string;
+	/** Gates `POST /:id/billing/mock-activate` (lib/billing.ts) -- unset means enabled whenever
+	 * `ENVIRONMENT !== 'production'`, same "unconfigured is a valid state" default as the current
+	 * Express `isBillingMockEnabled()`. Set to the literal string `'false'` to hard-disable. */
+	BILLING_MOCK_ENABLED?: string;
 };
 
 /** Request-scoped values set by middleware. */

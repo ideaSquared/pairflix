@@ -14,7 +14,12 @@ import { auditInfo } from '../lib/audit';
 import { hashPassword, timingSafeEqual, verifyPassword } from '../lib/crypto';
 import { sendPasswordResetEmail, sendVerificationEmail } from '../lib/email';
 import { newId, randomToken } from '../lib/id';
-import { endSession, startSession } from '../lib/session';
+import {
+	FAILED_ATTEMPT_LIMIT,
+	LOCKOUT_MS,
+	endSession,
+	startSession,
+} from '../lib/session';
 import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
 import { ipRateLimit } from '../middleware/ip-rate-limit';
@@ -24,9 +29,6 @@ export const authRoutes = new Hono<AppEnv>();
 
 const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
-/** After this many bad attempts in a row, the account is locked out for `LOCKOUT_MS`. */
-const FAILED_ATTEMPT_LIMIT = 5;
-const LOCKOUT_MS = 15 * 60 * 1000;
 /** Per-IP budget for the unauthenticated routes below ('/register', '/forgot-password',
  * '/resend-verification') -- '/login' already has its own account-level lockout above and isn't
  * throttled here. */

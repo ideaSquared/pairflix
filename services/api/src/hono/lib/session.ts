@@ -7,6 +7,14 @@ import type { AppEnv } from '../types';
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** After this many bad login attempts in a row, an account is locked out for `LOCKOUT_MS`. Lives
+ * here (not `routes/auth.ts`, the only place that enforces it) so `lib/adminUsers.ts`'s
+ * locked-accounts view can use the exact same threshold instead of drifting out of sync with it --
+ * the current Express admin panel's locked-accounts list uses a hardcoded `3`, inconsistent with
+ * the real lockout threshold of `5` enforced at login. */
+export const FAILED_ATTEMPT_LIMIT = 5;
+export const LOCKOUT_MS = 15 * 60 * 1000;
+
 export const startSession = async (
 	c: Context<AppEnv>,
 	db: Database,
@@ -51,6 +59,22 @@ export const revokeOtherSessions = async (
 	const result = await db
 		.delete(sessions)
 		.where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)))
+		.returning({ id: sessions.id });
+	return result.length;
+};
+
+/** Deletes every session for a user, including whichever one the caller (an admin) is acting
+ * through -- there's no "keep this one" exception, unlike `revokeOtherSessions`. Used when an
+ * admin suspends/bans an account or explicitly terminates all of a user's sessions; unlike
+ * Express's decorative `UserSession` rows, deleting here takes effect immediately since a Hono
+ * session row is the live credential `sessionMiddleware` looks up on every request. */
+export const revokeAllSessions = async (
+	db: Database,
+	userId: string
+): Promise<number> => {
+	const result = await db
+		.delete(sessions)
+		.where(eq(sessions.userId, userId))
 		.returning({ id: sessions.id });
 	return result.length;
 };

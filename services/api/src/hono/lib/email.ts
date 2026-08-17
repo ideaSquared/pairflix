@@ -71,3 +71,24 @@ export const sendPasswordResetEmail = async (
 		html: `<p>Reset your password:</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
 	});
 };
+
+/** Notifies a user their account status changed at an admin's hand -- suspend/ban/reactivate are
+ * the statuses worth a user-facing explanation; other transitions (e.g. 'pending') don't come
+ * through this admin-initiated path. */
+export const sendAccountStatusEmail = async (
+	env: Bindings,
+	email: string,
+	status: 'active' | 'suspended' | 'banned',
+	reason?: string
+): Promise<void> => {
+	const subject =
+		status === 'active'
+			? 'Your Pairflix account has been reactivated'
+			: `Your Pairflix account has been ${status}`;
+	const reasonHtml = reason ? `<p>Reason: ${reason}</p>` : '';
+	await sendEmail(env, {
+		to: email,
+		subject,
+		html: `<p>${subject}.</p>${reasonHtml}<p>Contact support if you have questions.</p>`,
+	});
+};
