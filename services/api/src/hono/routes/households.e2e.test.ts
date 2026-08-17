@@ -453,7 +453,9 @@ describe('LLM re-rank wiring', () => {
 			cookies
 		);
 		expect(result.status).toBe(200);
-		expect(capturedUrls.some(u => u.includes('api.anthropic.com'))).toBe(false);
+		expect(
+			capturedUrls.some(u => new URL(u).hostname === 'api.anthropic.com')
+		).toBe(false);
 	});
 
 	it('uses the LLM pick and rationale when enabled and premium', async () => {
