@@ -17,8 +17,10 @@
 
 **Built but not delivering value yet** (fix as part of the re-platform, not before):
 
-- **LLM re-rank is dead code** — `llm.service` / `maybeRerank` is fully implemented and unit-tested
-  but never called by the recommender. Wire it in during the API port.
+- **LLM re-rank was dead code on Express** — `llm.service` / `maybeRerank` was fully implemented and
+  unit-tested but never called by the recommender. Wired in as part of the Hono households/pick port
+  (`services/api/src/hono/lib/llm.ts`, `lib/recommendation.ts`); the Express version is still
+  unwired, retired at cutover along with the rest of that tree.
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
   this to one app and fixes it.
@@ -69,8 +71,32 @@ Resend over nodemailer since Workers can't do SMTP). `packages/lib.validation` h
 request schemas. 30 passing `vitest-pool-workers` tests cover register/login/lockout/suspend/ban/
 verify-email/forgot-password/reset-password/bootstrap-admin/2FA/IP rate limiting.
 
-**Pending:** households/pick, providers/history, billing/admin domains; then collapse the two server
-entries into one and cut over.
+**households/pick — done.** `services/api/src/hono/lib/{household,entitlements,featureFlags,
+tasteSummary,llm,pickEvents,recommendation}.ts`, `middleware/{household,entitlements}.ts`,
+`routes/households.ts`. Household CRUD/membership/invites — including accept-invite, which existed
+in Express (`householdInvites.routes.ts`) but was never mounted on the app router, so invites could
+be created but never accepted — plus `POST /:id/pick` and `POST /:id/picks/:tmdbId/commit`, both
+gated by a consolidated `isMember`/`isOwner` check instead of the several separate reimplementations
+in Express. The LLM re-rank is now wired in for real: eligible households (flag on + premium)
+hydrate the top 10 scored candidates instead of 3 and pass them to `maybeRerank`, which validates
+the model's pick against what was actually sent and falls back to the pure-ML top-1 on any failure.
+Also fixes two bugs found while porting: `commit` now records a `pick_events` "accepted" row
+(Express only ever wrote "proposed", silently breaking the first-pick-acceptance-rate KPI), and the
+pick route now checks household membership at all (Express's controller didn't, though its quota
+middleware happened to). `getFinishedTmdbIdsForMembers` (keyed off the deleted `WatchlistEntry`
+table) is dropped rather than ported — the household-level `watchedTogether` exclusion set already
+covers what the pivoted product needs.
+**Known gap, not fixed here:** nothing computes `taste_profiles` rows going forward — Express's only
+writer (`tasteProfile.service.ts`) is itself entirely built on `WatchlistEntry`. The recommender
+degrades gracefully to mood-only genre filtering when a household has no profiles yet (the common
+case pre-launch); deriving weights from `watchedTogether` instead is a real product decision (what
+signal, what decay) left for a follow-up rather than decided inline here.
+15 new `vitest-pool-workers` tests cover CRUD/invites, pick quota/region-lock/provider-filter,
+commit, and the LLM wiring (including the Anthropic-failure fallback) — the pick path returns a
+title end-to-end on Miniflare, meeting this phase's exit criterion for this domain.
+
+**Pending:** providers/history, billing/admin domains; then collapse the two server entries into
+one and cut over.
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 
