@@ -9,13 +9,20 @@ import {
   H2,
   H4,
   Input,
-  Modal,
   Select,
+  Table,
+  TableActionButton,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableHeaderCell,
   Textarea,
   Typography,
 } from '@pairflix/components';
 import React, {
   type ChangeEvent,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -176,6 +183,35 @@ const ContentModerationContent: React.FC = () => {
     }
   }, [errorMessage]);
 
+  // Close on Escape -- these are hand-rolled dialogs (see CreateUserModal.tsx),
+  // not the shared Modal, so this isn't provided for free.
+  useEffect(() => {
+    if (!showRemoveModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowRemoveModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showRemoveModal]);
+
+  useEffect(() => {
+    if (!showEditModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowEditModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showEditModal]);
+
+  useEffect(() => {
+    if (!showReportsModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowReportsModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showReportsModal]);
+
   // Memoized event handlers to prevent unnecessary re-renders
   const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -222,6 +258,24 @@ const ContentModerationContent: React.FC = () => {
     setContentToRemove(content);
     setRemovalReason('');
     setShowRemoveModal(true);
+  }, []);
+
+  const handleEditContent = useCallback((content: ContentItem) => {
+    setContentToEdit(content);
+    setShowEditModal(true);
+  }, []);
+
+  const handleReviewReports = useCallback(async (content: ContentItem) => {
+    setContentToReview(content);
+    setReports([]);
+    setShowReportsModal(true);
+    try {
+      const fetchedReports = await admin.content.reports(content.id);
+      setReports(fetchedReports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setErrorMessage('Failed to load reports. Please try again.');
+    }
   }, []);
 
   // Memoized report dismissal
@@ -341,6 +395,26 @@ const ContentModerationContent: React.FC = () => {
     []
   );
 
+  // Memoized status variant function
+  const getContentStatusVariant = useMemo(
+    () =>
+      (
+        status: string
+      ): 'error' | 'warning' | 'info' | 'success' | 'default' => {
+        switch (status) {
+          case 'active':
+            return 'success';
+          case 'pending':
+            return 'warning';
+          case 'flagged':
+            return 'error';
+          default:
+            return 'default';
+        }
+      },
+    []
+  );
+
   // Memoized filtered content for better performance
   const filteredContent = useMemo(() => {
     return contentItems; // Already filtered by server-side API
@@ -448,7 +522,68 @@ const ContentModerationContent: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Optimized content grid rendering would go here */}
+              <TableContainer>
+                <Table aria-label="Flagged content">
+                  <TableHead>
+                    <tr>
+                      <TableHeaderCell>Title</TableHeaderCell>
+                      <TableHeaderCell>Type</TableHeaderCell>
+                      <TableHeaderCell>Status</TableHeaderCell>
+                      <TableHeaderCell>Reports</TableHeaderCell>
+                      <TableHeaderCell>Created</TableHeaderCell>
+                      <TableHeaderCell>Actions</TableHeaderCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {filteredContent.map(item => (
+                      <tr key={item.id}>
+                        <TableCell>{item.title}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={styles.contentTypeBadge}
+                            variant={getContentTypeVariant(item.type)}
+                          >
+                            {item.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={styles.contentTypeBadge}
+                            variant={getContentStatusVariant(item.status)}
+                          >
+                            {item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.reportedCount}</TableCell>
+                        <TableCell>
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Flex gap="sm">
+                            <TableActionButton
+                              onClick={() => handleEditContent(item)}
+                            >
+                              Edit
+                            </TableActionButton>
+                            <TableActionButton
+                              variant="danger"
+                              onClick={() => handleRemoveContent(item)}
+                            >
+                              Remove
+                            </TableActionButton>
+                            <TableActionButton
+                              onClick={() => handleReviewReports(item)}
+                            >
+                              Review Reports
+                            </TableActionButton>
+                          </Flex>
+                        </TableCell>
+                      </tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
               <Typography variant="body2" className={styles.resultsCount}>
                 Showing {filteredContent.length} items (Page {page} of{' '}
                 {totalPages})
@@ -488,228 +623,270 @@ const ContentModerationContent: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Remove Content Modal */}
-      <Modal
-        isOpen={showRemoveModal}
-        onClose={() => setShowRemoveModal(false)}
-        title="Remove Content"
-      >
-        <Typography gutterBottom>
-          Are you sure you want to remove{' '}
-          <strong>{contentToRemove?.title}</strong>? This will make the content
-          unavailable to users.
-        </Typography>
-
-        <div style={{ marginBottom: '16px', marginTop: '16px' }}>
-          <label
-            htmlFor="removal-reason"
-            style={{ display: 'block', marginBottom: '8px' }}
+      {/* Remove Content Modal -- hand-rolled, see CreateUserModal.tsx */}
+      {showRemoveModal && (
+        <div className={styles.dialogOverlay}>
+          <div
+            className={styles.dialogContent}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-content-title"
           >
-            Reason for Removal
-          </label>{' '}
-          <Textarea
-            id="removal-reason"
-            rows={3}
-            value={removalReason}
-            onChange={e => setRemovalReason(e.target.value)}
-            placeholder="Explain why this content is being removed"
-            isFullWidth
-          />
-        </div>
+            <h3 id="remove-content-title" className={styles.dialogTitle}>
+              Remove Content
+            </h3>
 
-        <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
-          <Button variant="secondary" onClick={() => setShowRemoveModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmRemoveContent}>
-            Remove Content
-          </Button>
-        </Flex>
-      </Modal>
+            <Typography gutterBottom>
+              Are you sure you want to remove{' '}
+              <strong>{contentToRemove?.title}</strong>? This will make the
+              content unavailable to users.
+            </Typography>
 
-      {/* Edit Content Modal */}
-      {contentToEdit && (
-        <Modal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          title="Edit Content"
-        >
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              if (contentToEdit) saveContentChanges(contentToEdit);
-            }}
-          >
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '16px', marginTop: '16px' }}>
               <label
-                htmlFor="content-title"
+                htmlFor="removal-reason"
                 style={{ display: 'block', marginBottom: '8px' }}
               >
-                Title
-              </label>
-              <Input
-                id="content-title"
-                value={contentToEdit.title}
-                onChange={e =>
-                  setContentToEdit({ ...contentToEdit, title: e.target.value })
-                }
+                Reason for Removal
+              </label>{' '}
+              <Textarea
+                id="removal-reason"
+                rows={3}
+                value={removalReason}
+                onChange={e => setRemovalReason(e.target.value)}
+                placeholder="Explain why this content is being removed"
                 isFullWidth
               />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label
-                htmlFor="content-status"
-                style={{ display: 'block', marginBottom: '8px' }}
-              >
-                Status
-              </label>
-              <Select
-                id="content-status"
-                value={contentToEdit.status}
-                onChange={e =>
-                  setContentToEdit({
-                    ...contentToEdit,
-                    status: e.target.value as ContentItem['status'],
-                  })
-                }
-                isFullWidth
-              >
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="flagged">Flagged</option>
-                <option value="removed">Removed</option>
-              </Select>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <Typography className={styles.fieldLabel}>
-                Content Type:
-              </Typography>
-              <Badge
-                className={styles.contentTypeBadge}
-                variant={getContentTypeVariant(contentToEdit.type)}
-              >
-                {contentToEdit.type}
-              </Badge>
-              <Typography className={styles.contentTypeHint}>
-                Content type cannot be changed
-              </Typography>
             </div>
 
             <Flex justifyContent="end" gap="md" className={styles.modalFooter}>
               <Button
                 variant="secondary"
-                onClick={() => setShowEditModal(false)}
+                onClick={() => setShowRemoveModal(false)}
               >
                 Cancel
               </Button>
-              <Button variant="primary" type="submit">
-                Save Changes
+              <Button variant="danger" onClick={confirmRemoveContent}>
+                Remove Content
               </Button>
             </Flex>
-          </form>
-        </Modal>
+          </div>
+        </div>
       )}
 
-      {/* Review Reports Modal */}
-      <Modal
-        isOpen={showReportsModal}
-        onClose={() => setShowReportsModal(false)}
-        title="Review Reports"
-      >
-        {contentToReview && (
-          <>
-            <div style={{ marginBottom: '20px' }}>
-              <H4 gutterBottom>
-                {contentToReview.title}{' '}
+      {/* Edit Content Modal -- hand-rolled, see CreateUserModal.tsx */}
+      {showEditModal && contentToEdit && (
+        <div className={styles.dialogOverlay}>
+          <div
+            className={styles.dialogContent}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-content-title"
+          >
+            <h3 id="edit-content-title" className={styles.dialogTitle}>
+              Edit Content
+            </h3>
+
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                if (contentToEdit) saveContentChanges(contentToEdit);
+              }}
+            >
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  htmlFor="content-title"
+                  style={{ display: 'block', marginBottom: '8px' }}
+                >
+                  Title
+                </label>
+                <Input
+                  id="content-title"
+                  value={contentToEdit.title}
+                  onChange={e =>
+                    setContentToEdit({
+                      ...contentToEdit,
+                      title: e.target.value,
+                    })
+                  }
+                  isFullWidth
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  htmlFor="content-status"
+                  style={{ display: 'block', marginBottom: '8px' }}
+                >
+                  Status
+                </label>
+                <Select
+                  id="content-status"
+                  value={contentToEdit.status}
+                  onChange={e =>
+                    setContentToEdit({
+                      ...contentToEdit,
+                      status: e.target.value as ContentItem['status'],
+                    })
+                  }
+                  isFullWidth
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="flagged">Flagged</option>
+                  <option value="removed">Removed</option>
+                </Select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <Typography className={styles.fieldLabel}>
+                  Content Type:
+                </Typography>
                 <Badge
                   className={styles.contentTypeBadge}
-                  variant={getContentTypeVariant(contentToReview.type)}
+                  variant={getContentTypeVariant(contentToEdit.type)}
                 >
-                  {contentToReview.type}
+                  {contentToEdit.type}
                 </Badge>
-              </H4>
-              <Typography>
-                This content has been reported {contentToReview.reportedCount}{' '}
-                times
-              </Typography>
-            </div>
+                <Typography className={styles.contentTypeHint}>
+                  Content type cannot be changed
+                </Typography>
+              </div>
 
-            {reports.length === 0 ? (
-              <Typography>No active reports found for this content.</Typography>
-            ) : (
+              <Flex
+                justifyContent="end"
+                gap="md"
+                className={styles.modalFooter}
+              >
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button variant="primary" type="submit">
+                  Save Changes
+                </Button>
+              </Flex>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review Reports Modal -- hand-rolled, see CreateUserModal.tsx */}
+      {showReportsModal && (
+        <div className={styles.dialogOverlay}>
+          <div
+            className={styles.dialogContent}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-reports-title"
+          >
+            <h3 id="review-reports-title" className={styles.dialogTitle}>
+              Review Reports
+            </h3>
+
+            {contentToReview && (
               <>
                 <div style={{ marginBottom: '20px' }}>
-                  <Typography className={styles.subHeading} gutterBottom>
-                    Reports
+                  <H4 gutterBottom>
+                    {contentToReview.title}{' '}
+                    <Badge
+                      className={styles.contentTypeBadge}
+                      variant={getContentTypeVariant(contentToReview.type)}
+                    >
+                      {contentToReview.type}
+                    </Badge>
+                  </H4>
+                  <Typography>
+                    This content has been reported{' '}
+                    {contentToReview.reportedCount} times
                   </Typography>
-                  {reports.map((report: ReportItem) => (
-                    <Card className={styles.styledCard} key={report.id}>
-                      <Flex justifyContent="space-between" alignItems="start">
-                        <div>
-                          <Typography className={styles.reporterName}>
-                            Reported by: {report.reporterUsername} on{' '}
-                            {new Date(report.createdAt).toLocaleDateString()}
-                          </Typography>
-                          <Typography className={styles.reportMeta}>
-                            Reason: {report.reason}
-                          </Typography>
-                          {report.details && (
-                            <Typography className={styles.reportMeta}>
-                              Details: {report.details}
-                            </Typography>
-                          )}
-                        </div>
-                        <Button
-                          variant="secondary"
-                          size="small"
-                          onClick={() => dismissReport(report.id)}
-                        >
-                          Dismiss Report
-                        </Button>
-                      </Flex>
-                    </Card>
-                  ))}
                 </div>
 
-                <Flex justifyContent="space-between" gap="md">
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      handleRemoveContent(contentToReview);
-                      setShowReportsModal(false);
-                    }}
-                  >
-                    Remove Content
-                  </Button>
-                  <Flex gap="md">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowReportsModal(false)}
-                    >
-                      Close
-                    </Button>
-                    {contentToReview.status !== 'active' && (
+                {reports.length === 0 ? (
+                  <Typography>
+                    No active reports found for this content.
+                  </Typography>
+                ) : (
+                  <>
+                    <div style={{ marginBottom: '20px' }}>
+                      <Typography className={styles.subHeading} gutterBottom>
+                        Reports
+                      </Typography>
+                      {reports.map((report: ReportItem) => (
+                        <Card className={styles.styledCard} key={report.id}>
+                          <Flex
+                            justifyContent="space-between"
+                            alignItems="start"
+                          >
+                            <div>
+                              <Typography className={styles.reporterName}>
+                                Reported by: {report.reporterUsername} on{' '}
+                                {new Date(
+                                  report.createdAt
+                                ).toLocaleDateString()}
+                              </Typography>
+                              <Typography className={styles.reportMeta}>
+                                Reason: {report.reason}
+                              </Typography>
+                              {report.details && (
+                                <Typography className={styles.reportMeta}>
+                                  Details: {report.details}
+                                </Typography>
+                              )}
+                            </div>
+                            <Button
+                              variant="secondary"
+                              size="small"
+                              onClick={() => dismissReport(report.id)}
+                            >
+                              Dismiss Report
+                            </Button>
+                          </Flex>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <Flex justifyContent="space-between" gap="md">
                       <Button
-                        variant="primary"
+                        variant="danger"
                         onClick={() => {
-                          approveContent(contentToReview);
+                          handleRemoveContent(contentToReview);
                           setShowReportsModal(false);
                         }}
                       >
-                        Approve Content
+                        Remove Content
                       </Button>
-                    )}
-                  </Flex>
-                </Flex>
+                      <Flex gap="md">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setShowReportsModal(false)}
+                        >
+                          Close
+                        </Button>
+                        {contentToReview.status !== 'active' && (
+                          <Button
+                            variant="primary"
+                            onClick={() => {
+                              approveContent(contentToReview);
+                              setShowReportsModal(false);
+                            }}
+                          >
+                            Approve Content
+                          </Button>
+                        )}
+                      </Flex>
+                    </Flex>
+                  </>
+                )}
               </>
             )}
-          </>
-        )}
-      </Modal>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default React.memo(ContentModerationContent);
+export default memo(ContentModerationContent);

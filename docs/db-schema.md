@@ -1,11 +1,11 @@
 # Database schema
 
-> **Implemented (P2, ADR 0001).** Pairflix's target database schema is now authored in **D1 (SQLite)
-> via Drizzle**. The source of truth is `packages/db/src/schema.ts` — this document mirrors it in
-> prose. `services/api` still runs on Express/Sequelize/Postgres against the _old_ schema until the
-> API port (P3) lands; the D1 schema below is authored and migratable today, but nothing reads or
-> writes it yet — the production runtime hasn't switched. The old Postgres DDL is preserved in git
-> history if you need it.
+> **Implemented (ADR 0001).** Pairflix's database is **D1 (SQLite) via Drizzle** — the re-platform off
+> Express/Sequelize/Postgres is code-complete (`docs/roadmap.md` tracks phase history). The source of
+> truth is `packages/db/src/schema.ts`; this document mirrors it in prose. Provisioning a real D1
+> database in a Cloudflare account (and an actual `wrangler deploy`) is the remaining step, documented
+> as a known gap in `docs/dev-setup.md` — `--local` migrations against Miniflare work today. The old
+> Postgres DDL is preserved in git history if you need it.
 
 ## Overview
 
@@ -229,6 +229,7 @@ export const content = sqliteTable(
     mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
     posterPath: text('poster_path'),
+    genreIds: text('genre_ids', { mode: 'json' }).$type<number[]>(),
     reportedCount: integer('reported_count').notNull().default(0),
     removalReason: text('removal_reason'),
     providers: text('providers', { mode: 'json' })
@@ -278,6 +279,13 @@ instead of a plain find-then-create, closing a duplicate-row race under concurre
 the same title. It also gives `lib/history.ts`'s join something correct to match on -- joining on
 `tmdbId` alone (a movie and a TV show can share a numeric TMDb id) risked attaching the wrong
 title/poster to a watched-together row.
+
+`genreIds` (nullable `number[]`, `0003_content_genre_ids.sql`) caches TMDb's `genres[].id` list for
+the title, keyed by the same `(tmdbId, mediaType)` `idx_content_tmdb_media_type` already covers --
+no new index. Populated by `lib/providers.ts`'s `cacheContentDetails` alongside title/year/poster,
+from the same `getMovieFullDetails`/`getTVFullDetails` call it already makes. `lib/tasteRecompute.ts`
+reads it (read-through: calling `cacheContentDetails` first on a miss) to know which genres to nudge
+when a watched-together rating comes in.
 
 ## Freemium
 
@@ -402,11 +410,6 @@ into D1 — nothing to preserve or backfill. Dropped: `matches`, `watchlist_entr
 `watched_together` thumbs. The personal watchlist is **not** a taste input, so `watchlist_entries` is
 dropped with the rest of the legacy schema. A lightweight "save for tonight" list may return later as a
 convenience, but the recommender won't depend on it.
-
-**Deferred to the API port (P3), not part of this schema yet:** a D1-backed rate-limit table
-(creatorgrid's `rate_limit_hits` pattern) — the current Express app uses in-memory `express-rate-limit`,
-which has nothing to migrate; the D1-backed middleware and its table land together when the API moves
-to Hono.
 
 ## Migrations
 

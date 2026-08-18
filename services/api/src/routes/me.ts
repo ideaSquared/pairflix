@@ -23,6 +23,7 @@ import {
 	hashPassword,
 	verifyPassword,
 } from '../lib/crypto';
+import { isUniqueConstraintViolation } from '../lib/dbErrors';
 import { sendVerificationEmail } from '../lib/email';
 import { randomToken } from '../lib/id';
 import { revokeOtherSessions } from '../lib/session';
@@ -195,12 +196,25 @@ meRoutes.patch('/username', async c => {
 		return c.json({ error: 'username_taken' }, 409);
 	}
 
-	const updated = await db
-		.update(users)
-		.set({ username: parsed.data.username, updatedAt: new Date() })
-		.where(eq(users.id, userId))
-		.returning({ id: users.id, username: users.username })
-		.get();
+	// The check above isn't atomic with this write -- a concurrent request can still claim
+	// `username` in between. Drizzle's SQLite update builder has no onConflictDoNothing (that's
+	// insert-only, see '/register' above), so the write itself is guarded by catching the
+	// underlying unique-constraint violation instead, same intent as '/verify-email's re-check
+	// immediately before its write: a genuine race must 409, not throw past this handler.
+	let updated: { id: string; username: string } | undefined;
+	try {
+		updated = await db
+			.update(users)
+			.set({ username: parsed.data.username, updatedAt: new Date() })
+			.where(eq(users.id, userId))
+			.returning({ id: users.id, username: users.username })
+			.get();
+	} catch (error) {
+		if (isUniqueConstraintViolation(error)) {
+			return c.json({ error: 'username_taken' }, 409);
+		}
+		throw error;
+	}
 	if (!updated) return c.json({ error: 'Not found' }, 404);
 
 	await auditInfo(db, 'Username changed', 'auth', { userId });

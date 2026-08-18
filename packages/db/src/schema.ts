@@ -231,6 +231,7 @@ export const content = sqliteTable(
     mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
     posterPath: text('poster_path'),
+    genreIds: text('genre_ids', { mode: 'json' }).$type<number[]>(),
     reportedCount: integer('reported_count').notNull().default(0),
     removalReason: text('removal_reason'),
     providers: text('providers', { mode: 'json' })

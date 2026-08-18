@@ -184,13 +184,23 @@ adminRoutes.patch('/users/:userId', async c => {
 	}
 	const db = createDb(c.env.DB);
 	const userId = c.req.param('userId');
-	const user = await updateUser(db, userId, parsed.data);
-	if (!user) return c.json({ error: 'user_not_found' }, 404);
-	await auditInfo(db, 'Admin updated user', 'admin', {
-		userId,
-		changes: parsed.data,
-	});
-	return c.json(user);
+	try {
+		const user = await updateUser(db, userId, parsed.data);
+		if (!user) return c.json({ error: 'user_not_found' }, 404);
+		await auditInfo(db, 'Admin updated user', 'admin', {
+			userId,
+			changes: parsed.data,
+		});
+		return c.json(user);
+	} catch (error) {
+		if (error instanceof EmailTakenError) {
+			return c.json({ error: 'email_taken' }, 409);
+		}
+		if (error instanceof UsernameTakenError) {
+			return c.json({ error: 'username_taken' }, 409);
+		}
+		throw error;
+	}
 });
 
 adminRoutes.delete('/users/:userId', async c => {

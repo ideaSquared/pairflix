@@ -1,6 +1,7 @@
 import { users, sessions, authTokens, type Database } from '@pairflix/db';
 import { and, asc, count, desc, eq, gte, like, or } from 'drizzle-orm';
 import { hashPassword } from './crypto';
+import { isUniqueConstraintViolation } from './dbErrors';
 import { newId, randomToken } from './id';
 import { FAILED_ATTEMPT_LIMIT, revokeAllSessions } from './session';
 
@@ -205,14 +206,54 @@ export const updateUser = async (
 		status: AdminUserSummary['status'];
 	}>
 ): Promise<AdminUserSummary | null> => {
-	const updated = await db
-		.update(users)
-		.set({ ...input, updatedAt: new Date() })
-		.where(eq(users.id, userId))
-		.returning(adminUserColumns)
-		.get();
-	return updated ?? null;
+	if (input.email) {
+		const existingEmail = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.email, input.email))
+			.get();
+		if (existingEmail && existingEmail.id !== userId)
+			throw new EmailTakenError();
+	}
+	if (input.username) {
+		const existingUsername = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.username, input.username))
+			.get();
+		if (existingUsername && existingUsername.id !== userId)
+			throw new UsernameTakenError();
+	}
+
+	// The checks above narrow the common case but aren't atomic with the write below -- a
+	// concurrent register/update can still claim the same email/username in between. Falls back
+	// to inspecting the DB-level unique-constraint violation (same convention as
+	// routes/me.ts's username-update handler) rather than letting it surface as a 500.
+	try {
+		const updated = await db
+			.update(users)
+			.set({ ...input, updatedAt: new Date() })
+			.where(eq(users.id, userId))
+			.returning(adminUserColumns)
+			.get();
+		return updated ?? null;
+	} catch (error) {
+		if (!isUniqueConstraintViolation(error)) throw error;
+		const message = constraintErrorMessage(error);
+		if (input.email && message.includes('users.email')) {
+			throw new EmailTakenError();
+		}
+		if (input.username && message.includes('users.username')) {
+			throw new UsernameTakenError();
+		}
+		throw error;
+	}
 };
+
+const constraintErrorMessage = (error: unknown): string =>
+	error instanceof Error
+		? `${error.message} ${constraintErrorMessage(error.cause)}`
+		: '';
 
 export const deleteUser = async (
 	db: Database,

@@ -21,7 +21,13 @@ app.use(
 				.split(',')
 				.map(value => value.trim())
 				.filter(Boolean);
-			if (allowed.length === 0) return origin;
+			// Fail closed: an empty allowlist must grant no origin, not reflect whatever Origin the
+			// caller sent (that combined with credentials: true is a reflected-origin CORS
+			// anti-pattern). Returning undefined tells hono/cors to omit
+			// Access-Control-Allow-Origin entirely. Local dev is unaffected -- the Vite proxy makes
+			// client requests same-origin, so the browser never consults this header for them (see
+			// .dev.vars.example's ALLOWED_ORIGINS comment).
+			if (allowed.length === 0) return undefined;
 			return allowed.includes(origin) ? origin : (allowed[0] ?? '');
 		},
 		credentials: true,

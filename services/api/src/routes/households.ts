@@ -39,6 +39,7 @@ import {
 	commitPick,
 	pickForHousehold,
 } from '../lib/recommendation';
+import { recomputeTasteFromRating } from '../lib/tasteRecompute';
 import {
 	enforcePickQuota,
 	enforceRegionLock,
@@ -223,6 +224,7 @@ householdsRoutes.post(
 
 		const db = createDb(c.env.DB);
 		const result = await commitPick(
+			c.env,
 			db,
 			householdId,
 			userId,
@@ -297,6 +299,21 @@ householdsRoutes.patch(
 			region
 		);
 		if (!entry) return c.json({ error: 'Not found' }, 404);
+
+		if (parsed.data.enjoyed !== null) {
+			c.executionCtx.waitUntil(
+				recomputeTasteFromRating(
+					c.env,
+					db,
+					householdId,
+					entry.tmdbId,
+					entry.mediaType,
+					parsed.data.enjoyed
+				).catch(err => {
+					console.warn('[households] failed to recompute taste profile', err);
+				})
+			);
+		}
 		return c.json({ entry });
 	}
 );

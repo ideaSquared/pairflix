@@ -84,14 +84,28 @@ authRoutes.post('/register', registerRateLimit, async c => {
 
 	const userId = newId('user');
 	const now = new Date();
-	await db.insert(users).values({
-		id: userId,
-		username: parsed.data.username,
-		email: parsed.data.email,
-		passwordHash: await hashPassword(parsed.data.password),
-		createdAt: now,
-		updatedAt: now,
-	});
+	// The two checks above narrow the common case but aren't atomic with this insert -- a
+	// concurrent registration for the same email/username can still slip through between them.
+	// onConflictDoNothing (same convention as lib/household.ts's acceptInvite) makes the insert
+	// itself the source of truth: if it silently no-ops, a genuine race just happened.
+	const inserted = await db
+		.insert(users)
+		.values({
+			id: userId,
+			username: parsed.data.username,
+			email: parsed.data.email,
+			passwordHash: await hashPassword(parsed.data.password),
+			createdAt: now,
+			updatedAt: now,
+		})
+		.onConflictDoNothing()
+		.returning({ id: users.id });
+	if (inserted.length === 0) {
+		return c.json(
+			{ error: 'That email or username is already registered' },
+			409
+		);
+	}
 
 	const verifyToken = randomToken();
 	await db.insert(authTokens).values({
@@ -216,7 +230,9 @@ authRoutes.post('/login', async c => {
 
 	if (user.totpEnabled) {
 		if (!parsed.data.totpCode) {
-			await recordFailure(user);
+			// Password already verified above -- this isn't a bad-credentials attempt, so it must
+			// not count toward the lockout (recordFailure below is for wrong passwords elsewhere in
+			// this handler).
 			return c.json({ error: 'TOTP code required' }, 401);
 		}
 		const result = await verifySecondFactor(

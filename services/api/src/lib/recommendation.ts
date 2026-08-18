@@ -18,6 +18,7 @@ import {
 	type LlmTasteProfile,
 } from './llm';
 import { recordPickEvent } from './pickEvents';
+import { cacheContentDetails, getCachedProviders } from './providers';
 import { summariseTasteProfile } from './tasteSummary';
 import {
 	discoverMedia,
@@ -53,13 +54,12 @@ import {
  *   `isLlmRerankEnabledForHousehold`, with a validated fall-through to the pure-ML top-1 pick
  *   whenever it's disabled, ineligible, or fails.
  *
- * Known, out-of-scope gap: nothing in this port computes `taste_profiles` rows going forward (the
- * Express `tasteProfile.service.ts` `recompute*` functions are entirely built on the same
- * `WatchlistEntry` table being deleted, so there's no straight port). `pickForHousehold` only
- * reads whatever taste profiles already exist; `mergeProfiles` degrades to mood-only genre
- * filtering when a household has none, which is the common case pre-launch. Deriving taste
- * weights from `watchedTogether` instead is a real product decision (what signal, what decay)
- * left for a follow-up rather than decided inline here.
+ * `taste_profiles` gets its first writer from `lib/tasteRecompute.ts`: a watched-together thumbs
+ * rating (`PATCH /:id/history/:watchedId`) nudges every current member's genre weights via an EMA.
+ * `pickForHousehold` still only reads whatever exists here; `mergeProfiles` still degrades to
+ * mood-only genre filtering for a household with no ratings yet, which remains the common case
+ * until ratings accumulate. `runtime_pref`/`era`/`tone` still have no writer -- deriving those from
+ * `watchedTogether` (what signal, what decay) remains a follow-up, not decided here.
  */
 
 export class HouseholdNotFoundError extends Error {
@@ -276,16 +276,20 @@ const hydrate = async (
 		runtime = null;
 	}
 
+	// Fetched unconditionally -- this is display data for the returned card, independent of
+	// whether the caller also wants to filter candidates down to a provider subset below.
 	let providers: RegionProviders = {};
-	if (providersFilter && providersFilter.length > 0) {
-		try {
-			providers = await getWatchProviders(env, item.id, mediaType, region);
-		} catch {
-			providers = {};
-		}
-		if (!providersMatch(providers, providersFilter)) {
-			return null;
-		}
+	try {
+		providers = await getWatchProviders(env, item.id, mediaType, region);
+	} catch {
+		providers = {};
+	}
+	if (
+		providersFilter &&
+		providersFilter.length > 0 &&
+		!providersMatch(providers, providersFilter)
+	) {
+		return null;
 	}
 
 	return {
@@ -472,6 +476,7 @@ export const pickForHousehold = async (
 };
 
 export const commitPick = async (
+	env: Bindings,
 	db: Database,
 	householdId: string,
 	userId: string,
@@ -479,24 +484,34 @@ export const commitPick = async (
 	request: CommitPickRequest
 ): Promise<{ id: string }> => {
 	const id = newId('watchedtogether');
-	await db.insert(watchedTogether).values({
-		id,
-		householdId,
-		tmdbId,
-		mediaType: request.mediaType,
-		watchedAt: new Date(),
-		enjoyed: null,
-		moodAtPick: request.mood ?? null,
-		minutesBudgetAtPick: request.minutes ?? null,
-	});
-	await recordPickEvent(db, {
-		householdId,
-		userId,
-		tmdbId,
-		mediaType: request.mediaType,
-		kind: 'accepted',
-		mood: request.mood ?? null,
-		minutesBudget: request.minutes ?? null,
-	});
+	await Promise.all([
+		db.insert(watchedTogether).values({
+			id,
+			householdId,
+			tmdbId,
+			mediaType: request.mediaType,
+			watchedAt: new Date(),
+			enjoyed: null,
+			moodAtPick: request.mood ?? null,
+			minutesBudgetAtPick: request.minutes ?? null,
+		}),
+		recordPickEvent(db, {
+			householdId,
+			userId,
+			tmdbId,
+			mediaType: request.mediaType,
+			kind: 'accepted',
+			mood: request.mood ?? null,
+			minutesBudget: request.minutes ?? null,
+		}),
+		// Populates/refreshes the `content` cache row (providers, then title/year/poster) for this
+		// title -- previously only `lib/providerLaunch.ts` and `GET /api/providers/:tmdbId` ever
+		// wrote to `content`, so a pick committed without either happening first left
+		// `lib/history.ts`'s join with nothing to return. Both calls are best-effort and never
+		// throw; they write disjoint columns, so the order between them doesn't matter (see
+		// `cacheContentDetails`'s doc comment).
+		getCachedProviders(env, db, tmdbId, request.mediaType),
+		cacheContentDetails(env, db, tmdbId, request.mediaType),
+	]);
 	return { id };
 };

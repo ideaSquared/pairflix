@@ -1,9 +1,11 @@
 import { env } from 'cloudflare:workers';
 import { createDb, settings, subscriptions } from '@pairflix/db';
 import { afterEach, describe, expect, it } from 'vitest';
+import { GENRE_NAMES } from '../lib/genres';
 import {
 	callApp,
 	createLoggedInUser,
+	getCsrfToken,
 	postJson,
 	type Cookies,
 } from '../test/test-helpers';
@@ -127,6 +129,10 @@ const mockExternalApis = (
 					poster_path: movie.poster_path,
 					runtime: movie.runtime,
 					release_date: movie.release_date,
+					genres: movie.genre_ids.map(id => ({
+						id,
+						name: GENRE_NAMES[id] ?? 'Unknown',
+					})),
 				});
 			}
 			const providers = /^\/3\/movie\/(\d+)\/watch\/providers$/.exec(pathname);
@@ -205,6 +211,23 @@ const makePremiumWithLlmRerank = async (householdId: string): Promise<void> => {
 			target: settings.key,
 			set: { value: true, updatedAt: now },
 		});
+};
+
+/** Polls until `query` returns a truthy row or `timeoutMs` elapses. `recomputeTasteFromRating`
+ * (lib/tasteRecompute.ts) runs via `waitUntil` -- fire-and-forget, matching
+ * `recordPickEvent`/`reserveDailyPick`'s release -- so unlike a direct `await`ed write, its D1
+ * write isn't guaranteed to have landed the instant the triggering request's response resolves. */
+const waitForRow = async <T>(
+	query: () => Promise<T | null | undefined>,
+	timeoutMs = 2000
+): Promise<T> => {
+	const deadline = Date.now() + timeoutMs;
+	for (;;) {
+		const row = await query();
+		if (row) return row;
+		if (Date.now() >= deadline) throw new Error('Timed out waiting for row');
+		await new Promise(resolve => setTimeout(resolve, 25));
+	}
 };
 
 describe('household CRUD + invites', () => {
@@ -347,6 +370,52 @@ describe('POST /api/households/:id/pick', () => {
 		expect(exceeded.body.error).toBe('pick_quota_exceeded');
 	});
 
+	it('allows at most one success when two picks race with one remaining', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		for (let i = 0; i < 2; i++) {
+			mockExternalApis(DEFAULT_MOVIES);
+			const ok = await postJson(
+				`/api/households/${householdId}/pick`,
+				{ mood: 'funny', minutes: 120 },
+				cookies
+			);
+			expect(ok.status).toBe(200);
+		}
+
+		// Exactly 1 of the free tier's 3 daily picks remains. Fire two requests genuinely
+		// concurrently (same pre-seeded CSRF cookie/token, no sequential await between them) to
+		// exercise the race a sequential loop can't reach -- the quota check must be atomic with the
+		// usage write, not a read-then-later-write, or both could pass the check before either write
+		// lands.
+		mockExternalApis(DEFAULT_MOVIES);
+		const seeded = await getCsrfToken(cookies);
+		const raceInit = {
+			method: 'POST' as const,
+			headers: {
+				'Content-Type': 'application/json',
+				'x-csrf-token': seeded.csrfToken,
+			},
+			body: JSON.stringify({ mood: 'funny', minutes: 120 }),
+			cookies: seeded.cookies,
+		};
+		const [first, second] = await Promise.all([
+			callApp(`/api/households/${householdId}/pick`, raceInit),
+			callApp(`/api/households/${householdId}/pick`, raceInit),
+		]);
+
+		const statuses = [first.status, second.status].sort((a, b) => a - b);
+		expect(statuses).toEqual([200, 402]);
+
+		const picksToday = await env.DB.prepare(
+			'SELECT COUNT(*) as total FROM pick_usage WHERE household_id = ?1'
+		)
+			.bind(householdId)
+			.first<{ total: number }>();
+		expect(picksToday?.total).toBe(3);
+	});
+
 	it('silently overrides the region to the free-tier lock', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
@@ -378,6 +447,34 @@ describe('POST /api/households/:id/pick', () => {
 		);
 		expect(result.status).toBe(200);
 		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+	});
+
+	it('fetches provider data for display even without a providers filter', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const result = await postJson<{
+			pick: {
+				tmdbId: number;
+				providers: { flatrate?: Array<{ provider_name: string }> };
+			};
+		}>(
+			`/api/households/${householdId}/pick`,
+			// No `providers` filter at all -- excluding A and C leaves B (the only mocked movie with
+			// provider data) as the sole candidate, so the pick is deterministic without a filter.
+			{
+				mood: 'funny',
+				minutes: 120,
+				excludeTmdbIds: [MOVIE_A.id, MOVIE_C.id],
+			},
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+		expect(result.body.pick.providers.flatrate?.[0]?.provider_name).toBe(
+			'Netflix'
+		);
 	});
 
 	it('returns 404 when every candidate is excluded', async () => {
@@ -416,6 +513,7 @@ describe('POST /api/households/:id/picks/:tmdbId/commit', () => {
 		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		const result = await postJson<{ recorded: boolean; id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
@@ -540,13 +638,10 @@ describe('GET /api/households/:id/history', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		// No prior `GET /api/providers/:tmdbId` or `/launch` call -- committing a pick must populate
+		// `content` (title + providers) on its own via `commitPick`, not rely on some other route
+		// having touched this title first.
 		mockExternalApis(DEFAULT_MOVIES);
-		const providersLookup = await callApp(
-			`/api/providers/${MOVIE_B.id}?mediaType=movie`,
-			{ cookies }
-		);
-		expect(providersLookup.status).toBe(200);
-
 		const commit = await postJson(
 			`/api/households/${householdId}/picks/${MOVIE_B.id}/commit`,
 			{ mediaType: 'movie' },
@@ -564,10 +659,7 @@ describe('GET /api/households/:id/history', () => {
 		expect(history.status).toBe(200);
 		expect(history.body.data).toHaveLength(1);
 		expect(history.body.data[0]?.tmdbId).toBe(MOVIE_B.id);
-		// Title is a placeholder ("Untitled movie") rather than MOVIE_B.title -- the provider-cache
-		// write path never fetches real title/poster data (a pre-existing gap ported faithfully
-		// from Express, see docs/roadmap.md). This test asserts the providers join, which is the
-		// actual behavior this domain adds.
+		expect(history.body.data[0]?.title).toBe(MOVIE_B.title);
 		expect(history.body.data[0]?.providers.flatrate?.length).toBeGreaterThan(0);
 	});
 
@@ -575,6 +667,7 @@ describe('GET /api/households/:id/history', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		for (const movie of DEFAULT_MOVIES) {
 			const commit = await postJson(
 				`/api/households/${householdId}/picks/${movie.id}/commit`,
@@ -607,6 +700,7 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 		const owner = await createLoggedInUser(uniqueEmail());
 		const outsider = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(owner.cookies);
+		mockExternalApis(DEFAULT_MOVIES);
 		const commit = await postJson<{ id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },
@@ -625,6 +719,7 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 	it('sets and clears enjoyed', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
+		mockExternalApis(DEFAULT_MOVIES);
 		const commit = await postJson<{ id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },
@@ -661,6 +756,97 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 			{ method: 'PATCH' }
 		);
 		expect(result.status).toBe(404);
+	});
+});
+
+describe('taste personalization from ratings', () => {
+	it('nudges the taste profile from a rating and raises a subsequent pick score', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const before = await postJson<{
+			pick: { tmdbId: number };
+			score: number;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(before.status).toBe(200);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		const patch = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+
+		const profileRow = await waitForRow(() =>
+			env.DB.prepare('SELECT weights FROM taste_profiles WHERE user_id = ?1')
+				.bind(userId)
+				.first<{ weights: string }>()
+		);
+		const weights = JSON.parse(profileRow.weights) as {
+			genres: Record<string, number>;
+		};
+		// EMA nudge from the neutral 0.35 baseline toward 1.0 (enjoyed) at alpha 0.25:
+		// 0.35 * 0.75 + 1.0 * 0.25 = 0.5125.
+		expect(weights.genres['35']).toBeCloseTo(0.5125, 5);
+		// A genre absent from the rated title stays at the neutral baseline.
+		expect(weights.genres['18']).toBeCloseTo(0.35, 5);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const after = await postJson<{
+			pick: { tmdbId: number };
+			score: number;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(after.status).toBe(200);
+		// Every DEFAULT_MOVIES candidate shares genre 35 (comedy), so the merged-genre boost
+		// applies uniformly and the winning candidate's score rises by exactly the genre-match
+		// term's weight (0.5) now that genre 35 is no longer unscored.
+		expect(after.body.score).toBeCloseTo(before.body.score + 0.5, 5);
+	});
+
+	it('does not recompute taste when a rating is cleared back to null', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		const patch = await postJson(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: null },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+
+		const profileRow = await env.DB.prepare(
+			'SELECT user_id FROM taste_profiles WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first();
+		expect(profileRow).toBeNull();
 	});
 });
 
@@ -779,6 +965,7 @@ describe('GET /api/households/:id/pick-events/stats', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		await postJson(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },

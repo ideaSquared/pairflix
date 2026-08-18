@@ -53,3 +53,32 @@ export const reporterName = style({
 export const reportMeta = style({
   marginTop: '8px',
 });
+
+// Hand-rolled dialog (matches CreateUserModal.css.ts) -- the shared Modal
+// portals to document.body, outside the div ThemeProvider puts its theme
+// class on, so it renders with no theme variables. See CreateUserModal.tsx.
+export const dialogOverlay = style({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000,
+});
+
+export const dialogContent = style({
+  background: vars.colors.background.primary,
+  borderRadius: vars.borderRadius.md,
+  padding: '24px',
+  width: '400px',
+  maxWidth: '90%',
+});
+
+export const dialogTitle = style({
+  marginTop: 0,
+  marginBottom: '16px',
+});
