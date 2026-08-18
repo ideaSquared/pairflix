@@ -23,6 +23,15 @@ export const GENRE_NAMES: Record<number, string> = {
 	37: 'western',
 };
 
+/** TMDb's TV genre list only shares these ids with the movie list above -- TV has no standalone
+ * Horror (27), Romance (10749), or Thriller (53), and merges Action+Adventure into a single id
+ * (10759, not 28+12). `lib/recommendation.ts` only fetches TV candidates when every genre id it
+ * would filter on is in this set, so a `/discover/tv` call never filters on an id that doesn't
+ * exist in TV's taxonomy. */
+export const TV_COMPATIBLE_GENRE_IDS = new Set<number>([
+	16, 35, 80, 99, 18, 10751, 9648, 37,
+]);
+
 export const MOOD_FILTERS: Record<Mood, { genres: number[]; label: string }> = {
 	funny: { genres: [35], label: 'comedy' },
 	dark: { genres: [80, 53], label: 'dark crime/thriller' },

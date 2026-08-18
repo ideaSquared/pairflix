@@ -33,8 +33,9 @@ export type OnboardingCard = {
 
 /** One `/discover` call per anchor genre (parallel), top `CARDS_PER_GENRE` each, deduped by
  * tmdbId -- a movie tagged with two anchor genres (e.g. an action-comedy) only appears once, kept
- * with the full `genre_ids` from whichever call it was first seen on. Movie-only, matching the pick
- * path's own `discoverMedia` calls (lib/recommendation.ts). */
+ * with the full `genre_ids` from whichever call it was first seen on. Movie-only -- onboarding has
+ * no mood to gate a TV genre-compatibility check against (see `lib/recommendation.ts`'s
+ * TV_COMPATIBLE_GENRE_IDS use), so it keeps the pick path's original all-movie behavior. */
 export const buildOnboardingDeck = async (
 	env: Bindings
 ): Promise<OnboardingCard[]> => {
