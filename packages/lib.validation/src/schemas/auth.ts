@@ -92,6 +92,7 @@ const PreferencesPatchSchema = z.object({
   emailNotifications: z.boolean().optional(),
   autoArchiveDays: z.number().int().min(0).optional(),
   favoriteGenres: z.array(z.string()).optional(),
+  selectedProviders: z.array(z.string()).optional(),
 });
 
 export const UpdatePreferencesRequestSchema = z.object({

@@ -1,16 +1,12 @@
 import { useAuth } from '../../hooks/useAuth';
 
-interface PreferencesWithTonight {
-  selectedProviders?: string[];
-}
-
 export function useTonightHomepagePreference(): {
   selectedProviders: string[];
 } {
   const { user } = useAuth();
-  const prefs = (user?.preferences as PreferencesWithTonight | undefined) ?? {};
+  const prefs = user?.preferences;
   return {
-    selectedProviders: prefs.selectedProviders ?? [
+    selectedProviders: prefs?.selectedProviders ?? [
       'netflix',
       'prime',
       'disney_plus',

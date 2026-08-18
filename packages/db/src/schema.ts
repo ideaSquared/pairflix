@@ -63,6 +63,7 @@ export type UserPreferences = {
   emailNotifications: boolean;
   autoArchiveDays: number;
   favoriteGenres: string[];
+  selectedProviders?: string[];
 };
 
 /**

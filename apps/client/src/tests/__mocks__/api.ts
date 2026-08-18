@@ -105,6 +105,11 @@ export const history = {
   }),
 };
 
+export const tasteOnboarding = {
+  getDeck: jest.fn().mockResolvedValue({ cards: [] }),
+  submit: jest.fn().mockResolvedValue(undefined),
+};
+
 export const households = {
   list: jest.fn().mockResolvedValue({ households: [] }),
   create: jest.fn().mockResolvedValue({

@@ -17,6 +17,7 @@ import HistoryPage from '../../features/history/HistoryPage';
 import AcceptInvitePage from '../../features/households/AcceptInvitePage';
 import CreateHouseholdPage from '../../features/households/CreateHouseholdPage';
 import InviteToHouseholdPage from '../../features/households/InviteToHouseholdPage';
+import TasteOnboardingPage from '../../features/onboarding/TasteOnboardingPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -107,6 +108,10 @@ const AppRoutes: React.FC = () => {
               <Route
                 path="/household-invites/:token"
                 element={<ProtectedRoute element={<AcceptInvitePage />} />}
+              />
+              <Route
+                path="/onboarding/taste"
+                element={<ProtectedRoute element={<TasteOnboardingPage />} />}
               />
               <Route
                 path="/profile"

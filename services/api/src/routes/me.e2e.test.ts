@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { env } from 'cloudflare:workers';
+import { afterEach, describe, expect, it } from 'vitest';
 import { currentTotpCode } from '../lib/totp';
 import {
 	callApp,
@@ -13,6 +14,124 @@ import {
 let counter = 0;
 const uniqueEmail = () => `me-e2e-${Date.now()}-${counter++}@example.com`;
 const PASSWORD = 'Str0ngPass123';
+
+const jsonResponse = (data: unknown, status = 200): Response =>
+	new Response(JSON.stringify(data), {
+		status,
+		headers: { 'content-type': 'application/json' },
+	});
+
+type MockDiscoverMovie = {
+	id: number;
+	title: string;
+	poster_path: string | null;
+	genre_ids: number[];
+};
+
+const REAL_FETCH = globalThis.fetch;
+afterEach(() => {
+	globalThis.fetch = REAL_FETCH;
+});
+
+/** One entry per anchor genre id in lib/tasteOnboarding.ts's `ANCHOR_GENRE_IDS`, keyed by
+ * `with_genres`, so every discover call the deck endpoint makes is deterministically mocked. Genre
+ * 3501 is deliberately returned from both the comedy (35) and drama (18) genres -- comedy is
+ * processed first, so it exercises the dedup-by-tmdbId path (3501 keeps comedy's [35, 18]
+ * genre_ids, drama's copy is dropped). */
+const MOVIES_BY_GENRE: Record<number, MockDiscoverMovie[]> = {
+	35: [
+		{
+			id: 3501,
+			title: 'Cross-genre Pick',
+			poster_path: '/c1.jpg',
+			genre_ids: [35, 18],
+		},
+		{ id: 3502, title: 'Comedy Two', poster_path: '/c2.jpg', genre_ids: [35] },
+	],
+	18: [
+		{
+			id: 3501,
+			title: 'Cross-genre Pick',
+			poster_path: '/c1.jpg',
+			genre_ids: [35, 18],
+		},
+		{ id: 1802, title: 'Drama Two', poster_path: '/d2.jpg', genre_ids: [18] },
+	],
+	28: [
+		{ id: 2801, title: 'Action One', poster_path: '/a1.jpg', genre_ids: [28] },
+		{ id: 2802, title: 'Action Two', poster_path: '/a2.jpg', genre_ids: [28] },
+	],
+	27: [
+		{ id: 2701, title: 'Horror One', poster_path: '/h1.jpg', genre_ids: [27] },
+		{ id: 2702, title: 'Horror Two', poster_path: '/h2.jpg', genre_ids: [27] },
+	],
+	10749: [
+		{
+			id: 10001,
+			title: 'Romance One',
+			poster_path: '/r1.jpg',
+			genre_ids: [10749],
+		},
+		{
+			id: 10002,
+			title: 'Romance Two',
+			poster_path: '/r2.jpg',
+			genre_ids: [10749],
+		},
+	],
+	878: [
+		{ id: 8701, title: 'Sci-Fi One', poster_path: '/s1.jpg', genre_ids: [878] },
+		{ id: 8702, title: 'Sci-Fi Two', poster_path: '/s2.jpg', genre_ids: [878] },
+	],
+	99: [
+		{
+			id: 9901,
+			title: 'Documentary One',
+			poster_path: '/doc1.jpg',
+			genre_ids: [99],
+		},
+		{
+			id: 9902,
+			title: 'Documentary Two',
+			poster_path: '/doc2.jpg',
+			genre_ids: [99],
+		},
+	],
+	16: [
+		{
+			id: 1601,
+			title: 'Animation One',
+			poster_path: '/an1.jpg',
+			genre_ids: [16],
+		},
+		{
+			id: 1602,
+			title: 'Animation Two',
+			poster_path: '/an2.jpg',
+			genre_ids: [16],
+		},
+	],
+};
+
+/** Replaces the global fetch for the rest of the current test, same intent as
+ * households.e2e.test.ts's `mockExternalApis` -- unreachable/non-deterministic real TMDb calls
+ * are never exercised here. */
+const mockOnboardingDeckApi = (): void => {
+	globalThis.fetch = (async (input: RequestInfo | URL) => {
+		const url =
+			typeof input === 'string'
+				? input
+				: input instanceof URL
+					? input.toString()
+					: input.url;
+		const { hostname, pathname, searchParams } = new URL(url);
+		if (hostname === 'api.themoviedb.org' && pathname === '/3/discover/movie') {
+			const genreId = Number(searchParams.get('with_genres'));
+			return jsonResponse({ results: MOVIES_BY_GENRE[genreId] ?? [] });
+		}
+		throw new Error(`Unmocked fetch in test: ${url}`);
+	}) as typeof fetch;
+};
 
 describe('2FA enroll / verify / login / disable', () => {
 	it('enrolling requires a valid code, then login requires one too', async () => {
@@ -246,5 +365,106 @@ describe('profile updates', () => {
 		expect(second.status).toBe(200);
 		expect(second.body.data.preferences.theme).toBe('light');
 		expect(second.body.data.preferences.autoArchiveDays).toBe(7);
+	});
+});
+
+describe('GET /api/me/taste-onboarding/deck', () => {
+	it('rejects an unauthenticated caller', async () => {
+		const result = await callApp('/api/me/taste-onboarding/deck', {});
+		expect(result.status).toBe(401);
+	});
+
+	it('returns a deck of cards spanning the anchor genres, deduped by tmdbId', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		mockOnboardingDeckApi();
+
+		const result = await callApp<{
+			data: {
+				cards: Array<{
+					tmdbId: number;
+					mediaType: string;
+					title: string;
+					posterPath: string | null;
+					genreIds: number[];
+				}>;
+			};
+		}>('/api/me/taste-onboarding/deck', { cookies });
+		expect(result.status).toBe(200);
+
+		const cards = result.body.data.cards;
+		// 8 anchor genres x top 2 each, minus the one deliberate cross-genre duplicate.
+		expect(cards).toHaveLength(15);
+		expect(cards.every(c => c.mediaType === 'movie')).toBe(true);
+		expect(cards.filter(c => c.tmdbId === 3501)).toHaveLength(1);
+		expect(cards.find(c => c.tmdbId === 3501)?.genreIds).toEqual([35, 18]);
+	});
+});
+
+describe('POST /api/me/taste-onboarding', () => {
+	it('rejects an invalid verdict', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+
+		const result = await postJson(
+			'/api/me/taste-onboarding',
+			{
+				likedGenreIds: [],
+				swipes: [
+					{ tmdbId: 1, mediaType: 'movie', genreIds: [18], verdict: 'like' },
+				],
+				providers: [],
+			},
+			cookies
+		);
+		expect(result.status).toBe(400);
+	});
+
+	it('writes a dense taste_profiles row with the expected weights and updates selectedProviders', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+
+		const result = await postJson(
+			'/api/me/taste-onboarding',
+			{
+				likedGenreIds: [35],
+				swipes: [
+					{ tmdbId: 1, mediaType: 'movie', genreIds: [18], verdict: 'love' },
+					{
+						tmdbId: 2,
+						mediaType: 'movie',
+						genreIds: [27],
+						verdict: 'not_for_me',
+					},
+				],
+				providers: ['netflix', 'prime'],
+			},
+			cookies
+		);
+		expect(result.status).toBe(200);
+
+		const profileRow = await env.DB.prepare(
+			'SELECT weights FROM taste_profiles WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ weights: string }>();
+		expect(profileRow).not.toBeNull();
+		const weights = JSON.parse(profileRow!.weights) as {
+			genres: Record<string, number>;
+		};
+		expect(Object.keys(weights.genres)).toHaveLength(18);
+		// Picked genre.
+		expect(weights.genres['35']).toBe(0.75);
+		// Loved-swipe genre: 0.35 + 0.15.
+		expect(weights.genres['18']).toBeCloseTo(0.5, 10);
+		// Not-for-me-swipe genre: 0.35 - 0.2.
+		expect(weights.genres['27']).toBeCloseTo(0.15, 10);
+		// Untouched genre stays at the neutral baseline.
+		expect(weights.genres['28']).toBe(0.35);
+
+		const me = await callApp<{
+			data: { preferences: { selectedProviders?: string[] } };
+		}>('/api/auth/me', { cookies });
+		expect(me.body.data.preferences.selectedProviders).toEqual([
+			'netflix',
+			'prime',
+		]);
 	});
 });

@@ -22,7 +22,10 @@ const CreateHouseholdPage: React.FC = () => {
     mutationFn: (body: { name?: string }) => householdsApi.create(body),
     onSuccess: data => {
       void queryClient.invalidateQueries({ queryKey: ['households'] });
-      navigate(`/households/${data.household.id}/invites`);
+      const next = encodeURIComponent(
+        `/households/${data.household.id}/invites`
+      );
+      navigate(`/onboarding/taste?next=${next}`);
     },
     onError: (err: Error) => setError(err.message),
   });
