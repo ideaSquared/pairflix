@@ -1,11 +1,11 @@
 # Database schema
 
-> **Implemented (P2, ADR 0001).** Pairflix's target database schema is now authored in **D1 (SQLite)
-> via Drizzle**. The source of truth is `packages/db/src/schema.ts` — this document mirrors it in
-> prose. `services/api` still runs on Express/Sequelize/Postgres against the _old_ schema until the
-> API port (P3) lands; the D1 schema below is authored and migratable today, but nothing reads or
-> writes it yet — the production runtime hasn't switched. The old Postgres DDL is preserved in git
-> history if you need it.
+> **Implemented (ADR 0001).** Pairflix's database is **D1 (SQLite) via Drizzle** — the re-platform off
+> Express/Sequelize/Postgres is code-complete (`docs/roadmap.md` tracks phase history). The source of
+> truth is `packages/db/src/schema.ts`; this document mirrors it in prose. Provisioning a real D1
+> database in a Cloudflare account (and an actual `wrangler deploy`) is the remaining step, documented
+> as a known gap in `docs/dev-setup.md` — `--local` migrations against Miniflare work today. The old
+> Postgres DDL is preserved in git history if you need it.
 
 ## Overview
 
@@ -402,11 +402,6 @@ into D1 — nothing to preserve or backfill. Dropped: `matches`, `watchlist_entr
 `watched_together` thumbs. The personal watchlist is **not** a taste input, so `watchlist_entries` is
 dropped with the rest of the legacy schema. A lightweight "save for tonight" list may return later as a
 convenience, but the recommender won't depend on it.
-
-**Deferred to the API port (P3), not part of this schema yet:** a D1-backed rate-limit table
-(creatorgrid's `rate_limit_hits` pattern) — the current Express app uses in-memory `express-rate-limit`,
-which has nothing to migrate; the D1-backed middleware and its table land together when the API moves
-to Hono.
 
 ## Migrations
 

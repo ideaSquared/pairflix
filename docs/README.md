@@ -38,8 +38,7 @@ Until the cutover phase lands, the code still lives in `backend/`, `app.client/`
 
 These describe the retired two-user watchlist product and the old npm/Docker stack:
 
-- `api-docs.md`, `testing-strategy.md`, `docker-production-guide.md`,
-  `admin-auth-improvements.md`, `account-creation.md`
+- `api-docs.md`, `testing-strategy.md`, `admin-auth-improvements.md`, `account-creation.md`
 - `component-deduplication-summary.md`, `datatable-migration-guide.md`
 - `phase-3-completion-summary.md`, `phase3-implementation-plan.md`, `phase3/`
 

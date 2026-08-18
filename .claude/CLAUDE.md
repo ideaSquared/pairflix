@@ -103,7 +103,8 @@ Extend along the existing seams. Don't introduce parallel structures.
 ## Quick Reference
 
 - TypeScript strict everywhere; no `any` outside of test fixtures or vendored shims.
-- **Vitest** across all workspaces (the Worker uses `@cloudflare/vitest-pool-workers` against local D1).
+- **Vitest** in `services/api` (via `@cloudflare/vitest-pool-workers` against local D1); **Jest** +
+  React Testing Library in the frontend workspaces (`apps/client`, `apps/admin`, `packages/lib.components`).
 - **API (`services/api`):** Hono route modules (`src/routes/*`) → middleware (`src/middleware/*`) →
   business logic (`src/lib/*`) → Drizzle (`packages/db`) → D1. Route modules stay thin.
 - Frontend: feature folders, React Query for server state, vanilla-extract for styling,
@@ -119,7 +120,8 @@ Extend along the existing seams. Don't introduce parallel structures.
 - **Data:** Drizzle ORM on Cloudflare D1 (SQLite); R2 for blobs
 - **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF
 - **Frontend:** React 18/19, Vite, vanilla-extract, React Query, React Router — on Cloudflare Pages
-- **Tests:** Vitest (`@cloudflare/vitest-pool-workers` for the Worker, React Testing Library for apps)
+- **Tests:** Vitest (`@cloudflare/vitest-pool-workers`) for `services/api`; Jest + React Testing
+  Library for the frontend workspaces
 - **External:** TMDb (titles + providers), Anthropic API (LLM re-rank, opt-in), Stripe (deferred)
 
 ---
@@ -136,8 +138,7 @@ pairflix/
 ├── packages/db/        # Drizzle schema + client + SQL migrations
 ├── packages/lib.components/   # shared UI primitives
 ├── packages/lib.*/     # shared types / api client / utils / validation
-├── docs/               # ADRs, architecture, schema, decision log, roadmap
-└── e2e/                # end-to-end tests
+└── docs/               # ADRs, architecture, schema, decision log, roadmap
 ```
 
 ### Key commands
@@ -183,8 +184,8 @@ Full setup in `docs/dev-setup.md`.
 
 ### Tools
 
-- **Vitest** everywhere. The Worker runs under `@cloudflare/vitest-pool-workers` (Miniflare D1/R2).
-- **React Testing Library** in `apps/*` and `packages/lib.components`.
+- **Vitest** in `services/api`, under `@cloudflare/vitest-pool-workers` (Miniflare D1/R2).
+- **Jest** + **React Testing Library** in `apps/*` and `packages/lib.components`.
 
 ### Don't
 
