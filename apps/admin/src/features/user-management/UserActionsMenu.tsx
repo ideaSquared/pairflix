@@ -1,12 +1,12 @@
 import { Button } from '@pairflix/components';
 import React, { useState } from 'react';
-import type { AdminUser } from '../../services/api/admin';
+import type { AdminUserSummary } from '../../services/api/admin';
 import * as styles from './UserActionsMenu.css';
 
 type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending' | 'banned';
 
 interface UserActionsMenuProps {
-  user: AdminUser;
+  user: AdminUserSummary;
   onStatusChange: (
     userId: string,
     newStatus: UserStatus,
@@ -60,9 +60,9 @@ const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
 
   const handleConfirm = () => {
     if (dialogType === 'delete') {
-      onDelete(user.user_id);
+      onDelete(user.id);
     } else if (dialogType === 'status') {
-      onStatusChange(user.user_id, newStatus, statusReason);
+      onStatusChange(user.id, newStatus, statusReason);
     }
     handleCloseDialog();
   };
@@ -112,7 +112,7 @@ const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
 
           <button
             className={styles.menuItem({ danger: false })}
-            onClick={() => onResetPassword(user.user_id)}
+            onClick={() => onResetPassword(user.id)}
           >
             Reset Password
           </button>

@@ -21,8 +21,10 @@ export default defineConfig({
   server: {
     port: 5174, // Using a different port than the main frontend
     proxy: {
+      // Same-origin in dev so the session/CSRF cookies (SameSite=Lax) reach the Worker --
+      // see services/api/.dev.vars.example's ALLOWED_ORIGINS comment.
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8787',
         changeOrigin: true,
       },
     },

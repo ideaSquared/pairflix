@@ -13,13 +13,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import * as styles from './LoginPage.css';
 import { auth } from '../../services/api';
-import { ADMIN_TOKEN_KEY } from '../../services/api/utils';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [needsTotp, setNeedsTotp] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,47 +36,28 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await auth.login({ email, password });
-
-      if (!response.token) {
-        throw new Error('No authentication token received');
-      }
-
-      // Store authentication data
-      localStorage.setItem(ADMIN_TOKEN_KEY, response.token);
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          user_id: response.user.id,
-          email: response.user.email,
-          username: response.user.email.split('@')[0],
-          role: response.user.role,
-        })
-      );
-
-      // Update auth state
+      await auth.login({ email, password, totpCode: totpCode || undefined });
       checkAuth();
-
-      // Navigate to dashboard
       navigate('/', { replace: true });
     } catch (err) {
-      console.error('Login error:', err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Login failed. Please check your credentials and try again.';
 
-      // Clear any partial auth data
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
-      localStorage.removeItem('user');
-
-      if (err instanceof Error) {
-        setError(err.message);
+      if (message === 'TOTP code required') {
+        setNeedsTotp(true);
+        setError('Enter your 2FA code');
       } else {
-        setError('Login failed. Please check your credentials and try again.');
+        setError(message);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isFormValid = email.trim() && password.trim();
+  const isFormValid =
+    email.trim() && password.trim() && (!needsTotp || totpCode.trim());
 
   return (
     <Container className={styles.loginContainer} maxWidth="sm">
@@ -111,6 +93,21 @@ const LoginPage: React.FC = () => {
                 autoComplete="current-password"
               />
             </InputGroup>
+
+            {needsTotp && (
+              <InputGroup isFullWidth>
+                <Input
+                  type="text"
+                  placeholder="6-digit code or backup code"
+                  value={totpCode}
+                  onChange={e => setTotpCode(e.target.value)}
+                  required
+                  isFullWidth
+                  disabled={isLoading}
+                  autoComplete="one-time-code"
+                />
+              </InputGroup>
+            )}
 
             <Button
               type="submit"

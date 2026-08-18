@@ -187,7 +187,7 @@ roundtrip (mock-activate flips a household to premium, cancel reverts it).
 **Exit:** each domain has `vitest-pool-workers` integration tests against local D1; the pick path
 returns a title end-to-end on Miniflare.
 
-### P4 — Frontends — in progress
+### P4 — Frontends — done
 
 Move `app.client` / `app.admin` to `apps/*` on Pages; `lib.components` to `packages/`. Switch API
 clients from JWT to the cookie/CSRF flow.
@@ -209,7 +209,29 @@ along the way: `usePrimaryHousehold` was still the pre-Phase-A localStorage stub
 permanently read "not in a household"), and `LogoutRoute`'s effect could fire `/api/auth/logout`
 more than once concurrently, occasionally 403'ing on a CSRF-cookie race between the duplicate
 calls.
-**apps/admin (P4b) — not started.**
+**apps/admin (P4b) — done.** Same auth-foundation rewrite as P4a, plus admin-specific TOTP: login
+surfaces the `TOTP code required` case with a code field, and a new `/setup-2fa` page (enrol ->
+verify -> one-time backup codes) since `requireAdmin` (`services/api/src/hono/middleware/auth.ts`)
+gates every `/api/admin/*` route on `totpEnabled`, not just `role`. Removed the dead-weight that
+had no Workers/D1 equivalent -- System Monitoring and System Stats (no `os`/`process`
+introspection on a Workers isolate), the pre-pivot Activity feed and `enableMatching`/
+`enableActivityFeed` settings -- and rewrote `admin.ts` from the real Hono routes: `/api/admin/*`
+responses are unwrapped (no `{data: ...}` envelope, unlike `/api/auth`, `/api/me`,
+`/api/households`), and pagination is page-based (`{data, pagination: {page, limit, total,
+totalPages}}`). Settings collapsed from a fictional 6-tab form (SMTP, storage provider, password
+policy -- none backed by the real free-form `SettingsTree`) to the one real flag
+(`recommendation.llm_rerank`) plus the existing JSON import/export for anything else. Added
+`apps/admin/wrangler.jsonc` and `public/_redirects`, matching P4a. Verified end to end in a real
+browser (register -> promote to admin -> login -> 2FA setup -> dashboard -> create a user ->
+content moderation -> audit logs -> settings -> logout), which caught and fixed three real bugs:
+`TwoFactorSetupPage` called `checkAuth()` right after showing the backup codes, and the resulting
+auth-cache refresh raced the reveal screen off-navigation before the admin could read them (now
+the cache is patched synchronously on the "Continue" click instead); the same page's enrol
+`useEffect` had no StrictMode guard, so a double-invoke re-enrolled and silently invalidated the
+secret an authenticator app had already scanned; and `Pagination`'s `active` page-indicator prop
+leaked onto the DOM (`Received true for a non-boolean attribute` on the current page's button)
+without ever driving its variant, so the current page had no visual indicator besides
+`aria-current` -- fixed in `packages/lib.components`, so it benefits any consumer.
 
 ### P5 — Cutover
 

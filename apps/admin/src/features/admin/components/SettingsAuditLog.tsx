@@ -10,15 +10,8 @@ import {
 } from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
 import { admin } from '../../../services/api';
+import type { AuditLogEntry } from '../../../services/api/admin';
 import * as styles from './SettingsAuditLog.css';
-type AuditLogEntry = {
-  log_id: string;
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  source: string;
-  context: Record<string, unknown> | null;
-  created_at: string;
-};
 
 const SettingsAuditLog: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -30,17 +23,15 @@ const SettingsAuditLog: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // Filter logs that are related to settings changes
-        const response = await admin.audit.getLogs({
-          source: 'admin-controller',
-          limit: 20,
-        });
+        // The backend has no server-side source filter, so fetch a recent batch
+        // and narrow to admin-sourced entries related to settings changes here.
+        const response = await admin.auditLogs.list({ limit: 20 });
 
-        // Filter logs to only include those related to settings
-        const settingsLogs = (response.data || []).filter(
+        const settingsLogs = response.data.filter(
           (log: AuditLogEntry) =>
-            log.message.toLowerCase().includes('settings') ||
-            (log.context && log.context.changes)
+            log.source === 'admin' &&
+            (log.message.toLowerCase().includes('settings') ||
+              (log.context && log.context.changes))
         );
 
         setLogs(settingsLogs);
@@ -100,7 +91,7 @@ const SettingsAuditLog: React.FC = () => {
       ) : (
         logs.map(log => (
           <Card
-            key={log.log_id}
+            key={log.id}
             className={styles.logEntry({ level: log.level })}
             variant="secondary"
           >
@@ -112,7 +103,7 @@ const SettingsAuditLog: React.FC = () => {
               >
                 <Typography variant="h4">{log.message}</Typography>
                 <Typography className={styles.logTimestamp}>
-                  {formatTimestamp(log.created_at)}
+                  {formatTimestamp(log.createdAt)}
                 </Typography>
               </Flex>
               <div className={styles.logBody}>{renderContext(log.context)}</div>

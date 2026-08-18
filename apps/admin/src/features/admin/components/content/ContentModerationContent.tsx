@@ -22,28 +22,16 @@ import React, {
   useState,
 } from 'react';
 import { admin } from '../../../../services/api';
+import type {
+  AdminContentSummary,
+  ContentReport,
+  ContentStatus,
+  ContentType,
+} from '../../../../services/api/admin';
 import * as styles from './ContentModerationContent.css';
 
-// Types for content items and reports
-interface ContentItem {
-  id: string;
-  title: string;
-  type: 'movie' | 'show' | 'episode';
-  status: 'active' | 'pending' | 'flagged' | 'removed';
-  reported_count: number;
-  tmdb_id: string;
-  created_at: string;
-  updated_at: string;
-  poster_path?: string;
-}
-
-interface ReportItem {
-  id: string;
-  user_name: string;
-  reason: string;
-  details?: string;
-  created_at: string;
-}
+type ContentItem = AdminContentSummary;
+type ReportItem = ContentReport;
 
 // Performance hook for debouncing
 const useDebounced = <T,>(value: T, delay: number): T => {
@@ -68,9 +56,11 @@ const ContentModerationContent: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sortBy, setSortBy] = useState('reported_count');
+  const [typeFilter, setTypeFilter] = useState<ContentType | ''>('');
+  const [statusFilter, setStatusFilter] = useState<ContentStatus | ''>('');
+  const [sortBy, setSortBy] = useState<'reportedCount' | 'createdAt' | 'title'>(
+    'reportedCount'
+  );
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Delete/Remove Modal states
@@ -105,9 +95,9 @@ const ContentModerationContent: React.FC = () => {
         setIsLoading(true);
 
         // Call the admin API
-        const response = await admin.content.getAll({
+        const response = await admin.content.list({
+          page,
           limit: 10, // items per page
-          offset: (page - 1) * 10, // calculate offset based on page number
           ...(debouncedSearch ? { search: debouncedSearch } : {}),
           ...(typeFilter ? { type: typeFilter } : {}),
           ...(statusFilter ? { status: statusFilter } : {}),
@@ -115,14 +105,8 @@ const ContentModerationContent: React.FC = () => {
           ...(sortOrder ? { sortOrder } : {}),
         });
 
-        if (response && response.content) {
-          setContentItems(response.content as unknown as ContentItem[]);
-          if (response.pagination) {
-            setTotalPages(Math.ceil(response.pagination.total / 10));
-          }
-        } else {
-          throw new Error('Unexpected response format from server');
-        }
+        setContentItems(response.data);
+        setTotalPages(response.pagination.totalPages);
       } catch (error) {
         console.error('Error fetching content items:', error);
 
@@ -200,7 +184,7 @@ const ContentModerationContent: React.FC = () => {
 
   const handleTypeFilterChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      setTypeFilter(e.target.value);
+      setTypeFilter(e.target.value as ContentType | '');
       setPage(1); // Reset to first page when filter changes
     },
     []
@@ -208,7 +192,7 @@ const ContentModerationContent: React.FC = () => {
 
   const handleStatusFilterChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      setStatusFilter(e.target.value);
+      setStatusFilter(e.target.value as ContentStatus | '');
       setPage(1); // Reset to first page when filter changes
     },
     []
@@ -216,7 +200,7 @@ const ContentModerationContent: React.FC = () => {
 
   const handleSortByChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
-      setSortBy(e.target.value);
+      setSortBy(e.target.value as 'reportedCount' | 'createdAt' | 'title');
     },
     []
   );
@@ -250,7 +234,7 @@ const ContentModerationContent: React.FC = () => {
         if (contentToReview) {
           const updatedContent = {
             ...contentToReview,
-            reported_count: contentToReview.reported_count - 1,
+            reportedCount: contentToReview.reportedCount - 1,
           };
           setContentToReview(updatedContent);
           setContentItems(
@@ -294,7 +278,7 @@ const ContentModerationContent: React.FC = () => {
     setSearch('');
     setTypeFilter('');
     setStatusFilter('');
-    setSortBy('reported_count');
+    setSortBy('reportedCount');
     setSortOrder('desc');
     setPage(1);
   }, []);
@@ -303,7 +287,10 @@ const ContentModerationContent: React.FC = () => {
   const saveContentChanges = useCallback(
     async (updatedContent: ContentItem) => {
       try {
-        await admin.content.update(updatedContent.id, updatedContent);
+        await admin.content.update(updatedContent.id, {
+          title: updatedContent.title,
+          status: updatedContent.status,
+        });
         setContentItems(
           contentItems.map(item =>
             item.id === updatedContent.id ? updatedContent : item
@@ -426,8 +413,8 @@ const ContentModerationContent: React.FC = () => {
                   onChange={handleSortByChange}
                   isFullWidth
                 >
-                  <option value="reported_count">Reports</option>
-                  <option value="created_at">Date</option>
+                  <option value="reportedCount">Reports</option>
+                  <option value="createdAt">Date</option>
                   <option value="title">Title</option>
                 </Select>
               </div>
@@ -644,7 +631,7 @@ const ContentModerationContent: React.FC = () => {
                 </Badge>
               </H4>
               <Typography>
-                This content has been reported {contentToReview.reported_count}{' '}
+                This content has been reported {contentToReview.reportedCount}{' '}
                 times
               </Typography>
             </div>
@@ -662,8 +649,8 @@ const ContentModerationContent: React.FC = () => {
                       <Flex justifyContent="space-between" alignItems="start">
                         <div>
                           <Typography className={styles.reporterName}>
-                            Reported by: {report.user_name} on{' '}
-                            {new Date(report.created_at).toLocaleDateString()}
+                            Reported by: {report.reporterUsername} on{' '}
+                            {new Date(report.createdAt).toLocaleDateString()}
                           </Typography>
                           <Typography className={styles.reportMeta}>
                             Reason: {report.reason}

@@ -13,12 +13,6 @@ export const formGroup = style({
   marginBottom: vars.spacing.md,
 });
 
-export const formLabel = style({
-  display: 'block',
-  marginBottom: vars.spacing.xs,
-  fontWeight: 500,
-});
-
 export const checkboxLabel = style({
   display: 'flex',
   alignItems: 'center',
@@ -40,8 +34,4 @@ export const submitButtonContainer = style({
   marginTop: vars.spacing.lg,
   paddingTop: vars.spacing.md,
   borderTop: `1px solid ${vars.colors.border}`,
-});
-
-export const tabWrapper = style({
-  marginBottom: vars.spacing.lg,
 });

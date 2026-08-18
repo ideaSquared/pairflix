@@ -9,13 +9,18 @@ import {
   type TableColumn,
 } from '@pairflix/components';
 import { useCallback, useEffect, useState } from 'react';
-import api from '../../services/api';
-import type { AdminUser } from '../../services/api/admin';
+import { admin } from '../../services/api';
+import type {
+  AdminUserSummary,
+  UserRole,
+  UserStatus,
+} from '../../services/api/admin';
+import CreateUserModal from './CreateUserModal';
 import * as styles from './UserManagementContent.css';
 import UserActionsMenu from './UserActionsMenu';
 
-// Define a type that extends AdminUser and satisfies Record<string, unknown>
-type AdminUserRecord = AdminUser & Record<string, unknown>;
+// Define a type that extends AdminUserSummary and satisfies Record<string, unknown>
+type AdminUserRecord = AdminUserSummary & Record<string, unknown>;
 
 // Simple notification system
 interface Notification {
@@ -24,39 +29,24 @@ interface Notification {
   type: 'success' | 'error';
 }
 
-// Interface for pagination structure from API
-interface PaginationInfo {
-  total: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-}
-
 const UserManagementContent = () => {
-  // State for users, pagination, loading, modal, and notifications
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo>({
-    total: 0,
-    limit: 10,
-    offset: 0,
-    hasMore: false,
-  });
+  const [users, setUsers] = useState<AdminUserSummary[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [total, setTotal] = useState(0);
+  // Derived rather than tracked separately -- limit is fixed, so this can't drift out of
+  // sync with total the way a second piece of state (updated in every total-changing handler) could.
+  const totalPages = Math.ceil(total / limit);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationCounter, setNotificationCounter] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Add notification
   const addNotification = useCallback(
     (message: string, type: 'success' | 'error') => {
       const id = notificationCounter + 1;
       setNotificationCounter(id);
-      const notification = {
-        id,
-        message,
-        type,
-      };
-      setNotifications(prev => [...prev, notification]);
+      setNotifications(prev => [...prev, { id, message, type }]);
       setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== id));
       }, 5000);
@@ -64,22 +54,13 @@ const UserManagementContent = () => {
     [notificationCounter]
   );
 
-  // Load users on mount and when pagination changes
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await api.admin.users.getAll({
-          limit: pagination.limit,
-          offset: pagination.offset,
-        });
-        setUsers(response.users);
-        setPagination({
-          total: response.pagination.total,
-          limit: response.pagination.limit,
-          offset: response.pagination.offset,
-          hasMore: response.pagination.hasMore,
-        });
+        const response = await admin.users.list({ page, limit });
+        setUsers(response.data);
+        setTotal(response.pagination.total);
       } catch (error) {
         console.error('Failed to fetch users:', error);
         addNotification('Failed to load users.', 'error');
@@ -89,31 +70,17 @@ const UserManagementContent = () => {
     };
 
     fetchUsers();
-  }, [pagination.offset, pagination.limit, addNotification]);
+  }, [page, limit, addNotification]);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(pagination.total / pagination.limit);
-
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-    const newOffset = (newPage - 1) * pagination.limit;
-    setPagination(prev => ({
-      ...prev,
-      offset: newOffset,
-    }));
-  };
-
-  // Handle user status change
   const handleStatusChange = async (
     userId: string,
-    status: 'active' | 'inactive' | 'suspended' | 'pending' | 'banned'
+    status: UserStatus,
+    reason?: string
   ) => {
     try {
-      await api.admin.users.changeStatus(userId, status);
-      // Update the user in the local state
+      await admin.users.changeStatus(userId, status, reason);
       setUsers(prev =>
-        prev.map(user => (user.user_id === userId ? { ...user, status } : user))
+        prev.map(user => (user.id === userId ? { ...user, status } : user))
       );
       addNotification(`User status changed to ${status}.`, 'success');
     } catch (error) {
@@ -122,12 +89,11 @@ const UserManagementContent = () => {
     }
   };
 
-  // Handle user deletion
   const handleDeleteUser = async (userId: string) => {
     try {
-      await api.admin.users.delete(userId);
-      // Remove the user from local state
-      setUsers(prev => prev.filter(user => user.user_id !== userId));
+      await admin.users.remove(userId);
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      setTotal(prev => prev - 1);
       addNotification('User deleted successfully.', 'success');
     } catch (error) {
       console.error('Failed to delete user:', error);
@@ -135,10 +101,9 @@ const UserManagementContent = () => {
     }
   };
 
-  // Handle password reset
   const handleResetPassword = async (userId: string) => {
     try {
-      await api.admin.users.resetPassword(userId);
+      await admin.users.resetPassword(userId);
       addNotification('Password reset email sent.', 'success');
     } catch (error) {
       console.error('Failed to reset password:', error);
@@ -146,7 +111,20 @@ const UserManagementContent = () => {
     }
   };
 
-  // Define columns with type safety
+  const handleCreateUser = async (data: {
+    username: string;
+    email: string;
+    password: string;
+    role: UserRole;
+    status: UserStatus;
+  }) => {
+    const created = await admin.users.create(data);
+    setUsers(prev => [created, ...prev]);
+    setTotal(prev => prev + 1);
+    setShowCreateModal(false);
+    addNotification('User created successfully.', 'success');
+  };
+
   const columns: TableColumn<AdminUserRecord>[] = [
     {
       key: 'username',
@@ -165,13 +143,12 @@ const UserManagementContent = () => {
       header: 'Status',
     },
     {
-      key: 'created_at',
+      key: 'createdAt',
       header: 'Created At',
-      render: created_at => new Date(created_at as string).toLocaleDateString(),
+      render: createdAt => new Date(createdAt as string).toLocaleDateString(),
     },
   ];
 
-  // Define row actions for the DataTable
   const renderActions = (user: AdminUserRecord) => (
     <UserActionsMenu
       user={user}
@@ -199,12 +176,7 @@ const UserManagementContent = () => {
         <CardHeader>
           <div className={styles.pageHeader}>
             <h2 className={styles.pageTitle}>User Management</h2>
-            <Button
-              variant="primary"
-              onClick={() => {
-                // TODO: Implement create user modal
-              }}
-            >
+            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
               Create User
             </Button>
           </div>
@@ -219,7 +191,7 @@ const UserManagementContent = () => {
                 columns={columns}
                 data={users as AdminUserRecord[]}
                 emptyMessage="No users found"
-                getRowId={row => row.user_id}
+                getRowId={row => row.id}
                 rowActions={renderActions}
                 minWidth="1000px"
                 aria-label="User management table"
@@ -228,14 +200,14 @@ const UserManagementContent = () => {
               {/* Pagination controls */}
               <div className={styles.paginationWrapper}>
                 <div className={styles.paginationInfo}>
-                  Showing {pagination.offset + 1} to{' '}
-                  {Math.min(pagination.offset + users.length, pagination.total)}{' '}
-                  of {pagination.total} users
+                  Showing {(page - 1) * limit + 1} to{' '}
+                  {Math.min((page - 1) * limit + users.length, total)} of{' '}
+                  {total} users
                 </div>
                 <CompactPagination
-                  currentPage={currentPage}
+                  currentPage={page}
                   totalPages={totalPages}
-                  onPageChange={handlePageChange}
+                  onPageChange={setPage}
                 />
               </div>
             </>
@@ -243,7 +215,12 @@ const UserManagementContent = () => {
         </CardContent>
       </Card>
 
-      {/* Create user modal would go here */}
+      {showCreateModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={handleCreateUser}
+        />
+      )}
     </PageContainer>
   );
 };

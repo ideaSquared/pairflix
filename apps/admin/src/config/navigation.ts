@@ -2,12 +2,9 @@ import type { NavigationConfig } from '@pairflix/components';
 import React from 'react';
 import {
   HiArrowRightOnRectangle,
-  HiChartBarSquare,
   HiClipboardDocumentList,
   HiCog6Tooth,
   HiFilm,
-  HiHeart,
-  HiPresentationChartBar,
   HiSquares2X2,
   HiUsers,
 } from 'react-icons/hi2';
@@ -58,12 +55,6 @@ export const createAdminNavigation = (
           icon: React.createElement(HiFilm),
         },
         {
-          key: 'activity',
-          label: 'Activity',
-          path: '/activity',
-          icon: React.createElement(HiChartBarSquare),
-        },
-        {
           key: 'logs',
           label: 'Audit Logs',
           path: '/logs',
@@ -74,18 +65,6 @@ export const createAdminNavigation = (
     {
       title: 'System',
       items: [
-        {
-          key: 'monitoring',
-          label: 'Monitoring',
-          path: '/monitoring',
-          icon: React.createElement(HiHeart),
-        },
-        {
-          key: 'stats',
-          label: 'Statistics',
-          path: '/stats',
-          icon: React.createElement(HiPresentationChartBar),
-        },
         {
           key: 'settings',
           label: 'Settings',
