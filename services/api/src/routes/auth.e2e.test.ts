@@ -1,7 +1,12 @@
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
+import { FAILED_ATTEMPT_LIMIT } from '../lib/session';
+import { currentTotpCode } from '../lib/totp';
 import {
 	callApp,
+	createLoggedInUser,
+	enrollTotp,
+	getCsrfToken,
 	getLatestAuthToken,
 	loginUser,
 	postJson,
@@ -50,6 +55,45 @@ describe('POST /api/auth/register', () => {
 			password: 'AnotherPass123',
 		});
 		expect(second.status).toBe(409);
+	});
+
+	it('returns a clean 409, not a 500, when two registrations race for the same email', async () => {
+		const register = (
+			csrf: { csrfToken: string; cookies: Record<string, string> },
+			email: string,
+			username: string,
+			ip: string
+		) =>
+			callApp('/api/auth/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-csrf-token': csrf.csrfToken,
+				},
+				body: JSON.stringify({ username, email, password: 'Str0ngPass123' }),
+				cookies: csrf.cookies,
+				ip,
+			});
+
+		// Whether two truly-concurrent requests actually collide at the DB layer (rather than one
+		// fully finishing, insert included, before the other's pre-check SELECT even runs) is
+		// timing-dependent -- measured empirically at ~10% of attempts in this harness. 40 fresh-email
+		// attempts pushes the chance of never once hitting that overlap down to roughly 1.5%, without
+		// changing what's actually asserted: every attempt, raced or not, must resolve to exactly one
+		// 201 and one 409, never a 500.
+		for (let attempt = 0; attempt < 40; attempt++) {
+			const email = uniqueEmail();
+			const [csrf1, csrf2] = await Promise.all([
+				getCsrfToken(),
+				getCsrfToken(),
+			]);
+			const [first, second] = await Promise.all([
+				register(csrf1, email, `e2erace1${Date.now()}${counter++}`, uniqueIp()),
+				register(csrf2, email, `e2erace2${Date.now()}${counter++}`, uniqueIp()),
+			]);
+			const statuses = [first.status, second.status].sort((a, b) => a - b);
+			expect(statuses).toEqual([201, 409]);
+		}
 	});
 });
 
@@ -159,6 +203,25 @@ describe('POST /api/auth/login', () => {
 		// Even the *correct* password is rejected while locked out.
 		const correctPasswordWhileLocked = await loginUser(email, 'Str0ngPass123');
 		expect(correctPasswordWhileLocked.status).toBe(429);
+	});
+
+	it('does not count "TOTP code required" toward the failed-attempt lockout', async () => {
+		const email = uniqueEmail();
+		const { cookies } = await createLoggedInUser(email);
+		const { secret } = await enrollTotp(cookies);
+
+		// The password is correct every time -- only the TOTP code is missing -- so none of these
+		// should count as a failed attempt, no matter how many times it repeats.
+		for (let i = 0; i < FAILED_ATTEMPT_LIMIT; i++) {
+			const attempt = await loginUser(email, 'Str0ngPass123');
+			expect(attempt.status).toBe(401);
+			expect(JSON.stringify(attempt.body)).toContain('TOTP code required');
+		}
+
+		// Still not locked out -- a correct password + valid TOTP code logs in right away.
+		const code = await currentTotpCode(secret);
+		const result = await loginUser(email, 'Str0ngPass123', code);
+		expect(result.status).toBe(200);
 	});
 
 	it('rejects a suspended account even with the correct password', async () => {
@@ -477,6 +540,23 @@ describe('security headers', () => {
 		expect(result.response.headers.get('Cross-Origin-Resource-Policy')).toBe(
 			'cross-origin'
 		);
+	});
+});
+
+describe('CORS', () => {
+	it('fails closed (no Access-Control-Allow-Origin) rather than reflecting the caller origin when ALLOWED_ORIGINS is unset', async () => {
+		const original = env.ALLOWED_ORIGINS;
+		env.ALLOWED_ORIGINS = '';
+		try {
+			const result = await callApp('/health', {
+				headers: { Origin: 'https://evil.example.com' },
+			});
+			expect(
+				result.response.headers.get('Access-Control-Allow-Origin')
+			).toBeNull();
+		} finally {
+			env.ALLOWED_ORIGINS = original;
+		}
 	});
 });
 

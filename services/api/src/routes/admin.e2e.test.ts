@@ -121,6 +121,38 @@ describe('admin routes -- user management', () => {
 		expect(getAfterDelete.status).toBe(404);
 	});
 
+	it('returns 409, not 500, updating a user to an email already taken by someone else', async () => {
+		const { cookies } = await createLoggedInAdmin(uniqueEmail());
+		const takenEmail = uniqueEmail();
+		await createLoggedInUser(takenEmail);
+		const { userId } = await createLoggedInUser(uniqueEmail());
+
+		const result = await postJson(
+			`/api/admin/users/${userId}`,
+			{ email: takenEmail },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(result.status).toBe(409);
+	});
+
+	it('returns 409, not 500, updating a user to a username already taken by someone else', async () => {
+		const { cookies } = await createLoggedInAdmin(uniqueEmail());
+		const { username: takenUsername } = await registerAndVerify(
+			uniqueEmail(),
+			'Str0ngPass123'
+		);
+		const { userId } = await createLoggedInUser(uniqueEmail());
+
+		const result = await postJson(
+			`/api/admin/users/${userId}`,
+			{ username: takenUsername },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(result.status).toBe(409);
+	});
+
 	it('404s updating an unknown user', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());
 		const result = await postJson(

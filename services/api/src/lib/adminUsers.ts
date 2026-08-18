@@ -205,6 +205,25 @@ export const updateUser = async (
 		status: AdminUserSummary['status'];
 	}>
 ): Promise<AdminUserSummary | null> => {
+	if (input.email) {
+		const existingEmail = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.email, input.email))
+			.get();
+		if (existingEmail && existingEmail.id !== userId)
+			throw new EmailTakenError();
+	}
+	if (input.username) {
+		const existingUsername = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.username, input.username))
+			.get();
+		if (existingUsername && existingUsername.id !== userId)
+			throw new UsernameTakenError();
+	}
+
 	const updated = await db
 		.update(users)
 		.set({ ...input, updatedAt: new Date() })
