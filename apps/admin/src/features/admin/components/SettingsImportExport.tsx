@@ -9,7 +9,7 @@ import {
 } from '@pairflix/components';
 import React, { useState } from 'react';
 import { useSettings } from '../../../contexts/SettingsContext';
-import type { AppSettings } from '../../../services/api';
+import type { SettingsTree } from '../../../services/api';
 import * as styles from './SettingsImportExport.css';
 
 const SettingsImportExport: React.FC = () => {
@@ -69,7 +69,7 @@ const SettingsImportExport: React.FC = () => {
     reader.onload = async e => {
       try {
         const content = e.target?.result as string;
-        const importedSettings = JSON.parse(content) as AppSettings;
+        const importedSettings = JSON.parse(content);
 
         // Validate the imported settings format
         if (!validateSettingsFormat(importedSettings)) {
@@ -97,21 +97,14 @@ const SettingsImportExport: React.FC = () => {
     event.target.value = '';
   };
 
+  // SettingsTree has no fixed set of keys (see its definition), so the only
+  // thing worth validating on import is that it's a plain JSON object.
   const validateSettingsFormat = (
     settings: unknown
-  ): settings is AppSettings => {
-    // Perform basic structure validation
-    if (typeof settings !== 'object' || settings === null) {
-      return false;
-    }
-
-    const settingsObj = settings as Record<string, unknown>;
-    return (
-      'general' in settingsObj &&
-      'security' in settingsObj &&
-      'features' in settingsObj
-    );
-  };
+  ): settings is SettingsTree =>
+    typeof settings === 'object' &&
+    settings !== null &&
+    !Array.isArray(settings);
 
   return (
     <div className={styles.container}>

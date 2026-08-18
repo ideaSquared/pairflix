@@ -6,14 +6,14 @@ import React, {
   useState,
 } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { admin, type AppSettings } from '../services/api';
+import { admin, type SettingsTree } from '../services/api';
 
 interface SettingsContextType {
-  settings: AppSettings | null;
+  settings: SettingsTree | null;
   isLoading: boolean;
   error: string | null;
   refreshSettings: () => Promise<void>;
-  updateSettings: (newSettings: AppSettings) => Promise<void>;
+  updateSettings: (newSettings: SettingsTree) => Promise<void>;
 }
 
 const defaultSettings: SettingsContextType = {
@@ -40,7 +40,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   children,
 }) => {
   const { isAuthenticated } = useAuth();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [settings, setSettings] = useState<SettingsTree | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Start as false since we might not need to load
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +49,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       setIsLoading(true);
       setError(null);
       const response = await admin.settings.get();
-      setSettings(response.settings);
+      setSettings(response);
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -62,12 +62,12 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     }
   };
 
-  const updateSettings = async (newSettings: AppSettings): Promise<void> => {
+  const updateSettings = async (newSettings: SettingsTree): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await admin.settings.update(newSettings);
-      setSettings(response.settings);
+      setSettings(response);
     } catch (err) {
       const errorMessage =
         err instanceof Error

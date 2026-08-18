@@ -7,7 +7,6 @@ import {
   FilterGroup,
   FilterItem,
   Grid,
-  Input,
   Pagination,
   Select,
   Table,
@@ -20,7 +19,11 @@ import {
 } from '@pairflix/components';
 import React, { useEffect, useState } from 'react';
 import { admin } from '../../../../services/api';
-import type { AuditLog, AuditLogStats } from '../../../../services/api/admin';
+import type {
+  AuditLogEntry,
+  AuditLogLevel,
+  AuditLogStats,
+} from '../../../../services/api/admin';
 import * as styles from './AuditLogContent.css';
 
 // Convert level to badge variant
@@ -41,8 +44,7 @@ const getLevelVariant = (
 };
 
 const AuditLogContent: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [sources, setSources] = useState<string[]>([]);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,10 +52,7 @@ const AuditLogContent: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filter states
-  const [selectedLevel, setSelectedLevel] = useState<string>('');
-  const [selectedSource, setSelectedSource] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [selectedLevel, setSelectedLevel] = useState<AuditLogLevel | ''>('');
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -64,13 +63,9 @@ const AuditLogContent: React.FC = () => {
         setIsLoading(true);
         setError(null);
 
-        // Get log sources for filter dropdown
-        const sourcesData = await admin.audit.getSources();
-        setSources(sourcesData.sources);
-
         // Get audit log statistics
-        const statsData = await admin.audit.getStats();
-        setStats(statsData.stats);
+        const statsData = await admin.auditLogs.stats();
+        setStats(statsData);
 
         // Get logs with current filters
         await fetchLogs();
@@ -102,55 +97,17 @@ const AuditLogContent: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const offset = (page - 1) * limit;
+      const params = { page, limit };
+      const response = selectedLevel
+        ? await admin.auditLogs.byLevel(selectedLevel, params)
+        : await admin.auditLogs.list(params);
 
-      let response;
-      // Fix TypeScript error by properly handling optional parameters
-      const params: {
-        limit: number;
-        offset: number;
-        source?: string;
-        startDate?: string;
-        endDate?: string;
-      } = {
-        limit,
-        offset,
-      };
-
-      // Only add optional parameters if they have values
-      if (selectedSource) params.source = selectedSource;
-      if (startDate) params.startDate = startDate;
-      if (endDate) params.endDate = endDate;
-
-      try {
-        if (selectedLevel) {
-          response = await admin.audit.getByLevel(selectedLevel, params);
-        } else {
-          response = await admin.audit.getLogs(params);
-        }
-
-        // Check if response and response.data exist
-        if (response && response.data) {
-          setLogs(response.data);
-          if (response.pagination) {
-            setTotalCount(response.pagination.total);
-          } else {
-            setTotalCount(0);
-          }
-        } else {
-          // Handle case where response.data is undefined
-          console.error('Invalid API response format:', response);
-          setLogs([]);
-          setTotalCount(0);
-          setError('Failed to load logs: Invalid response format from API');
-        }
-      } catch (apiErr) {
-        console.error('API error:', apiErr);
-        setLogs([]);
-        setTotalCount(0);
-        throw apiErr;
-      }
+      setLogs(response.data);
+      setTotalCount(response.pagination.total);
     } catch (err) {
+      console.error('API error:', err);
+      setLogs([]);
+      setTotalCount(0);
       setError(
         'Failed to load logs: ' +
           (err instanceof Error ? err.message : String(err))
@@ -169,9 +126,6 @@ const AuditLogContent: React.FC = () => {
   // Clear filters
   const clearFilters = () => {
     setSelectedLevel('');
-    setSelectedSource('');
-    setStartDate('');
-    setEndDate('');
     setPage(1);
   };
 
@@ -182,12 +136,18 @@ const AuditLogContent: React.FC = () => {
       setError(null);
       setSuccessMessage(null);
 
-      const result = await admin.audit.rotate();
-      setSuccessMessage(result.message);
+      const deleted = await admin.auditLogs.rotate();
+      const totalDeleted = Object.values(deleted).reduce(
+        (sum, count) => sum + count,
+        0
+      );
+      setSuccessMessage(
+        `Log rotation complete: ${totalDeleted} entries removed.`
+      );
 
       // Refresh stats after rotation
-      const statsData = await admin.audit.getStats();
-      setStats(statsData.stats);
+      const statsData = await admin.auditLogs.stats();
+      setStats(statsData);
 
       // Reload logs
       fetchLogs();
@@ -261,7 +221,9 @@ const AuditLogContent: React.FC = () => {
         <FilterItem label="Level">
           <Select
             value={selectedLevel}
-            onChange={e => setSelectedLevel(e.target.value)}
+            onChange={e =>
+              setSelectedLevel(e.target.value as AuditLogLevel | '')
+            }
             isFullWidth
           >
             <option value="">All Levels</option>
@@ -270,39 +232,6 @@ const AuditLogContent: React.FC = () => {
             <option value="error">Error</option>
             <option value="debug">Debug</option>
           </Select>
-        </FilterItem>
-
-        <FilterItem label="Source">
-          <Select
-            value={selectedSource}
-            onChange={e => setSelectedSource(e.target.value)}
-            isFullWidth
-          >
-            <option value="">All Sources</option>
-            {sources.map(source => (
-              <option key={source} value={source}>
-                {source}
-              </option>
-            ))}
-          </Select>
-        </FilterItem>
-
-        <FilterItem label="Start Date">
-          <Input
-            type="date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            isFullWidth
-          />
-        </FilterItem>
-
-        <FilterItem label="End Date">
-          <Input
-            type="date"
-            value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-            isFullWidth
-          />
         </FilterItem>
       </FilterGroup>
 
@@ -335,7 +264,7 @@ const AuditLogContent: React.FC = () => {
                   </tr>
                 ) : (
                   logs.map(log => (
-                    <tr key={log.log_id}>
+                    <tr key={log.id}>
                       <TableCell>
                         <Badge variant={getLevelVariant(log.level)}>
                           {log.level}
@@ -343,7 +272,7 @@ const AuditLogContent: React.FC = () => {
                       </TableCell>
                       <TableCell>{log.message}</TableCell>
                       <TableCell>{log.source}</TableCell>
-                      <TableCell>{formatDate(log.created_at)}</TableCell>
+                      <TableCell>{formatDate(log.createdAt)}</TableCell>
                       <TableCell>
                         <TableActionButton
                           onClick={() =>

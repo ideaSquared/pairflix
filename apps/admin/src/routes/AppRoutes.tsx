@@ -2,6 +2,7 @@ import { Loading } from '@pairflix/components';
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from '../features/auth/LoginPage';
+import TwoFactorSetupPage from '../features/auth/TwoFactorSetupPage';
 import { useAuth } from '../hooks/useAuth';
 
 // Lazy load admin components
@@ -14,21 +15,16 @@ const UserManagementContent = React.lazy(
 const ContentModeration = React.lazy(
   () => import('../features/admin/components/content/ContentModerationContent')
 );
-const SystemMonitoring = React.lazy(() => import('../pages/SystemMonitoring'));
-const ActivityManagement = React.lazy(
-  () => import('../features/admin/components/ActivityManagement')
-);
 const AuditLogContent = React.lazy(
   () => import('../features/admin/components/activity/AuditLogContent')
-);
-const SystemStatsContent = React.lazy(
-  () => import('../features/admin/components/dashboard/SystemStatsContent')
 );
 const AdminSettings = React.lazy(
   () => import('../features/admin/components/AdminSettings')
 );
 
-// Auth guard for admin routes
+// Auth guard for admin routes -- requireAdmin (services/api/src/hono/middleware/auth.ts) is the
+// real gate; this mirrors it client-side for UX (avoids a round-trip 403 before showing the
+// right prompt), the server enforces it regardless.
 const AdminRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -40,12 +36,33 @@ const AdminRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Ensure user has admin role
   if (user?.role !== 'admin') {
     return <Navigate to="/login" replace />;
   }
 
+  if (!user.totpEnabled) {
+    return <Navigate to="/setup-2fa" replace />;
+  }
+
   return <>{element}</>;
+};
+
+const TwoFactorSetupRoute: React.FC = () => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return <Loading message="Checking authentication..." />;
+  }
+
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.totpEnabled) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <TwoFactorSetupPage />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -54,6 +71,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup-2fa" element={<TwoFactorSetupRoute />} />
 
         {/* Admin routes - now directly rendered since AppLayout provides the layout */}
         <Route index element={<AdminRoute element={<AdminDashboard />} />} />
@@ -66,20 +84,8 @@ const AppRoutes: React.FC = () => {
           element={<AdminRoute element={<ContentModeration />} />}
         />
         <Route
-          path="/monitoring"
-          element={<AdminRoute element={<SystemMonitoring />} />}
-        />
-        <Route
-          path="/activity"
-          element={<AdminRoute element={<ActivityManagement />} />}
-        />
-        <Route
           path="/logs"
           element={<AdminRoute element={<AuditLogContent />} />}
-        />
-        <Route
-          path="/stats"
-          element={<AdminRoute element={<SystemStatsContent />} />}
         />
         <Route
           path="/settings"

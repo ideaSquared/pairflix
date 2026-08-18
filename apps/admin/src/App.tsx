@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
 
 function AppWithAuth() {
   const { user, logout, isAuthenticated } = useAuth();
-  const navigation = createAdminNavigation(user, logout);
+  const navigation = createAdminNavigation(user ?? undefined, logout);
 
   return (
     <AppLayout

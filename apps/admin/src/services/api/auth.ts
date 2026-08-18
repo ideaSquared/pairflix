@@ -1,204 +1,48 @@
-/// <reference types="vite/client" />
-import { ADMIN_TOKEN_KEY, BASE_URL } from './utils';
+import { fetchWithAuth } from './utils';
 
-export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
-
-export interface AdminLoginParams {
+export interface LoginCredentials {
   email: string;
   password: string;
+  totpCode?: string;
 }
 
 export interface AdminUser {
-  user_id: string;
-  email: string;
+  id: string;
   username: string;
-  role: string;
-  status: string;
-  last_login?: string;
-  created_at?: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+  emailVerified: boolean;
+  totpEnabled: boolean;
+  createdAt: string;
 }
 
-export interface RefreshTokenResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
-}
-
+// Admins authenticate through the same session-cookie flow as apps/client (no separate
+// /api/admin/login) -- requireAdmin (services/api/src/hono/middleware/auth.ts) then gates every
+// /api/admin/* route on role === 'admin' AND totpEnabled, regardless of how the caller logged in.
 export const auth = {
-  async login(params: AdminLoginParams): Promise<LoginResponse> {
-    const response = await fetch(`${BASE_URL}/api/admin/login`, {
+  login: async (
+    credentials: LoginCredentials
+  ): Promise<{ id: string; username: string; email: string }> => {
+    const response = await fetchWithAuth('/api/auth/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
+      body: JSON.stringify(credentials),
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || error.message || 'Login failed');
-    }
-
-    return response.json();
+    return response.data;
   },
 
-  async validateToken(): Promise<boolean> {
-    try {
-      const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-      if (!token) {
-        return false;
-      }
+  getCurrentUser: async (): Promise<AdminUser> => {
+    const response = await fetchWithAuth('/api/auth/me');
+    return response.data;
+  },
 
-      const response = await fetch(`${BASE_URL}/api/admin/validate-token`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+  logout: async (): Promise<void> => {
+    try {
+      await fetchWithAuth('/api/auth/logout', {
+        method: 'POST',
       });
-
-      if (!response.ok) {
-        console.warn('Token validation failed:', response.status);
-        return false;
-      }
-
-      return true;
     } catch (error) {
-      console.error('Token validation error:', error);
-      return false;
-    }
-  },
-
-  async getCurrentUser(): Promise<AdminUser> {
-    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await fetch(`${BASE_URL}/api/admin/me`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        // Clear invalid token
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
-        localStorage.removeItem('user');
-        throw new Error('Authentication required');
-      }
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch user data');
-    }
-
-    return response.json();
-  },
-
-  async refreshToken(): Promise<RefreshTokenResponse> {
-    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await fetch(`${BASE_URL}/api/admin/refresh-token`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        // Clear invalid token
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
-        localStorage.removeItem('user');
-        throw new Error('Authentication required');
-      }
-      const error = await response.json();
-      throw new Error(error.error || 'Token refresh failed');
-    }
-
-    return response.json();
-  },
-
-  async logout(): Promise<void> {
-    try {
-      const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-      if (token) {
-        // Call server logout endpoint to log the event
-        await fetch(`${BASE_URL}/api/admin/logout`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-    } catch (error) {
-      // Don't throw on logout errors - always clear local storage
-      console.warn('Logout request failed:', error);
-    } finally {
-      // Always clear local storage
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
-      localStorage.removeItem('user');
-    }
-  },
-
-  // Check if token is close to expiry (within 30 minutes)
-  isTokenNearExpiry(): boolean {
-    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-    if (!token) return true;
-
-    try {
-      // Decode JWT token to check expiry
-      const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-      const expiryTime = payload.exp * 1000; // Convert to milliseconds
-      const currentTime = Date.now();
-      const thirtyMinutes = 30 * 60 * 1000;
-
-      return expiryTime - currentTime < thirtyMinutes;
-    } catch (error) {
-      console.error('Error checking token expiry:', error);
-      return true; // Assume expired if we can't decode
-    }
-  },
-
-  // Automatically refresh token if it's near expiry
-  async autoRefreshToken(): Promise<boolean> {
-    try {
-      if (this.isTokenNearExpiry()) {
-        const refreshResult = await this.refreshToken();
-        localStorage.setItem(ADMIN_TOKEN_KEY, refreshResult.token);
-
-        // Update stored user data
-        const userData = {
-          user_id: refreshResult.user.id,
-          email: refreshResult.user.email,
-          username: refreshResult.user.name,
-          role: refreshResult.user.role,
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        return true;
-      }
-      return false; // No refresh needed
-    } catch (error) {
-      console.error('Auto token refresh failed:', error);
-      // Clear invalid tokens
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
-      localStorage.removeItem('user');
-      throw error;
+      console.error('Error logging out:', error);
     }
   },
 };
