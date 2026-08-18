@@ -19,7 +19,7 @@ const AcceptInvitePage: React.FC = () => {
     mutationFn: () => householdsApi.acceptInvite(token ?? ''),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['households'] });
-      navigate('/tonight');
+      navigate(`/onboarding/taste?next=${encodeURIComponent('/tonight')}`);
     },
   });
 

@@ -74,7 +74,9 @@ export const users = sqliteTable('users', {
 ```
 
 `UserPreferences`: `{ theme: 'light' | 'dark', viewStyle: 'list' | 'grid', emailNotifications:
-boolean, autoArchiveDays: number, favoriteGenres: string[] }`.
+boolean, autoArchiveDays: number, favoriteGenres: string[], selectedProviders?: string[] }`.
+`selectedProviders` is the streaming-service picklist from the taste-onboarding flow (routes/me.ts's
+`POST /api/me/taste-onboarding`) and the tonight homepage's provider filter default.
 
 Session auth (ADR 0002) adds `sessions` and `authTokens`, both ported from creatorgrid's mechanism —
 these replace the old `user_sessions`, `email_verifications`, and `password_resets` tables, which are

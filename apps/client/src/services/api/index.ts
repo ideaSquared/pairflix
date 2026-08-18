@@ -3,6 +3,7 @@ import { billing } from './billing';
 import { emailService } from './email';
 import { history } from './history';
 import { households } from './households';
+import { tasteOnboarding } from './tasteOnboarding';
 import { user } from './user';
 import { fetchWithAuth } from './utils';
 
@@ -22,6 +23,13 @@ export type {
   SubscriptionTier,
 } from './billing';
 
+// Re-export types from tasteOnboarding
+export type {
+  OnboardingCard,
+  OnboardingSubmission,
+  OnboardingSwipe,
+} from './tasteOnboarding';
+
 // Export individual services
 export {
   auth,
@@ -30,6 +38,7 @@ export {
   fetchWithAuth,
   history,
   households,
+  tasteOnboarding,
   user,
 };
 
@@ -44,6 +53,7 @@ const api = {
   email: emailService,
   history,
   households,
+  tasteOnboarding,
 };
 
 export default api;

@@ -1,5 +1,6 @@
 import { authTokens, createDb, users } from '@pairflix/db';
 import {
+	TasteOnboardingRequestSchema,
 	TotpDisableRequestSchema,
 	TotpVerifyRequestSchema,
 	UpdateEmailRequestSchema,
@@ -27,6 +28,7 @@ import { isUniqueConstraintViolation } from '../lib/dbErrors';
 import { sendVerificationEmail } from '../lib/email';
 import { randomToken } from '../lib/id';
 import { revokeOtherSessions } from '../lib/session';
+import { buildOnboardingDeck, submitOnboarding } from '../lib/tasteOnboarding';
 import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
@@ -348,4 +350,41 @@ meRoutes.patch('/preferences', async c => {
 		.where(eq(users.id, userId));
 
 	return c.json({ data: { preferences } });
+});
+
+/**
+ * Skippable, shown once per household member at their own join moment (routes/households.ts's
+ * create and accept-invite flows navigate the client here first -- see apps/client's
+ * CreateHouseholdPage/AcceptInvitePage). Both routes below run synchronously, not via
+ * `c.executionCtx.waitUntil` -- unlike the ongoing thumbs-recompute in lib/tasteRecompute.ts, this
+ * is a one-time, user-initiated action with no reason to defer.
+ */
+meRoutes.get('/taste-onboarding/deck', async c => {
+	const cards = await buildOnboardingDeck(c.env);
+	return c.json({ data: { cards } });
+});
+
+meRoutes.post('/taste-onboarding', async c => {
+	const userId = c.get('userId') as string;
+	const parsed = TasteOnboardingRequestSchema.safeParse(
+		await c.req.json().catch(() => null)
+	);
+	if (!parsed.success) {
+		return c.json(
+			{
+				error: 'Invalid input',
+				details: parsed.error.issues.map(i => i.message),
+			},
+			400
+		);
+	}
+
+	const db = createDb(c.env.DB);
+	await submitOnboarding(db, userId, {
+		likedGenreIds: parsed.data.likedGenreIds,
+		swipes: parsed.data.swipes,
+		providers: parsed.data.providers,
+	});
+
+	return c.json({ data: { ok: true } });
 });

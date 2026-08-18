@@ -280,9 +280,6 @@ Independent of the platform, needed before opening to an invited cohort:
 - Extend the recommender to TV, and make runtime actually influence scoring.
 - Feed `ProviderBadges` real provider data on the Tonight card and history.
 - Integration tests for the pick / providers / entitlements paths.
-- Build the **onboarding taste-starter** (genre/mood picks + a few love-it/not-for-me swipes + service
-  selection) to seed `taste_profiles` and solve cold-start — the decided taste model is onboarding +
-  watched-together thumbs, no watchlist.
 - Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.
 
 **Alpha exit criteria:** a real household can create an account, get a genuinely good first pick in

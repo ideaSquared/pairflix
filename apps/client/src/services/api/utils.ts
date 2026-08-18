@@ -72,6 +72,7 @@ export interface UserPreferences {
   emailNotifications: boolean;
   autoArchiveDays: number;
   favoriteGenres: string[];
+  selectedProviders?: string[];
 }
 
 export interface PaginatedResponse<T> {
