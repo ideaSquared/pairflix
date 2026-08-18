@@ -30,6 +30,11 @@ type Step = 'genres' | 'swipe' | 'providers';
 
 const DEFAULT_NEXT_PATH = '/tonight';
 
+// `next` comes from a URL query param -- reject anything that isn't a same-origin path (an
+// absolute or protocol-relative URL would throw a SecurityError out of history.pushState).
+const isInternalPath = (path: string): boolean =>
+  path.startsWith('/') && !path.startsWith('//');
+
 /**
  * Skippable taste-starter flow shown once per household member at their own join moment --
  * CreateHouseholdPage and AcceptInvitePage both navigate here (with `?next=` set to wherever they
@@ -40,7 +45,9 @@ const DEFAULT_NEXT_PATH = '/tonight';
 const TasteOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const nextPath = searchParams.get('next') || DEFAULT_NEXT_PATH;
+  const rawNext = searchParams.get('next');
+  const nextPath =
+    rawNext && isInternalPath(rawNext) ? rawNext : DEFAULT_NEXT_PATH;
 
   const [step, setStep] = useState<Step>('genres');
   const [likedGenreIds, setLikedGenreIds] = useState<number[]>([]);
@@ -115,6 +122,7 @@ const TasteOnboardingPage: React.FC = () => {
                   <button
                     key={genre.id}
                     type="button"
+                    aria-pressed={likedGenreIds.includes(genre.id)}
                     className={styles.chip({
                       selected: likedGenreIds.includes(genre.id),
                     })}

@@ -160,7 +160,7 @@ export const submitOnboarding = async (
 		selectedProviders: input.providers,
 	};
 
-	await Promise.all([
+	await db.batch([
 		db
 			.insert(tasteProfiles)
 			.values({ userId, weights, updatedAt: now })
