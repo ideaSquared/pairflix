@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
 	callApp,
 	createLoggedInUser,
+	getCsrfToken,
 	postJson,
 	type Cookies,
 } from '../test/test-helpers';
@@ -347,6 +348,52 @@ describe('POST /api/households/:id/pick', () => {
 		expect(exceeded.body.error).toBe('pick_quota_exceeded');
 	});
 
+	it('allows at most one success when two picks race with one remaining', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		for (let i = 0; i < 2; i++) {
+			mockExternalApis(DEFAULT_MOVIES);
+			const ok = await postJson(
+				`/api/households/${householdId}/pick`,
+				{ mood: 'funny', minutes: 120 },
+				cookies
+			);
+			expect(ok.status).toBe(200);
+		}
+
+		// Exactly 1 of the free tier's 3 daily picks remains. Fire two requests genuinely
+		// concurrently (same pre-seeded CSRF cookie/token, no sequential await between them) to
+		// exercise the race a sequential loop can't reach -- the quota check must be atomic with the
+		// usage write, not a read-then-later-write, or both could pass the check before either write
+		// lands.
+		mockExternalApis(DEFAULT_MOVIES);
+		const seeded = await getCsrfToken(cookies);
+		const raceInit = {
+			method: 'POST' as const,
+			headers: {
+				'Content-Type': 'application/json',
+				'x-csrf-token': seeded.csrfToken,
+			},
+			body: JSON.stringify({ mood: 'funny', minutes: 120 }),
+			cookies: seeded.cookies,
+		};
+		const [first, second] = await Promise.all([
+			callApp(`/api/households/${householdId}/pick`, raceInit),
+			callApp(`/api/households/${householdId}/pick`, raceInit),
+		]);
+
+		const statuses = [first.status, second.status].sort((a, b) => a - b);
+		expect(statuses).toEqual([200, 402]);
+
+		const picksToday = await env.DB.prepare(
+			'SELECT COUNT(*) as total FROM pick_usage WHERE household_id = ?1'
+		)
+			.bind(householdId)
+			.first<{ total: number }>();
+		expect(picksToday?.total).toBe(3);
+	});
+
 	it('silently overrides the region to the free-tier lock', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
@@ -378,6 +425,34 @@ describe('POST /api/households/:id/pick', () => {
 		);
 		expect(result.status).toBe(200);
 		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+	});
+
+	it('fetches provider data for display even without a providers filter', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const result = await postJson<{
+			pick: {
+				tmdbId: number;
+				providers: { flatrate?: Array<{ provider_name: string }> };
+			};
+		}>(
+			`/api/households/${householdId}/pick`,
+			// No `providers` filter at all -- excluding A and C leaves B (the only mocked movie with
+			// provider data) as the sole candidate, so the pick is deterministic without a filter.
+			{
+				mood: 'funny',
+				minutes: 120,
+				excludeTmdbIds: [MOVIE_A.id, MOVIE_C.id],
+			},
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+		expect(result.body.pick.providers.flatrate?.[0]?.provider_name).toBe(
+			'Netflix'
+		);
 	});
 
 	it('returns 404 when every candidate is excluded', async () => {
@@ -416,6 +491,7 @@ describe('POST /api/households/:id/picks/:tmdbId/commit', () => {
 		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		const result = await postJson<{ recorded: boolean; id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
@@ -540,13 +616,10 @@ describe('GET /api/households/:id/history', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		// No prior `GET /api/providers/:tmdbId` or `/launch` call -- committing a pick must populate
+		// `content` (title + providers) on its own via `commitPick`, not rely on some other route
+		// having touched this title first.
 		mockExternalApis(DEFAULT_MOVIES);
-		const providersLookup = await callApp(
-			`/api/providers/${MOVIE_B.id}?mediaType=movie`,
-			{ cookies }
-		);
-		expect(providersLookup.status).toBe(200);
-
 		const commit = await postJson(
 			`/api/households/${householdId}/picks/${MOVIE_B.id}/commit`,
 			{ mediaType: 'movie' },
@@ -564,10 +637,7 @@ describe('GET /api/households/:id/history', () => {
 		expect(history.status).toBe(200);
 		expect(history.body.data).toHaveLength(1);
 		expect(history.body.data[0]?.tmdbId).toBe(MOVIE_B.id);
-		// Title is a placeholder ("Untitled movie") rather than MOVIE_B.title -- the provider-cache
-		// write path never fetches real title/poster data (a pre-existing gap ported faithfully
-		// from Express, see docs/roadmap.md). This test asserts the providers join, which is the
-		// actual behavior this domain adds.
+		expect(history.body.data[0]?.title).toBe(MOVIE_B.title);
 		expect(history.body.data[0]?.providers.flatrate?.length).toBeGreaterThan(0);
 	});
 
@@ -575,6 +645,7 @@ describe('GET /api/households/:id/history', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		for (const movie of DEFAULT_MOVIES) {
 			const commit = await postJson(
 				`/api/households/${householdId}/picks/${movie.id}/commit`,
@@ -607,6 +678,7 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 		const owner = await createLoggedInUser(uniqueEmail());
 		const outsider = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(owner.cookies);
+		mockExternalApis(DEFAULT_MOVIES);
 		const commit = await postJson<{ id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },
@@ -625,6 +697,7 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 	it('sets and clears enjoyed', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
+		mockExternalApis(DEFAULT_MOVIES);
 		const commit = await postJson<{ id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },
@@ -779,6 +852,7 @@ describe('GET /api/households/:id/pick-events/stats', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
+		mockExternalApis(DEFAULT_MOVIES);
 		await postJson(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
 			{ mediaType: 'movie' },

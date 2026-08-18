@@ -18,6 +18,7 @@ import {
 	type LlmTasteProfile,
 } from './llm';
 import { recordPickEvent } from './pickEvents';
+import { cacheContentDetails, getCachedProviders } from './providers';
 import { summariseTasteProfile } from './tasteSummary';
 import {
 	discoverMedia,
@@ -276,16 +277,20 @@ const hydrate = async (
 		runtime = null;
 	}
 
+	// Fetched unconditionally -- this is display data for the returned card, independent of
+	// whether the caller also wants to filter candidates down to a provider subset below.
 	let providers: RegionProviders = {};
-	if (providersFilter && providersFilter.length > 0) {
-		try {
-			providers = await getWatchProviders(env, item.id, mediaType, region);
-		} catch {
-			providers = {};
-		}
-		if (!providersMatch(providers, providersFilter)) {
-			return null;
-		}
+	try {
+		providers = await getWatchProviders(env, item.id, mediaType, region);
+	} catch {
+		providers = {};
+	}
+	if (
+		providersFilter &&
+		providersFilter.length > 0 &&
+		!providersMatch(providers, providersFilter)
+	) {
+		return null;
 	}
 
 	return {
@@ -472,6 +477,7 @@ export const pickForHousehold = async (
 };
 
 export const commitPick = async (
+	env: Bindings,
 	db: Database,
 	householdId: string,
 	userId: string,
@@ -479,24 +485,34 @@ export const commitPick = async (
 	request: CommitPickRequest
 ): Promise<{ id: string }> => {
 	const id = newId('watchedtogether');
-	await db.insert(watchedTogether).values({
-		id,
-		householdId,
-		tmdbId,
-		mediaType: request.mediaType,
-		watchedAt: new Date(),
-		enjoyed: null,
-		moodAtPick: request.mood ?? null,
-		minutesBudgetAtPick: request.minutes ?? null,
-	});
-	await recordPickEvent(db, {
-		householdId,
-		userId,
-		tmdbId,
-		mediaType: request.mediaType,
-		kind: 'accepted',
-		mood: request.mood ?? null,
-		minutesBudget: request.minutes ?? null,
-	});
+	await Promise.all([
+		db.insert(watchedTogether).values({
+			id,
+			householdId,
+			tmdbId,
+			mediaType: request.mediaType,
+			watchedAt: new Date(),
+			enjoyed: null,
+			moodAtPick: request.mood ?? null,
+			minutesBudgetAtPick: request.minutes ?? null,
+		}),
+		recordPickEvent(db, {
+			householdId,
+			userId,
+			tmdbId,
+			mediaType: request.mediaType,
+			kind: 'accepted',
+			mood: request.mood ?? null,
+			minutesBudget: request.minutes ?? null,
+		}),
+		// Populates/refreshes the `content` cache row (providers, then title/year/poster) for this
+		// title -- previously only `lib/providerLaunch.ts` and `GET /api/providers/:tmdbId` ever
+		// wrote to `content`, so a pick committed without either happening first left
+		// `lib/history.ts`'s join with nothing to return. Both calls are best-effort and never
+		// throw; they write disjoint columns, so the order between them doesn't matter (see
+		// `cacheContentDetails`'s doc comment).
+		getCachedProviders(env, db, tmdbId, request.mediaType),
+		cacheContentDetails(env, db, tmdbId, request.mediaType),
+	]);
 	return { id };
 };

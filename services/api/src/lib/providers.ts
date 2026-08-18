@@ -7,7 +7,11 @@ import {
 import { and, eq } from 'drizzle-orm';
 import type { Bindings } from '../types';
 import { newId } from './id';
-import { getAllWatchProviders } from './tmdb';
+import {
+	getAllWatchProviders,
+	getMovieFullDetails,
+	getTVFullDetails,
+} from './tmdb';
 
 /**
  * Read-through cache over the `content` table, ported from the current Express
@@ -84,6 +88,80 @@ const refreshProviders = async (
 		});
 
 	return providers;
+};
+
+const parseYear = (dateStr: string | undefined): number | null => {
+	if (!dateStr) return null;
+	const year = parseInt(dateStr.slice(0, 4), 10);
+	return Number.isNaN(year) ? null : year;
+};
+
+/**
+ * Fetches and upserts real title/year/poster for a title -- separate from `refreshProviders`
+ * (which only ever writes a placeholder title) so this doesn't change the providers-only refresh
+ * behavior `getCachedProviders`'s other two callers (`lib/providerLaunch.ts`,
+ * `GET /api/providers/:tmdbId`) rely on. Only `lib/recommendation.ts`'s `commitPick` calls this,
+ * after (or alongside) `getCachedProviders` -- the two upserts touch disjoint columns
+ * (providers/updatedAt here vs title/year/posterPath/updatedAt there), so they're safe to run in
+ * either order or in parallel; whichever runs first creates the row, the other just fills in its
+ * own columns via `onConflictDoUpdate`.
+ *
+ * Best-effort, matching `getCachedProviders`: a TMDb failure leaves any existing row untouched
+ * (title stays whatever it already was -- a moderator's edit or a `refreshProviders` placeholder)
+ * rather than throwing.
+ */
+export const cacheContentDetails = async (
+	env: Bindings,
+	db: Database,
+	tmdbId: number,
+	mediaType: 'movie' | 'tv'
+): Promise<void> => {
+	let title: string;
+	let year: number | null;
+	let posterPath: string | null;
+	try {
+		if (mediaType === 'movie') {
+			const full = await getMovieFullDetails(env, tmdbId);
+			title = full.title;
+			year = parseYear(full.release_date);
+			posterPath = full.poster_path;
+		} else {
+			const full = await getTVFullDetails(env, tmdbId);
+			title = full.name;
+			year = parseYear(full.first_air_date);
+			posterPath = full.poster_path;
+		}
+	} catch (err) {
+		console.warn(
+			'[providers] content-details fetch failed, leaving title/poster as-is',
+			err instanceof Error ? err.message : 'Unknown error'
+		);
+		return;
+	}
+	// A malformed/empty response (e.g. an unmocked-shape 200 in a test, or TMDb omitting the
+	// field) must not write a NULL into `content.title`'s NOT NULL column.
+	if (!title) return;
+
+	const now = new Date();
+	await db
+		.insert(content)
+		.values({
+			id: newId('content'),
+			title,
+			type: mediaType === 'movie' ? 'movie' : 'show',
+			status: 'active',
+			tmdbId,
+			mediaType,
+			year,
+			posterPath,
+			providers: {},
+			createdAt: now,
+			updatedAt: now,
+		})
+		.onConflictDoUpdate({
+			target: [content.tmdbId, content.mediaType],
+			set: { title, year, posterPath, updatedAt: now },
+		});
 };
 
 /** Best-effort: a TMDb failure degrades to whatever's already cached (even if stale), or an

@@ -223,6 +223,7 @@ householdsRoutes.post(
 
 		const db = createDb(c.env.DB);
 		const result = await commitPick(
+			c.env,
 			db,
 			householdId,
 			userId,
