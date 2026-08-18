@@ -144,10 +144,6 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       credentials: 'include',
     });
 
-    if (response.status === 401) {
-      throw new Error('Authentication required');
-    }
-
     if (!response.ok) {
       try {
         const error = await response.json();
