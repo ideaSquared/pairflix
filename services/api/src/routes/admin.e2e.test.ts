@@ -153,6 +153,41 @@ describe('admin routes -- user management', () => {
 		expect(result.status).toBe(409);
 	});
 
+	it('returns a clean 409, not a 500, when two admin updates race for the same email', async () => {
+		const { cookies } = await createLoggedInAdmin(uniqueEmail());
+		// registerAndVerify (not createLoggedInUser) -- these two never need their own session, an
+		// admin is doing the patching, and skipping their login avoids a second PBKDF2 verify per
+		// user. Created once, outside the loop: what's being raced is which of the two claims each
+		// iteration's fresh target email, not their own identity, so there's no need to pay for 80
+		// fresh users (which, combined with createLoggedInUser's extra login step, was slow enough
+		// to cascade into unrelated timeouts elsewhere in this file when this test first shipped).
+		const [{ userId: userA }, { userId: userB }] = await Promise.all([
+			registerAndVerify(uniqueEmail(), 'Str0ngPass123'),
+			registerAndVerify(uniqueEmail(), 'Str0ngPass123'),
+		]);
+
+		// Neither PATCH's pre-check can see the other's write coming -- both target *different*
+		// existing users, racing to claim the same new email, so the only thing that can catch this
+		// is the DB-level unique-constraint fallback. Timing-dependent whether a given attempt
+		// actually collides at the DB layer rather than one fully finishing first; 40 fresh-target
+		// attempts (same margin as the register-race test in auth.e2e.test.ts) pushes the chance of
+		// never once hitting that overlap down to roughly 1.5%, without changing what's asserted:
+		// every attempt, raced or not, must resolve to exactly one 200 and one 409, never a 500.
+		for (let attempt = 0; attempt < 40; attempt++) {
+			const targetEmail = uniqueEmail();
+			const [first, second] = await Promise.all([
+				postJson(`/api/admin/users/${userA}`, { email: targetEmail }, cookies, {
+					method: 'PATCH',
+				}),
+				postJson(`/api/admin/users/${userB}`, { email: targetEmail }, cookies, {
+					method: 'PATCH',
+				}),
+			]);
+			const statuses = [first.status, second.status].sort((a, b) => a - b);
+			expect(statuses).toEqual([200, 409]);
+		}
+	});
+
 	it('404s updating an unknown user', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());
 		const result = await postJson(

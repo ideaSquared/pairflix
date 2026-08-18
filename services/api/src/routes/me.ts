@@ -23,6 +23,7 @@ import {
 	hashPassword,
 	verifyPassword,
 } from '../lib/crypto';
+import { isUniqueConstraintViolation } from '../lib/dbErrors';
 import { sendVerificationEmail } from '../lib/email';
 import { randomToken } from '../lib/id';
 import { revokeOtherSessions } from '../lib/session';
@@ -37,15 +38,6 @@ const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
  * of this pass, nothing in the schema or either frontend app references one yet.
  */
 export const meRoutes = new Hono<AppEnv>();
-
-// Drizzle wraps the D1 driver's rejection in a DrizzleQueryError whose own .message is just "Failed
-// query: ..." -- the actual "UNIQUE constraint failed: users.username: SQLITE_CONSTRAINT" text is
-// on a nested .cause (D1's error wraps the raw SQLite one), so this walks the chain instead of
-// checking .message directly.
-const isUniqueConstraintViolation = (error: unknown): boolean =>
-	error instanceof Error &&
-	(error.message.includes('UNIQUE constraint failed') ||
-		isUniqueConstraintViolation(error.cause));
 
 meRoutes.use('*', requireAuth);
 
