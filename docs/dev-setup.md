@@ -1,8 +1,7 @@
 # Development setup
 
-> **Target state (ADR 0001).** This is the Cloudflare/pnpm workflow Pairflix is moving to. Until the
-> restructure phase lands, the repo still builds with npm + Docker — see git history. `docs/roadmap.md`
-> tracks the cutover.
+> **Cloudflare/pnpm workflow (ADR 0001).** This is how the repo builds and runs today — `docs/roadmap.md`
+> tracks how it got here.
 
 ## Prerequisites
 
@@ -13,12 +12,9 @@
 - A **TMDb API key**, and (for the premium re-rank) an **Anthropic API key**
 - A **Cloudflare account** only for `--remote` / deploy; **local dev needs none** (Miniflare emulates
   D1 and R2)
-- **No Docker** (target) — the old `docker-compose` stack is retired from the app path post-cutover; it still runs the current stack until then.
+- **No Docker** — retired from the app path (ADR 0001, P5).
 
 ## First run
-
-> Post-P1 layout. These commands assume the restructured `services/api` / `packages/db` workspaces;
-> they won't run against the current `backend/` tree.
 
 ```bash
 git clone <repository-url> && cd pairflix
@@ -91,11 +87,16 @@ The local D1 lives under `.wrangler/` and is disposable — delete it and re-mig
 ```bash
 pnpm --filter @pairflix/db db:migrate:remote   # apply migrations to prod D1 first
 pnpm --filter @pairflix/api deploy             # wrangler deploy (Worker)
-# Pages apps deploy via wrangler / CI per app
+pnpm --filter @pairflix/client deploy          # wrangler pages deploy
+pnpm --filter @pairflix/admin deploy           # wrangler pages deploy
 ```
 
-Worker and Pages roll back differently; the deploy runbook lives alongside this file once the cutover
-phase lands. Until then, see creatorgrid's `docs/deploying.md` for the reference procedure.
+**Not done yet:** no D1 database has been provisioned in a Cloudflare account (`wrangler d1 create
+pairflix-db`, then replace the placeholder `database_id` in `services/api/wrangler.jsonc`), and
+there's no CI step running any of the above — deploy today is manual, and provisioning needs real
+Cloudflare account access this repo's automated tooling doesn't have. Worker and Pages also roll
+back differently; there's no self-contained rollback runbook here yet — see creatorgrid's
+`docs/deploying.md` for the reference procedure in the meantime.
 
 ## Troubleshooting
 

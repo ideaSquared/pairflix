@@ -19,7 +19,7 @@
 
 - **LLM re-rank was dead code on Express** — `llm.service` / `maybeRerank` was fully implemented and
   unit-tested but never called by the recommender. Wired in as part of the Hono households/pick port
-  (`services/api/src/hono/lib/llm.ts`, `lib/recommendation.ts`); the Express version is still
+  (`services/api/src/lib/llm.ts`, `lib/recommendation.ts`); the Express version is still
   unwired, retired at cutover along with the rest of that tree.
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
@@ -58,7 +58,8 @@ Port route modules to a Hono Worker one domain at a time: **auth** (session cook
 **households/pick** (wire in the LLM re-rank here) → **providers/history** → **billing/admin**.
 Collapse the two server entries into one; make email flows reachable.
 
-**auth — done.** `services/api/src/hono/` (routes/middleware/lib) alongside the still-deployed
+**auth — done.** `services/api/src/hono/` (routes/middleware/lib, since flattened to `src/` at the
+P5 cutover) alongside the still-deployed
 Express tree, not yet cut over — kept in a separate subdirectory with its own `tsconfig.hono.json`
 and a `vitest.config.mts` (`@cloudflare/vitest-pool-workers` against local D1) so the two frameworks'
 incompatible tooling (module system, test runner) don't collide; `pnpm --filter @pairflix/api test`
@@ -70,7 +71,7 @@ Resend over nodemailer since Workers can't do SMTP). `packages/lib.validation` h
 request schemas. 30 passing `vitest-pool-workers` tests cover register/login/lockout/suspend/ban/
 verify-email/forgot-password/reset-password/bootstrap-admin/2FA/IP rate limiting.
 
-**households/pick — done.** `services/api/src/hono/lib/{household,entitlements,featureFlags,
+**households/pick — done.** `services/api/src/lib/{household,entitlements,featureFlags,
 tasteSummary,llm,pickEvents,recommendation}.ts`, `middleware/{household,entitlements}.ts`,
 `routes/households.ts`. Household CRUD/membership/invites — including accept-invite, which existed
 in Express (`householdInvites.routes.ts`) but was never mounted on the app router, so invites could
@@ -94,7 +95,7 @@ signal, what decay) left for a follow-up rather than decided inline here.
 commit, and the LLM wiring (including the Anthropic-failure fallback) — the pick path returns a
 title end-to-end on Miniflare, meeting this phase's exit criterion for this domain.
 
-**providers/history — done.** `services/api/src/hono/lib/{providers,providerLaunch,history,
+**providers/history — done.** `services/api/src/lib/{providers,providerLaunch,history,
 pickEventStats}.ts`, `routes/providers.ts` (new, standalone `GET /api/providers/:tmdbId`),
 `routes/households.ts` extended with `/:id/history` (GET + PATCH), `/:id/picks/:tmdbId/launch`,
 `/:id/pick-events`, `/:id/pick-events/stats`. The headline change: Express had three disconnected
@@ -137,7 +138,7 @@ generic `POST /:id/pick-events` endpoint's `kind` is narrowed to `swapped`/`dism
 TMDb-failure degrade, history list/pagination/thumbs, provider-launch including its recorded
 `pick_events` row, the generic pick-events endpoint's kind restriction, and stats aggregation).
 
-**billing/admin — done.** The last P3 domain. `services/api/src/hono/lib/{adminUsers,adminContent,
+**billing/admin — done.** The last P3 domain. `services/api/src/lib/{adminUsers,adminContent,
 adminAuditLogs,adminSettings,adminDashboard,billing}.ts`, `routes/admin.ts` (new, mounted at
 `/api/admin` behind `requireAdmin`), `routes/households.ts` extended with `/:id/entitlements` and
 `/:id/billing/{checkout,cancel,mock-activate}` (household-scoped and owner-gated, replacing
@@ -211,7 +212,7 @@ more than once concurrently, occasionally 403'ing on a CSRF-cookie race between 
 calls.
 **apps/admin (P4b) — done.** Same auth-foundation rewrite as P4a, plus admin-specific TOTP: login
 surfaces the `TOTP code required` case with a code field, and a new `/setup-2fa` page (enrol ->
-verify -> one-time backup codes) since `requireAdmin` (`services/api/src/hono/middleware/auth.ts`)
+verify -> one-time backup codes) since `requireAdmin` (`services/api/src/middleware/auth.ts`)
 gates every `/api/admin/*` route on `totpEnabled`, not just `role`. Removed the dead-weight that
 had no Workers/D1 equivalent -- System Monitoring and System Stats (no `os`/`process`
 introspection on a Workers isolate), the pre-pivot Activity feed and `enableMatching`/
@@ -233,11 +234,43 @@ leaked onto the DOM (`Received true for a non-boolean attribute` on the current 
 without ever driving its variant, so the current page had no visual indicator besides
 `aria-current` -- fixed in `packages/lib.components`, so it benefits any consumer.
 
-### P5 — Cutover
+### P5 — Cutover — done
 
-Point dev + deploy at wrangler; retire Docker/nginx from the app path; delete the old `backend/`
-Express tree.
-**Exit:** production deploys via `wrangler deploy` + Pages; the old stack is gone.
+Deleted the Express tree (`services/api/src/*` except `src/hono/` -- 131 files, 26,551 lines --
+plus `.sequelizerc`, its `Dockerfile`s, and `jest.config.ts`) and flattened `src/hono/*` up to
+`src/`, now that there's only one runtime -- matching CLAUDE.md's already-documented target layout
+(`src/routes`, `src/middleware`, `src/lib`, not nested). `services/api/package.json`, `tsconfig.json`
+(the old Express one deleted, `tsconfig.hono.json` renamed and repointed at `src`), and
+`vitest.config.mts` collapsed to the Hono-only scripts/deps/paths -- dropped `express`,
+`express-rate-limit`, `sequelize`(-cli), `pg`(-hstore), `bcryptjs`, `jsonwebtoken`, `cors`, `dotenv`,
+`nodemailer`, `node-cron`, `lru-cache`, `@anthropic-ai/sdk` (neither `lib/llm.ts` nor `lib/email.ts`
+ever used an SDK -- both are hand-rolled `fetch` clients, per CLAUDE.md's Anthropic-integration
+note), and the Jest/ts-node toolchain; added a `deploy` script (`wrangler deploy`) matching what
+`apps/client`/`apps/admin` already had from P4b, and repointed `build` at `wrangler deploy --dry-run`
+(a Worker has no separate compile-to-disk step -- wrangler bundles at `dev`/`deploy` time).
+
+Retired Docker/nginx from the app path: `docker-compose*.yml`, `nginx/`, every app's `Dockerfile*`,
+`.dockerignore`, and the production deploy scripts (`scripts/{build,deploy}-production.sh`,
+`scripts/generate-ssl-certificates.*`, `env.production.template`). **Surprising finding:** this
+stack was already non-functional going into P5 -- the P1 restructure renamed `backend/`, `app.client/`,
+`app.admin/`, `lib.components/` to their `apps/`/`services/`/`packages/` homes back on the branch
+this cuts over from, but the compose files and several Dockerfiles still referenced the old paths,
+so `docker-compose up` would have failed immediately regardless of this phase. P5 removed dead
+weight here, not a live path. Updated `docs/architecture.md`, `docs/dev-setup.md`, both READMEs, and
+`docs/db-schema.md` to match (paths, no more Express-vs-Hono caveats); rewrote `services/api`'s
+`README.md` and `docs/SECURITY.md` from scratch (both described the deleted Express app end to end,
+unlike the root `README.md`, where only the Docker/Postgres-specific setup and deploy sections needed
+fixing). Left `docs/phase3/docker-analysis.md` and `docs/phase3-implementation-plan.md` alone --
+both already-dated, pre-pivot planning artifacts, not live guidance.
+
+**Known gap, not fixed here:** the exit criterion's "production deploys via `wrangler deploy`" is
+true as a _capability_ (the script exists, mirrors the frontends) but not yet exercised -- no D1
+database has been provisioned in a real Cloudflare account (`services/api/wrangler.jsonc`'s
+`database_id` is still the placeholder from P2) and no CI step runs any deploy. Both need real
+Cloudflare account access this repo's automated tooling doesn't have; `docs/dev-setup.md`'s Deploy
+section documents the commands to run once that access exists.
+**Exit:** the old stack is gone (Express, Docker, nginx, all deleted). `wrangler deploy` + Pages are
+what's left to actually run a deploy with -- provisioning the target account is the remaining step.
 
 ## Product work to reach closed alpha
 

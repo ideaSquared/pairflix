@@ -32,8 +32,7 @@ This is a monorepo containing multiple applications and shared libraries:
 ### Prerequisites
 
 - Node.js 22.x (see `.nvmrc`) and pnpm 10 (`corepack enable && corepack prepare pnpm@latest --activate`)
-- PostgreSQL 14+
-- Docker (optional, for containerized development)
+- A Cloudflare account (optional for local dev; needed for `--remote` / deploy — Miniflare emulates D1 locally)
 
 ### Installation
 
@@ -50,21 +49,17 @@ This is a monorepo containing multiple applications and shared libraries:
    pnpm install
    ```
 
-3. **Set up the database**
+3. **Set up the local database (D1 via Miniflare)**
 
    ```bash
-   # Using Docker (recommended)
-   docker-compose up -d postgres
-
-   # Or install PostgreSQL locally and create a database
-   createdb pairflix_development
+   pnpm --filter @pairflix/db db:migrate:local
    ```
 
 4. **Configure environment variables**
 
    ```bash
    # Copy example environment files
-   cp services/api/.env.example services/api/.env
+   cp services/api/.dev.vars.example services/api/.dev.vars
    cp apps/client/.env.example apps/client/.env
 
    # Edit the files with your configuration
@@ -297,20 +292,15 @@ pnpm dev  # Start all development servers
 pnpm build  # Build all workspaces
 ```
 
-### Docker Deployment
+### Deploy (Cloudflare)
 
 ```bash
-docker-compose up -d  # Start all services with Docker
+pnpm --filter @pairflix/api deploy      # wrangler deploy (Worker)
+pnpm --filter @pairflix/client deploy   # wrangler pages deploy
+pnpm --filter @pairflix/admin deploy    # wrangler pages deploy
 ```
 
-**Production Features:**
-
-- Multi-stage Docker builds for optimized images
-- Nginx reverse proxy with security headers
-- Health checks and automated rollback
-- Resource limits and scaling configuration
-
-See [`prd.md`](./prd.md) for detailed production deployment instructions.
+See `docs/dev-setup.md` for full deploy prerequisites (D1 provisioning, secrets).
 
 ## 🤝 Contributing
 

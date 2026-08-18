@@ -4,13 +4,13 @@ Behavioral guidelines to reduce common LLM coding mistakes, plus the Pairflix-sp
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-> **Stack migration in progress — ADR 0001.** Pairflix is re-platforming onto the Cloudflare stack:
-> **pnpm + Turborepo**, `apps/*` + `services/*` + `packages/*`, a **Hono** Worker API, **Drizzle + D1**,
-> **R2**, and **Cloudflare Pages** frontends — mirroring the `creatorgrid` sibling repo. The codebase
-> is still Express + Sequelize + Postgres until the phases in `docs/roadmap.md` land. **Follow the
-> target conventions below for new `services/*` / `packages/*` work; follow the current reality for
-> existing `backend/` code you're only touching in passing.** Read `docs/adr/0001-cloudflare-stack.md`,
-> `docs/architecture.md`, and `docs/db-schema.md` before structural work.
+> **Cloudflare stack — ADR 0001.** Pairflix runs on **pnpm + Turborepo**, `apps/*` + `services/*` +
+> `packages/*`, a **Hono** Worker API, **Drizzle + D1**, **R2**, and **Cloudflare Pages** frontends —
+> mirroring the `creatorgrid` sibling repo. The re-platform off Express + Sequelize + Postgres is
+> code-complete (`docs/roadmap.md` tracks phase history); provisioning real Cloudflare infrastructure
+> (a live D1 database, an actual `wrangler deploy`) is the remaining step, documented as a known gap
+> in `docs/dev-setup.md`. Read `docs/adr/0001-cloudflare-stack.md`, `docs/architecture.md`, and
+> `docs/db-schema.md` before structural work.
 
 ## 1. Think Before Coding
 
@@ -93,11 +93,12 @@ Product source of truth: the **Pairflix — Business Plan** Notion page (`https:
    entitlements) are merged. This is **pre-launch alpha with no production data** — the old matching
    and watchlist flows are being deleted, not preserved. There is nothing to keep backwards-compatible
    and no data to migrate; when the old code doesn't serve the household product, remove it.
-2. **Platform re-platform (in progress, ADR 0001):** Node/Express/Sequelize/Postgres → Cloudflare
-   (Hono/Drizzle/D1, pnpm/Turborepo). Tracked phase-by-phase in `docs/roadmap.md`.
+2. **Platform re-platform (done, ADR 0001):** Node/Express/Sequelize/Postgres → Cloudflare
+   (Hono/Drizzle/D1, pnpm/Turborepo). Phase history in `docs/roadmap.md`. Docker/nginx are gone from
+   the app path; provisioning a real D1 database and wiring an actual deploy are what's left (see the
+   banner above).
 
-Extend along the existing seams. Don't introduce parallel structures, and don't invest in the parts
-being retired (Docker/nginx app deploy).
+Extend along the existing seams. Don't introduce parallel structures.
 
 ## Quick Reference
 
@@ -360,8 +361,6 @@ Promote a component to `packages/lib.components` only when a second consumer nee
 ## Things to leave alone unless asked
 
 - `apps/admin` — only touch if the task explicitly names admin scope.
-- The retiring Docker/nginx app-deploy path (`docker-compose*.yml`, `nginx/`) — being removed by the
-  re-platform; don't invest in it, but don't rip it out except as part of the cutover phase.
 
 ## Working with Claude
 

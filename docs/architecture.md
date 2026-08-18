@@ -1,8 +1,9 @@
 # Pairflix architecture
 
-> **Target state (ADR 0001).** This describes the Cloudflare stack Pairflix is moving to. The
-> codebase is mid-migration off Express + Sequelize + Postgres — `docs/roadmap.md` tracks which phase
-> each piece is in. Where this document and the code disagree, the code is the current engineering
+> **Cloudflare stack (ADR 0001).** The re-platform off Express + Sequelize + Postgres is code-complete
+> — `docs/roadmap.md` tracks phase history. What's not yet done is standing up the real Cloudflare
+> infrastructure this describes (a provisioned D1 database, an actual `wrangler deploy`) — see
+> Deploying, below. Where this document and the code disagree, the code is the current engineering
 > reality and this document is the destination.
 
 ## Goal
@@ -46,7 +47,7 @@ many households** — not per-tenant infrastructure, and not a fleet of services
 2. **Membership check** — caller must be a `household_members` row for `:id`.
 3. **Entitlement + quota middleware** — region lock (free = GB) and the daily pick limit (free = 3);
    premium is unlimited and multi-region.
-4. **Recommendation service** (`services/api/src/hono/lib/recommendation.ts`): merge the members'
+4. **Recommendation service** (`services/api/src/lib/recommendation.ts`): merge the members'
    taste profiles (D1) → TMDb `/discover` → score against mood/time/taste → hydrate the top
    candidates and filter to titles actually streamable on the household's providers. Edge-caching
    `/discover` and `/watch/providers` (Topology, above) isn't implemented yet in the Hono port --
@@ -77,10 +78,8 @@ carried into D1 — the schema is greenfield for the household product.
 
 ## Auth & CSRF
 
-Ported from creatorgrid (the Workers-native pattern; replaces JWT bearer). Implemented as the P3
-auth domain (`services/api/src/hono/routes/auth.ts`, `routes/me.ts`, `middleware/auth.ts`,
-`middleware/csrf.ts`) — the Express app in `services/api/src/` is still what's actually deployed
-until P3's remaining domains land and P5 cuts over:
+Ported from creatorgrid (the Workers-native pattern; replaces JWT bearer). Implemented in
+`services/api/src/routes/auth.ts`, `routes/me.ts`, `middleware/auth.ts`, `middleware/csrf.ts`:
 
 - **Opaque session token**, stored in D1 (`sessions`), carried in an HttpOnly `session` cookie.
 - **Passwords hashed with PBKDF2 via Web Crypto** — Workers has no native bcrypt.
@@ -93,21 +92,19 @@ until P3's remaining domains land and P5 cuts over:
 ## Recommendation & LLM re-rank
 
 The recommender is **heuristic**, not a heavyweight ML pipeline: taste-profile merge → TMDb
-`/discover` → score → provider filter. Implemented as the P3 households/pick domain
-(`services/api/src/hono/lib/recommendation.ts`, `lib/llm.ts`) — same Express-vs-Hono caveat as Auth
-& CSRF above. The optional Anthropic re-rank (`claude-sonnet-4-6`, `max_tokens: 512`, 8s timeout,
+`/discover` → score → provider filter. Implemented in `services/api/src/lib/recommendation.ts` and
+`lib/llm.ts`. The optional Anthropic re-rank (`claude-sonnet-4-6`, `max_tokens: 512`, 8s timeout,
 prompt-cached system + taste blocks, tool-use for structured output) is premium-gated
 (`recommendation.llm_rerank` plus a per-household entitlement check) and **is wired into the
-recommender** in the Hono port: eligible households hydrate the top 10 scored candidates instead of
-3 and pass them to `maybeRerank`, which validates the model's chosen id against what was actually
-sent and falls back to the pure-ML top-1 pick on any failure (flag off, not premium, API error,
-timeout). The Express `llm.service` remains unwired dead code, retired at cutover.
+recommender**: eligible households hydrate the top 10 scored candidates instead of 3 and pass them
+to `maybeRerank`, which validates the model's chosen id against what was actually sent and falls
+back to the pure-ML top-1 pick on any failure (flag off, not premium, API error, timeout).
 
 ## Providers & regions
 
 TMDb `/watch/providers` responses are read-through cached into `content.providers` (region-keyed,
-one row per `(tmdbId, mediaType)`) with a 24h blob-level staleness check -- implemented as the P3
-providers/history domain (`services/api/src/hono/lib/providers.ts`). Caching is lazy/on-demand only;
+one row per `(tmdbId, mediaType)`) with a 24h blob-level staleness check -- implemented in
+`services/api/src/lib/providers.ts`. Caching is lazy/on-demand only;
 there's no cron-driven proactive refresh yet (see Background work, below). Region defaults to GB,
 overridable by premium multi-region wherever a household context exists (`/:id/pick`, `/:id/history`,
 `/:id/picks/:tmdbId/launch`) -- the standalone `GET /api/providers/:tmdbId` has no household to
@@ -125,8 +122,8 @@ current_period_end > now`.
 
 ## Billing
 
-Real Stripe is still deferred (CLAUDE.md). What's implemented as the P3 billing/admin domain
-(`services/api/src/hono/lib/billing.ts`) is Pairflix's existing mock pattern, household-scoped
+Real Stripe is still deferred (CLAUDE.md). What's implemented in `services/api/src/lib/billing.ts`
+is Pairflix's existing mock pattern, household-scoped
 under `/households/:id/billing/*` (owner-only): `checkout` returns a fake URL with no DB write,
 `mock-activate` unconditionally flips the household to premium for 30 days behind a
 `BILLING_MOCK_ENABLED` var ("unconfigured is a valid state" — enabled outside `production`,
@@ -138,13 +135,13 @@ actual Stripe.
 
 ## Admin
 
-Implemented as the P3 billing/admin domain (`services/api/src/hono/routes/admin.ts`), mounted at
-`/api/admin` behind `requireAdmin` (role + TOTP, same session as everyone else — no separate admin
-login). Covers user management (CRUD, a single consolidated status-change endpoint that revokes
-sessions and emails the user on suspend/ban, forced password reset, locked-accounts using the same
-threshold `/auth/login` enforces, session termination that's genuinely immediate since a Hono
-session row is the live credential), audit logs, settings
-(`services/api/src/hono/lib/adminSettings.ts` -- generic key/value CRUD over `settings`, matching
+Implemented in `services/api/src/routes/admin.ts`, mounted at `/api/admin` behind `requireAdmin`
+(role + TOTP, same session as everyone else — no separate admin login). Covers user management
+(CRUD, a single consolidated status-change endpoint that revokes sessions and emails the user on
+suspend/ban, forced password reset, locked-accounts using the same threshold `/auth/login` enforces,
+session termination that's genuinely immediate since a Hono session row is the live credential),
+audit logs, settings (`services/api/src/lib/adminSettings.ts` -- generic key/value CRUD over
+`settings`, matching
 `lib/featureFlags.ts`'s existing no-cache read pattern), and content moderation over
 `content`/`content_reports`. Express's larger
 stats/activity surface mostly isn't ported -- it read the `activity_log`/`matches`/
@@ -162,6 +159,9 @@ to a queue only when volume justifies the plan, exactly as creatorgrid defers it
 
 ## Deploying
 
-One Worker (`services/api`) + two Pages apps, all via `wrangler`. D1 migrations apply with
-`wrangler d1 migrations apply`. First-time deploy, new versions, and rollbacks follow the
-`dev-setup.md` runbook. No Docker or nginx in the app path.
+One Worker (`services/api`) + two Pages apps, all via `wrangler` (`pnpm --filter @pairflix/api
+deploy`, `pnpm --filter <app> deploy`) — no Docker or nginx in the app path. D1 migrations apply
+with `wrangler d1 migrations apply --remote`. First-time deploy, new versions, and rollbacks follow
+the `dev-setup.md` runbook. **Not done yet:** no D1 database has been provisioned in a Cloudflare
+account (`wrangler.jsonc`'s `database_id` is still a placeholder) and no CI deploy step exists —
+both need real Cloudflare account access, not just code.
