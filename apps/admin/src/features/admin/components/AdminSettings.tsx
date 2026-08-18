@@ -18,10 +18,10 @@ import * as styles from './AdminSettings.css';
 import SettingsAuditLog from './SettingsAuditLog';
 import SettingsImportExport from './SettingsImportExport';
 
-// The only settings key the backend actually reads (services/api/src/hono/lib/featureFlags.ts);
+// The only settings key the backend actually reads (services/api/src/lib/featureFlags.ts);
 // everything else in the tree is free-form and only editable via the JSON import/export below.
 // The API nests dot-path keys into an object, so this reads/writes `{ recommendation: { llm_rerank } }`,
-// not a flat 'recommendation.llm_rerank' key -- see services/api/src/hono/lib/adminSettings.ts.
+// not a flat 'recommendation.llm_rerank' key -- see services/api/src/lib/adminSettings.ts.
 const readLlmRerank = (tree: SettingsTree | null): boolean => {
   const recommendation = tree?.recommendation;
   return (

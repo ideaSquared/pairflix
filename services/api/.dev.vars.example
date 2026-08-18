@@ -2,12 +2,12 @@
 # In production set these with `wrangler secret put <NAME>`.
 
 # wrangler.jsonc's vars.ENVIRONMENT is "production" (needed for the real deploy -- flips the
-# session cookie to Secure and enables real email sending, see src/hono/lib/session.ts and
-# src/hono/lib/email.ts). `.dev.vars` values override wrangler.jsonc's `vars` during `wrangler
+# session cookie to Secure and enables real email sending, see src/lib/session.ts and
+# src/lib/email.ts). `.dev.vars` values override wrangler.jsonc's `vars` during `wrangler
 # dev`, so this puts local dev back to normal.
 ENVIRONMENT="development"
 
-# Derives the AES-256-GCM key that encrypts TOTP secrets at rest (src/hono/lib/crypto.ts).
+# Derives the AES-256-GCM key that encrypts TOTP secrets at rest (src/lib/crypto.ts).
 SESSION_SECRET="dev-session-secret-change-me"
 
 # Comma-separated origins allowed to call the API with credentials.
@@ -21,18 +21,18 @@ ALLOWED_ORIGINS=""
 ADMIN_BOOTSTRAP_SECRET="dev-bootstrap-secret-change-me"
 
 # Email (Resend) -- leave blank to log verification/reset links to the console instead of sending
-# real email (see src/hono/lib/email.ts). Get a key at https://resend.com.
+# real email (see src/lib/email.ts). Get a key at https://resend.com.
 RESEND_API_KEY=""
 EMAIL_FROM=""
 
 # Base URL of apps/client -- verification/reset email links point here.
 APP_CLIENT_URL="http://localhost:5173"
 
-# TMDb -- titles, discover, and watch-provider lookups (src/hono/lib/tmdb.ts). Required for
+# TMDb -- titles, discover, and watch-provider lookups (src/lib/tmdb.ts). Required for
 # POST /api/households/:id/pick to return anything. Get a key at https://www.themoviedb.org/settings/api.
 TMDB_API_KEY=""
 
-# Anthropic (premium LLM re-rank, src/hono/lib/llm.ts) -- leave blank to keep maybeRerank returning
+# Anthropic (premium LLM re-rank, src/lib/llm.ts) -- leave blank to keep maybeRerank returning
 # null (falls back to the pure-ML pick, same "unconfigured is a valid state" pattern as email).
 # Also gated behind the recommendation.llm_rerank setting and premium entitlements either way.
 ANTHROPIC_API_KEY=""

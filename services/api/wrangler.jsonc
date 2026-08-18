@@ -1,11 +1,11 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "pairflix-api",
-	"main": "src/hono/index.ts",
+	"main": "src/index.ts",
 	"compatibility_date": "2026-08-01",
-	// No `nodejs_compat` flag: unlike creatorgrid's Worker, nothing under src/hono touches a `node:`
+	// No `nodejs_compat` flag: unlike creatorgrid's Worker, nothing under src touches a `node:`
 	// built-in or `Buffer` (lib/crypto.ts and lib/totp.ts use Web Crypto / ArrayBuffer / btoa, all
-	// native to Workers) -- add it if a later P3 domain actually needs one, not preemptively.
+	// native to Workers) -- add it if a future domain actually needs one, not preemptively.
 	"observability": {
 		"enabled": true
 	},

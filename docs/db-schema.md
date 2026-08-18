@@ -39,9 +39,9 @@ to match column-encoding choices, only the auth/session _mechanism_ (see below).
 `users` carries more than just the identity columns — `status`, `emailVerified`,
 `failedLoginAttempts`/`lockedUntil`, `lastLogin`, and `preferences` are all live functionality (admin
 ban/suspend, account-lockout security, the client app's theme preference) carried forward from the
-current Sequelize model, not a Postgres-only detail left behind. `totpSecret`/`totpEnabled`/
-`totpBackupCodes` (migration `0001`, P3 auth domain) back TOTP 2FA — required for admin accounts (see
-`services/api/src/hono/middleware/auth.ts`'s `requireAdmin`), optional for everyone else.
+prior Sequelize model, not a Postgres-only detail left behind. `totpSecret`/`totpEnabled`/
+`totpBackupCodes` (migration `0001`) back TOTP 2FA — required for admin accounts (see
+`services/api/src/middleware/auth.ts`'s `requireAdmin`), optional for everyone else.
 
 ```ts
 export const users = sqliteTable('users', {

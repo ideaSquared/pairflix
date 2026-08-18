@@ -1,6 +1,6 @@
 import { fetchWithAuth } from './utils';
 
-// requireAdmin (services/api/src/hono/middleware/auth.ts) 403s every /api/admin/* route until the
+// requireAdmin (services/api/src/middleware/auth.ts) 403s every /api/admin/* route until the
 // caller has TOTP enrolled -- these wrap the enrollment flow admins have to complete once, from
 // account settings, before any admin route is reachable.
 export const twoFactor = {

@@ -4,14 +4,11 @@ import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-pool-worker
 import { defineConfig } from 'vitest/config';
 
 /**
- * Runs the Hono Worker's tests (src/hono/**\/*.test.ts) inside real `workerd`, via Miniflare, with
- * actual D1 bindings sourced from `wrangler.jsonc` -- not the generic Node-environment Vitest config
- * other packages use, since that can't touch bindings or call the Worker's own `fetch` handler.
- * Scoped to `src/hono` (not `src/**`, unlike creatorgrid) because `src/` outside `src/hono` is still
- * the Express app, covered by its own Jest suite (see jest.config.ts's matching
- * `testPathIgnorePatterns`) -- the two must never pick up each other's test files. See
- * src/hono/test/apply-migrations.ts for how packages/db/migrations gets applied to the ephemeral
- * test D1 before tests run.
+ * Runs the Worker's tests (src/**\/*.test.ts) inside real `workerd`, via Miniflare, with actual D1
+ * bindings sourced from `wrangler.jsonc` -- not the generic Node-environment Vitest config other
+ * packages use, since that can't touch bindings or call the Worker's own `fetch` handler. See
+ * src/test/apply-migrations.ts for how packages/db/migrations gets applied to the ephemeral test D1
+ * before tests run.
  */
 export default defineConfig(async () => {
   // `import.meta.dirname` would work too (this is Node 22+/ESM), but its availability depends on
@@ -40,8 +37,8 @@ export default defineConfig(async () => {
             // applies inside the test Miniflare instance.
             ADMIN_BOOTSTRAP_SECRET: 'test-bootstrap-secret',
             // Derives the AES-256-GCM key that encrypts/decrypts TOTP secrets at rest (see
-            // src/hono/lib/crypto.ts). Without this, 2FA enroll/verify 501 (see
-            // src/hono/routes/me.ts's fail-fast guard).
+            // src/lib/crypto.ts). Without this, 2FA enroll/verify 501 (see
+            // src/routes/me.ts's fail-fast guard).
             SESSION_SECRET: 'test-session-secret',
             // households.e2e.test.ts stubs globalThis.fetch, so these never reach a real API --
             // ANTHROPIC_API_KEY only needs to be non-empty so lib/llm.ts's fail-fast guard doesn't
@@ -56,12 +53,12 @@ export default defineConfig(async () => {
       globals: true,
       testTimeout: 10_000,
       passWithNoTests: true,
-      include: ['src/hono/**/*.test.ts'],
-      setupFiles: ['./src/hono/test/apply-migrations.ts'],
+      include: ['src/**/*.test.ts'],
+      setupFiles: ['./src/test/apply-migrations.ts'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json-summary'],
-        exclude: ['src/hono/index.ts', 'src/hono/test/**', '**/*.test.ts'],
+        exclude: ['src/index.ts', 'src/test/**', '**/*.test.ts'],
       },
     },
   };

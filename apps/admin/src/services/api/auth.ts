@@ -18,7 +18,7 @@ export interface AdminUser {
 }
 
 // Admins authenticate through the same session-cookie flow as apps/client (no separate
-// /api/admin/login) -- requireAdmin (services/api/src/hono/middleware/auth.ts) then gates every
+// /api/admin/login) -- requireAdmin (services/api/src/middleware/auth.ts) then gates every
 // /api/admin/* route on role === 'admin' AND totpEnabled, regardless of how the caller logged in.
 export const auth = {
   login: async (

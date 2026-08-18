@@ -10,9 +10,6 @@ export default [
       'coverage',
       '.turbo',
       '**/*.d.ts',
-      'services/api/.sequelizerc',
-      'services/api/src/db/config.js',
-      'services/api/src/db/migrations/*.js',
     ],
   },
 ];

@@ -19,7 +19,6 @@
       "inputs": [
         "src/**/*.tsx",
         "src/**/*.ts",
-        "jest.config.ts",
         "package.json",
         "$TURBO_ROOT$/tsconfig.base.json"
       ]
