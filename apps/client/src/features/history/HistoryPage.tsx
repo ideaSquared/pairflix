@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   CardContent,
+  ErrorText,
   H1,
   PageContainer,
   ProviderBadges,
@@ -96,6 +97,9 @@ const HistoryPage: React.FC = () => {
           Tap a thumb to rate something you&apos;ve watched. We use these to
           improve tonight&apos;s picks.
         </Typography>
+        {setEnjoyed.error && (
+          <ErrorText gutterBottom>{setEnjoyed.error.message}</ErrorText>
+        )}
       </div>
 
       {entries.length === 0 ? (

@@ -10,16 +10,19 @@ import {
   PageContainer,
   Typography,
 } from '@pairflix/components';
+import { useMutation } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
-import * as styles from './TonightPicker.css';
-import { useActiveHousehold } from './useActiveHousehold';
-import { useTonightHomepagePreference } from './useTonightHomepage';
-import { useCommitPick, useTonightPick } from './useTonightPick';
+import UpgradeBanner from '../billing/UpgradeBanner';
+import { useEntitlements } from '../../hooks/useEntitlements';
 import {
   households,
   type Mood,
   type RecommendationCard,
 } from '../../services/api/households';
+import * as styles from './TonightPicker.css';
+import { useActiveHousehold } from './useActiveHousehold';
+import { useTonightHomepagePreference } from './useTonightHomepage';
+import { useCommitPick, useTonightPick } from './useTonightPick';
 
 const MOODS: { id: Mood; label: string }[] = [
   { id: 'funny', label: 'Funny' },
@@ -52,6 +55,27 @@ const TonightPicker: React.FC = () => {
   const commitMutation = useCommitPick({
     householdId: household?.id ?? '',
   });
+  const launchMutation = useMutation({
+    mutationFn: async ({
+      card,
+      providerSlug,
+    }: {
+      card: RecommendationCard;
+      providerSlug: string;
+    }) => {
+      if (!household) {
+        throw new Error('No household selected');
+      }
+      return households.launchProvider(household.id, card.tmdbId, {
+        providerSlug,
+        mediaType: card.mediaType,
+      });
+    },
+    onSuccess: ({ url }) => {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    },
+  });
+  const entitlementsQuery = useEntitlements(household?.id);
 
   const result = pickMutation.data;
   const isPending = pickMutation.isPending;
@@ -119,24 +143,8 @@ const TonightPicker: React.FC = () => {
     setDismissed(true);
   };
 
-  const onLaunchProvider = async (
-    card: RecommendationCard,
-    providerSlug: string
-  ) => {
-    if (!household) return;
-    try {
-      const { url } = await households.launchProvider(
-        household.id,
-        card.tmdbId,
-        {
-          providerSlug,
-          mediaType: card.mediaType,
-        }
-      );
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch {
-      // Launch failed (provider not available in region); silently no-op
-    }
+  const onLaunchProvider = (card: RecommendationCard, providerSlug: string) => {
+    launchMutation.mutate({ card, providerSlug });
   };
 
   const toggleProvider = (id: string) => {
@@ -187,6 +195,13 @@ const TonightPicker: React.FC = () => {
         <Typography variant="body1" gutterBottom>
           One pick. Thirty seconds. Made for both of you.
         </Typography>
+
+        {entitlementsQuery.data && (
+          <UpgradeBanner
+            entitlements={entitlementsQuery.data}
+            householdId={household.id}
+          />
+        )}
 
         <div className={styles.formSection}>
           <Typography variant="body2" className={styles.label}>
@@ -294,6 +309,11 @@ const TonightPicker: React.FC = () => {
                       </button>
                     ))}
                   </Flex>
+                  {launchMutation.error && (
+                    <Typography variant="body2" className={styles.errorMessage}>
+                      {launchMutation.error.message}
+                    </Typography>
+                  )}
                   <Typography variant="body2" className={styles.rationale}>
                     {result.rationale}
                   </Typography>
@@ -323,6 +343,11 @@ const TonightPicker: React.FC = () => {
                       Not tonight
                     </Button>
                   </Flex>
+                  {commitMutation.error && (
+                    <Typography variant="body2" className={styles.errorMessage}>
+                      {commitMutation.error.message}
+                    </Typography>
+                  )}
                 </div>
               </Flex>
             </CardContent>
