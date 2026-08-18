@@ -44,10 +44,13 @@ type PaginationButtonProps = React.ComponentProps<typeof Button> & {
 const PaginationButton = ({
   size,
   className,
+  active,
+  variant,
   ...props
 }: PaginationButtonProps) => (
   <Button
     size={size}
+    variant={active ? 'primary' : variant}
     className={clsx(size === 'large' && styles.largeButton, className)}
     {...props}
   />
