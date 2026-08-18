@@ -34,7 +34,9 @@ const UserManagementContent = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  // Derived rather than tracked separately -- limit is fixed, so this can't drift out of
+  // sync with total the way a second piece of state (updated in every total-changing handler) could.
+  const totalPages = Math.ceil(total / limit);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationCounter, setNotificationCounter] = useState(0);
@@ -59,7 +61,6 @@ const UserManagementContent = () => {
         const response = await admin.users.list({ page, limit });
         setUsers(response.data);
         setTotal(response.pagination.total);
-        setTotalPages(response.pagination.totalPages);
       } catch (error) {
         console.error('Failed to fetch users:', error);
         addNotification('Failed to load users.', 'error');

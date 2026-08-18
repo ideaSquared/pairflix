@@ -28,7 +28,7 @@ const TwoFactorSetupPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // enroll() overwrites any secret from a previous call, so it must run at most once per mount --
   // otherwise StrictMode's double-invoke (or a stray re-mount) silently invalidates the secret an
@@ -49,14 +49,13 @@ const TwoFactorSetupPage: React.FC = () => {
         setError(
           err instanceof Error ? err.message : 'Failed to start 2FA setup'
         );
-      })
-      .finally(() => setIsLoading(false));
+      });
   }, []);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+    setIsVerifying(true);
 
     try {
       const result = await twoFactor.verify(code);
@@ -64,7 +63,7 @@ const TwoFactorSetupPage: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid or expired code');
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -141,7 +140,7 @@ const TwoFactorSetupPage: React.FC = () => {
                 onChange={e => setCode(e.target.value)}
                 required
                 isFullWidth
-                disabled={isLoading || !otpauthUrl}
+                disabled={isVerifying || !otpauthUrl}
                 autoComplete="one-time-code"
               />
             </InputGroup>
@@ -150,9 +149,9 @@ const TwoFactorSetupPage: React.FC = () => {
               type="submit"
               variant="primary"
               isFullWidth
-              disabled={isLoading || !otpauthUrl || !code.trim()}
+              disabled={isVerifying || !otpauthUrl || !code.trim()}
             >
-              {isLoading ? 'Verifying...' : 'Verify and enable 2FA'}
+              {isVerifying ? 'Verifying...' : 'Verify and enable 2FA'}
             </Button>
           </form>
         </CardContent>

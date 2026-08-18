@@ -39,26 +39,6 @@ declare const process:
     }
   | undefined;
 
-// Safe function to access Vite environment variables
-const getViteEnvVar = (key: string): string | undefined => {
-  // In Jest environment, we don't have import.meta, so return undefined
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
-    return undefined;
-  }
-
-  // Check if we're in a browser environment with Vite
-  // Use a try-catch to safely access import.meta without causing Jest parse errors
-  try {
-    // This will be replaced by Vite at build time with actual values
-    // Jest won't execute this since it returns early in test environment
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const importMeta = (globalThis as any).import?.meta;
-    return importMeta?.env?.[key];
-  } catch {
-    return undefined;
-  }
-};
-
 // Empty by default -- '/api/...' then resolves relative to the current origin, which the Vite
 // dev server proxies to the Worker (see vite.config.ts) and which a production same-site domain
 // setup would route directly. Cross-origin (SameSite=Lax cookies) only works if VITE_API_URL is
@@ -72,7 +52,8 @@ const getApiUrl = (): string => {
     return process.env.VITE_API_URL || '';
   }
 
-  return getViteEnvVar('VITE_API_URL') || '';
+  // Replaced by Vite at build time with the actual value.
+  return import.meta.env.VITE_API_URL || '';
 };
 
 export const BASE_URL = getApiUrl();
@@ -132,19 +113,14 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     });
 
     if (!response.ok) {
-      try {
-        const error = await response.json();
-        throw new Error(
-          error.error ||
-            error.message ||
-            `Request failed with status ${response.status}`
-        );
-      } catch {
-        // If we can't parse the error as JSON, use status text
-        throw new Error(
+      // A parse failure (non-JSON body) falls back to the generic message below --
+      // .catch keeps it from being caught by this same function's outer try/catch.
+      const parsed = await response.json().catch(() => null);
+      throw new Error(
+        parsed?.error ||
+          parsed?.message ||
           `Request failed with status ${response.status} ${response.statusText}`
-        );
-      }
+      );
     }
 
     if (response.status === 204) {
