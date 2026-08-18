@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { createDb, settings, subscriptions } from '@pairflix/db';
 import { afterEach, describe, expect, it } from 'vitest';
+import { GENRE_NAMES } from '../lib/genres';
 import {
 	callApp,
 	createLoggedInUser,
@@ -128,6 +129,10 @@ const mockExternalApis = (
 					poster_path: movie.poster_path,
 					runtime: movie.runtime,
 					release_date: movie.release_date,
+					genres: movie.genre_ids.map(id => ({
+						id,
+						name: GENRE_NAMES[id] ?? 'Unknown',
+					})),
 				});
 			}
 			const providers = /^\/3\/movie\/(\d+)\/watch\/providers$/.exec(pathname);
@@ -206,6 +211,23 @@ const makePremiumWithLlmRerank = async (householdId: string): Promise<void> => {
 			target: settings.key,
 			set: { value: true, updatedAt: now },
 		});
+};
+
+/** Polls until `query` returns a truthy row or `timeoutMs` elapses. `recomputeTasteFromRating`
+ * (lib/tasteRecompute.ts) runs via `waitUntil` -- fire-and-forget, matching
+ * `recordPickEvent`/`reserveDailyPick`'s release -- so unlike a direct `await`ed write, its D1
+ * write isn't guaranteed to have landed the instant the triggering request's response resolves. */
+const waitForRow = async <T>(
+	query: () => Promise<T | null | undefined>,
+	timeoutMs = 2000
+): Promise<T> => {
+	const deadline = Date.now() + timeoutMs;
+	for (;;) {
+		const row = await query();
+		if (row) return row;
+		if (Date.now() >= deadline) throw new Error('Timed out waiting for row');
+		await new Promise(resolve => setTimeout(resolve, 25));
+	}
 };
 
 describe('household CRUD + invites', () => {
@@ -734,6 +756,97 @@ describe('PATCH /api/households/:id/history/:watchedId', () => {
 			{ method: 'PATCH' }
 		);
 		expect(result.status).toBe(404);
+	});
+});
+
+describe('taste personalization from ratings', () => {
+	it('nudges the taste profile from a rating and raises a subsequent pick score', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const before = await postJson<{
+			pick: { tmdbId: number };
+			score: number;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(before.status).toBe(200);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		const patch = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+
+		const profileRow = await waitForRow(() =>
+			env.DB.prepare('SELECT weights FROM taste_profiles WHERE user_id = ?1')
+				.bind(userId)
+				.first<{ weights: string }>()
+		);
+		const weights = JSON.parse(profileRow.weights) as {
+			genres: Record<string, number>;
+		};
+		// EMA nudge from the neutral 0.35 baseline toward 1.0 (enjoyed) at alpha 0.25:
+		// 0.35 * 0.75 + 1.0 * 0.25 = 0.5125.
+		expect(weights.genres['35']).toBeCloseTo(0.5125, 5);
+		// A genre absent from the rated title stays at the neutral baseline.
+		expect(weights.genres['18']).toBeCloseTo(0.35, 5);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const after = await postJson<{
+			pick: { tmdbId: number };
+			score: number;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(after.status).toBe(200);
+		// Every DEFAULT_MOVIES candidate shares genre 35 (comedy), so the merged-genre boost
+		// applies uniformly and the winning candidate's score rises by exactly the genre-match
+		// term's weight (0.5) now that genre 35 is no longer unscored.
+		expect(after.body.score).toBeCloseTo(before.body.score + 0.5, 5);
+	});
+
+	it('does not recompute taste when a rating is cleared back to null', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie' },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		const patch = await postJson(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: null },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+
+		const profileRow = await env.DB.prepare(
+			'SELECT user_id FROM taste_profiles WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first();
+		expect(profileRow).toBeNull();
 	});
 });
 

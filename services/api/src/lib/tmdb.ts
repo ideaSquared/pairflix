@@ -108,6 +108,7 @@ export type TMDbMovieFull = {
 	poster_path: string | null;
 	runtime?: number | null;
 	release_date?: string;
+	genres?: { id: number; name: string }[];
 };
 
 export type TMDbTVFull = {
@@ -117,6 +118,7 @@ export type TMDbTVFull = {
 	poster_path: string | null;
 	episode_run_time?: number[];
 	first_air_date?: string;
+	genres?: { id: number; name: string }[];
 };
 
 export const getMovieFullDetails = (

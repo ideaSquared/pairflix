@@ -229,6 +229,7 @@ export const content = sqliteTable(
     mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
     posterPath: text('poster_path'),
+    genreIds: text('genre_ids', { mode: 'json' }).$type<number[]>(),
     reportedCount: integer('reported_count').notNull().default(0),
     removalReason: text('removal_reason'),
     providers: text('providers', { mode: 'json' })
@@ -278,6 +279,13 @@ instead of a plain find-then-create, closing a duplicate-row race under concurre
 the same title. It also gives `lib/history.ts`'s join something correct to match on -- joining on
 `tmdbId` alone (a movie and a TV show can share a numeric TMDb id) risked attaching the wrong
 title/poster to a watched-together row.
+
+`genreIds` (nullable `number[]`, `0003_content_genre_ids.sql`) caches TMDb's `genres[].id` list for
+the title, keyed by the same `(tmdbId, mediaType)` `idx_content_tmdb_media_type` already covers --
+no new index. Populated by `lib/providers.ts`'s `cacheContentDetails` alongside title/year/poster,
+from the same `getMovieFullDetails`/`getTVFullDetails` call it already makes. `lib/tasteRecompute.ts`
+reads it (read-through: calling `cacheContentDetails` first on a miss) to know which genres to nudge
+when a watched-together rating comes in.
 
 ## Freemium
 

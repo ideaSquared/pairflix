@@ -106,9 +106,9 @@ const parseYear = (dateStr: string | undefined): number | null => {
  * either order or in parallel; whichever runs first creates the row, the other just fills in its
  * own columns via `onConflictDoUpdate`.
  *
- * Best-effort, matching `getCachedProviders`: a TMDb failure leaves any existing row untouched
- * (title stays whatever it already was -- a moderator's edit or a `refreshProviders` placeholder)
- * rather than throwing.
+ * Best-effort, matching `getCachedProviders`: a TMDb failure or a failed upsert both leave any
+ * existing row untouched (title stays whatever it already was -- a moderator's edit or a
+ * `refreshProviders` placeholder) rather than throwing.
  */
 export const cacheContentDetails = async (
 	env: Bindings,
@@ -119,17 +119,20 @@ export const cacheContentDetails = async (
 	let title: string;
 	let year: number | null;
 	let posterPath: string | null;
+	let genreIds: number[] | null;
 	try {
 		if (mediaType === 'movie') {
 			const full = await getMovieFullDetails(env, tmdbId);
 			title = full.title;
 			year = parseYear(full.release_date);
 			posterPath = full.poster_path;
+			genreIds = full.genres ? full.genres.map(g => g.id) : null;
 		} else {
 			const full = await getTVFullDetails(env, tmdbId);
 			title = full.name;
 			year = parseYear(full.first_air_date);
 			posterPath = full.poster_path;
+			genreIds = full.genres ? full.genres.map(g => g.id) : null;
 		}
 	} catch (err) {
 		console.warn(
@@ -143,25 +146,33 @@ export const cacheContentDetails = async (
 	if (!title) return;
 
 	const now = new Date();
-	await db
-		.insert(content)
-		.values({
-			id: newId('content'),
-			title,
-			type: mediaType === 'movie' ? 'movie' : 'show',
-			status: 'active',
-			tmdbId,
-			mediaType,
-			year,
-			posterPath,
-			providers: {},
-			createdAt: now,
-			updatedAt: now,
-		})
-		.onConflictDoUpdate({
-			target: [content.tmdbId, content.mediaType],
-			set: { title, year, posterPath, updatedAt: now },
-		});
+	try {
+		await db
+			.insert(content)
+			.values({
+				id: newId('content'),
+				title,
+				type: mediaType === 'movie' ? 'movie' : 'show',
+				status: 'active',
+				tmdbId,
+				mediaType,
+				year,
+				posterPath,
+				genreIds,
+				providers: {},
+				createdAt: now,
+				updatedAt: now,
+			})
+			.onConflictDoUpdate({
+				target: [content.tmdbId, content.mediaType],
+				set: { title, year, posterPath, genreIds, updatedAt: now },
+			});
+	} catch (err) {
+		console.warn(
+			'[providers] content-details upsert failed',
+			err instanceof Error ? err.message : 'Unknown error'
+		);
+	}
 };
 
 /** Best-effort: a TMDb failure degrades to whatever's already cached (even if stale), or an

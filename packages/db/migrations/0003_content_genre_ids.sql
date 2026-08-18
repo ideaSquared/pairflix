@@ -1,0 +1,1 @@
+ALTER TABLE `content` ADD `genre_ids` text;

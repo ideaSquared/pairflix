@@ -54,13 +54,12 @@ import {
  *   `isLlmRerankEnabledForHousehold`, with a validated fall-through to the pure-ML top-1 pick
  *   whenever it's disabled, ineligible, or fails.
  *
- * Known, out-of-scope gap: nothing in this port computes `taste_profiles` rows going forward (the
- * Express `tasteProfile.service.ts` `recompute*` functions are entirely built on the same
- * `WatchlistEntry` table being deleted, so there's no straight port). `pickForHousehold` only
- * reads whatever taste profiles already exist; `mergeProfiles` degrades to mood-only genre
- * filtering when a household has none, which is the common case pre-launch. Deriving taste
- * weights from `watchedTogether` instead is a real product decision (what signal, what decay)
- * left for a follow-up rather than decided inline here.
+ * `taste_profiles` gets its first writer from `lib/tasteRecompute.ts`: a watched-together thumbs
+ * rating (`PATCH /:id/history/:watchedId`) nudges every current member's genre weights via an EMA.
+ * `pickForHousehold` still only reads whatever exists here; `mergeProfiles` still degrades to
+ * mood-only genre filtering for a household with no ratings yet, which remains the common case
+ * until ratings accumulate. `runtime_pref`/`era`/`tone` still have no writer -- deriving those from
+ * `watchedTogether` (what signal, what decay) remains a follow-up, not decided here.
  */
 
 export class HouseholdNotFoundError extends Error {
