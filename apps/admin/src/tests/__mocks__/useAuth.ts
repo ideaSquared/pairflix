@@ -2,9 +2,10 @@
 export const useAuth = () => ({
   user: null,
   isLoading: false,
-  login: jest.fn(),
+  error: null,
   logout: jest.fn(),
-  refreshToken: jest.fn(),
+  checkAuth: jest.fn(),
+  isAuthenticated: false,
 });
 
 export default useAuth;
