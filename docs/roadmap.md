@@ -282,8 +282,14 @@ Independent of the platform, needed before opening to an invited cohort:
   Action+Adventure onto TV's different genre taxonomy before they can include TV candidates too.
 - Make runtime actually influence scoring, not just gate the initial `/discover` query -- separate
   from the TV work above.
-- Feed `ProviderBadges` real provider data on the Tonight card and history.
-- Integration tests for the pick / providers / entitlements paths.
+- ~~Feed `ProviderBadges` real provider data on the Tonight card and history~~ — done; History wires
+  real API provider data into the shared component (`HistoryPage.tsx`), and Tonight's own launch
+  buttons (a bespoke UI, not the shared component -- it needs launch `onClick`s the component's
+  static-link-only API doesn't support) have read real `pick.providers` since before this checklist
+  item was written.
+- ~~Integration tests for the pick / providers / entitlements paths~~ — done; `households.e2e.test.ts`
+  and `providers.e2e.test.ts` cover all three, including the quota-atomicity race and region-lock
+  enforcement.
 - Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.
 
 **Alpha exit criteria:** a real household can create an account, get a genuinely good first pick in

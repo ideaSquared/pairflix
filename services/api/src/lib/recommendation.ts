@@ -399,8 +399,9 @@ export const pickForHousehold = async (
 		.map(c => ({
 			...c,
 			// /discover responses don't carry runtime; use null so the runtime component contributes
-			// a neutral 0.5 instead of the gaussian peak -- real runtime is fetched during hydration
-			// below, for display only, and never re-scored.
+			// a neutral 0.5 instead of the gaussian peak for every candidate alike here. This score
+			// only decides which candidates get hydrated (real runtime fetched below) -- the `ranked`
+			// re-score after hydration is what actually decides the final pick.
 			score: scoreCandidate(
 				c.item,
 				null,
@@ -439,8 +440,30 @@ export const pickForHousehold = async (
 		throw new NoCandidatesError('No candidates matched the provider filter');
 	}
 
-	const cards = paired.map(p => p.card);
-	const mlPick = paired[0]!;
+	// Re-score with each candidate's now-known real runtime (the scoring pass above used null,
+	// since /discover doesn't carry it) and re-sort -- the pre-hydration order only ever reflected
+	// a neutral runtime guess for every candidate alike, so this is the first point a candidate's
+	// actual fit for the household's time budget can affect which one wins, not just display copy.
+	const ranked = paired
+		.map(p => ({
+			...p,
+			score: scoreCandidate(
+				p.entry.item,
+				p.card.runtime,
+				merged,
+				moodCfg.genres,
+				request.minutes,
+				currentYear
+			),
+		}))
+		.sort((a, b) =>
+			b.score !== a.score
+				? b.score - a.score
+				: b.entry.item.vote_average - a.entry.item.vote_average
+		);
+
+	const cards = ranked.map(p => p.card);
+	const mlPick = ranked[0]!;
 	const mlResult: RecommendationResult = {
 		pick: mlPick.card,
 		alternates: cards.slice(1, 3),
@@ -452,10 +475,10 @@ export const pickForHousehold = async (
 			mlPick.card.runtime,
 			pickProviderName(mlPick.card.providers)
 		),
-		score: mlPick.entry.score,
+		score: mlPick.score,
 	};
 
-	if (!llmEligible || paired.length < 2) {
+	if (!llmEligible || ranked.length < 2) {
 		return mlResult;
 	}
 
@@ -468,7 +491,7 @@ export const pickForHousehold = async (
 		}),
 	}));
 
-	const llmCandidates: LlmCandidate[] = paired.map(p => ({
+	const llmCandidates: LlmCandidate[] = ranked.map(p => ({
 		tmdbId: p.card.tmdbId,
 		title: p.card.title,
 		year: p.card.year ?? currentYear,
@@ -498,7 +521,7 @@ export const pickForHousehold = async (
 	}
 	if (!llmResult) return mlResult;
 
-	const byTmdbId = new Map(paired.map(p => [p.card.tmdbId, p]));
+	const byTmdbId = new Map(ranked.map(p => [p.card.tmdbId, p]));
 	const llmPick = byTmdbId.get(llmResult.pickTmdbId);
 	if (!llmPick) return mlResult;
 
@@ -511,7 +534,7 @@ export const pickForHousehold = async (
 		pick: llmPick.card,
 		alternates: llmAlternates,
 		rationale: llmResult.rationale,
-		score: llmPick.entry.score,
+		score: llmPick.score,
 	};
 };
 
