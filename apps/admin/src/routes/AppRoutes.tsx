@@ -22,7 +22,7 @@ const AdminSettings = React.lazy(
   () => import('../features/admin/components/AdminSettings')
 );
 
-// Auth guard for admin routes -- requireAdmin (services/api/src/hono/middleware/auth.ts) is the
+// Auth guard for admin routes -- requireAdmin (services/api/src/middleware/auth.ts) is the
 // real gate; this mirrors it client-side for UX (avoids a round-trip 403 before showing the
 // right prompt), the server enforces it regardless.
 const AdminRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => {

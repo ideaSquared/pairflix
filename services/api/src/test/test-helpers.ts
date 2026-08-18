@@ -134,7 +134,7 @@ export const registerUser = async (
 };
 
 /** Reads the pending token straight from D1 -- there's no fake inbox, so DB inspection is the only
- * way to get a real token (see src/hono/lib/email.ts's "unconfigured is a valid state" behavior). */
+ * way to get a real token (see src/lib/email.ts's "unconfigured is a valid state" behavior). */
 export const getLatestAuthToken = async (
 	userId: string,
 	purpose: 'verify_email' | 'password_reset' | 'change_email'

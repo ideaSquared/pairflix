@@ -58,7 +58,7 @@ const getApiUrl = (): string => {
 
 export const BASE_URL = getApiUrl();
 
-// Common shapes used across the admin service clients (services/api/src/hono/routes/admin.ts).
+// Common shapes used across the admin service clients (services/api/src/routes/admin.ts).
 export interface Pagination {
   page: number;
   limit: number;

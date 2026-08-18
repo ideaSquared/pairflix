@@ -17,7 +17,7 @@ import { twoFactor } from '../../services/api';
 import type { AdminUser } from '../../services/api/auth';
 import * as styles from './TwoFactorSetupPage.css';
 
-// requireAdmin (services/api/src/hono/middleware/auth.ts) 403s every /api/admin/* route until
+// requireAdmin (services/api/src/middleware/auth.ts) 403s every /api/admin/* route until
 // the caller has TOTP enrolled -- AdminRoute (routes/AppRoutes.tsx) sends an admin here instead
 // of the dashboard until they complete this once.
 const TwoFactorSetupPage: React.FC = () => {

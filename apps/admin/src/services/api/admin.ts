@@ -77,7 +77,7 @@ export interface DashboardStats {
 }
 
 // A nested tree, e.g. { general: { siteName: '...' }, recommendation: { llm_rerank: true } } --
-// the backend has no fixed settings shape, see services/api/src/hono/lib/adminSettings.ts.
+// the backend has no fixed settings shape, see services/api/src/lib/adminSettings.ts.
 export type SettingsTree = Record<string, unknown>;
 
 const buildQuery = (
