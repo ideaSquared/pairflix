@@ -9,7 +9,7 @@ import { eq, inArray } from 'drizzle-orm';
 import type { CommitPickRequest, PickRequest } from '@pairflix/lib.validation';
 import type { Bindings } from '../types';
 import { isLlmRerankEnabledForHousehold } from './featureFlags';
-import { GENRE_NAMES, MOOD_FILTERS } from './genres';
+import { GENRE_NAMES, MOOD_FILTERS, TV_COMPATIBLE_GENRE_IDS } from './genres';
 import { newId } from './id';
 import {
 	rerankCandidates,
@@ -338,23 +338,57 @@ export const pickForHousehold = async (
 	const genres = topMergedGenres(merged, moodCfg.genres, 3);
 
 	const watchedRows = await db
-		.select({ tmdbId: watchedTogether.tmdbId })
+		.select({
+			tmdbId: watchedTogether.tmdbId,
+			mediaType: watchedTogether.mediaType,
+		})
 		.from(watchedTogether)
 		.where(eq(watchedTogether.householdId, householdId));
-	const excluded = new Set<number>([
-		...watchedRows.map(w => w.tmdbId),
-		...(request.excludeTmdbIds ?? []),
-	]);
+	// Keyed by tmdbId+mediaType, not tmdbId alone -- movie and TV ids are assigned from separate
+	// TMDb id spaces, so a watched movie must not exclude an unrelated TV show (or vice versa)
+	// that happens to share the same numeric id, now that both are candidate sources below.
+	const excludedWatched = new Set<string>(
+		watchedRows.map(w => `${w.tmdbId}:${w.mediaType}`)
+	);
+	const excludedRequested = new Set<number>(request.excludeTmdbIds ?? []);
 
-	const discoverResp = await discoverMedia(env, {
-		mediaType: 'movie',
+	const discoverParams = {
 		genres,
 		withRuntimeLte: request.minutes,
 		voteCountGte: 200,
 		region,
-	});
-	const filtered = (discoverResp.results ?? []).filter(
-		c => !excluded.has(c.id)
+	};
+	// Only fetch TV candidates when every genre this pick filters on (mood genres, plus up to 3
+	// more pulled in from the household's taste weights) is valid in TV's genre taxonomy -- see
+	// TV_COMPATIBLE_GENRE_IDS's doc comment. Household taste can inject an incompatible id even
+	// under an eligible mood, so the TV call itself filters on the compatible subset of `genres`,
+	// not the full list the movie call uses.
+	const tvEligible = moodCfg.genres.every(g => TV_COMPATIBLE_GENRE_IDS.has(g));
+	const [movieResp, tvResp] = await Promise.all([
+		discoverMedia(env, { ...discoverParams, mediaType: 'movie' }),
+		tvEligible
+			? discoverMedia(env, {
+					...discoverParams,
+					genres: genres.filter(g => TV_COMPATIBLE_GENRE_IDS.has(g)),
+					mediaType: 'tv',
+				})
+			: Promise.resolve({ results: [] }),
+	]);
+
+	const candidates = [
+		...(movieResp.results ?? []).map(item => ({
+			item,
+			mediaType: 'movie' as const,
+		})),
+		...(tvResp.results ?? []).map(item => ({
+			item,
+			mediaType: 'tv' as const,
+		})),
+	];
+	const filtered = candidates.filter(
+		c =>
+			!excludedWatched.has(`${c.item.id}:${c.mediaType}`) &&
+			!excludedRequested.has(c.item.id)
 	);
 	if (filtered.length === 0) {
 		throw new NoCandidatesError('No candidates found for these inputs');
@@ -362,13 +396,13 @@ export const pickForHousehold = async (
 
 	const currentYear = new Date().getFullYear();
 	const scored = filtered
-		.map(item => ({
-			item,
+		.map(c => ({
+			...c,
 			// /discover responses don't carry runtime; use null so the runtime component contributes
 			// a neutral 0.5 instead of the gaussian peak -- real runtime is fetched during hydration
 			// below, for display only, and never re-scored.
 			score: scoreCandidate(
-				item,
+				c.item,
 				null,
 				merged,
 				moodCfg.genres,
@@ -388,7 +422,13 @@ export const pickForHousehold = async (
 	const hydrated = await Promise.all(
 		top.map(async entry => ({
 			entry,
-			card: await hydrate(env, entry.item, 'movie', region, request.providers),
+			card: await hydrate(
+				env,
+				entry.item,
+				entry.mediaType,
+				region,
+				request.providers
+			),
 		}))
 	);
 	const paired = hydrated.filter(

@@ -24,8 +24,10 @@
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
   this to one app and fixes it.
-- **Recommender is movie-only** and runtime-blind (neutral runtime score) despite `movie | tv`
-  plumbing.
+- **Recommender is runtime-blind** (neutral runtime score at ranking time; real runtime is fetched
+  only for display, after the pick is already decided). TV candidates now appear for
+  genre-compatible moods (funny/feelgood/thoughtful); dark/tense/romantic/action stay movie-only --
+  TV's genre taxonomy has no Horror/Romance/Thriller/Action+Adventure equivalent to map onto.
 - **Billing is mock-only** (no Stripe).
 - **Thin tests on the pivot** — no integration tests for any pivot endpoint; several pivot services
   untested.
@@ -119,13 +121,10 @@ generic `POST /:id/pick-events` endpoint's `kind` is narrowed to `swapped`/`dism
 
 **Known gaps, not fixed here:**
 
-- `content` rows created by the provider-cache write path get a placeholder title
-  (`"Untitled movie"`/`"Untitled show"`) — the caching path never fetches real title/poster data,
-  matching Express exactly (a pre-existing gap, not a regression). History entries' `providers`
-  field is real; `title`/`year`/`posterPath` read as the placeholder until something enriches
-  `content` with real metadata -- the natural place is `lib/recommendation.ts`'s hydration step,
-  which already fetches real title/runtime per candidate but doesn't write it back to `content`.
-  Deliberately not bundled into this change; a small, low-risk follow-up.
+- ~~`content` rows created by the provider-cache write path get a placeholder title~~ — fixed in the
+  codebase-triage follow-up: `lib/providers.ts`'s `cacheContentDetails` fetches and writes real
+  title/year/poster/genre ids, called from `lib/recommendation.ts`'s `commitPick` alongside the
+  provider-cache write.
 - The standalone `GET /api/providers/:tmdbId` has no household context, so it can't apply the
   free-tier GB region-lock the way `/:id/pick`, `/:id/history`, and `/:id/picks/:tmdbId/launch` now
   all do -- a free-tier caller can request any region directly through this one endpoint. Closing it
@@ -276,8 +275,13 @@ what's left to actually run a deploy with -- provisioning the target account is 
 
 Independent of the platform, needed before opening to an invited cohort:
 
-- Wire the LLM re-rank and validate it improves first-pick acceptance (premium only).
-- Extend the recommender to TV, and make runtime actually influence scoring.
+- Validate the LLM re-rank actually improves first-pick acceptance (premium only) -- it's wired in
+  and feature-flagged, needs real usage data to judge.
+- ~~Extend the recommender to TV~~ — done for genre-compatible moods (funny/feelgood/thoughtful);
+  dark/tense/romantic/action need a product decision on mapping Horror/Romance/Thriller/
+  Action+Adventure onto TV's different genre taxonomy before they can include TV candidates too.
+- Make runtime actually influence scoring, not just gate the initial `/discover` query -- separate
+  from the TV work above.
 - Feed `ProviderBadges` real provider data on the Tonight card and history.
 - Integration tests for the pick / providers / entitlements paths.
 - Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.

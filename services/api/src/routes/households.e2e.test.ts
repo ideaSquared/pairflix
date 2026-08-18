@@ -81,6 +81,35 @@ const MOVIE_C: MockMovie = {
 };
 const DEFAULT_MOVIES = [MOVIE_A, MOVIE_B, MOVIE_C];
 
+type MockShow = {
+	id: number;
+	name: string;
+	overview: string;
+	poster_path: string | null;
+	first_air_date: string;
+	vote_average: number;
+	vote_count: number;
+	genre_ids: number[];
+	popularity: number;
+	episode_run_time: number[];
+	providers?: MockMovie['providers'];
+};
+
+const SHOW_A: MockShow = {
+	id: 201,
+	name: 'The Improv Hour',
+	overview: 'A very funny show.',
+	poster_path: null,
+	// Much more recent than DEFAULT_MOVIES (2019-2021) -- guarantees a strictly higher
+	// recencyBonus, so tests can assert this show wins the pick deterministically.
+	first_air_date: '2026-01-01',
+	vote_average: 8.0,
+	vote_count: 600,
+	genre_ids: [35],
+	popularity: 60,
+	episode_run_time: [30],
+};
+
 const jsonResponse = (data: unknown, status = 200): Response =>
 	new Response(JSON.stringify(data), {
 		status,
@@ -102,7 +131,8 @@ afterEach(() => {
  * shape (e.g. proving the region-lock override reached TMDb). */
 const mockExternalApis = (
 	movies: MockMovie[],
-	anthropic?: MockAnthropic
+	anthropic?: MockAnthropic,
+	shows: MockShow[] = []
 ): string[] => {
 	const capturedUrls: string[] = [];
 	globalThis.fetch = (async (input: RequestInfo | URL) => {
@@ -118,6 +148,8 @@ const mockExternalApis = (
 		if (hostname === 'api.themoviedb.org') {
 			if (pathname === '/3/discover/movie')
 				return jsonResponse({ results: movies });
+			if (pathname === '/3/discover/tv')
+				return jsonResponse({ results: shows });
 			const detail = /^\/3\/movie\/(\d+)$/.exec(pathname);
 			if (detail) {
 				const movie = movies.find(m => m.id === Number(detail[1]));
@@ -135,11 +167,35 @@ const mockExternalApis = (
 					})),
 				});
 			}
+			const tvDetail = /^\/3\/tv\/(\d+)$/.exec(pathname);
+			if (tvDetail) {
+				const show = shows.find(s => s.id === Number(tvDetail[1]));
+				if (!show) return jsonResponse({}, 404);
+				return jsonResponse({
+					id: show.id,
+					name: show.name,
+					overview: show.overview,
+					poster_path: show.poster_path,
+					episode_run_time: show.episode_run_time,
+					first_air_date: show.first_air_date,
+					genres: show.genre_ids.map(id => ({
+						id,
+						name: GENRE_NAMES[id] ?? 'Unknown',
+					})),
+				});
+			}
 			const providers = /^\/3\/movie\/(\d+)\/watch\/providers$/.exec(pathname);
 			if (providers) {
 				const movie = movies.find(m => m.id === Number(providers[1]));
 				return jsonResponse({
 					results: movie?.providers ? { GB: movie.providers } : {},
+				});
+			}
+			const tvProviders = /^\/3\/tv\/(\d+)\/watch\/providers$/.exec(pathname);
+			if (tvProviders) {
+				const show = shows.find(s => s.id === Number(tvProviders[1]));
+				return jsonResponse({
+					results: show?.providers ? { GB: show.providers } : {},
 				});
 			}
 		}
@@ -492,6 +548,69 @@ describe('POST /api/households/:id/pick', () => {
 			cookies
 		);
 		expect(result.status).toBe(404);
+	});
+});
+
+describe('POST /api/households/:id/pick -- TV candidates', () => {
+	it('can win the pick under a TV-compatible mood', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES, undefined, [SHOW_A]);
+		const result = await postJson<{
+			pick: { tmdbId: number; mediaType: string };
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.mediaType).toBe('tv');
+		expect(result.body.pick.tmdbId).toBe(SHOW_A.id);
+	});
+
+	it('never queries TV for a mood outside the TV-compatible genre set', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// action mood's genres (28 action, 12 adventure) have no TV equivalent -- see
+		// TV_COMPATIBLE_GENRE_IDS.
+		const capturedUrls = mockExternalApis(DEFAULT_MOVIES, undefined, [SHOW_A]);
+		const result = await postJson(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'action', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(capturedUrls.some(u => u.includes('/3/discover/tv'))).toBe(false);
+	});
+
+	it('does not exclude a TV candidate whose id matches a watched movie', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
+			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
+			cookies
+		);
+
+		// Movie and TV tmdb ids come from separate TMDb id spaces, so a TV show legitimately
+		// sharing MOVIE_A's numeric id is a real (if coincidental) scenario, not a malformed
+		// fixture -- the watched-together exclusion must key on tmdbId+mediaType, not tmdbId alone.
+		const showSharingId: MockShow = { ...SHOW_A, id: MOVIE_A.id };
+		mockExternalApis(DEFAULT_MOVIES, undefined, [showSharingId]);
+		const result = await postJson<{
+			pick: { tmdbId: number; mediaType: string };
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.mediaType).toBe('tv');
+		expect(result.body.pick.tmdbId).toBe(MOVIE_A.id);
 	});
 });
 
