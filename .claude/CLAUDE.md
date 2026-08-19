@@ -338,8 +338,12 @@ Promote a component to `packages/lib.components` only when a second consumer nee
 - Model `claude-sonnet-4-6`, `max_tokens: 512`, 8s timeout. Prompt-cache the system prompt and the
   per-member taste blocks; use **tool use** for structured output (never parse free-text JSON).
 - Called from the Worker over `fetch`. Behind `recommendation.llm_rerank` (default off) and
-  premium-gated. **The pure-ML path must work without it** — `maybeRerank` returns `null` to fall back.
-- Wire it into the recommender (it is currently built but not called — see the roadmap).
+  premium-gated. **The pure-ML path must work without it** — `rerankCandidates` (`lib/llm.ts`)
+  returning `null`, throwing, or picking an id outside what was actually sent all fall through to
+  the pure-ML top-1 pick.
+- Wired into `pickForHousehold` (`lib/recommendation.ts`): eligible households hydrate the top 10
+  scored candidates instead of 3 and pass them to `rerankCandidates`. Whether it actually improves
+  first-pick acceptance is still unvalidated — see the roadmap.
 
 ### Stripe (deferred)
 
