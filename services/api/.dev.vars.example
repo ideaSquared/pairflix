@@ -36,3 +36,13 @@ TMDB_API_KEY=""
 # null (falls back to the pure-ML pick, same "unconfigured is a valid state" pattern as email).
 # Also gated behind the recommendation.llm_rerank setting and premium entitlements either way.
 ANTHROPIC_API_KEY=""
+
+# Stripe (src/lib/stripe.ts, src/routes/billing.ts) -- leave all three blank to keep
+# POST /:id/billing/checkout on the existing mock flow and /:id/billing/portal, /api/billing/webhook
+# 501ing, same "unconfigured is a valid state" pattern as the rest of this file. Get test-mode
+# values at https://dashboard.stripe.com/test/apikeys (secret key), .../test/webhooks (webhook
+# signing secret, after creating an endpoint pointed at /api/billing/webhook), and
+# .../test/products (a recurring Price id for the premium tier).
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
+STRIPE_PRICE_PREMIUM=""

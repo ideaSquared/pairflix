@@ -1469,6 +1469,39 @@ describe('billing routes', () => {
 		expect(asOwner.body.checkoutUrl).toContain(householdId);
 	});
 
+	it('POST /:id/billing/portal is owner-only and 501s while Stripe is unconfigured', async () => {
+		const { cookies: ownerCookies } = await createLoggedInUser(uniqueEmail());
+		const { cookies: memberCookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(ownerCookies);
+		const invite = await postJson<{ invite: { token: string } }>(
+			`/api/households/${householdId}/invites`,
+			{},
+			ownerCookies
+		);
+		await postJson(
+			`/api/households/invites/${invite.body.invite.token}/accept`,
+			{},
+			memberCookies
+		);
+
+		const asMember = await postJson(
+			`/api/households/${householdId}/billing/portal`,
+			{},
+			memberCookies
+		);
+		expect(asMember.status).toBe(403);
+
+		// STRIPE_SECRET_KEY/STRIPE_PRICE_PREMIUM are deliberately unset throughout this test
+		// suite (vitest.config.mts) -- real Stripe calls (createPortalSession) are otherwise
+		// unreachable/manual-verification-only, matching creatorgrid's own lib/stripe.ts coverage.
+		const asOwner = await postJson(
+			`/api/households/${householdId}/billing/portal`,
+			{},
+			ownerCookies
+		);
+		expect(asOwner.status).toBe(501);
+	});
+
 	it('mock-activate flips the household to premium, cancel reverts it', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);

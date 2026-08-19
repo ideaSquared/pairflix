@@ -7,6 +7,7 @@ import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
+import { billingRoutes } from './routes/billing';
 import { healthRoutes } from './routes/health';
 import { householdsRoutes } from './routes/households';
 import { meRoutes } from './routes/me';
@@ -49,6 +50,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/me', meRoutes);
 app.route('/api/households', householdsRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/billing', billingRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 app.onError((error, c) => {

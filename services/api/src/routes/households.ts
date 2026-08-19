@@ -17,7 +17,8 @@ import {
 	cancelSubscription,
 	isBillingMockEnabled,
 	mockActivatePremium,
-	startCheckout,
+	startPortalSession,
+	startRealOrMockCheckout,
 } from '../lib/billing';
 import { getEntitlements } from '../lib/entitlements';
 import { listHistory, setEnjoyed } from '../lib/history';
@@ -449,9 +450,40 @@ householdsRoutes.get('/:id/entitlements', requireHouseholdMember, async c => {
 	return c.json(entitlements);
 });
 
-householdsRoutes.post('/:id/billing/checkout', requireHouseholdOwner, c => {
+householdsRoutes.post(
+	'/:id/billing/checkout',
+	requireHouseholdOwner,
+	async c => {
+		const householdId = c.req.param('id');
+		const userId = c.get('userId') as string;
+		const db = createDb(c.env.DB);
+		const session = await startRealOrMockCheckout(
+			c.env,
+			db,
+			householdId,
+			userId
+		);
+		return c.json(session);
+	}
+);
+
+/**
+ * Stripe's self-service Billing Portal -- where a real subscription actually gets changed or
+ * canceled once Stripe is configured. 501s (not configured) or 400s (no checkout yet) rather
+ * than 404ing like `mock-activate` below, since this route is meant to be discoverable/callable
+ * regardless of Stripe's configuration state -- the frontend can show a clear reason instead of
+ * a generic missing-route error.
+ */
+householdsRoutes.post('/:id/billing/portal', requireHouseholdOwner, async c => {
 	const householdId = c.req.param('id');
-	return c.json(startCheckout(householdId));
+	const db = createDb(c.env.DB);
+	const result = await startPortalSession(c.env, db, householdId);
+	if (!result.ok) {
+		return result.reason === 'not_configured'
+			? c.json({ error: 'billing_not_configured' }, 501)
+			: c.json({ error: 'no_billing_account' }, 400);
+	}
+	return c.json({ portalUrl: result.portalUrl });
 });
 
 householdsRoutes.post('/:id/billing/cancel', requireHouseholdOwner, async c => {

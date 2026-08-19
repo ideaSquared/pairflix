@@ -26,6 +26,17 @@ export type Bindings = {
 	 * `ENVIRONMENT !== 'production'`, same "unconfigured is a valid state" default as the current
 	 * Express `isBillingMockEnabled()`. Set to the literal string `'false'` to hard-disable. */
 	BILLING_MOCK_ENABLED?: string;
+	/** Real Stripe billing (lib/stripe.ts) -- `isStripeConfigured` requires both this and
+	 * STRIPE_PRICE_PREMIUM; absent means `POST /:id/billing/checkout` falls back to the existing
+	 * mock checkout, same "unconfigured is a valid state" pattern as the rest of this Bindings
+	 * type. */
+	STRIPE_SECRET_KEY?: string;
+	/** Verifies `POST /api/billing/webhook`'s `stripe-signature` header -- absent means the
+	 * webhook route 501s rather than trusting an unverifiable payload. */
+	STRIPE_WEBHOOK_SECRET?: string;
+	/** Stripe Price id for the one paid tier -- pairflix is free/premium only, unlike creatorgrid's
+	 * per-plan price ids. */
+	STRIPE_PRICE_PREMIUM?: string;
 };
 
 /** Request-scoped values set by middleware. */

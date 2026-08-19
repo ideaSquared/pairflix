@@ -345,10 +345,21 @@ Promote a component to `packages/lib.components` only when a second consumer nee
   scored candidates instead of 3 and pass them to `rerankCandidates`. Whether it actually improves
   first-pick acceptance is still unvalidated — see the roadmap.
 
-### Stripe (deferred)
+### Stripe
 
-- Not integrated. When enabled, port creatorgrid's test-mode pattern (`lib/stripe.ts` +
-  `routes/billing.ts`, "unconfigured is a valid state"). The mock checkout is for demos only.
+- Scaffolded, not live. `lib/stripe.ts` ports creatorgrid's hand-rolled-fetch pattern (no `stripe`
+  SDK — needs Node APIs this Worker doesn't otherwise require); `routes/billing.ts` mounts the
+  global `GET /api/billing/status` + `POST /api/billing/webhook`. Household-scoped
+  `POST /:id/billing/checkout` (`routes/households.ts`) is Stripe-aware when configured
+  (`STRIPE_SECRET_KEY` + `STRIPE_PRICE_PREMIUM`, single premium tier — not creatorgrid's four
+  paid plans), else falls back to the pre-existing mock (`lib/billing.ts`'s `startCheckout`, still
+  demo-only). `POST /:id/billing/portal` is new, matching creatorgrid's self-service Billing
+  Portal pattern for real cancellation.
+- "Unconfigured is a valid state" everywhere: absent secrets 501 the webhook/portal and leave
+  checkout on the mock, rather than throwing.
+- Not live because no real Stripe account is wired up yet (same "needs real Cloudflare/external
+  account access" gap as the rest of the deploy story) — go-live still needs a decision, not more
+  code.
 
 ---
 

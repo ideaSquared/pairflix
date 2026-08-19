@@ -339,8 +339,11 @@ export const pickUsage = sqliteTable(
 );
 ```
 
-Premium is `tier = 'premium' AND status = 'active' AND current_period_end > now`. `stripe_*` stay
-null until real Stripe is wired.
+Premium is `tier = 'premium' AND status = 'active' AND current_period_end > now`. `stripe_*` are
+populated by `services/api`'s Stripe webhook (`routes/billing.ts`) once a household completes a
+real checkout, but stay null until Stripe is actually configured -- no real account is wired up yet
+(see `docs/roadmap.md`), so `startCheckout` (`lib/billing.ts`) falls back to a mock checkout that
+never touches these columns at all.
 
 ## Analytics
 

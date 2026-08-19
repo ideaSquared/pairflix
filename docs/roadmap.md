@@ -311,7 +311,13 @@ Independent of the platform, needed before opening to an invited cohort:
   covers all three, including the quota-atomicity race and region-lock enforcement. (A dedicated
   `providers.e2e.test.ts` covered this too, until the standalone provider route it tested was
   deleted for having no callers -- see this file's providers/history section.)
-- Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.
+- ~~Real Stripe~~ — scaffolded: `lib/stripe.ts` (creatorgrid's hand-rolled-fetch pattern, collapsed
+  to pairflix's single premium tier), `routes/billing.ts` (status + webhook), and Stripe-aware
+  `POST /:id/billing/checkout` + new `POST /:id/billing/portal` in `routes/households.ts`. Not
+  live — no real Stripe account is wired up (`STRIPE_SECRET_KEY`/`STRIPE_PRICE_PREMIUM` unset), so
+  checkout still falls back to the existing mock. Going live from here is a config/account step
+  (set the three `STRIPE_*` secrets, point a Stripe webhook endpoint at `/api/billing/webhook`),
+  gated on go-live sign-off, not more code.
 
 **Alpha exit criteria:** a real household can create an account, get a genuinely good first pick in
 under 30s across their providers, launch it, and have it remembered — reliably, on the deployed
