@@ -30,5 +30,10 @@
 			"migrations_dir": "../../packages/db/migrations",
 			"remote": false
 		}
-	]
+	],
+	// Daily, off-peak UTC -- runs the same audit-log retention sweep as the manual
+	// `POST /api/admin/audit-logs/rotation` route (src/index.ts's `scheduled` handler).
+	"triggers": {
+		"crons": ["0 3 * * *"]
+	}
 }
