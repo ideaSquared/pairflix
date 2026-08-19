@@ -45,6 +45,12 @@ export default defineConfig(async () => {
             // short-circuit before the stub is called.
             TMDB_API_KEY: 'test-tmdb-key',
             ANTHROPIC_API_KEY: 'test-anthropic-key',
+            // Lets billing.e2e.test.ts sign real webhook payloads and exercise
+            // routes/billing.ts's actual event-handling logic. STRIPE_SECRET_KEY/
+            // STRIPE_PRICE_PREMIUM are deliberately left unset (like RESEND_API_KEY) so
+            // isStripeConfigured stays false and every existing checkout/portal test keeps
+            // exercising the mock-fallback path unchanged.
+            STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
           },
         },
       }),

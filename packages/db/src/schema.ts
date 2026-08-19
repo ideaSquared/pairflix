@@ -299,8 +299,11 @@ export const contentReports = sqliteTable(
   table => [index('idx_content_reports_content').on(table.contentId)]
 );
 
-/** Premium is `tier = 'premium' AND status = 'active' AND currentPeriodEnd > now`. `stripe*` stay
- * null until real Stripe is wired (see docs/roadmap.md). */
+/** Premium is `tier = 'premium' AND status = 'active' AND currentPeriodEnd > now`. `stripe*` are
+ * populated by `services/api`'s Stripe webhook (`routes/billing.ts`) once a household completes a
+ * real checkout, but stay null until Stripe is actually configured -- no real account is wired up
+ * yet (see docs/roadmap.md), so `startCheckout` (`lib/billing.ts`) falls back to a mock checkout
+ * that never touches these columns at all. */
 export const subscriptions = sqliteTable('subscriptions', {
   id: text('id').primaryKey(),
   householdId: text('household_id')

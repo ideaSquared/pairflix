@@ -1,7 +1,12 @@
-import { subscriptions, type Database } from '@pairflix/db';
+import { subscriptions, users, type Database } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
 import type { Bindings } from '../types';
 import { newId } from './id';
+import {
+	createCheckoutSession,
+	createPortalSession,
+	isStripeConfigured,
+} from './stripe';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -11,10 +16,79 @@ export const startCheckout = (
 	householdId: string,
 	tier: 'premium' = 'premium'
 ): CheckoutSession => {
-	// TODO: replace with stripe.checkout.sessions.create(...) when Stripe goes live.
 	return {
 		checkoutUrl: `/billing/mock-checkout?household=${householdId}&tier=${tier}`,
 	};
+};
+
+/** Real Stripe checkout when configured, falling back to the mock above otherwise -- callers
+ * (routes/households.ts) don't need to branch on configuration state themselves. Reuses an
+ * existing `stripeCustomerId` if this household has checked out before (even if that
+ * subscription later lapsed), rather than creating a duplicate Stripe customer every time. */
+export const startRealOrMockCheckout = async (
+	env: Bindings,
+	db: Database,
+	householdId: string,
+	ownerUserId: string
+): Promise<CheckoutSession> => {
+	if (!isStripeConfigured(env)) return startCheckout(householdId);
+
+	const [existing, owner] = await Promise.all([
+		db
+			.select({ stripeCustomerId: subscriptions.stripeCustomerId })
+			.from(subscriptions)
+			.where(eq(subscriptions.householdId, householdId))
+			.get(),
+		db
+			.select({ email: users.email })
+			.from(users)
+			.where(eq(users.id, ownerUserId))
+			.get(),
+	]);
+	if (!owner) throw new Error('Household owner not found');
+
+	const appClientUrl = env.APP_CLIENT_URL ?? 'http://localhost:5173';
+	const session = await createCheckoutSession({
+		secretKey: env.STRIPE_SECRET_KEY,
+		priceId: env.STRIPE_PRICE_PREMIUM,
+		customerId: existing?.stripeCustomerId ?? null,
+		customerEmail: owner.email,
+		successUrl: `${appClientUrl}/profile?billing=success`,
+		cancelUrl: `${appClientUrl}/profile?billing=cancel`,
+		householdId,
+	});
+	return { checkoutUrl: session.url };
+};
+
+export type PortalSessionResult =
+	| { ok: true; portalUrl: string }
+	| { ok: false; reason: 'not_configured' | 'no_customer' };
+
+/** Stripe's self-service Billing Portal -- where a real subscription actually gets changed or
+ * canceled once Stripe is live (unlike `cancelSubscription` below, which only ever moves this
+ * product's own DB state, mock or not). 400s via `reason: 'no_customer'` until the household has
+ * completed a real checkout at least once. */
+export const startPortalSession = async (
+	env: Bindings,
+	db: Database,
+	householdId: string
+): Promise<PortalSessionResult> => {
+	if (!isStripeConfigured(env)) return { ok: false, reason: 'not_configured' };
+
+	const existing = await db
+		.select({ stripeCustomerId: subscriptions.stripeCustomerId })
+		.from(subscriptions)
+		.where(eq(subscriptions.householdId, householdId))
+		.get();
+	if (!existing?.stripeCustomerId) return { ok: false, reason: 'no_customer' };
+
+	const appClientUrl = env.APP_CLIENT_URL ?? 'http://localhost:5173';
+	const session = await createPortalSession({
+		secretKey: env.STRIPE_SECRET_KEY,
+		customerId: existing.stripeCustomerId,
+		returnUrl: `${appClientUrl}/profile`,
+	});
+	return { ok: true, portalUrl: session.url };
 };
 
 export const isBillingMockEnabled = (env: Bindings): boolean => {
