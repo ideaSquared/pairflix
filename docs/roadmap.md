@@ -280,8 +280,9 @@ Independent of the platform, needed before opening to an invited cohort:
 - ~~Extend the recommender to TV~~ — done for genre-compatible moods (funny/feelgood/thoughtful);
   dark/tense/romantic/action need a product decision on mapping Horror/Romance/Thriller/
   Action+Adventure onto TV's different genre taxonomy before they can include TV candidates too.
-- Make runtime actually influence scoring, not just gate the initial `/discover` query -- separate
-  from the TV work above.
+- ~~Make runtime actually influence scoring~~ — done; candidates are re-scored with their real
+  runtime after hydration and re-sorted before the final pick, instead of only ever scoring against
+  a neutral runtime guess.
 - ~~Feed `ProviderBadges` real provider data on the Tonight card and history~~ — done; History wires
   real API provider data into the shared component (`HistoryPage.tsx`), and Tonight's own launch
   buttons (a bespoke UI, not the shared component -- it needs launch `onClick`s the component's
