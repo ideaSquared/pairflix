@@ -9,6 +9,7 @@ import {
 	PickEventStatsQuerySchema,
 	PickRequestSchema,
 	ProviderLaunchRequestSchema,
+	type Mood,
 	type PickRequest,
 } from '@pairflix/lib.validation';
 import { Hono } from 'hono';
@@ -64,8 +65,8 @@ import type { AppEnv } from '../types';
  * `/:id/history` and `/:id/picks/:tmdbId/launch` both run `enforceRegionLock` even though neither
  * is the pick endpoint -- they're the other two places a caller picks which region's provider data
  * to see, so the same free-tier GB-lock applies. The standalone `GET /api/providers/:tmdbId`
- * (routes/providers.ts) has no household context to resolve entitlements from and is a known,
- * deliberately deferred gap -- see docs/roadmap.md.
+ * used to be a third, ungated place -- deleted rather than fixed, since it had no callers anywhere
+ * in the codebase; see docs/roadmap.md.
  */
 export const householdsRoutes = new Hono<AppEnv>();
 
@@ -308,7 +309,11 @@ householdsRoutes.patch(
 					householdId,
 					entry.tmdbId,
 					entry.mediaType,
-					parsed.data.enjoyed
+					parsed.data.enjoyed,
+					// entry.moodAtPick only ever comes from a validated MoodSchema value written at
+					// commit time (CommitPickRequestSchema.mood) -- the column itself is unconstrained
+					// text so the type here is widened, but every writer already narrowed it.
+					entry.moodAtPick as Mood | null
 				).catch(err => {
 					console.warn('[households] failed to recompute taste profile', err);
 				})

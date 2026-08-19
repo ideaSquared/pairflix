@@ -231,6 +231,7 @@ export const content = sqliteTable(
     tmdbId: integer('tmdb_id').notNull(),
     mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
+    runtime: integer('runtime'),
     posterPath: text('poster_path'),
     genreIds: text('genre_ids', { mode: 'json' }).$type<number[]>(),
     reportedCount: integer('reported_count').notNull().default(0),

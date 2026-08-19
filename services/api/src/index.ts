@@ -8,7 +8,6 @@ import { authRoutes } from './routes/auth';
 import { healthRoutes } from './routes/health';
 import { householdsRoutes } from './routes/households';
 import { meRoutes } from './routes/me';
-import { providersRoutes } from './routes/providers';
 import type { AppEnv, Bindings } from './types';
 
 const app = new Hono<AppEnv>();
@@ -47,7 +46,6 @@ app.route('/health', healthRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/me', meRoutes);
 app.route('/api/households', householdsRoutes);
-app.route('/api/providers', providersRoutes);
 app.route('/api/admin', adminRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));

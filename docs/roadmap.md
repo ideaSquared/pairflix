@@ -94,9 +94,17 @@ the later taste-personalization work: `lib/tasteRecompute.ts`'s `recomputeTasteF
 into `PATCH /:id/history/:watchedId`) nudges genre weights via an EMA on each thumbs rating, and
 `lib/tasteOnboarding.ts`'s `submitOnboarding` (wired into `routes/me.ts`, reachable at
 `/onboarding/taste`) seeds a fresh household member's profile immediately. The recommender still
-degrades gracefully to mood-only genre filtering for a household with no profiles yet. Deriving
-`runtime_pref`/`era`/`tone` (as opposed to `genres`) from `watchedTogether` remains a real product
-decision (what signal, what decay) not made here.
+degrades gracefully to mood-only genre filtering for a household with no profiles yet.
+~~Deriving `runtime_pref`/`era`/`tone` from `watchedTogether` remains a real product decision~~ —
+decided and built: `runtime_pref` (a scalar, EMA-nudged toward the rated title's actual runtime,
+only on `enjoyed`, since a dislike gives no direction to move a duration estimate in); `era`
+(release year bucketed into `lib/eras.ts`'s fixed decade vocabulary, same symmetric EMA as genre);
+`tone` (the mood active at pick time, same symmetric EMA -- an enjoyment-rate per mood, not a
+"predict which mood" model, since the mood is always explicitly chosen already). All three now
+feed `scoreCandidate` too, each blended with the pre-existing heuristic it augments rather than
+replacing it outright, so a household with no rating history yet still scores everything it did
+before this. `content.runtime` (migration `0004`) had to be added -- real runtime was fetched from
+TMDb twice already but discarded both times, never persisted.
 15 new `vitest-pool-workers` tests cover CRUD/invites, pick quota/region-lock/provider-filter,
 commit, and the LLM wiring (including the Anthropic-failure fallback) — the pick path returns a
 title end-to-end on Miniflare, meeting this phase's exit criterion for this domain.
@@ -129,11 +137,11 @@ generic `POST /:id/pick-events` endpoint's `kind` is narrowed to `swapped`/`dism
   codebase-triage follow-up: `lib/providers.ts`'s `cacheContentDetails` fetches and writes real
   title/year/poster/genre ids, called from `lib/recommendation.ts`'s `commitPick` alongside the
   provider-cache write.
-- The standalone `GET /api/providers/:tmdbId` has no household context, so it can't apply the
-  free-tier GB region-lock the way `/:id/pick`, `/:id/history`, and `/:id/picks/:tmdbId/launch` now
-  all do -- a free-tier caller can request any region directly through this one endpoint. Closing it
-  needs a product decision (which household's entitlement applies, for a caller in more than one)
-  rather than a silent pick.
+- ~~The standalone `GET /api/providers/:tmdbId` has no household context, so it can't apply the
+  free-tier GB region-lock~~ — resolved by deleting the endpoint rather than fixing the lock: it had
+  zero callers anywhere in the codebase (client, admin, or internal), so the region-lock gap was
+  unreachable in practice. `lib/providers.ts`'s cache and `getCachedProviders` are unaffected --
+  `lib/providerLaunch.ts` and `commitPick` are its only remaining, still-household-scoped callers.
 - No cron-driven provider-cache refresh -- caching is lazy/on-demand only (matches Express; the
   cron trigger `docs/architecture.md` describes was already aspirational, not a ported behavior).
 

@@ -126,6 +126,50 @@ const NEW_BAD_RUNTIME_MOVIE: MockMovie = {
 	runtime: 20,
 };
 
+// A separate movie purely for seeding an era preference in the "learned era can flip the winner"
+// test below -- rating it (rather than OLD_ERA_MOVIE itself) means the two actual candidates stay
+// unwatched and so still eligible for the second pick.
+const RATED_OLD_ERA_MOVIE: MockMovie = {
+	id: 400,
+	title: 'Something From That Decade',
+	overview:
+		'Rated to seed an era preference; not itself offered as a candidate afterward.',
+	poster_path: null,
+	release_date: '2015-06-01',
+	vote_average: 6.0,
+	vote_count: 250,
+	genre_ids: [35],
+	popularity: 15,
+	runtime: 105,
+};
+// Same genre/runtime/mood-fit -- differ only by release year, so the default recency bias decides
+// the "before" pick and a learned era preference (seeded by rating RATED_OLD_ERA_MOVIE, same era
+// bucket as this one) has to outweigh that same recency bias to decide the "after" pick.
+const OLD_ERA_MOVIE: MockMovie = {
+	id: 401,
+	title: 'A Decade Past',
+	overview: 'An older movie, otherwise a strong match.',
+	poster_path: null,
+	release_date: '2015-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 25,
+	runtime: 110,
+};
+const NEW_ERA_MOVIE: MockMovie = {
+	id: 402,
+	title: 'Fresh Off the Press',
+	overview: 'A brand-new movie, otherwise an equally strong match.',
+	poster_path: null,
+	release_date: '2022-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 25,
+	runtime: 110,
+};
+
 const SHOW_A: MockShow = {
 	id: 201,
 	name: 'The Improv Hour',
@@ -807,9 +851,8 @@ describe('GET /api/households/:id/history', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
-		// No prior `GET /api/providers/:tmdbId` or `/launch` call -- committing a pick must populate
-		// `content` (title + providers) on its own via `commitPick`, not rely on some other route
-		// having touched this title first.
+		// No prior `/launch` call -- committing a pick must populate `content` (title + providers) on
+		// its own via `commitPick`, not rely on some other route having touched this title first.
 		mockExternalApis(DEFAULT_MOVIES);
 		const commit = await postJson(
 			`/api/households/${householdId}/picks/${MOVIE_B.id}/commit`,
@@ -945,9 +988,12 @@ describe('taste personalization from ratings', () => {
 		expect(before.status).toBe(200);
 
 		mockExternalApis(DEFAULT_MOVIES);
+		// mood/minutes mirror what a real commit carries (the client always sends the mood/minutes
+		// it just picked with) -- needed so this rating also nudges `tone` (keyed by moodAtPick) and
+		// exercises `era`/`runtime_pref` deriving from a real `content` row, not just `genres`.
 		const commit = await postJson<{ id: string }>(
 			`/api/households/${householdId}/picks/${MOVIE_A.id}/commit`,
-			{ mediaType: 'movie' },
+			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
 			cookies
 		);
 		expect(commit.status).toBe(201);
@@ -967,12 +1013,24 @@ describe('taste personalization from ratings', () => {
 		);
 		const weights = JSON.parse(profileRow.weights) as {
 			genres: Record<string, number>;
+			era: Record<string, number>;
+			tone: Record<string, number>;
+			runtime_pref: number | null;
 		};
 		// EMA nudge from the neutral 0.35 baseline toward 1.0 (enjoyed) at alpha 0.25:
-		// 0.35 * 0.75 + 1.0 * 0.25 = 0.5125.
+		// 0.35 * 0.75 + 1.0 * 0.25 = 0.5125. MOVIE_A is genre 35, released 2020 (era bucket
+		// "2020s"), runtime 100, rated under mood "funny" -- all four dimensions land on the same
+		// EMA-from-neutral value for their one touched key.
 		expect(weights.genres['35']).toBeCloseTo(0.5125, 5);
-		// A genre absent from the rated title stays at the neutral baseline.
+		expect(weights.era['2020s']).toBeCloseTo(0.5125, 5);
+		expect(weights.tone.funny).toBeCloseTo(0.5125, 5);
+		// runtime_pref has no prior estimate to EMA against -- it adopts the rated runtime outright.
+		expect(weights.runtime_pref).toBe(100);
+		// A genre/era/mood absent from (or not matching) the rated title stays at the neutral
+		// baseline.
 		expect(weights.genres['18']).toBeCloseTo(0.35, 5);
+		expect(weights.era['2010s']).toBeCloseTo(0.35, 5);
+		expect(weights.tone.dark).toBeCloseTo(0.35, 5);
 
 		mockExternalApis(DEFAULT_MOVIES);
 		const after = await postJson<{
@@ -984,10 +1042,59 @@ describe('taste personalization from ratings', () => {
 			cookies
 		);
 		expect(after.status).toBe(200);
-		// Every DEFAULT_MOVIES candidate shares genre 35 (comedy), so the merged-genre boost
-		// applies uniformly and the winning candidate's score rises by exactly the genre-match
-		// term's weight (0.5) now that genre 35 is no longer unscored.
-		expect(after.body.score).toBeCloseTo(before.body.score + 0.5, 5);
+		// Genre/era/tone/runtime_pref all now carry real signal instead of scoring's cold-start
+		// fallbacks, so every DEFAULT_MOVIES candidate (all genre 35) scores higher than before the
+		// rating -- not asserting an exact delta, since that's now a function of four blended
+		// dimensions rather than one clean genre-only term.
+		expect(after.body.score).toBeGreaterThan(before.body.score);
+	});
+
+	it('a learned era preference can flip the winner, overriding the default recency bias', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// Before any rating, OLD_ERA_MOVIE and NEW_ERA_MOVIE are identical on every scored
+		// dimension except release year -- the default "newer is better" recency bias decides.
+		mockExternalApis([OLD_ERA_MOVIE, NEW_ERA_MOVIE]);
+		const before = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(before.status).toBe(200);
+		expect(before.body.pick.tmdbId).toBe(NEW_ERA_MOVIE.id);
+
+		// Rate a *different* movie from OLD_ERA_MOVIE's era bucket -- seeds an era preference
+		// without watching (and thus excluding) either actual candidate.
+		mockExternalApis([RATED_OLD_ERA_MOVIE]);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${RATED_OLD_ERA_MOVIE.id}/commit`,
+			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+		const patch = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+		await waitForRow(() =>
+			env.DB.prepare('SELECT weights FROM taste_profiles WHERE user_id = ?1')
+				.bind(userId)
+				.first<{ weights: string }>()
+		);
+
+		// The learned era preference is now strong enough to outweigh the recency bias.
+		mockExternalApis([OLD_ERA_MOVIE, NEW_ERA_MOVIE]);
+		const after = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(after.status).toBe(200);
+		expect(after.body.pick.tmdbId).toBe(OLD_ERA_MOVIE.id);
 	});
 
 	it('does not recompute taste when a rating is cleared back to null', async () => {

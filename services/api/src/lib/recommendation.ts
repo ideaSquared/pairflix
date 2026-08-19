@@ -6,8 +6,13 @@ import {
 	type TasteProfileRow,
 } from '@pairflix/db';
 import { eq, inArray } from 'drizzle-orm';
-import type { CommitPickRequest, PickRequest } from '@pairflix/lib.validation';
+import type {
+	CommitPickRequest,
+	Mood,
+	PickRequest,
+} from '@pairflix/lib.validation';
 import type { Bindings } from '../types';
+import { eraBucketForYear } from './eras';
 import { isLlmRerankEnabledForHousehold } from './featureFlags';
 import { GENRE_NAMES, MOOD_FILTERS, TV_COMPATIBLE_GENRE_IDS } from './genres';
 import { newId } from './id';
@@ -20,6 +25,7 @@ import {
 import { recordPickEvent } from './pickEvents';
 import { cacheContentDetails, getCachedProviders } from './providers';
 import { summariseTasteProfile } from './tasteSummary';
+import { NEUTRAL_ERA_WEIGHT, NEUTRAL_TONE_WEIGHT } from './tasteWeights';
 import {
 	discoverMedia,
 	getMovieFullDetails,
@@ -99,33 +105,71 @@ const gaussian = (x: number, mu: number, sigma: number): number => {
 	return Math.exp(-0.5 * z * z);
 };
 
-const mergeProfiles = (profiles: TasteProfileRow[]): Record<number, number> => {
+/** Merges one taste-weights dimension (genre/era/tone -- whichever `select` reads) multiplicatively
+ * across household members, normalizing so the top key lands at exactly 1.0. A key absent from any
+ * one member's profile counts as 0 for that member, which is why every taste-profile writer keeps
+ * its dense-fill invariant (see `lib/tasteWeights.ts`) -- a sparse write would zero out that key the
+ * moment it's merged against a partner's profile that does have a value there. */
+const mergeWeightRecord = (
+	profiles: TasteProfileRow[],
+	select: (
+		weights: TasteProfileRow['weights']
+	) => Record<string, number> | undefined
+): Record<string, number> => {
 	if (profiles.length === 0) return {};
-	const allGenreKeys = new Set<string>();
+	const allKeys = new Set<string>();
 	for (const p of profiles) {
-		for (const k of Object.keys(p.weights.genres ?? {})) {
-			allGenreKeys.add(k);
+		for (const k of Object.keys(select(p.weights) ?? {})) {
+			allKeys.add(k);
 		}
 	}
 
-	const merged: Record<number, number> = {};
-	for (const k of allGenreKeys) {
+	const merged: Record<string, number> = {};
+	for (const k of allKeys) {
 		let product = 1;
 		for (const p of profiles) {
-			const w = p.weights.genres?.[k] ?? 0;
+			const w = select(p.weights)?.[k] ?? 0;
 			product *= w;
 		}
-		const id = Number(k);
-		if (!Number.isNaN(id)) merged[id] = product;
+		merged[k] = product;
 	}
 
 	const max = Math.max(...Object.values(merged), 0);
 	if (max <= 0) return merged;
 	for (const k of Object.keys(merged)) {
-		const id = Number(k);
-		merged[id] = (merged[id] ?? 0) / max;
+		merged[k] = (merged[k] ?? 0) / max;
 	}
 	return merged;
+};
+
+const mergeProfiles = (profiles: TasteProfileRow[]): Record<number, number> => {
+	const merged = mergeWeightRecord(profiles, w => w.genres);
+	// Genre keys are always numeric-string ids; every other caller of this merge (era, tone) wants
+	// its keys left as strings, so the numeric conversion happens here, not inside the shared helper.
+	const byId: Record<number, number> = {};
+	for (const [k, v] of Object.entries(merged)) {
+		const id = Number(k);
+		if (!Number.isNaN(id)) byId[id] = v;
+	}
+	return byId;
+};
+
+const mergeEra = (profiles: TasteProfileRow[]): Record<string, number> =>
+	mergeWeightRecord(profiles, w => w.era);
+
+const mergeTone = (profiles: TasteProfileRow[]): Record<string, number> =>
+	mergeWeightRecord(profiles, w => w.tone);
+
+/** Not a weight-per-key record like the other three dimensions -- a single scalar minutes estimate
+ * per user, so "merging across the household" is just an average of whichever members have rated
+ * enough to have one yet. `null` (not 0) when nobody does, so callers can tell "no signal" apart
+ * from "the household prefers 0-minute films". */
+const mergeRuntimePref = (profiles: TasteProfileRow[]): number | null => {
+	const values = profiles
+		.map(p => p.weights.runtime_pref)
+		.filter((v): v is number => v !== null && v !== undefined);
+	if (values.length === 0) return null;
+	return values.reduce((sum, v) => sum + v, 0) / values.length;
 };
 
 const topMergedGenres = (
@@ -172,11 +216,22 @@ const getTitle = (
 		? (item as TMDbDiscoverMovie).title // mediaType is caller-supplied, so it safely discriminates the union
 		: (item as TMDbDiscoverTV).name;
 
+/** The household's merged genre/era/tone weights plus its averaged runtime_pref -- everything
+ * `scoreCandidate` needs from `taste_profiles`, bundled so its own parameter list doesn't grow one
+ * entry per learned dimension. */
+type MergedPreferences = {
+	genres: Record<number, number>;
+	era: Record<string, number>;
+	tone: Record<string, number>;
+	runtimePref: number | null;
+};
+
 const scoreCandidate = (
 	item: TMDbDiscoverMovie | TMDbDiscoverTV,
 	runtime: number | null,
-	mergedGenres: Record<number, number>,
+	prefs: MergedPreferences,
 	moodGenres: number[],
+	mood: Mood,
 	targetMinutes: number,
 	currentYear: number
 ): number => {
@@ -185,7 +240,7 @@ const scoreCandidate = (
 	let genreSum = 0;
 	let genreCount = 0;
 	for (const g of genreIds) {
-		const w = mergedGenres[g];
+		const w = prefs.genres[g];
 		if (w !== undefined) {
 			genreSum += w;
 			genreCount += 1;
@@ -193,20 +248,42 @@ const scoreCandidate = (
 	}
 	const genreMatch = genreCount > 0 ? genreSum / genreCount : 0;
 
+	// Blends the household's learned runtime_pref into the gaussian's center, weighted toward the
+	// request's own minutes budget (0.7) over the historical average (0.3) -- "how long do you have
+	// tonight" is explicitly a per-request input to this product (see CLAUDE.md), not a household
+	// trait that should override what was actually asked for. `runtimePref === null` (no rating with
+	// a known runtime yet) collapses this to exactly `targetMinutes - 10`, the original center.
+	const runtimeCenter =
+		prefs.runtimePref !== null
+			? 0.7 * targetMinutes + 0.3 * prefs.runtimePref - 10
+			: targetMinutes - 10;
 	const runtimeFit =
 		runtime !== null && runtime > 0
-			? gaussian(runtime, targetMinutes - 10, 25)
+			? gaussian(runtime, runtimeCenter, 25)
 			: 0.5;
 
-	const moodHit = genreIds.some(g => moodGenres.includes(g)) ? 1 : 0;
+	// Blends the flat mood-genre-overlap check with the household's learned enjoyment rate for this
+	// specific mood (`tone`) -- a household that repeatedly picks "tense" and doesn't enjoy it scores
+	// tense candidates a little lower even though the genre still matches. NEUTRAL_TONE_WEIGHT (same
+	// value as the density-fill neutral genre/era writers use) keeps an unrated mood from swinging
+	// this either direction.
+	const genreMoodHit = genreIds.some(g => moodGenres.includes(g)) ? 1 : 0;
+	const moodHit =
+		0.5 * genreMoodHit + 0.5 * (prefs.tone[mood] ?? NEUTRAL_TONE_WEIGHT);
 
+	// Same blend shape as moodHit, using the household's learned era preference alongside the
+	// existing flat "newer is better" recency heuristic.
 	const year = getYear(item);
 	const yearsOld = year !== null ? Math.max(0, currentYear - year) : 20;
 	const recencyBonus = Math.max(0, 1 - yearsOld / 30);
+	const eraBucket = year !== null ? eraBucketForYear(year) : null;
+	const eraPref =
+		eraBucket !== null
+			? (prefs.era[eraBucket] ?? NEUTRAL_ERA_WEIGHT)
+			: NEUTRAL_ERA_WEIGHT;
+	const eraMatch = 0.5 * recencyBonus + 0.5 * eraPref;
 
-	return (
-		0.5 * genreMatch + 0.2 * runtimeFit + 0.15 * moodHit + 0.15 * recencyBonus
-	);
+	return 0.5 * genreMatch + 0.2 * runtimeFit + 0.15 * moodHit + 0.15 * eraMatch;
 };
 
 const providersMatch = (
@@ -336,6 +413,12 @@ export const pickForHousehold = async (
 		.where(inArray(tasteProfiles.userId, memberIds));
 	const merged = mergeProfiles(profiles);
 	const genres = topMergedGenres(merged, moodCfg.genres, 3);
+	const prefs: MergedPreferences = {
+		genres: merged,
+		era: mergeEra(profiles),
+		tone: mergeTone(profiles),
+		runtimePref: mergeRuntimePref(profiles),
+	};
 
 	const watchedRows = await db
 		.select({
@@ -405,8 +488,9 @@ export const pickForHousehold = async (
 			score: scoreCandidate(
 				c.item,
 				null,
-				merged,
+				prefs,
 				moodCfg.genres,
+				request.mood,
 				request.minutes,
 				currentYear
 			),
@@ -450,8 +534,9 @@ export const pickForHousehold = async (
 			score: scoreCandidate(
 				p.entry.item,
 				p.card.runtime,
-				merged,
+				prefs,
 				moodCfg.genres,
+				request.mood,
 				request.minutes,
 				currentYear
 			),
@@ -567,12 +652,11 @@ export const commitPick = async (
 			mood: request.mood ?? null,
 			minutesBudget: request.minutes ?? null,
 		}),
-		// Populates/refreshes the `content` cache row (providers, then title/year/poster) for this
-		// title -- previously only `lib/providerLaunch.ts` and `GET /api/providers/:tmdbId` ever
-		// wrote to `content`, so a pick committed without either happening first left
-		// `lib/history.ts`'s join with nothing to return. Both calls are best-effort and never
-		// throw; they write disjoint columns, so the order between them doesn't matter (see
-		// `cacheContentDetails`'s doc comment).
+		// Populates/refreshes the `content` cache row (providers, then title/year/runtime/poster) for
+		// this title -- previously only `lib/providerLaunch.ts` ever wrote to `content`, so a pick
+		// committed without a provider-launch happening first left `lib/history.ts`'s join with
+		// nothing to return. Both calls are best-effort and never throw; they write disjoint columns,
+		// so the order between them doesn't matter (see `cacheContentDetails`'s doc comment).
 		getCachedProviders(env, db, tmdbId, request.mediaType),
 		cacheContentDetails(env, db, tmdbId, request.mediaType),
 	]);

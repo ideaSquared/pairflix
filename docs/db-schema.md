@@ -205,8 +205,18 @@ export const watchedTogether = sqliteTable(
 );
 ```
 
-`TasteWeights` shape (unchanged): `{ genres: Record<string, number>, runtime_pref: number, era?:
-Record<string, number>, tone?: Record<string, number> }`.
+`TasteWeights` shape: `{ genres?: Record<string, number>, runtime_pref?: number | null, era?:
+Record<string, number>, tone?: Record<string, number> }`. All four now have real writers
+(`lib/tasteRecompute.ts`'s `recomputeTasteFromRating`, plus `lib/tasteOnboarding.ts` for `genres`
+only) and real readers in `lib/recommendation.ts`'s `scoreCandidate`/`mergeProfiles`/`mergeEra`/
+`mergeTone`/`mergeRuntimePref`:
+
+- `genres`: id-keyed (`lib/genres.ts`'s `GENRE_NAMES`), dense-filled to `NEUTRAL_GENRE_WEIGHT` (0.35).
+- `era`: keyed by `lib/eras.ts`'s fixed decade-bucket vocabulary (`ERA_BUCKETS`), same dense-fill
+  pattern at `NEUTRAL_ERA_WEIGHT`.
+- `tone`: keyed by the closed 7-value `Mood` enum, same dense-fill pattern at `NEUTRAL_TONE_WEIGHT`.
+- `runtime_pref`: a single scalar minutes estimate, not a weight-per-key record -- EMA-nudged only
+  when a rating is `enjoyed` (a dislike gives no direction to move a duration estimate in).
 
 ## Content
 
@@ -230,6 +240,7 @@ export const content = sqliteTable(
     tmdbId: integer('tmdb_id').notNull(),
     mediaType: text('media_type').$type<'movie' | 'tv'>(),
     year: integer('year'),
+    runtime: integer('runtime'), // minutes; movie runtime or first TV episode's episode_run_time
     posterPath: text('poster_path'),
     genreIds: text('genre_ids', { mode: 'json' }).$type<number[]>(),
     reportedCount: integer('reported_count').notNull().default(0),
