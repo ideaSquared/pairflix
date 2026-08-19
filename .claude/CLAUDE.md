@@ -342,8 +342,8 @@ Promote a component to `packages/lib.components` only when a second consumer nee
   returning `null`, throwing, or picking an id outside what was actually sent all fall through to
   the pure-ML top-1 pick.
 - Wired into `pickForHousehold` (`lib/recommendation.ts`): eligible households hydrate the top 10
-  scored candidates instead of 3 and pass them to `rerankCandidates`. Validated to actually improve
-  first-pick acceptance is still open — see the roadmap.
+  scored candidates instead of 3 and pass them to `rerankCandidates`. Whether it actually improves
+  first-pick acceptance is still unvalidated — see the roadmap.
 
 ### Stripe (deferred)
 

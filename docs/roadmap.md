@@ -24,13 +24,14 @@
 - **Two server entry points** (`index.ts` runtime vs orphaned `app.ts`) mount different routes; at
   runtime the **email flows are unreachable** and the user prefix differs. The Hono port collapses
   this to one app and fixes it.
-- **Recommender is runtime-blind** (neutral runtime score at ranking time; real runtime is fetched
-  only for display, after the pick is already decided). TV candidates now appear for
-  genre-compatible moods (funny/feelgood/thoughtful); dark/tense/romantic/action stay movie-only --
-  TV's genre taxonomy has no Horror/Romance/Thriller/Action+Adventure equivalent to map onto.
+- ~~**Recommender is runtime-blind**~~ — fixed; candidates are re-scored on real runtime after
+  hydration and re-sorted before the final pick. TV candidates now appear for genre-compatible
+  moods (funny/feelgood/thoughtful); dark/tense/romantic/action stay movie-only -- TV's genre
+  taxonomy has no Horror/Romance/Thriller/Action+Adventure equivalent to map onto.
 - **Billing is mock-only** (no Stripe).
-- **Thin tests on the pivot** — no integration tests for any pivot endpoint; several pivot services
-  untested.
+- ~~**Thin tests on the pivot**~~ — no longer true; `households.e2e.test.ts` alone is 1,300+ lines
+  covering pick/commit/history/entitlements/TV/runtime-ranking, plus dedicated suites for auth,
+  admin, `/api/me`, and providers.
 
 ## Re-platform to Cloudflare (ADR 0001)
 
@@ -88,11 +89,14 @@ pick route now checks household membership at all (Express's controller didn't, 
 middleware happened to). `getFinishedTmdbIdsForMembers` (keyed off the deleted `WatchlistEntry`
 table) is dropped rather than ported — the household-level `watchedTogether` exclusion set already
 covers what the pivoted product needs.
-**Known gap, not fixed here:** nothing computes `taste_profiles` rows going forward — Express's only
-writer (`tasteProfile.service.ts`) is itself entirely built on `WatchlistEntry`. The recommender
-degrades gracefully to mood-only genre filtering when a household has no profiles yet (the common
-case pre-launch); deriving weights from `watchedTogether` instead is a real product decision (what
-signal, what decay) left for a follow-up rather than decided inline here.
+~~**Known gap, not fixed here:** nothing computes `taste_profiles` rows going forward~~ — fixed by
+the later taste-personalization work: `lib/tasteRecompute.ts`'s `recomputeTasteFromRating` (wired
+into `PATCH /:id/history/:watchedId`) nudges genre weights via an EMA on each thumbs rating, and
+`lib/tasteOnboarding.ts`'s `submitOnboarding` (wired into `routes/me.ts`, reachable at
+`/onboarding/taste`) seeds a fresh household member's profile immediately. The recommender still
+degrades gracefully to mood-only genre filtering for a household with no profiles yet. Deriving
+`runtime_pref`/`era`/`tone` (as opposed to `genres`) from `watchedTogether` remains a real product
+decision (what signal, what decay) not made here.
 15 new `vitest-pool-workers` tests cover CRUD/invites, pick quota/region-lock/provider-filter,
 commit, and the LLM wiring (including the Anthropic-failure fallback) — the pick path returns a
 title end-to-end on Miniflare, meeting this phase's exit criterion for this domain.
