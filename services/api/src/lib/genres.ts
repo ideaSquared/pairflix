@@ -26,11 +26,13 @@ export const GENRE_NAMES: Record<number, string> = {
 /** TMDb's TV genre list only shares these ids with the movie list above -- TV has no standalone
  * Horror (27), Romance (10749), or Thriller (53) at all. That rules TV out entirely for `tense`
  * (thriller + horror, neither has a TV equivalent) and `romantic` (romance alone, same problem),
- * but not for `dark`: one of its two genres is crime (80), which *is* in this set, so `dark` gets
- * TV candidates filtered to just that genre -- see `lib/recommendation.ts`'s `tvEligible` (mood
- * eligibility needs only one compatible genre, not all of them) for why. That same file's TV call
- * filters `genres` down to the compatible subset either way, so a `/discover/tv` call never
- * filters on an id that doesn't exist in TV's taxonomy, regardless of why the mood qualified. */
+ * but not for `dark`: one of its two genres is crime (80), which *is* in this set, so `dark`
+ * qualifies for TV at all -- see `lib/recommendation.ts`'s `tvEligible` (mood eligibility needs
+ * only one compatible genre, not all of them) for why. That same file's TV call filters the full
+ * merged `genres` list (mood genres plus up to 3 taste-derived extras) down to the compatible
+ * subset either way, so a `/discover/tv` call never filters on an id that doesn't exist in TV's
+ * taxonomy -- for `dark` that means crime plus whatever other TV-compatible genres the household's
+ * taste happened to merge in, not crime alone. */
 export const TV_COMPATIBLE_GENRE_IDS = new Set<number>([
 	16, 35, 80, 99, 18, 10751, 9648, 37,
 ]);

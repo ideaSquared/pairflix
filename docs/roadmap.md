@@ -299,8 +299,9 @@ Independent of the platform, needed before opening to an invited cohort:
 - ~~Extend the recommender to TV~~ — done for genre-compatible moods (funny/feelgood/thoughtful),
   for action (TMDb's TV genre taxonomy has an actual equivalent, just under a different id -- see
   `TV_ACTION_ADVENTURE_GENRE_ID`), and partially for dark: one of its two genres, crime, is
-  directly shared with TV's taxonomy (an exact match, not an approximation), so dark's TV
-  candidates are crime-only -- the other genre, thriller, has no TV equivalent at all. tense/
+  directly shared with TV's taxonomy (an exact match, not an approximation), so dark now qualifies
+  for TV at all -- the other genre, thriller, has no TV equivalent, and dark's actual TV query can
+  include other TV-compatible taste-derived genres alongside crime, not crime alone. tense/
   romantic stay fully movie-only by decision, not by gap: TV has no Horror/Thriller/Romance genre
   at all, so there's nothing accurate to map onto -- approximating with an adjacent TV genre
   (Mystery, Drama) would serve picks that don't actually match what the mood promised.
