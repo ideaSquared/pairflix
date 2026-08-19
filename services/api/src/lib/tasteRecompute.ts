@@ -140,7 +140,9 @@ const readContentSignals = async (
 		eq(content.mediaType, mediaType)
 	);
 	const row = await db.select(columns).from(content).where(scope).get();
-	if (row?.genreIds) return { ...row, genreIds: row.genreIds };
+	if (row?.genreIds && row.genreIds.length > 0) {
+		return { ...row, genreIds: row.genreIds };
+	}
 
 	await cacheContentDetails(env, db, tmdbId, mediaType);
 	const refreshed = await db.select(columns).from(content).where(scope).get();
@@ -152,13 +154,17 @@ const readContentSignals = async (
 };
 
 /** Recomputes every current household member's taste weights off one thumbs rating. Only called
- * when `enjoyed` is non-null (the route filters that); each member's profile is read (or
- * materialized at the neutral baseline for genre/era/tone, via the `dense*Weights` helpers, if this
- * is their first rating ever) and upserted with the rated title's genres/era/tone/runtime nudged,
- * so every genre/era/tone write stays dense across its full key set -- see `lib/tasteWeights.ts`'s
- * doc comment for why a sparse write would break `mergeProfiles`. Tone nudges even when the
- * genre/era/runtime lookup fails entirely (`moodAtPick` comes from `watchedTogether`, not TMDb, so
- * it doesn't depend on `readContentSignals` succeeding). */
+ * when `enjoyed` is non-null (the route filters that). Each member's profile is read and upserted
+ * with the rated title's genres/era/tone/runtime nudged -- genres/era/tone are only dense-filled
+ * (via the `dense*Weights` helpers) and written when there's real signal for that dimension this
+ * round (a genre id, an era bucket, a mood), or the profile already carries it from a prior write.
+ * A dense-filled-but-never-nudged record would hand `mergeWeightRecord`'s (lib/recommendation.ts)
+ * max-normalization step a perfectly flat input, which it degenerates to 1.0 for every key (dividing
+ * a flat record by its own max is a no-op per key) -- a false "maximum confidence" artifact, not a
+ * real signal. `runtime_pref` has no such risk (its merge is a scalar average, not a normalization)
+ * and nudges unconditionally. Tone nudges even when the genre/era/runtime lookup fails entirely
+ * (`moodAtPick` comes from `watchedTogether`, not TMDb, so it doesn't depend on `readContentSignals`
+ * succeeding). */
 export const recomputeTasteFromRating = async (
 	env: Bindings,
 	db: Database,
@@ -194,27 +200,47 @@ export const recomputeTasteFromRating = async (
 	await Promise.all(
 		memberIds.map(userId => {
 			const existing = profileByUserId.get(userId);
-			const genres = nudgeGenreWeights(
-				denseGenreWeights(existing?.weights.genres),
-				genreIds,
-				enjoyed
-			);
-			const era = nudgeEraWeights(
-				denseEraWeights(existing?.weights.era),
-				eraBucket,
-				enjoyed
-			);
-			const tone = nudgeToneWeights(
-				denseToneWeights(existing?.weights.tone),
-				moodAtPick,
-				enjoyed
-			);
-			const runtime_pref = nudgeRuntimePref(
-				existing?.weights.runtime_pref ?? null,
-				runtime,
-				enjoyed
-			);
-			const weights = { ...existing?.weights, genres, era, tone, runtime_pref };
+			const hasGenreSignal =
+				genreIds.length > 0 || existing?.weights.genres !== undefined;
+			const hasEraSignal =
+				eraBucket !== null || existing?.weights.era !== undefined;
+			const hasToneSignal =
+				moodAtPick !== null || existing?.weights.tone !== undefined;
+			const weights = {
+				...existing?.weights,
+				...(hasGenreSignal
+					? {
+							genres: nudgeGenreWeights(
+								denseGenreWeights(existing?.weights.genres),
+								genreIds,
+								enjoyed
+							),
+						}
+					: {}),
+				...(hasEraSignal
+					? {
+							era: nudgeEraWeights(
+								denseEraWeights(existing?.weights.era),
+								eraBucket,
+								enjoyed
+							),
+						}
+					: {}),
+				...(hasToneSignal
+					? {
+							tone: nudgeToneWeights(
+								denseToneWeights(existing?.weights.tone),
+								moodAtPick,
+								enjoyed
+							),
+						}
+					: {}),
+				runtime_pref: nudgeRuntimePref(
+					existing?.weights.runtime_pref ?? null,
+					runtime,
+					enjoyed
+				),
+			};
 			return db
 				.insert(tasteProfiles)
 				.values({ userId, weights, updatedAt: now })
