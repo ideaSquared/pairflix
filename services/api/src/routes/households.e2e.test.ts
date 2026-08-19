@@ -188,6 +188,52 @@ const SHOW_A: MockShow = {
 	episode_run_time: [112],
 };
 
+// Fixtures for the "action mood recognizes TV's Action & Adventure id" test below. Rated (not
+// offered as a candidate) purely to seed a household genre/tone preference before the real
+// comparison -- its own era bucket (1980s) is deliberately far from the two candidates' (2010s) so
+// its era nudge can't touch either of them.
+const RATED_ACTION_MOVIE: MockMovie = {
+	id: 501,
+	title: 'Explosive Pursuit',
+	overview:
+		'Rated to seed an action genre/tone preference; not itself a candidate afterward.',
+	poster_path: null,
+	release_date: '1985-06-01',
+	vote_average: 6.5,
+	vote_count: 300,
+	genre_ids: [28],
+	popularity: 20,
+	runtime: 100,
+};
+// Same release year (era bucket) and runtime as COMEDY_MOVIE_SAME_ERA below -- recencyBonus,
+// eraPref, and runtimeFit are all identical between the two, so only genre-based scoring
+// (genreMatch, genreMoodHit) can decide which one wins.
+const SHOW_ACTION: MockShow = {
+	id: 502,
+	name: 'Chase Protocol',
+	overview: 'A TV action/adventure series.',
+	poster_path: null,
+	first_air_date: '2015-06-15',
+	vote_average: 7.5,
+	vote_count: 400,
+	// TMDb's real TV genre for this -- not [28, 12], which don't exist in TV's taxonomy.
+	genre_ids: [10759],
+	popularity: 45,
+	episode_run_time: [105],
+};
+const COMEDY_MOVIE_SAME_ERA: MockMovie = {
+	id: 503,
+	title: 'Sitcom Reruns',
+	overview: 'An unrelated comedy, matched on every dimension except genre.',
+	poster_path: null,
+	release_date: '2015-01-01',
+	vote_average: 7.5,
+	vote_count: 400,
+	genre_ids: [35],
+	popularity: 45,
+	runtime: 105,
+};
+
 const jsonResponse = (data: unknown, status = 200): Response =>
 	new Response(JSON.stringify(data), {
 		status,
@@ -651,16 +697,58 @@ describe('POST /api/households/:id/pick -- TV candidates', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
-		// action mood's genres (28 action, 12 adventure) have no TV equivalent -- see
+		// romantic mood's only genre (10749, romance) has no TV equivalent at all -- see
 		// TV_COMPATIBLE_GENRE_IDS.
 		const capturedUrls = mockExternalApis(DEFAULT_MOVIES, undefined, [SHOW_A]);
 		const result = await postJson(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'romantic', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(capturedUrls.some(u => u.includes('/3/discover/tv'))).toBe(false);
+	});
+
+	it('recognizes TV Action & Adventure (10759) as the action mood, not just fetches it', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// Seed an action genre/tone preference -- SHOW_ACTION and COMEDY_MOVIE_SAME_ERA are
+		// identical on every other scored dimension (era bucket, runtime), so only genre-based
+		// scoring can decide the winner below. If TV's genre id (10759) weren't correctly mapped
+		// back to the movie ids (28, 12) this preference is keyed by, SHOW_ACTION would score a
+		// flat 0 on both genreMatch and the genre half of moodHit and lose easily instead.
+		mockExternalApis([RATED_ACTION_MOVIE]);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${RATED_ACTION_MOVIE.id}/commit`,
+			{ mediaType: 'movie', mood: 'action', minutes: 120 },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+		const patch = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+		await waitForRow(() =>
+			env.DB.prepare('SELECT weights FROM taste_profiles WHERE user_id = ?1')
+				.bind(userId)
+				.first<{ weights: string }>()
+		);
+
+		mockExternalApis([COMEDY_MOVIE_SAME_ERA], undefined, [SHOW_ACTION]);
+		const result = await postJson<{
+			pick: { tmdbId: number; mediaType: string };
+		}>(
 			`/api/households/${householdId}/pick`,
 			{ mood: 'action', minutes: 120 },
 			cookies
 		);
 		expect(result.status).toBe(200);
-		expect(capturedUrls.some(u => u.includes('/3/discover/tv'))).toBe(false);
+		expect(result.body.pick.mediaType).toBe('tv');
+		expect(result.body.pick.tmdbId).toBe(SHOW_ACTION.id);
 	});
 
 	it('does not exclude a TV candidate whose id matches a watched movie', async () => {

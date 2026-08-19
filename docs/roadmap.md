@@ -26,8 +26,9 @@
   this to one app and fixes it.
 - ~~**Recommender is runtime-blind**~~ — fixed; candidates are re-scored on real runtime after
   hydration and re-sorted before the final pick. TV candidates now appear for genre-compatible
-  moods (funny/feelgood/thoughtful); dark/tense/romantic/action stay movie-only -- TV's genre
-  taxonomy has no Horror/Romance/Thriller/Action+Adventure equivalent to map onto.
+  moods (funny/feelgood/thoughtful) and for action (TMDb's TV "Action & Adventure" id, 10759, maps
+  back onto movie Action/Adventure for scoring); dark/tense/romantic stay movie-only -- TV's genre
+  taxonomy has no Horror/Romance/Thriller equivalent to map onto at all.
 - **Billing is mock-only** (no Stripe).
 - ~~**Thin tests on the pivot**~~ — no longer true; `households.e2e.test.ts` alone is 1,300+ lines
   covering pick/commit/history/entitlements/TV/runtime-ranking, plus dedicated suites for auth,
@@ -292,9 +293,12 @@ Independent of the platform, needed before opening to an invited cohort:
 
 - Validate the LLM re-rank actually improves first-pick acceptance (premium only) -- it's wired in
   and feature-flagged, needs real usage data to judge.
-- ~~Extend the recommender to TV~~ — done for genre-compatible moods (funny/feelgood/thoughtful);
-  dark/tense/romantic/action need a product decision on mapping Horror/Romance/Thriller/
-  Action+Adventure onto TV's different genre taxonomy before they can include TV candidates too.
+- ~~Extend the recommender to TV~~ — done for genre-compatible moods (funny/feelgood/thoughtful)
+  and for action (TMDb's TV genre taxonomy has an actual equivalent, just under a different id --
+  see `TV_ACTION_ADVENTURE_GENRE_ID`). dark/tense/romantic stay movie-only by decision, not by
+  gap: TV has no Horror/Thriller/Romance genre at all, so there's nothing accurate to map onto --
+  approximating with an adjacent TV genre (Mystery, Crime, Drama) would serve picks that don't
+  actually match what the mood promised.
 - ~~Make runtime actually influence scoring~~ — done; candidates are re-scored with their real
   runtime after hydration and re-sorted before the final pick, instead of only ever scoring against
   a neutral runtime guess.
