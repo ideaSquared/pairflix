@@ -304,8 +304,9 @@ Independent of the platform, needed before opening to an invited cohort:
   static-link-only API doesn't support) have read real `pick.providers` since before this checklist
   item was written.
 - ~~Integration tests for the pick / providers / entitlements paths~~ — done; `households.e2e.test.ts`
-  and `providers.e2e.test.ts` cover all three, including the quota-atomicity race and region-lock
-  enforcement.
+  covers all three, including the quota-atomicity race and region-lock enforcement. (A dedicated
+  `providers.e2e.test.ts` covered this too, until the standalone provider route it tested was
+  deleted for having no callers -- see this file's providers/history section.)
 - Real Stripe (gated on go-live sign-off) — until then premium is comp/mock only.
 
 **Alpha exit criteria:** a real household can create an account, get a genuinely good first pick in
