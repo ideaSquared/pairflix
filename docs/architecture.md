@@ -107,8 +107,9 @@ one row per `(tmdbId, mediaType)`) with a 24h blob-level staleness check -- impl
 `services/api/src/lib/providers.ts`. Caching is lazy/on-demand only;
 there's no cron-driven proactive refresh yet (see Background work, below). Region defaults to GB,
 overridable by premium multi-region wherever a household context exists (`/:id/pick`, `/:id/history`,
-`/:id/picks/:tmdbId/launch`) -- the standalone `GET /api/providers/:tmdbId` has no household to
-resolve entitlements from and is a known, deliberately deferred gap (`docs/roadmap.md`).
+`/:id/picks/:tmdbId/launch`) -- these are the only provider-data reads the API exposes; a standalone,
+non-household-scoped `GET /api/providers/:tmdbId` existed briefly but was deleted (no callers
+anywhere, and no household context to resolve entitlements from -- see `docs/roadmap.md`).
 Provider-launch (`lib/providerLaunch.ts`) resolves a provider slug + region to a deep link through
 the same cache; the link is TMDb's own "watch this title" page, not a per-provider affiliate URL --
 there's no affiliate-tagging scheme anywhere in this codebase today.

@@ -50,6 +50,4 @@ cron-driven retention; a stateless Worker has no long-running process for one).
 Documented rather than silently left out — see `docs/roadmap.md` for the phase each was deferred in:
 
 - No cron-driven audit-log retention sweep (manual only, via the rotation endpoint above).
-- The standalone `GET /api/providers/:tmdbId` has no household context, so it can't apply the
-  free-tier region-lock the way household-scoped endpoints do.
 - Real Stripe billing is deferred; the current billing routes are an explicit mock.

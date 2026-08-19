@@ -30,6 +30,7 @@ export type HistoryEntry = {
 	minutesBudgetAtPick: number | null;
 	title: string | null;
 	year: number | null;
+	runtime: number | null;
 	posterPath: string | null;
 	providers: ProviderRegion;
 };
@@ -54,6 +55,7 @@ type JoinedHistoryRow = {
 	minutesBudgetAtPick: number | null;
 	title: string | null;
 	year: number | null;
+	runtime: number | null;
 	posterPath: string | null;
 	providers: ContentProviders | null;
 };
@@ -68,6 +70,7 @@ const historyColumns = {
 	minutesBudgetAtPick: watchedTogether.minutesBudgetAtPick,
 	title: content.title,
 	year: content.year,
+	runtime: content.runtime,
 	posterPath: content.posterPath,
 	providers: content.providers,
 };
@@ -98,6 +101,7 @@ const toHistoryEntry = (
 	minutesBudgetAtPick: row.minutesBudgetAtPick,
 	title: row.title,
 	year: row.year,
+	runtime: row.runtime,
 	posterPath: row.posterPath,
 	providers: readRegion(row.providers, region),
 });

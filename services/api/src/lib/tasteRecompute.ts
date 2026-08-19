@@ -4,19 +4,37 @@ import {
 	tasteProfiles,
 	type Database,
 } from '@pairflix/db';
+import type { Mood } from '@pairflix/lib.validation';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { Bindings } from '../types';
+import { eraBucketForYear, type EraBucket } from './eras';
 import { GENRE_NAMES } from './genres';
 import { cacheContentDetails } from './providers';
-import { denseGenreWeights, NEUTRAL_GENRE_WEIGHT } from './tasteWeights';
+import {
+	denseEraWeights,
+	denseGenreWeights,
+	denseToneWeights,
+	NEUTRAL_ERA_WEIGHT,
+	NEUTRAL_GENRE_WEIGHT,
+	NEUTRAL_TONE_WEIGHT,
+} from './tasteWeights';
 
 /**
  * `taste_profiles` has had zero writers since the product pivot -- `mergeProfiles` (in
  * lib/recommendation.ts) always sees an empty profile set and degrades to mood-only genre
  * filtering. This module is the first writer: a thumbs rating on a watched-together title nudges
- * every current household member's genre weights toward that rating, called from the
+ * every current household member's genre/era/tone weights toward that rating, called from the
  * `PATCH /:id/history/:watchedId` handler (routes/households.ts) via `waitUntil`, matching this
  * codebase's non-critical-write convention (see `reserveDailyPick`, `recordPickEvent`).
+ *
+ * Four dimensions, two different update shapes:
+ * - genre/era/tone are all "weight per key in a small closed vocabulary" -- the same symmetric EMA
+ *   (`nudgeWeight`) applies to all three, just with a different key extracted from the rated title
+ *   (genre ids, one era bucket, the mood active at pick time).
+ * - runtime_pref is a single scalar minutes estimate, not a weight-per-key -- `nudgeRuntimePref`
+ *   only moves on `enjoyed`, since a dislike gives no direction to move a duration estimate in
+ *   (too long? too short? unrelated to runtime entirely?), unlike genre/era/tone where "you picked
+ *   this and didn't like it" is itself the (negative) signal.
  */
 
 const EMA_ALPHA = 0.25;
@@ -44,47 +62,120 @@ export const nudgeGenreWeights = (
 	return next;
 };
 
-/** Read-through `content.genreIds`: populates it via `cacheContentDetails` on a miss (missing row,
- * or a row predating this column) and re-reads rather than duplicating its TMDb fetch. Best-effort,
- * matching `cacheContentDetails` itself -- a TMDb failure leaves this returning `[]`. */
-const readGenreIds = async (
+/** Same EMA as `nudgeGenreWeights`, but a title has exactly one era bucket rather than a list of
+ * genre ids -- nudges just that one key. */
+export const nudgeEraWeights = (
+	eraWeights: Record<string, number>,
+	ratedEraBucket: EraBucket | null,
+	enjoyed: boolean,
+	alpha: number = EMA_ALPHA
+): Record<string, number> => {
+	if (ratedEraBucket === null) return eraWeights;
+	const target = enjoyed ? 1 : 0;
+	const current = eraWeights[ratedEraBucket] ?? NEUTRAL_ERA_WEIGHT;
+	return {
+		...eraWeights,
+		[ratedEraBucket]: current * (1 - alpha) + target * alpha,
+	};
+};
+
+/** Same EMA as `nudgeGenreWeights`, keyed by the single mood active at pick time rather than a list
+ * of genre ids. */
+export const nudgeToneWeights = (
+	toneWeights: Record<string, number>,
+	ratedMood: Mood | null,
+	enjoyed: boolean,
+	alpha: number = EMA_ALPHA
+): Record<string, number> => {
+	if (ratedMood === null) return toneWeights;
+	const target = enjoyed ? 1 : 0;
+	const current = toneWeights[ratedMood] ?? NEUTRAL_TONE_WEIGHT;
+	return {
+		...toneWeights,
+		[ratedMood]: current * (1 - alpha) + target * alpha,
+	};
+};
+
+/** Moves a single scalar minutes estimate toward the rated title's actual runtime -- only when
+ * `enjoyed` (see this module's doc comment for why) and only when the runtime is actually known.
+ * `current === null` (no prior estimate) adopts the rated runtime outright rather than EMA-ing
+ * against a made-up starting point. */
+export const nudgeRuntimePref = (
+	current: number | null,
+	ratedRuntime: number | null,
+	enjoyed: boolean,
+	alpha: number = EMA_ALPHA
+): number | null => {
+	if (!enjoyed || ratedRuntime === null) return current;
+	if (current === null) return ratedRuntime;
+	return current * (1 - alpha) + ratedRuntime * alpha;
+};
+
+type ContentSignals = {
+	genreIds: number[];
+	year: number | null;
+	runtime: number | null;
+};
+
+/** Read-through `content`: populates it via `cacheContentDetails` on a miss (missing row, or a row
+ * predating one of these columns) and re-reads rather than duplicating its TMDb fetch. Best-effort,
+ * matching `cacheContentDetails` itself -- a TMDb failure leaves `genreIds` as `[]` and
+ * `year`/`runtime` as `null`. The refresh trigger is `genreIds` being empty specifically (not
+ * `year`/`runtime` individually) since all three come from the same upstream fetch -- if one is
+ * missing after a fresh `cacheContentDetails` call, so are the others, and there's nothing further
+ * to retry. */
+const readContentSignals = async (
 	env: Bindings,
 	db: Database,
 	tmdbId: number,
 	mediaType: 'movie' | 'tv'
-): Promise<number[]> => {
-	const row = await db
-		.select({ genreIds: content.genreIds })
-		.from(content)
-		.where(and(eq(content.tmdbId, tmdbId), eq(content.mediaType, mediaType)))
-		.get();
-	if (row?.genreIds) return row.genreIds;
+): Promise<ContentSignals> => {
+	const columns = {
+		genreIds: content.genreIds,
+		year: content.year,
+		runtime: content.runtime,
+	};
+	const scope = and(
+		eq(content.tmdbId, tmdbId),
+		eq(content.mediaType, mediaType)
+	);
+	const row = await db.select(columns).from(content).where(scope).get();
+	if (row?.genreIds) return { ...row, genreIds: row.genreIds };
 
 	await cacheContentDetails(env, db, tmdbId, mediaType);
-	const refreshed = await db
-		.select({ genreIds: content.genreIds })
-		.from(content)
-		.where(and(eq(content.tmdbId, tmdbId), eq(content.mediaType, mediaType)))
-		.get();
-	return refreshed?.genreIds ?? [];
+	const refreshed = await db.select(columns).from(content).where(scope).get();
+	return {
+		genreIds: refreshed?.genreIds ?? [],
+		year: refreshed?.year ?? null,
+		runtime: refreshed?.runtime ?? null,
+	};
 };
 
 /** Recomputes every current household member's taste weights off one thumbs rating. Only called
  * when `enjoyed` is non-null (the route filters that); each member's profile is read (or
- * materialized at the neutral baseline, via `denseGenreWeights`, if this is their first rating
- * ever) and upserted with the rated title's genres nudged, so every write stays dense across all of
- * `GENRE_NAMES` -- see `lib/tasteWeights.ts`'s doc comment for why a sparse write would break
- * `mergeProfiles`. */
+ * materialized at the neutral baseline for genre/era/tone, via the `dense*Weights` helpers, if this
+ * is their first rating ever) and upserted with the rated title's genres/era/tone/runtime nudged,
+ * so every genre/era/tone write stays dense across its full key set -- see `lib/tasteWeights.ts`'s
+ * doc comment for why a sparse write would break `mergeProfiles`. Tone nudges even when the
+ * genre/era/runtime lookup fails entirely (`moodAtPick` comes from `watchedTogether`, not TMDb, so
+ * it doesn't depend on `readContentSignals` succeeding). */
 export const recomputeTasteFromRating = async (
 	env: Bindings,
 	db: Database,
 	householdId: string,
 	tmdbId: number,
 	mediaType: 'movie' | 'tv',
-	enjoyed: boolean
+	enjoyed: boolean,
+	moodAtPick: Mood | null
 ): Promise<void> => {
-	const genreIds = await readGenreIds(env, db, tmdbId, mediaType);
-	if (genreIds.length === 0) return;
+	const { genreIds, year, runtime } = await readContentSignals(
+		env,
+		db,
+		tmdbId,
+		mediaType
+	);
+	if (genreIds.length === 0 && moodAtPick === null) return;
+	const eraBucket = year !== null ? eraBucketForYear(year) : null;
 
 	const members = await db
 		.select({ userId: householdMembers.userId })
@@ -103,9 +194,27 @@ export const recomputeTasteFromRating = async (
 	await Promise.all(
 		memberIds.map(userId => {
 			const existing = profileByUserId.get(userId);
-			const baseGenres = denseGenreWeights(existing?.weights.genres);
-			const genres = nudgeGenreWeights(baseGenres, genreIds, enjoyed);
-			const weights = { ...existing?.weights, genres };
+			const genres = nudgeGenreWeights(
+				denseGenreWeights(existing?.weights.genres),
+				genreIds,
+				enjoyed
+			);
+			const era = nudgeEraWeights(
+				denseEraWeights(existing?.weights.era),
+				eraBucket,
+				enjoyed
+			);
+			const tone = nudgeToneWeights(
+				denseToneWeights(existing?.weights.tone),
+				moodAtPick,
+				enjoyed
+			);
+			const runtime_pref = nudgeRuntimePref(
+				existing?.weights.runtime_pref ?? null,
+				runtime,
+				enjoyed
+			);
+			const weights = { ...existing?.weights, genres, era, tone, runtime_pref };
 			return db
 				.insert(tasteProfiles)
 				.values({ userId, weights, updatedAt: now })

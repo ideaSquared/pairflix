@@ -97,14 +97,14 @@ const parseYear = (dateStr: string | undefined): number | null => {
 };
 
 /**
- * Fetches and upserts real title/year/poster for a title -- separate from `refreshProviders`
- * (which only ever writes a placeholder title) so this doesn't change the providers-only refresh
- * behavior `getCachedProviders`'s other two callers (`lib/providerLaunch.ts`,
- * `GET /api/providers/:tmdbId`) rely on. Only `lib/recommendation.ts`'s `commitPick` calls this,
- * after (or alongside) `getCachedProviders` -- the two upserts touch disjoint columns
- * (providers/updatedAt here vs title/year/posterPath/updatedAt there), so they're safe to run in
- * either order or in parallel; whichever runs first creates the row, the other just fills in its
- * own columns via `onConflictDoUpdate`.
+ * Fetches and upserts real title/year/runtime/poster for a title -- separate from
+ * `refreshProviders` (which only ever writes a placeholder title) so this doesn't change the
+ * providers-only refresh behavior `getCachedProviders`'s other caller (`lib/providerLaunch.ts`)
+ * relies on. Only `lib/recommendation.ts`'s `commitPick` calls this, after (or alongside)
+ * `getCachedProviders` -- the two upserts touch disjoint columns (providers/updatedAt here vs
+ * title/year/runtime/posterPath/updatedAt there), so they're safe to run in either order or in
+ * parallel; whichever runs first creates the row, the other just fills in its own columns via
+ * `onConflictDoUpdate`.
  *
  * Best-effort, matching `getCachedProviders`: a TMDb failure or a failed upsert both leave any
  * existing row untouched (title stays whatever it already was -- a moderator's edit or a
@@ -118,6 +118,7 @@ export const cacheContentDetails = async (
 ): Promise<void> => {
 	let title: string;
 	let year: number | null;
+	let runtime: number | null;
 	let posterPath: string | null;
 	let genreIds: number[] | null;
 	try {
@@ -125,12 +126,14 @@ export const cacheContentDetails = async (
 			const full = await getMovieFullDetails(env, tmdbId);
 			title = full.title;
 			year = parseYear(full.release_date);
+			runtime = full.runtime ?? null;
 			posterPath = full.poster_path;
 			genreIds = full.genres ? full.genres.map(g => g.id) : null;
 		} else {
 			const full = await getTVFullDetails(env, tmdbId);
 			title = full.name;
 			year = parseYear(full.first_air_date);
+			runtime = full.episode_run_time?.[0] ?? null;
 			posterPath = full.poster_path;
 			genreIds = full.genres ? full.genres.map(g => g.id) : null;
 		}
@@ -157,6 +160,7 @@ export const cacheContentDetails = async (
 				tmdbId,
 				mediaType,
 				year,
+				runtime,
 				posterPath,
 				genreIds,
 				providers: {},
@@ -165,7 +169,7 @@ export const cacheContentDetails = async (
 			})
 			.onConflictDoUpdate({
 				target: [content.tmdbId, content.mediaType],
-				set: { title, year, posterPath, genreIds, updatedAt: now },
+				set: { title, year, runtime, posterPath, genreIds, updatedAt: now },
 			});
 	} catch (err) {
 		console.warn(
