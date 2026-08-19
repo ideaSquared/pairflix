@@ -188,6 +188,22 @@ const SHOW_A: MockShow = {
 	episode_run_time: [112],
 };
 
+// dark's other genre (thriller, 53) has no TV equivalent, but this one (crime, 80) does -- same
+// recency-driven win pattern as SHOW_A, just proving TV eligibility now only needs one of dark's
+// two genres to match instead of both.
+const SHOW_DARK: MockShow = {
+	id: 202,
+	name: 'The Precinct',
+	overview: 'A dark TV crime drama.',
+	poster_path: null,
+	first_air_date: '2026-01-01',
+	vote_average: 8.0,
+	vote_count: 600,
+	genre_ids: [80],
+	popularity: 60,
+	episode_run_time: [112],
+};
+
 // Fixtures for the "action mood recognizes TV's Action & Adventure id" test below. Rated (not
 // offered as a candidate) purely to seed a household genre/tone preference before the real
 // comparison -- its own era bucket (1980s) is deliberately far from the two candidates' (2010s) so
@@ -691,6 +707,26 @@ describe('POST /api/households/:id/pick -- TV candidates', () => {
 		expect(result.status).toBe(200);
 		expect(result.body.pick.mediaType).toBe('tv');
 		expect(result.body.pick.tmdbId).toBe(SHOW_A.id);
+	});
+
+	it('dark mood can win the pick via TV on a partial genre match (crime, not thriller)', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// DEFAULT_MOVIES are all genre 35 (comedy) -- a full mismatch against dark's [80, 53], so
+		// SHOW_DARK (genre 80) wins on both genre match and recency, proving tvEligible now queries
+		// TV for dark even though only one of its two genres (crime) has a TV equivalent.
+		mockExternalApis(DEFAULT_MOVIES, undefined, [SHOW_DARK]);
+		const result = await postJson<{
+			pick: { tmdbId: number; mediaType: string };
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'dark', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.mediaType).toBe('tv');
+		expect(result.body.pick.tmdbId).toBe(SHOW_DARK.id);
 	});
 
 	it('never queries TV for a mood outside the TV-compatible genre set', async () => {
