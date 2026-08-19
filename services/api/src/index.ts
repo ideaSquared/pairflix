@@ -59,6 +59,10 @@ app.onError((error, c) => {
 export default {
 	fetch: app.fetch,
 	async scheduled(_controller, env, ctx) {
-		ctx.waitUntil(rotateAuditLogsOnSchedule(createDb(env.DB)));
+		ctx.waitUntil(
+			rotateAuditLogsOnSchedule(createDb(env.DB)).catch(err => {
+				console.error('[cron] failed to rotate audit logs', err);
+			})
+		);
 	},
 } satisfies ExportedHandler<Bindings>;

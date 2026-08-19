@@ -133,9 +133,9 @@ export const cleanupOldLogs = async (
 };
 
 /** Cloudflare Cron Trigger entry point (wired from `scheduled` in index.ts) -- runs the same
- * cleanup as the manual `POST /audit-logs/rotation` route, at the default per-level retention
- * policy, and records the result under its own `'cron'` source so the audit log distinguishes a
- * scheduled run from an admin-triggered one. */
+ * cleanup as the manual `POST /api/admin/audit-logs/rotation` route, at the default per-level
+ * retention policy, and records the result under its own `'cron'` source so the audit log
+ * distinguishes a scheduled run from an admin-triggered one. */
 export const rotateAuditLogsOnSchedule = async (
 	db: Database
 ): Promise<void> => {
