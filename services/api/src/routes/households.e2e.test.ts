@@ -741,6 +741,7 @@ describe('POST /api/households/:id/pick -- TV candidates', () => {
 		mockExternalApis([COMEDY_MOVIE_SAME_ERA], undefined, [SHOW_ACTION]);
 		const result = await postJson<{
 			pick: { tmdbId: number; mediaType: string };
+			rationale: string;
 		}>(
 			`/api/households/${householdId}/pick`,
 			{ mood: 'action', minutes: 120 },
@@ -749,6 +750,47 @@ describe('POST /api/households/:id/pick -- TV candidates', () => {
 		expect(result.status).toBe(200);
 		expect(result.body.pick.mediaType).toBe('tv');
 		expect(result.body.pick.tmdbId).toBe(SHOW_ACTION.id);
+		// buildRationale reads the pick's own genre_ids too -- proves the id-remap reaches it, not
+		// just scoreCandidate, or this would fall back to the generic "matches your mood" text.
+		expect(result.body.rationale).toContain('action');
+	});
+
+	it('rating a TV action/adventure title nudges the movie action/adventure genre weights', async () => {
+		const { userId, cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// cacheContentDetails (called from commitPick) persists content.genreIds from TMDb's raw TV
+		// response -- [10759], not [28, 12]. Without normalizing it the same way pickForHousehold's
+		// in-memory candidates are, recomputeTasteFromRating's nudgeGenreWeights would silently skip
+		// this rating entirely (10759 isn't a key in GENRE_NAMES), and neither weight would move.
+		mockExternalApis([], undefined, [SHOW_ACTION]);
+		const commit = await postJson<{ id: string }>(
+			`/api/households/${householdId}/picks/${SHOW_ACTION.id}/commit`,
+			{ mediaType: 'tv', mood: 'action', minutes: 120 },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+		const patch = await postJson<{ entry: { enjoyed: boolean | null } }>(
+			`/api/households/${householdId}/history/${commit.body.id}`,
+			{ enjoyed: true },
+			cookies,
+			{ method: 'PATCH' }
+		);
+		expect(patch.status).toBe(200);
+
+		const profileRow = await waitForRow(() =>
+			env.DB.prepare('SELECT weights FROM taste_profiles WHERE user_id = ?1')
+				.bind(userId)
+				.first<{ weights: string }>()
+		);
+		const weights = JSON.parse(profileRow.weights) as {
+			genres: Record<string, number>;
+		};
+		// Same EMA-from-neutral math as the movie case (0.35 * 0.75 + 1.0 * 0.25 = 0.5125) -- both
+		// ids nudge independently, since nudgeGenreWeights loops every rated genre id on its own.
+		expect(weights.genres['28']).toBeCloseTo(0.5125, 5);
+		expect(weights.genres['12']).toBeCloseTo(0.5125, 5);
+		expect(weights.genres['35']).toBeCloseTo(0.35, 5);
 	});
 
 	it('does not exclude a TV candidate whose id matches a watched movie', async () => {

@@ -37,6 +37,17 @@ export const TV_COMPATIBLE_GENRE_IDS = new Set<number>([
  * both merge into this single TV id rather than sharing either movie id directly. */
 export const TV_ACTION_ADVENTURE_GENRE_ID = 10759;
 
+/** Every genre id this codebase stores or scores against -- `GENRE_NAMES`, `taste_profiles.weights.
+ * genres`, and `MOOD_FILTERS` -- is keyed by the movie id space. Expands TV_ACTION_ADVENTURE_GENRE_ID
+ * back to the movie ids it represents so a TV item's raw `genre_ids` (from `/discover/tv`, or a full
+ * `/tv/:id` details fetch) can be treated the same as a movie's everywhere that keyspace matters:
+ * scoring, taste-weight nudging, rationale text, and the LLM candidate payload. Every other TV genre
+ * id already equals its movie counterpart (see TV_COMPATIBLE_GENRE_IDS) and passes through
+ * unchanged; calling this on a movie's own genre_ids is always a no-op, since 10759 never appears
+ * there. */
+export const toMovieGenreIds = (genreIds: number[]): number[] =>
+	genreIds.flatMap(g => (g === TV_ACTION_ADVENTURE_GENRE_ID ? [28, 12] : [g]));
+
 export const MOOD_FILTERS: Record<Mood, { genres: number[]; label: string }> = {
 	funny: { genres: [35], label: 'comedy' },
 	dark: { genres: [80, 53], label: 'dark crime/thriller' },

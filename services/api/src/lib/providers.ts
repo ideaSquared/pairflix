@@ -6,6 +6,7 @@ import {
 } from '@pairflix/db';
 import { and, eq } from 'drizzle-orm';
 import type { Bindings } from '../types';
+import { toMovieGenreIds } from './genres';
 import { newId } from './id';
 import {
 	getAllWatchProviders,
@@ -135,7 +136,13 @@ export const cacheContentDetails = async (
 			year = parseYear(full.first_air_date);
 			runtime = full.episode_run_time?.[0] ?? null;
 			posterPath = full.poster_path;
-			genreIds = full.genres ? full.genres.map(g => g.id) : null;
+			// Normalized to the movie genre-id space (see toMovieGenreIds) so a rating on this title
+			// nudges taste_profiles.weights.genres correctly -- recomputeTasteFromRating reads
+			// genreIds straight from this column and skips any id GENRE_NAMES doesn't recognize,
+			// which TV's raw Action & Adventure id (10759) never would.
+			genreIds = full.genres
+				? toMovieGenreIds(full.genres.map(g => g.id))
+				: null;
 		}
 	} catch (err) {
 		console.warn(

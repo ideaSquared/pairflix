@@ -19,6 +19,7 @@ import {
 	MOOD_FILTERS,
 	TV_ACTION_ADVENTURE_GENRE_ID,
 	TV_COMPATIBLE_GENRE_IDS,
+	toMovieGenreIds,
 } from './genres';
 import { newId } from './id';
 import {
@@ -240,14 +241,9 @@ const scoreCandidate = (
 	targetMinutes: number,
 	currentYear: number
 ): number => {
-	// A TV item carries TV_ACTION_ADVENTURE_GENRE_ID instead of the movie ids (28, 12) that
-	// `prefs.genres` and `moodGenres` are keyed by -- expand it back so a TV action/adventure
-	// candidate's genre-based scoring terms (genreMatch, genreMoodHit below) see the same ids a
-	// household's learned taste and the `action` mood filter use. Every other TV genre id already
-	// equals its movie counterpart (see TV_COMPATIBLE_GENRE_IDS) and passes through unchanged.
-	const genreIds = (item.genre_ids ?? []).flatMap(g =>
-		g === TV_ACTION_ADVENTURE_GENRE_ID ? [28, 12] : [g]
-	);
+	// Already normalized to the movie genre-id space by the time a TV item reaches here -- see
+	// where `candidates` is built in pickForHousehold.
+	const genreIds = item.genre_ids ?? [];
 
 	let genreSum = 0;
 	let genreCount = 0;
@@ -453,14 +449,15 @@ export const pickForHousehold = async (
 		voteCountGte: 200,
 		region,
 	};
-	// Only fetch TV candidates when every genre this pick filters on (mood genres, plus up to 3
-	// more pulled in from the household's taste weights) is valid in TV's genre taxonomy -- see
-	// TV_COMPATIBLE_GENRE_IDS's doc comment. Household taste can inject an incompatible id even
-	// under an eligible mood, so the TV call itself filters on the compatible subset of `genres`,
-	// not the full list the movie call uses. Action (28) and Adventure (12) aren't literally in
-	// TV_COMPATIBLE_GENRE_IDS -- TMDb merges them into the differently-numbered
-	// TV_ACTION_ADVENTURE_GENRE_ID -- so both the eligibility check and the filter treat that pair
-	// as compatible too, remapped to the TV id `/discover/tv` actually understands.
+	// Only fetch TV candidates when every genre the *mood itself* filters on is valid in TV's genre
+	// taxonomy -- see TV_COMPATIBLE_GENRE_IDS's doc comment. The up-to-3 extra ids pulled in from
+	// the household's taste weights don't gate eligibility -- an eligible mood can still pull in an
+	// incompatible one, so the TV call filters `genres` (mood + taste extras) down to the
+	// compatible subset itself, not the full list the movie call uses. Action (28) and Adventure
+	// (12) aren't literally in TV_COMPATIBLE_GENRE_IDS -- TMDb merges them into the
+	// differently-numbered TV_ACTION_ADVENTURE_GENRE_ID -- so both the eligibility check and the
+	// filter treat that pair as compatible too, remapped to the TV id `/discover/tv` actually
+	// understands.
 	const isTvCompatibleGenre = (g: number) =>
 		TV_COMPATIBLE_GENRE_IDS.has(g) || g === 28 || g === 12;
 	const toTvGenreId = (g: number) =>
@@ -484,8 +481,12 @@ export const pickForHousehold = async (
 			item,
 			mediaType: 'movie' as const,
 		})),
+		// Normalized to the movie genre-id space here, once, so every downstream reader of
+		// `item.genre_ids` (scoreCandidate, buildRationale, the LLM candidate payload) sees ids
+		// consistent with GENRE_NAMES/taste_profiles.weights.genres/MOOD_FILTERS without each of
+		// them needing to remember to expand TV_ACTION_ADVENTURE_GENRE_ID individually.
 		...(tvResp.results ?? []).map(item => ({
-			item,
+			item: { ...item, genre_ids: toMovieGenreIds(item.genre_ids ?? []) },
 			mediaType: 'tv' as const,
 		})),
 	];
