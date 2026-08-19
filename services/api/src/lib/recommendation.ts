@@ -449,20 +449,21 @@ export const pickForHousehold = async (
 		voteCountGte: 200,
 		region,
 	};
-	// Only fetch TV candidates when every genre the *mood itself* filters on is valid in TV's genre
-	// taxonomy -- see TV_COMPATIBLE_GENRE_IDS's doc comment. The up-to-3 extra ids pulled in from
-	// the household's taste weights don't gate eligibility -- an eligible mood can still pull in an
-	// incompatible one, so the TV call filters `genres` (mood + taste extras) down to the
-	// compatible subset itself, not the full list the movie call uses. Action (28) and Adventure
-	// (12) aren't literally in TV_COMPATIBLE_GENRE_IDS -- TMDb merges them into the
-	// differently-numbered TV_ACTION_ADVENTURE_GENRE_ID -- so both the eligibility check and the
-	// filter treat that pair as compatible too, remapped to the TV id `/discover/tv` actually
-	// understands.
+	// Fetch TV candidates when at least one genre the *mood itself* filters on is valid in TV's
+	// genre taxonomy -- see TV_COMPATIBLE_GENRE_IDS's doc comment. Not "every genre": dark's two
+	// genres are crime (80, already shared with TV) and thriller (53, no TV equivalent at all) --
+	// requiring both would discard a mood that already owns a real TV genre just because TMDb can't
+	// express the rest of it. The TV call itself filters `genres` (mood + up to 3 taste extras) down
+	// to the compatible subset either way, so an ineligible id never reaches it regardless of why the
+	// mood as a whole qualified. Action (28) and Adventure (12) aren't literally in
+	// TV_COMPATIBLE_GENRE_IDS -- TMDb merges them into the differently-numbered
+	// TV_ACTION_ADVENTURE_GENRE_ID -- so both the eligibility check and the filter treat that pair as
+	// compatible too, remapped to the TV id `/discover/tv` actually understands.
 	const isTvCompatibleGenre = (g: number) =>
 		TV_COMPATIBLE_GENRE_IDS.has(g) || g === 28 || g === 12;
 	const toTvGenreId = (g: number) =>
 		g === 28 || g === 12 ? TV_ACTION_ADVENTURE_GENRE_ID : g;
-	const tvEligible = moodCfg.genres.every(isTvCompatibleGenre);
+	const tvEligible = moodCfg.genres.some(isTvCompatibleGenre);
 	const [movieResp, tvResp] = await Promise.all([
 		discoverMedia(env, { ...discoverParams, mediaType: 'movie' }),
 		tvEligible
