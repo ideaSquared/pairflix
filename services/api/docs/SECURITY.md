@@ -41,13 +41,15 @@ this Worker only ever returns JSON) and `hono/cors`, restricted to the origins l
 
 `lib/audit.ts` writes structured rows (`level`, `message`, `source`, JSON `context`) to the
 `audit_logs` D1 table for auth and admin actions. `GET /api/admin/audit-logs` (paginated) and
-`POST /api/admin/audit-logs/rotation` (manual retention sweep) expose it to admins — see
-`docs/roadmap.md`'s P3 billing/admin notes for what's intentionally not automated yet (no
-cron-driven retention; a stateless Worker has no long-running process for one).
+`POST /api/admin/audit-logs/rotation` (manual retention sweep, source `admin`) expose it to admins;
+`rotateAuditLogsOnSchedule` (`lib/adminAuditLogs.ts`, source `cron`) runs the same sweep
+automatically via a daily Cloudflare Cron Trigger (`wrangler.jsonc`'s `triggers.crons`) — see
+`docs/roadmap.md`'s P3 billing/admin notes for the history.
 
 ## Known gaps
 
 Documented rather than silently left out — see `docs/roadmap.md` for the phase each was deferred in:
 
-- No cron-driven audit-log retention sweep (manual only, via the rotation endpoint above).
+- No cron-driven provider-cache refresh (lazy/on-demand only) -- unlike audit-log retention, its
+  scope (what to refresh, on what interval, at what TMDb-quota cost) isn't decided yet.
 - Real Stripe billing is deferred; the current billing routes are an explicit mock.

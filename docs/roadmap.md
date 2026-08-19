@@ -185,11 +185,14 @@ Copilot review finding on this PR). Terminating a user's session is also now gen
 a Hono `sessions` row is the live credential `sessionMiddleware` checks on every request, unlike
 Express's `user_sessions` rows, which were never consulted by its own auth middleware.
 
-**Known gap, not fixed here:** the automatic daily audit-log retention sweep (Express: a
-`node-cron` job) isn't ported -- a stateless Worker has no equivalent always-running process for it.
-`POST /api/admin/audit-logs/rotation` covers the manual/on-demand half; the automatic half needs a
-Cloudflare Cron Trigger, same "not implemented yet" status as the provider-cache refresh cron noted
-below.
+~~**Known gap, not fixed here:** the automatic daily audit-log retention sweep isn't ported~~ --
+fixed in a later pass: `lib/adminAuditLogs.ts`'s `rotateAuditLogsOnSchedule` runs the same
+`cleanupOldLogs` sweep as the manual `POST /api/admin/audit-logs/rotation` route, wired into
+`src/index.ts`'s `scheduled` handler and triggered daily via `wrangler.jsonc`'s `triggers.crons`
+(`"0 3 * * *"`, off-peak UTC) -- a stateless Worker has no always-running process, but a Cron
+Trigger doesn't need one. The provider-cache refresh cron noted below remains unbuilt; its scope
+(what to refresh, on what interval, at what TMDb-quota cost) isn't decided yet, unlike audit-log
+retention's already-settled per-level policy.
 
 22 new `vitest-pool-workers` tests (`admin.e2e.test.ts`, new, plus `households.e2e.test.ts`
 extended) covering the auth gate, each of the behavior fixes above, and the billing/entitlements

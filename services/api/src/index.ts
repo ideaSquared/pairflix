@@ -1,6 +1,8 @@
+import { createDb } from '@pairflix/db';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
+import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
 import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { adminRoutes } from './routes/admin';
@@ -56,4 +58,7 @@ app.onError((error, c) => {
 
 export default {
 	fetch: app.fetch,
+	async scheduled(_controller, env, ctx) {
+		ctx.waitUntil(rotateAuditLogsOnSchedule(createDb(env.DB)));
+	},
 } satisfies ExportedHandler<Bindings>;

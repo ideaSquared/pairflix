@@ -23,7 +23,7 @@ many households** — not per-tenant infrastructure, and not a fleet of services
                  ┌──────────────────────────────┐ ┌───────────────────────────┐
    admins   ───► │ apps/admin (Pages SPA)        │►│ services/api (Worker, Hono)│
                  │  users · content moderation    │ │  ├─ fetch:     REST API     │
-                 └──────────────────────────────┘ │  └─ scheduled: cron refresh │
+                 └──────────────────────────────┘ │  └─ scheduled: log rotation │
                                                    └────────┬──────────┬─────────┘
                                                             ▼          ▼
                                                         D1 (SQLite)  R2 (optional)
@@ -152,11 +152,20 @@ still exist.
 
 ## Background work (cron)
 
-Target: a Workers **cron trigger** running provider-cache refresh and taste-profile recompute, so a
-cache miss never blocks a request. Not implemented yet -- today provider caching is entirely
-lazy/on-demand (see Providers & regions, above), matching what the Express version it replaces did.
-Processing would be inline to start (no Cloudflare Queues, which need the Workers Paid plan); move
-to a queue only when volume justifies the plan, exactly as creatorgrid defers it.
+`services/api`'s `scheduled` handler (`src/index.ts`) runs a daily Workers **Cron Trigger**
+(`wrangler.jsonc`'s `triggers.crons`, `"0 3 * * *"`) that calls `lib/adminAuditLogs.ts`'s
+`rotateAuditLogsOnSchedule` -- the same per-level retention sweep as the manual
+`POST /api/admin/audit-logs/rotation` route, logged under the `cron` source so it's distinguishable
+from an admin-triggered run.
+
+A provider-cache refresh cron remains unbuilt -- today provider caching is entirely lazy/on-demand
+(see Providers & regions, above), matching what the Express version it replaces did. Unlike
+audit-log retention, its scope isn't decided yet (what to refresh, on what interval, at what TMDb
+API quota cost). Taste-profile recompute doesn't need a cron at all -- `lib/tasteRecompute.ts`
+already recomputes it synchronously on every watched-together rating, not on a schedule.
+
+Any future cron processing would be inline to start (no Cloudflare Queues, which need the Workers
+Paid plan); move to a queue only when volume justifies the plan, exactly as creatorgrid defers it.
 
 ## Deploying
 
