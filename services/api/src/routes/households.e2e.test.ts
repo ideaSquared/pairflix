@@ -95,6 +95,37 @@ type MockShow = {
 	providers?: MockMovie['providers'];
 };
 
+// A deliberately-mismatched pair for the runtime re-ranking test below: OLD_GOOD_RUNTIME scores
+// lower pre-hydration (older, so a smaller recencyBonus) but has a real runtime close to the
+// gaussian peak for a 120-minute request; NEW_BAD_RUNTIME scores higher pre-hydration (brand new,
+// full recencyBonus) but its real runtime is far too short. Pre-hydration scoring can't see either
+// runtime (uses a neutral 0.5 for both), so it ranks NEW_BAD_RUNTIME first; only a re-score after
+// hydration (once real runtime is known) can correct that.
+const OLD_GOOD_RUNTIME_MOVIE: MockMovie = {
+	id: 301,
+	title: 'The Right Length',
+	overview: 'An older movie with a great runtime fit.',
+	poster_path: null,
+	release_date: '2015-01-01',
+	vote_average: 6.0,
+	vote_count: 250,
+	genre_ids: [35],
+	popularity: 20,
+	runtime: 112,
+};
+const NEW_BAD_RUNTIME_MOVIE: MockMovie = {
+	id: 302,
+	title: 'Too Short',
+	overview: 'A brand-new movie that runs far too short.',
+	poster_path: null,
+	release_date: '2026-01-01',
+	vote_average: 6.0,
+	vote_count: 250,
+	genre_ids: [35],
+	popularity: 20,
+	runtime: 20,
+};
+
 const SHOW_A: MockShow = {
 	id: 201,
 	name: 'The Improv Hour',
@@ -107,7 +138,10 @@ const SHOW_A: MockShow = {
 	vote_count: 600,
 	genre_ids: [35],
 	popularity: 60,
-	episode_run_time: [30],
+	// Close to DEFAULT_MOVIES' runtimes (95-110), not a real half-hour-comedy episode length --
+	// keeps this fixture winning on recencyBonus specifically in tests that use a ~120-minute
+	// request, isolated from the real-runtime re-ranking covered by its own test below.
+	episode_run_time: [112],
 };
 
 const jsonResponse = (data: unknown, status = 200): Response =>
@@ -611,6 +645,22 @@ describe('POST /api/households/:id/pick -- TV candidates', () => {
 		expect(result.status).toBe(200);
 		expect(result.body.pick.mediaType).toBe('tv');
 		expect(result.body.pick.tmdbId).toBe(MOVIE_A.id);
+	});
+});
+
+describe('POST /api/households/:id/pick -- runtime-aware ranking', () => {
+	it('re-ranks by real runtime after hydration, not the pre-hydration neutral guess', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis([OLD_GOOD_RUNTIME_MOVIE, NEW_BAD_RUNTIME_MOVIE]);
+		const result = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.tmdbId).toBe(OLD_GOOD_RUNTIME_MOVIE.id);
 	});
 });
 
