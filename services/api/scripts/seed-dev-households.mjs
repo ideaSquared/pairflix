@@ -11,15 +11,12 @@ import { hashPassword, runD1File, sqlString } from './seed-lib.mjs';
 
 const PASSWORD = 'password123';
 
-// Deterministic, not random -- reruns must resolve to the same ids so `INSERT OR IGNORE` actually
-// no-ops on a second run instead of leaving orphaned household_members/subscriptions rows pointed
-// at a user_id nothing re-inserted.
+// Deterministic, not random -- reruns must resolve to the same ids so the `ON CONFLICT` upserts
+// below land on the same rows instead of creating duplicates.
 const idFor = (prefix, slug) => `${prefix}_hhseed_${slug}`;
 
 // Usernames stay short (<=10 chars) — the DevLogin quick-login panel is a fixed 300px wide
 // (DevLogin.css.ts's devContainer), and longer usernames visibly overflow buttons in its two-column grid.
-// If you previously seeded with different emails/usernames, wipe/reset local D1: this script uses
-// deterministic ids + `INSERT OR IGNORE`, so reruns won't update existing rows.
 const HOUSEHOLDS = [
 	{
 		slug: 'free1',
@@ -126,25 +123,34 @@ const run = async () => {
 	for (const household of HOUSEHOLDS) {
 		const householdId = idFor('household', household.slug);
 		statements.push(
-			`INSERT OR IGNORE INTO households (id, name, created_at, updated_at) VALUES (${sqlString(householdId)}, ${sqlString(household.name)}, ${now}, ${now});`
+			`INSERT INTO households (id, name, created_at, updated_at) VALUES (${sqlString(householdId)}, ${sqlString(household.name)}, ${now}, ${now}) ON CONFLICT(id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at;`
 		);
 
 		household.members.forEach((member, index) => {
 			const userId = idFor('user', member.slug);
+			// ON CONFLICT(user_id), not email/username -- a rerun after this script's own fixtures
+			// change (e.g. the username shortening below) must update the existing seeded row to
+			// match, not silently leave it stale under its old email/username (which is exactly what
+			// `INSERT OR IGNORE` did here before -- DevLogin's quick-login then 404s "Invalid email
+			// or password" against an email the DB was never updated to).
 			statements.push(
-				`INSERT OR IGNORE INTO users (user_id, username, email, password_hash, role, status, email_verified, preferences, created_at, updated_at) VALUES (${sqlString(userId)}, ${sqlString(member.username)}, ${sqlString(member.email)}, ${sqlString(passwordHash)}, 'user', 'active', 1, ${sqlString(defaultPreferences)}, ${now}, ${now});`
+				`INSERT INTO users (user_id, username, email, password_hash, role, status, email_verified, preferences, created_at, updated_at) VALUES (${sqlString(userId)}, ${sqlString(member.username)}, ${sqlString(member.email)}, ${sqlString(passwordHash)}, 'user', 'active', 1, ${sqlString(defaultPreferences)}, ${now}, ${now}) ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, email = excluded.email, password_hash = excluded.password_hash, updated_at = excluded.updated_at;`
 			);
 			const role = index === 0 ? 'owner' : 'member';
 			statements.push(
-				`INSERT OR IGNORE INTO household_members (household_id, user_id, role, joined_at) VALUES (${sqlString(householdId)}, ${sqlString(userId)}, ${sqlString(role)}, ${now});`
+				`INSERT INTO household_members (household_id, user_id, role, joined_at) VALUES (${sqlString(householdId)}, ${sqlString(userId)}, ${sqlString(role)}, ${now}) ON CONFLICT(household_id, user_id) DO UPDATE SET role = excluded.role;`
 			);
 		});
 
 		if (household.tier === 'premium') {
 			const subscriptionId = idFor('sub', household.slug);
 			const currentPeriodEnd = now + THIRTY_DAYS_MS;
+			// ON CONFLICT(household_id), not id -- `subscriptions.household_id` is the unique key
+			// that actually identifies "this household's subscription"; the id's own prefix has
+			// already changed once (subscription_hhseed_... -> sub_hhseed_...), which would otherwise
+			// insert a second row and hit the household_id unique constraint anyway.
 			statements.push(
-				`INSERT OR IGNORE INTO subscriptions (id, household_id, tier, status, stripe_customer_id, stripe_subscription_id, current_period_end, created_at, updated_at) VALUES (${sqlString(subscriptionId)}, ${sqlString(householdId)}, 'premium', 'active', NULL, NULL, ${currentPeriodEnd}, ${now}, ${now});`
+				`INSERT INTO subscriptions (id, household_id, tier, status, stripe_customer_id, stripe_subscription_id, current_period_end, created_at, updated_at) VALUES (${sqlString(subscriptionId)}, ${sqlString(householdId)}, 'premium', 'active', NULL, NULL, ${currentPeriodEnd}, ${now}, ${now}) ON CONFLICT(household_id) DO UPDATE SET tier = excluded.tier, status = excluded.status, current_period_end = excluded.current_period_end, updated_at = excluded.updated_at;`
 			);
 		}
 	}
