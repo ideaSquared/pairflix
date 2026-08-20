@@ -142,7 +142,7 @@ describe('Select', () => {
   });
 
   it('handles value changes', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     renderWithTheme(
       <Select

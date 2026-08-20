@@ -80,7 +80,13 @@ export const discoverMedia = async (
 	params: TMDbDiscoverParams
 ): Promise<TMDbResponse<TMDbDiscoverMovie | TMDbDiscoverTV>> => {
 	const queryParams: Record<string, string> = {
-		with_genres: params.genres.join(','),
+		// `|` is TMDb's OR join for with_genres -- a comma means AND (the title must carry every
+		// listed genre at once). Callers here build `genres` as a preference set (mood genres unioned
+		// with the household's top taste genres, see `topMergedGenres`), and `scoreCandidate` scores a
+		// title on however many of those genres it happens to overlap -- it was never meant to require
+		// all of them simultaneously, which for a household with a few taste ratings on top of a
+		// two-genre mood routinely produces zero real titles and surfaces as `NoCandidatesError`.
+		with_genres: params.genres.join('|'),
 		'vote_count.gte': (params.voteCountGte ?? 200).toString(),
 		sort_by: params.sortBy ?? 'popularity.desc',
 		page: (params.page ?? 1).toString(),

@@ -153,6 +153,9 @@ describe('admin routes -- user management', () => {
 		expect(result.status).toBe(409);
 	});
 
+	// 40 iterations x 2 concurrent requests is meaningfully more work than a typical test in this
+	// file -- an explicit timeout gives it headroom on a loaded CI runner instead of trimming the
+	// iteration count (and the collision-probability margin it protects, see below).
 	it('returns a clean 409, not a 500, when two admin updates race for the same email', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());
 		// registerAndVerify (not createLoggedInUser) -- these two never need their own session, an
@@ -186,7 +189,7 @@ describe('admin routes -- user management', () => {
 			const statuses = [first.status, second.status].sort((a, b) => a - b);
 			expect(statuses).toEqual([200, 409]);
 		}
-	});
+	}, 30_000);
 
 	it('404s updating an unknown user', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());

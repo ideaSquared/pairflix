@@ -12,7 +12,7 @@ const renderWithTheme = (ui: React.ReactElement) => {
 
 describe('Pagination', () => {
   it('renders correctly with basic props', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         currentPage={1}
@@ -41,7 +41,7 @@ describe('Pagination', () => {
         currentPage={2}
         totalCount={100}
         limit={10}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
       />
     );
 
@@ -52,7 +52,7 @@ describe('Pagination', () => {
   });
 
   it('calls onPageChange when navigation buttons are clicked', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         currentPage={3}
@@ -75,7 +75,7 @@ describe('Pagination', () => {
       <Pagination
         currentPage={3}
         totalPages={5}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         showPageNumbers
       />
     );
@@ -96,7 +96,7 @@ describe('Pagination', () => {
       <Pagination
         currentPage={5}
         totalPages={10}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         showPageNumbers
         maxPageButtons={5}
       />
@@ -109,7 +109,7 @@ describe('Pagination', () => {
   });
 
   it('calls onPageChange when a page number button is clicked', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         currentPage={3}
@@ -129,7 +129,7 @@ describe('Pagination', () => {
       <Pagination
         currentPage={3}
         totalPages={5}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         showFirstLast
       />
     );
@@ -143,7 +143,7 @@ describe('Pagination', () => {
       <Pagination
         currentPage={1}
         totalPages={5}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         size="small"
       />
     );
@@ -158,7 +158,7 @@ describe('Pagination', () => {
         <Pagination
           currentPage={1}
           totalPages={5}
-          onPageChange={jest.fn()}
+          onPageChange={vi.fn()}
           size="large"
         />
       </div>
@@ -172,7 +172,7 @@ describe('Pagination', () => {
         ref={ref}
         currentPage={1}
         totalPages={5}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
       />
     );
 
@@ -184,11 +184,7 @@ describe('Pagination', () => {
 describe('SimplePagination', () => {
   it('renders without page number buttons', () => {
     renderWithTheme(
-      <SimplePagination
-        currentPage={2}
-        totalPages={5}
-        onPageChange={jest.fn()}
-      />
+      <SimplePagination currentPage={2} totalPages={5} onPageChange={vi.fn()} />
     );
 
     // Navigation buttons should be visible
@@ -208,7 +204,7 @@ describe('CompactPagination', () => {
       <CompactPagination
         currentPage={5}
         totalPages={10}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
       />
     );
 
@@ -226,7 +222,7 @@ describe('CompactPagination', () => {
       <CompactPagination
         currentPage={1}
         totalPages={5}
-        onPageChange={jest.fn()}
+        onPageChange={vi.fn()}
         className="test-class"
       />
     );

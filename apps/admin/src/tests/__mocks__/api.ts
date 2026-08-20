@@ -1,12 +1,16 @@
 /**
  * Mock of the API service for testing
- * This mock replaces all the actual API functions with Jest mock functions
+ * This mock replaces all the actual API functions with vi.fn mocks
  */
+
+import type { Mock } from 'vitest';
 
 export const BASE_URL = 'http://localhost:8787';
 
-// Mock all API functions
-export const fetchWithAuth = jest.fn();
+// Mock all API functions. Explicit type annotations sidestep TS2742 -- without one, tsc's
+// declaration-emission check (this workspace is a composite project) can't name vi.fn()'s
+// inferred Mock type without reaching into vitest's internal pnpm store path.
+export const fetchWithAuth: Mock = vi.fn();
 
 const mockAdminUser = {
   id: '1',
@@ -19,19 +23,19 @@ const mockAdminUser = {
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
-export const auth = {
-  login: jest.fn().mockResolvedValue(mockAdminUser),
-  getCurrentUser: jest.fn().mockResolvedValue(mockAdminUser),
-  logout: jest.fn().mockResolvedValue(undefined),
+export const auth: Record<string, unknown> = {
+  login: vi.fn().mockResolvedValue(mockAdminUser),
+  getCurrentUser: vi.fn().mockResolvedValue(mockAdminUser),
+  logout: vi.fn().mockResolvedValue(undefined),
 };
 
-export const twoFactor = {
-  enroll: jest.fn().mockResolvedValue({
+export const twoFactor: Record<string, unknown> = {
+  enroll: vi.fn().mockResolvedValue({
     secret: 'MOCKSECRET',
     otpauthUrl: 'otpauth://totp/Pairflix:admin@example.com?secret=MOCKSECRET',
   }),
-  verify: jest.fn().mockResolvedValue({ backupCodes: ['code-1', 'code-2'] }),
-  disable: jest.fn().mockResolvedValue(undefined),
+  verify: vi.fn().mockResolvedValue({ backupCodes: ['code-1', 'code-2'] }),
+  disable: vi.fn().mockResolvedValue(undefined),
 };
 
 const emptyPage = {
@@ -63,9 +67,9 @@ const mockAdminContent = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
-export const admin = {
+export const admin: Record<string, unknown> = {
   dashboard: {
-    getStats: jest.fn().mockResolvedValue({
+    getStats: vi.fn().mockResolvedValue({
       totalUsers: 0,
       activeUsers: 0,
       totalHouseholds: 0,
@@ -74,51 +78,47 @@ export const admin = {
     }),
   },
   users: {
-    list: jest.fn().mockResolvedValue(emptyPage),
-    get: jest.fn().mockResolvedValue(mockAdminUserSummary),
-    create: jest.fn().mockResolvedValue(mockAdminUserSummary),
-    update: jest.fn().mockResolvedValue(mockAdminUserSummary),
-    remove: jest.fn().mockResolvedValue(undefined),
-    changeStatus: jest.fn().mockResolvedValue(mockAdminUserSummary),
-    resetPassword: jest.fn().mockResolvedValue({ ok: true }),
-    forcePasswordReset: jest.fn().mockResolvedValue({ ok: true }),
-    resendVerification: jest.fn().mockResolvedValue({ ok: true }),
-    unlock: jest.fn().mockResolvedValue(mockAdminUserSummary),
-    lockedAccounts: jest.fn().mockResolvedValue(emptyPage),
-    exportCsv: jest.fn().mockResolvedValue(''),
+    list: vi.fn().mockResolvedValue(emptyPage),
+    get: vi.fn().mockResolvedValue(mockAdminUserSummary),
+    create: vi.fn().mockResolvedValue(mockAdminUserSummary),
+    update: vi.fn().mockResolvedValue(mockAdminUserSummary),
+    remove: vi.fn().mockResolvedValue(undefined),
+    changeStatus: vi.fn().mockResolvedValue(mockAdminUserSummary),
+    resetPassword: vi.fn().mockResolvedValue({ ok: true }),
+    forcePasswordReset: vi.fn().mockResolvedValue({ ok: true }),
+    resendVerification: vi.fn().mockResolvedValue({ ok: true }),
+    unlock: vi.fn().mockResolvedValue(mockAdminUserSummary),
+    lockedAccounts: vi.fn().mockResolvedValue(emptyPage),
+    exportCsv: vi.fn().mockResolvedValue(''),
     sessions: {
-      list: jest.fn().mockResolvedValue([]),
-      revoke: jest.fn().mockResolvedValue(undefined),
-      revokeAll: jest.fn().mockResolvedValue({ terminated: 0 }),
+      list: vi.fn().mockResolvedValue([]),
+      revoke: vi.fn().mockResolvedValue(undefined),
+      revokeAll: vi.fn().mockResolvedValue({ terminated: 0 }),
     },
   },
   auditLogs: {
-    list: jest.fn().mockResolvedValue(emptyPage),
-    byLevel: jest.fn().mockResolvedValue(emptyPage),
-    sources: jest.fn().mockResolvedValue([]),
-    stats: jest.fn().mockResolvedValue({
+    list: vi.fn().mockResolvedValue(emptyPage),
+    byLevel: vi.fn().mockResolvedValue(emptyPage),
+    sources: vi.fn().mockResolvedValue([]),
+    stats: vi.fn().mockResolvedValue({
       total: 0,
       byLevel: { info: 0, warn: 0, error: 0, debug: 0 },
       oldestAt: null,
       newestAt: null,
     }),
-    rotate: jest
-      .fn()
-      .mockResolvedValue({ info: 0, warn: 0, error: 0, debug: 0 }),
+    rotate: vi.fn().mockResolvedValue({ info: 0, warn: 0, error: 0, debug: 0 }),
   },
   settings: {
-    get: jest.fn().mockResolvedValue({}),
-    update: jest.fn().mockResolvedValue({}),
+    get: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({}),
   },
   content: {
-    list: jest.fn().mockResolvedValue(emptyPage),
-    reports: jest.fn().mockResolvedValue([]),
-    update: jest.fn().mockResolvedValue(mockAdminContent),
-    flag: jest.fn().mockResolvedValue(mockAdminContent),
-    approve: jest.fn().mockResolvedValue(mockAdminContent),
-    remove: jest.fn().mockResolvedValue(mockAdminContent),
-    dismissReport: jest
-      .fn()
-      .mockResolvedValue({ id: '1', status: 'dismissed' }),
+    list: vi.fn().mockResolvedValue(emptyPage),
+    reports: vi.fn().mockResolvedValue([]),
+    update: vi.fn().mockResolvedValue(mockAdminContent),
+    flag: vi.fn().mockResolvedValue(mockAdminContent),
+    approve: vi.fn().mockResolvedValue(mockAdminContent),
+    remove: vi.fn().mockResolvedValue(mockAdminContent),
+    dismissReport: vi.fn().mockResolvedValue({ id: '1', status: 'dismissed' }),
   },
 };

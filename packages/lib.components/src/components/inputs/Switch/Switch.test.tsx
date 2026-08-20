@@ -33,7 +33,7 @@ describe('Switch', () => {
 
   describe('State Management', () => {
     it('handles controlled state', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <Switch
           checked={true}
@@ -51,7 +51,7 @@ describe('Switch', () => {
     });
 
     it('calls onChange handler', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <Switch onChange={handleChange} aria-label="test-switch" />
       );
@@ -67,7 +67,7 @@ describe('Switch', () => {
     });
 
     it('does not call onChange when disabled', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <Switch disabled onChange={handleChange} aria-label="test-switch" />
       );
@@ -108,7 +108,7 @@ describe('Switch', () => {
     });
 
     it('is keyboard accessible', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <Switch onChange={handleChange} aria-label="test-switch" />
       );

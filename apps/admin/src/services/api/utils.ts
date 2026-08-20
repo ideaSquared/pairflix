@@ -29,7 +29,7 @@ export const handleApiError = (
   return new Error(defaultMessage);
 };
 
-// Environment variable handling that works in browser, Vite, and Jest environments
+// Environment variable handling that works in browser, Vite, and Vitest environments
 declare const process:
   | {
       env: {

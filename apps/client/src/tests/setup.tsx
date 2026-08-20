@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import {
   render,
   type RenderOptions,
@@ -10,16 +10,17 @@ import {
 } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import { ThemeProvider } from '../styles/ThemeProvider';
 
-// Mock window.matchMedia which is not available in Jest environment
+// Mock window.matchMedia which is not available in jsdom
 window.matchMedia =
   window.matchMedia ||
   function () {
     return {
       matches: false,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
     };
   };
 

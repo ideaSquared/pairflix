@@ -179,7 +179,7 @@ describe('Input Component', () => {
   // User interaction
   it('handles user input correctly', async () => {
     // Arrange
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderWithTheme(<Input data-testid="input" onChange={onChange} />);
 
     // Act

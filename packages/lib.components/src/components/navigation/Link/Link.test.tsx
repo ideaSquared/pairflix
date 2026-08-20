@@ -69,7 +69,7 @@ describe('Link Component', () => {
 
   describe('Interaction Handling', () => {
     it('calls onClick handler when clicked', () => {
-      const handleClick = jest.fn();
+      const handleClick = vi.fn();
       renderWithTheme(
         <Link href="#" onClick={handleClick}>
           Clickable Link
@@ -81,7 +81,7 @@ describe('Link Component', () => {
     });
 
     it('does not call onClick when disabled', () => {
-      const handleClick = jest.fn();
+      const handleClick = vi.fn();
       renderWithTheme(
         <Link href="#" onClick={handleClick} disabled>
           Disabled Link
@@ -107,7 +107,7 @@ describe('Link Component', () => {
     });
 
     it('supports keyboard navigation', () => {
-      const handleClick = jest.fn();
+      const handleClick = vi.fn();
       renderWithTheme(
         <Link href="#" onClick={handleClick}>
           Keyboard Link

@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('Modal', () => {
-  const onClose = jest.fn();
+  const onClose = vi.fn();
 
   beforeEach(() => {
     // Reset the mock before each test

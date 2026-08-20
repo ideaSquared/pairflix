@@ -1,187 +1,167 @@
 # 🧪 Testing Strategy
 
-This document outlines the testing approach for the PairFlix application.
+This document outlines the testing approach for the Pairflix application, on the Cloudflare
+stack described in `docs/adr/0001-cloudflare-stack.md`.
 
 ## Testing Principles
 
-- **Test Pyramid**: We follow the test pyramid approach with more unit tests than integration tests, and fewer end-to-end tests.
-- **Test Coverage**: We aim for >80% code coverage across the codebase.
-- **Test-Driven Development**: Critical features should be developed using TDD when possible.
-- **Continuous Testing**: Tests run on every commit via CI/CD pipeline.
+- **Test Pyramid**: more unit/lib tests than integration tests, and few end-to-end flows.
+- **Behaviour-driven**: test through public APIs (routes, hooks, exported components), not
+  internal structure 1:1.
+- **Test-Driven Development**: critical features should be developed using TDD when possible.
+- **Continuous Testing**: `pnpm test` (turbo, running every workspace's Vitest suite) runs on
+  every commit via CI.
 
 ## Test Types
 
-### Unit Tests
+### Unit / Lib Tests
 
-Unit tests verify that individual components work as expected in isolation.
+**`services/api` (`src/lib/*`)**:
 
-**Backend Unit Tests**:
+- Business logic: recommendation scoring, taste-weight recompute, entitlements, providers,
+  billing helpers.
+- Co-located with their subject: `recommendation.ts` ↔ `recommendation.test.ts`.
+- New `lib` module ⇒ one happy-path + one failure-mode test, minimum.
 
-- Service layer logic
-- Helper functions and utilities
-- Data transformation functions
-- Validation logic
+**Frontend (`apps/client`, `apps/admin`, `packages/lib.components`)**:
 
-**Frontend Unit Tests**:
-
-- Component rendering
-- Hook behavior
-- State management
-- Helper functions
+- Component rendering and variants.
+- Hook behaviour.
+- Form validation and state updates.
 
 ### Integration Tests
 
-Integration tests verify that different parts of the system work together correctly.
+**`services/api` route tests (`src/routes/*.e2e.test.ts`)**:
 
-**Backend Integration Tests**:
+- Full Hono app + real local D1 via `@cloudflare/vitest-pool-workers` (Miniflare) -- no mocked
+  database, no Supertest. External calls (TMDb, Anthropic, Stripe, Resend) are the only thing
+  mocked, via `fetch` interception in `src/test/test-helpers.ts`.
+- Auth flow, household membership gates, quota/entitlement enforcement, race conditions (e.g.
+  concurrent registrations hitting the same unique email).
 
-- API endpoint functionality
-- Database interactions
-- Authentication flow
-- External API integration (TMDb)
+**Frontend**:
 
-**Frontend Integration Tests**:
-
-- User workflows across multiple components
-- Form submissions and validations
-- API service interactions
-- State updates across components
+- User workflows across multiple components (a full page's `render()` + `userEvent` flow).
+- API service interactions, via `vi.mock()`/the test-only module aliases described below.
 
 ### End-to-End Tests
 
-E2E tests verify complete user journeys through the application.
-
-**Key E2E Test Scenarios**:
-
-- User authentication flow
-- Adding and managing watchlist items
-- Searching for content
-- Matching and recommendation flows
+No browser-driven E2E suite exists yet. The `services/api` route tests above are the closest
+thing to it today -- they exercise a real Hono app against a real local D1 instance, just without
+a browser or the frontend in the loop.
 
 ## Testing Tools
 
-### Backend Testing Stack
+Vitest everywhere -- see the ADR's rationale for standardizing on it across the monorepo instead
+of splitting between Jest (frontend) and Vitest (`services/api`).
 
-- **Jest**: Test runner and assertion library
-- **Supertest**: HTTP assertion library
-- **Mock Service Worker**: API mocking
-- **Testcontainers**: Database testing
+### `services/api` Stack
 
-### Frontend Testing Stack
+- **Vitest** + **`@cloudflare/vitest-pool-workers`**: runs tests inside a real Workers runtime
+  (Miniflare) against local D1 -- the closest thing to testing against production.
+- **`@vitest/coverage-v8`**: coverage.
+- No Supertest, no Testcontainers, no in-memory SQLite -- D1 (SQLite-backed) _is_ the test
+  database, provisioned locally by Miniflare.
 
-- **Jest**: Test runner
-- **React Testing Library**: Component testing
-- **Mock Service Worker**: API mocking
-- **Vitest**: Fast test runner for Vite projects
+### Frontend Stack (`apps/client`, `apps/admin`, `packages/lib.components`)
+
+- **Vitest**, using its native `jsdom` environment (`test.environment: 'jsdom'` in each
+  workspace's `vite.config.ts`) -- no separate Jest config, no `ts-jest`, no
+  `@vanilla-extract/jest-transform`; Vite's own `vanilla-extract` plugin compiles `.css.ts` files
+  for tests the same way it does for dev/build.
+- **React Testing Library** (`@testing-library/react`, `@testing-library/user-event`,
+  `@testing-library/jest-dom/vitest`).
+- **`jest-axe`**: accessibility assertions in `packages/lib.components` (framework-agnostic
+  despite the name -- just an `expect.extend()` matcher).
+- No MSW. API calls are mocked per-file with `vi.mock()`, or -- for the common case of "don't hit
+  the network at all" -- redirected wholesale to a hand-written fake via a `test.alias` entry in
+  `vite.config.ts` (the Vitest equivalent of Jest's `moduleNameMapper`); see
+  `apps/client/src/tests/__mocks__/api.ts` and its doc comment.
 
 ## Testing Patterns
 
-### Backend Testing Patterns
+### `services/api` Patterns
 
-1. **Controller Tests**
-
-   - Mock service layer
-   - Verify HTTP responses
-   - Test error handling
-
-   Example:
+1. **Route (integration) tests** -- one file per route module, real D1, real middleware chain:
 
    ```typescript
-   describe('AuthController', () => {
-     it('should return 401 for invalid credentials', async () => {
-       // Test implementation
+   // src/routes/demo.e2e.test.ts
+   it('returns 404 when no candidates match', async () => {
+     mockExternalApis([]);
+     const result = await demoPick(uniqueIp(), { mood: 'funny', minutes: 120 });
+
+     expect(result.status).toBe(404);
+     expect(result.body.error).toBe('No candidates found for these inputs');
+   });
+   ```
+
+2. **`lib` tests** -- pure-ish business logic, mock only the external edges (TMDb/Anthropic
+   fetches, not the database):
+
+   ```typescript
+   // src/lib/tasteWeights.test.ts
+   it('nudges genre weights toward a rated title, decaying older ratings', () => {
+     const next = nudgeGenreWeights(initialWeights, ratedGenreIds, enjoyed: true);
+     expect(next[ratedGenreIds[0]]).toBeGreaterThan(initialWeights[ratedGenreIds[0]]);
+   });
+   ```
+
+### Frontend Patterns
+
+1. **Page/component tests** -- render with the shared `render()` helper (wraps providers:
+   `QueryClientProvider`, `ThemeProvider`, `BrowserRouter`), mock the API layer, drive with
+   `userEvent`:
+
+   ```typescript
+   // apps/client/src/features/landing/__tests__/LandingPage.test.tsx
+   vi.mock('../../../services/api/demo', () => ({
+     demo: { pick: vi.fn() },
+   }));
+
+   it('lets an anonymous visitor get one pick', async () => {
+     (demo.pick as Mock).mockResolvedValue(RESULT);
+     const user = userEvent.setup();
+     render(<LandingPage />);
+
+     await user.click(screen.getByRole('button', { name: 'Show me a pick' }));
+
+     await waitFor(() => {
+       expect(screen.getByText('Test Movie')).toBeInTheDocument();
      });
    });
    ```
 
-2. **Service Tests**
-
-   - Mock database and external APIs
-   - Focus on business logic
-   - Test edge cases
-
-3. **Model Tests**
-   - Test validation rules
-   - Test relationships
-   - Test custom methods
-
-### Frontend Testing Patterns
-
-1. **Component Tests**
-
-   - Render component in isolation
-   - Verify correct output based on props
-   - Test user interactions
-
-   Example:
-
-   ```typescript
-   test('Button renders correctly with props', () => {
-   	render(<Button label='Click me' />);
-   	expect(screen.getByText('Click me')).toBeInTheDocument();
-   });
-   ```
-
-2. **Hook Tests**
-
-   - Test custom hooks in isolation
-   - Verify state changes
-   - Test side effects
-
-3. **Form Tests**
-   - Test validation logic
-   - Test form submission
-   - Test error states
+2. **Component library tests** (`packages/lib.components`) -- one happy-path render + variant
+   coverage + an accessibility check per component, using `jest-axe`.
 
 ## Mock Strategies
 
-### API Mocking
+### API Mocking (Frontend)
 
-We use Mock Service Worker (MSW) to intercept and mock API requests:
+Two layers, matching what Jest's `moduleNameMapper` used to do plus per-test overrides:
 
-```typescript
-// Example MSW setup
-rest.get('/api/v1/watchlist', (req, res, ctx) => {
-  return res(
-    ctx.status(200),
-    ctx.json({
-      entries: [
-        {
-          id: '123',
-          tmdbId: 550,
-          mediaType: 'movie',
-          status: 'to_watch',
-        },
-      ],
-      total: 1,
-    })
-  );
-});
-```
+- **Blanket redirect**: a `test.alias` entry in each workspace's `vite.config.ts` sends every
+  import of `services/api` (any relative depth) to a hand-written fake
+  (`src/tests/__mocks__/api.ts`) that returns sane defaults for everything, so a test that doesn't
+  care about the API layer doesn't have to mock it.
+- **Per-file override**: a test that cares about a specific call layers its own `vi.mock()` on
+  top, spreading `await vi.importActual(...)` (which -- because of the alias above -- actually
+  resolves to the shared fake, not the real network-calling module) and replacing just the
+  function(s) under test.
 
-### Database Mocking
+### External API Mocking (`services/api`)
 
-For database tests, we use:
-
-- In-memory SQLite for unit tests
-- Test containers for integration tests
+TMDb/Anthropic/Stripe/Resend calls go through the Worker's global `fetch`; `test-helpers.ts`
+intercepts `fetch` itself (`mockExternalApis(...)`) so route tests never make a real network call,
+while everything else (auth, sessions, D1 reads/writes) runs for real against local D1.
 
 ## Test Data Management
 
-- Factory functions to generate test data
-- Shared fixtures for common test scenarios
-- Database seeding for integration tests
-
-Example test data factory:
-
-```typescript
-const createUser = (overrides = {}) => ({
-  id: '123e4567-e89b-12d3-a456-426614174000',
-  username: 'testuser',
-  email: 'test@example.com',
-  ...overrides,
-});
-```
+- Route tests build their own fixtures inline (`createLoggedInUser`, `createLoggedInAdmin`,
+  `uniqueEmail()` helpers in `src/test/test-helpers.ts`) rather than a shared seed -- each test
+  gets fresh, isolated rows.
+- `services/api/scripts/seed-dev-users.mjs` seeds fixture accounts for _manual_ local dev
+  (`DevLogin`), not for the automated test suite.
 
 ## Continuous Integration
 
@@ -189,80 +169,75 @@ Tests run in CI on:
 
 - Pull request creation
 - Updates to pull requests
-- Merges to main branch
+- Merges to `master`
 
-The CI pipeline:
+The CI pipeline (via `turbo`):
 
 1. Installs dependencies
-2. Runs linting checks
-3. Executes unit tests
-4. Executes integration tests
-5. Generates coverage report
+2. Runs linting checks (`pnpm lint`)
+3. Type-checks every workspace (`pnpm -r type-check`)
+4. Runs each workspace's Vitest suite (`pnpm test`)
+5. Generates coverage (`pnpm test:coverage`)
 
 ## Test Organization
 
-### Backend Test Structure
+### `services/api` Structure
 
 ```
-backend/
+services/api/
 ├── src/
-│   ├── controllers/
-│   │   ├── auth.controller.test.ts
-│   │   ├── auth.controller.ts
+│   ├── routes/
+│   │   ├── demo.ts
+│   │   ├── demo.e2e.test.ts
 │   │   └── ...
-│   ├── services/
-│   │   ├── auth.service.test.ts
-│   │   ├── auth.service.ts
+│   ├── lib/
+│   │   ├── recommendation.ts
+│   │   ├── recommendation.test.ts   (where present)
 │   │   └── ...
-│   └── ...
-├── tests/
-│   ├── integration/
-│   │   ├── auth.integration.test.ts
-│   │   └── ...
-│   ├── fixtures/
-│   │   ├── users.ts
-│   │   └── ...
-│   └── setup.ts
+│   └── test/
+│       └── test-helpers.ts          (callApp, mockExternalApis, fixture helpers)
 ```
 
-### Frontend Test Structure
+### Frontend Structure
 
 ```
-frontend/
+apps/client/
 ├── src/
-│   ├── components/
-│   │   ├── __tests__/
-│   │   │   ├── Button.test.tsx
-│   │   │   └── ...
-│   │   └── ...
 │   ├── features/
 │   │   ├── auth/
 │   │   │   ├── __tests__/
 │   │   │   │   ├── LoginPage.test.tsx
 │   │   │   │   └── ...
-│   │   │   └── ...
+│   │   │   └── LoginPage.tsx
 │   │   └── ...
-│   └── ...
-├── tests/
-│   ├── e2e/
-│   │   ├── auth.e2e.test.ts
-│   │   └── ...
-│   ├── mocks/
-│   │   ├── handlers.ts
-│   │   └── ...
-│   └── setup.ts
+│   └── tests/
+│       ├── setup.tsx        (render() helper, matchMedia shim)
+│       └── __mocks__/
+│           └── api.ts       (shared fake, wired via test.alias)
+
+packages/lib.components/
+├── src/
+│   └── components/
+│       └── <Category>/<Component>/
+│           ├── Component.tsx
+│           └── Component.test.tsx   (co-located, not in __tests__/)
+├── setupTests.tsx            (jest-dom matchers, ResizeObserver mock, jest-axe config)
 ```
 
 ## Best Practices
 
-1. **Isolation**: Each test should be independent and not rely on the state from other tests.
-2. **Readability**: Tests should be easy to read and understand.
-3. **Maintainability**: Tests should be easy to maintain and update.
-4. **Speed**: Tests should run quickly to provide fast feedback.
-5. **Focus**: Each test should focus on testing one thing.
+1. **Isolation**: each test should be independent and not rely on the state from other tests.
+2. **Readability**: tests should be easy to read and understand.
+3. **Maintainability**: tests should be easy to maintain and update.
+4. **Speed**: tests should run quickly to provide fast feedback.
+5. **Focus**: each test should focus on testing one thing.
+6. **Don't mock what you own**: extract a seam instead of mocking internal modules; mocking is for
+   the actual boundary (network calls, the API layer as seen from a frontend component).
 
 ## Test Documentation
 
-- Test files should include a brief description of what they test
-- Complex test cases should include comments explaining the setup and assertions
-- Test fixtures should be documented with their purpose and structure
+- Test files should include a brief description of what they test.
+- Complex test cases should include comments explaining a non-obvious setup or assertion -- not
+  what the test does, which the `it(...)` description already says.
+- Test fixtures should be documented with their purpose and structure where it isn't obvious from
+  the fixture itself.

@@ -125,7 +125,7 @@ describe('PasswordInput Component', () => {
   // User interaction - typing
   it('handles user input correctly', async () => {
     // Arrange
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderWithTheme(
       <PasswordInput data-testid="password-input" onChange={onChange} />
     );

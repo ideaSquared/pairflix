@@ -1,10 +1,11 @@
 import userEvent from '@testing-library/user-event';
+import type { Mock } from 'vitest';
 import { demo } from '../../../services/api/demo';
 import { render, screen, waitFor } from '../../../tests/setup';
 import LandingPage from '../LandingPage';
 
-jest.mock('../../../services/api/demo', () => ({
-  demo: { pick: jest.fn() },
+vi.mock('../../../services/api/demo', () => ({
+  demo: { pick: vi.fn() },
 }));
 
 const RESULT = {
@@ -25,12 +26,12 @@ const RESULT = {
 
 describe('LandingPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
   });
 
   it('lets an anonymous visitor get one pick, with a signup CTA and no household actions', async () => {
-    (demo.pick as jest.Mock).mockResolvedValue(RESULT);
+    (demo.pick as Mock).mockResolvedValue(RESULT);
     const user = userEvent.setup();
     render(<LandingPage />);
 

@@ -3,7 +3,7 @@ import { TextDecoder, TextEncoder } from 'node:util';
 Object.assign(global, { TextEncoder, TextDecoder });
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import {
   render,
   type RenderOptions,
@@ -11,46 +11,19 @@ import {
 } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import { ThemeProvider } from '../styles/ThemeProvider';
 
-// Set up environment variables that would normally be provided by Vite
-process.env.VITE_API_URL = 'http://localhost:3000';
-process.env.NODE_ENV = 'test';
-
-// Mock window.matchMedia which is not available in Jest environment
+// Mock window.matchMedia which is not available in jsdom
 window.matchMedia =
   window.matchMedia ||
   function () {
     return {
       matches: false,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
     };
   };
-
-// Mock Vite's import.meta.env and export it for other modules
-const viteEnv = {
-  VITE_API_URL: process.env.VITE_API_URL,
-  MODE: 'test',
-  DEV: true,
-  PROD: false,
-  SSR: false,
-  BASE_URL: '/',
-  VITE_USER_NODE_ENV: 'test',
-};
-
-// Define import.meta globally for modules that use it directly
-Object.defineProperty(global, 'import', {
-  value: {
-    meta: {
-      env: viteEnv,
-    },
-  },
-  writable: false,
-});
-
-// Export Vite mock for modules that import it explicitly
-export const viteMock = { env: viteEnv };
 
 // Create a fresh query client for each test
 const createTestQueryClient = () =>

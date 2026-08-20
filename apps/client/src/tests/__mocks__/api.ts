@@ -1,25 +1,30 @@
 /**
- * Mock of the API service for testing
- * This mock replaces all the actual API functions with Jest mock functions
+ * Mock of the API service for testing. Every import of `services/api` from a test file is
+ * redirected here by the `test.alias` entry in vite.config.ts -- individual test files can layer
+ * their own vi.mock('.../services/api', ...) on top to override specific functions.
  */
+
+import type { Mock } from 'vitest';
 
 export const BASE_URL = '';
 
-// Mock all API functions
-export const fetchWithAuth = jest.fn();
+// Mock all API functions. Explicit type annotations sidestep TS2742 -- without one, tsc's
+// declaration-emission check (this workspace is a composite project) can't name vi.fn()'s
+// inferred Mock type without reaching into vitest's internal pnpm store path.
+export const fetchWithAuth: Mock = vi.fn();
 
-export const auth = {
-  register: jest.fn().mockResolvedValue({
+export const auth: Record<string, unknown> = {
+  register: vi.fn().mockResolvedValue({
     id: '1',
     username: 'testuser',
     email: 'test@example.com',
   }),
-  login: jest.fn().mockResolvedValue({
+  login: vi.fn().mockResolvedValue({
     id: '1',
     username: 'testuser',
     email: 'test@example.com',
   }),
-  getCurrentUser: jest.fn().mockResolvedValue({
+  getCurrentUser: vi.fn().mockResolvedValue({
     id: '1',
     username: 'testuser',
     email: 'test@example.com',
@@ -36,16 +41,16 @@ export const auth = {
     },
     createdAt: '2026-01-01T00:00:00.000Z',
   }),
-  logout: jest.fn().mockResolvedValue(undefined),
+  logout: vi.fn().mockResolvedValue(undefined),
 };
 
-export const user = {
-  updatePassword: jest.fn().mockResolvedValue(undefined),
-  updateEmail: jest.fn().mockResolvedValue({ pending: true }),
-  updateUsername: jest
+export const user: Record<string, unknown> = {
+  updatePassword: vi.fn().mockResolvedValue(undefined),
+  updateEmail: vi.fn().mockResolvedValue({ pending: true }),
+  updateUsername: vi
     .fn()
     .mockResolvedValue({ id: '1', username: 'newusername' }),
-  updatePreferences: jest.fn().mockResolvedValue({
+  updatePreferences: vi.fn().mockResolvedValue({
     preferences: {
       theme: 'dark',
       viewStyle: 'grid',
@@ -56,18 +61,18 @@ export const user = {
   }),
 };
 
-export const emailService = {
-  forgotPassword: jest.fn().mockResolvedValue({ sent: true }),
-  resetPassword: jest
+export const emailService: Record<string, unknown> = {
+  forgotPassword: vi.fn().mockResolvedValue({ sent: true }),
+  resetPassword: vi
     .fn()
     .mockResolvedValue({ id: '1', email: 'test@example.com' }),
-  sendEmailVerification: jest.fn().mockResolvedValue({ sent: true }),
-  resendVerification: jest.fn().mockResolvedValue({ sent: true }),
-  verifyEmail: jest.fn().mockResolvedValue({ verified: true }),
+  sendEmailVerification: vi.fn().mockResolvedValue({ sent: true }),
+  resendVerification: vi.fn().mockResolvedValue({ sent: true }),
+  verifyEmail: vi.fn().mockResolvedValue({ verified: true }),
 };
 
-export const billing = {
-  getEntitlements: jest.fn().mockResolvedValue({
+export const billing: Record<string, unknown> = {
+  getEntitlements: vi.fn().mockResolvedValue({
     tier: 'free',
     dailyPickLimit: 1,
     picksUsedToday: 0,
@@ -76,19 +81,19 @@ export const billing = {
     canUseMultiRegion: false,
     regionLock: null,
   }),
-  startCheckout: jest
+  startCheckout: vi
     .fn()
     .mockResolvedValue({ checkoutUrl: 'https://example.com/checkout' }),
-  cancel: jest.fn().mockResolvedValue(undefined),
-  mockActivate: jest.fn().mockResolvedValue({ ok: true }),
+  cancel: vi.fn().mockResolvedValue(undefined),
+  mockActivate: vi.fn().mockResolvedValue({ ok: true }),
 };
 
-export const history = {
-  list: jest.fn().mockResolvedValue({
+export const history: Record<string, unknown> = {
+  list: vi.fn().mockResolvedValue({
     data: [],
     pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
   }),
-  setEnjoyed: jest.fn().mockResolvedValue({
+  setEnjoyed: vi.fn().mockResolvedValue({
     entry: {
       id: '1',
       tmdbId: 1,
@@ -105,14 +110,14 @@ export const history = {
   }),
 };
 
-export const tasteOnboarding = {
-  getDeck: jest.fn().mockResolvedValue({ cards: [] }),
-  submit: jest.fn().mockResolvedValue(undefined),
+export const tasteOnboarding: Record<string, unknown> = {
+  getDeck: vi.fn().mockResolvedValue({ cards: [] }),
+  submit: vi.fn().mockResolvedValue(undefined),
 };
 
-export const households = {
-  list: jest.fn().mockResolvedValue({ households: [] }),
-  create: jest.fn().mockResolvedValue({
+export const households: Record<string, unknown> = {
+  list: vi.fn().mockResolvedValue({ households: [] }),
+  create: vi.fn().mockResolvedValue({
     household: {
       id: '1',
       name: null,
@@ -121,7 +126,7 @@ export const households = {
       memberCount: 1,
     },
   }),
-  invite: jest.fn().mockResolvedValue({
+  invite: vi.fn().mockResolvedValue({
     invite: {
       id: '1',
       token: 'invite-token',
@@ -130,8 +135,8 @@ export const households = {
       acceptedAt: null,
     },
   }),
-  acceptInvite: jest.fn().mockResolvedValue({ householdId: '1' }),
-  pick: jest.fn().mockResolvedValue({
+  acceptInvite: vi.fn().mockResolvedValue({ householdId: '1' }),
+  pick: vi.fn().mockResolvedValue({
     pick: {
       tmdbId: 1,
       mediaType: 'movie',
@@ -146,9 +151,9 @@ export const households = {
     rationale: 'Test rationale',
     score: 1,
   }),
-  commit: jest.fn().mockResolvedValue({ id: '1' }),
-  recordPickEvent: jest.fn().mockResolvedValue({ id: '1' }),
-  launchProvider: jest.fn().mockResolvedValue({
+  commit: vi.fn().mockResolvedValue({ id: '1' }),
+  recordPickEvent: vi.fn().mockResolvedValue({ id: '1' }),
+  launchProvider: vi.fn().mockResolvedValue({
     url: 'https://example.com/watch',
     providerName: 'Netflix',
     region: 'US',

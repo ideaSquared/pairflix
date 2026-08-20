@@ -1,10 +1,28 @@
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react(), vanillaExtractPlugin()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    css: true,
+    setupFiles: ['./src/tests/setup.tsx'],
+    env: {
+      VITE_API_URL: 'http://localhost:3000',
+    },
+    // Test-only redirect to the hand-written fake in tests/__mocks__/api.ts, mirroring the old
+    // Jest moduleNameMapper -- individual test files still layer their own vi.mock() overrides on
+    // top of it (see tests/__mocks__/api.ts's doc comment).
+    alias: [
+      {
+        find: /^(\.\.?\/)+services\/api$/,
+        replacement: path.resolve(__dirname, './src/tests/__mocks__/api.ts'),
+      },
+    ],
+  },
   server: {
     host: true,
     port: 5173,

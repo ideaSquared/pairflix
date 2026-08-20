@@ -1,4 +1,4 @@
-// Extends the shared @pairflix/components Jest mock
+// Extends the shared @pairflix/components mock
 // (apps/admin/src/tests/__mocks__/components.tsx) with the primitives
 // ContentModerationContent needs that the shared mock doesn't cover yet
 // (Badge, Flex, Typography, the Table family, ...). Kept local to this
@@ -7,10 +7,10 @@ import type { ComponentPropsWithoutRef } from 'react';
 
 // This file itself becomes the @pairflix/components mock (see
 // ContentModerationContent.test.tsx), and the shared mock resolves to the
-// same path moduleNameMapper already maps that specifier to -- so a plain
-// re-export here would recurse back into this same mock registration.
-// jest.requireActual bypasses the mock registry for this one lookup so we
-// genuinely get the shared mock file's real contents instead.
+// same path the test.alias in vite.config.ts already maps that specifier to
+// -- so a plain re-export here would recurse back into this same mock
+// registration. vi.importActual bypasses the mock registry for this one
+// lookup so we genuinely get the shared mock file's real contents instead.
 export const {
   Button,
   Input,
@@ -32,7 +32,9 @@ export const {
   lightThemeClass,
   darkThemeClass,
   themeRoot,
-} = jest.requireActual('../../../../../tests/__mocks__/components');
+} = await vi.importActual<
+  typeof import('../../../../../tests/__mocks__/components')
+>('../../../../../tests/__mocks__/components');
 
 export const Badge = (props: ComponentPropsWithoutRef<'span'>) => (
   <span {...props} />

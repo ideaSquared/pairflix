@@ -11,12 +11,12 @@ const renderWithTheme = (component: React.ReactElement) => {
 
 // Mock timers for delay testing
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
 });
 
 describe('Tooltip', () => {
@@ -147,7 +147,7 @@ describe('Tooltip', () => {
     });
 
     it('accepts onOpenChange callback', () => {
-      const handleOpenChange = jest.fn();
+      const handleOpenChange = vi.fn();
       renderWithTheme(
         <Tooltip content="Tooltip content" onOpenChange={handleOpenChange}>
           <button>Hover me</button>

@@ -1,23 +1,30 @@
 import { render } from '@testing-library/react';
+import type { Mock } from 'vitest';
 import { SessionManager } from './SessionManager';
 
 // Mock timers
-jest.useFakeTimers();
+vi.useFakeTimers();
+
+afterAll(() => {
+  // Vitest reuses worker threads across test files -- fake timers installed here would otherwise
+  // leak into whichever file runs next in the same worker.
+  vi.useRealTimers();
+});
 
 describe('SessionManager', () => {
-  let mockOnSessionExpire: jest.Mock;
+  let mockOnSessionExpire: Mock;
 
   beforeEach(() => {
-    mockOnSessionExpire = jest.fn();
-    jest.clearAllTimers();
-    jest.spyOn(window, 'addEventListener');
-    jest.spyOn(window, 'removeEventListener');
-    jest.spyOn(global, 'alert').mockImplementation(() => {});
+    mockOnSessionExpire = vi.fn();
+    vi.clearAllTimers();
+    vi.spyOn(window, 'addEventListener');
+    vi.spyOn(window, 'removeEventListener');
+    vi.spyOn(global, 'alert').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    jest.clearAllTimers();
+    vi.restoreAllMocks();
+    vi.clearAllTimers();
   });
 
   it('renders without crashing', () => {
@@ -79,13 +86,13 @@ describe('SessionManager', () => {
     );
 
     // Fast forward by 1 minute (60000 ms)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
 
     expect(mockOnSessionExpire).toHaveBeenCalledTimes(1);
   });
 
   it('shows alert by default when session expires', () => {
-    const alertSpy = jest.spyOn(global, 'alert');
+    const alertSpy = vi.spyOn(global, 'alert');
 
     render(
       <SessionManager
@@ -94,7 +101,7 @@ describe('SessionManager', () => {
       />
     );
 
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
 
     expect(alertSpy).toHaveBeenCalledWith(
       'Your session has expired due to inactivity. Please log in again.'
@@ -102,7 +109,7 @@ describe('SessionManager', () => {
   });
 
   it('shows custom message when provided', () => {
-    const alertSpy = jest.spyOn(global, 'alert');
+    const alertSpy = vi.spyOn(global, 'alert');
     const customMessage = 'Custom expiry message';
 
     render(
@@ -113,13 +120,13 @@ describe('SessionManager', () => {
       />
     );
 
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
 
     expect(alertSpy).toHaveBeenCalledWith(customMessage);
   });
 
   it('does not show alert when showAlert is false', () => {
-    const alertSpy = jest.spyOn(global, 'alert');
+    const alertSpy = vi.spyOn(global, 'alert');
 
     render(
       <SessionManager
@@ -129,7 +136,7 @@ describe('SessionManager', () => {
       />
     );
 
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
 
     expect(alertSpy).not.toHaveBeenCalled();
     expect(mockOnSessionExpire).toHaveBeenCalledTimes(1);
@@ -144,7 +151,7 @@ describe('SessionManager', () => {
     );
 
     // Advance by 1 minute (not enough to expire)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
     expect(mockOnSessionExpire).not.toHaveBeenCalled();
 
     // Simulate user activity (mousedown)
@@ -152,11 +159,11 @@ describe('SessionManager', () => {
     window.dispatchEvent(mouseEvent);
 
     // Advance by another minute (should still not expire as timer reset)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
     expect(mockOnSessionExpire).not.toHaveBeenCalled();
 
     // Advance by another minute (now should expire)
-    jest.advanceTimersByTime(60000);
+    vi.advanceTimersByTime(60000);
     expect(mockOnSessionExpire).toHaveBeenCalledTimes(1);
   });
 
@@ -203,7 +210,7 @@ describe('SessionManager', () => {
     unmount();
 
     // Advance timers after unmount - should not call onSessionExpire
-    jest.advanceTimersByTime(30 * 60 * 1000);
+    vi.advanceTimersByTime(30 * 60 * 1000);
     expect(mockOnSessionExpire).not.toHaveBeenCalled();
   });
 });

@@ -31,11 +31,11 @@ const renderWithProviders = (ui: React.ReactElement) => {
 describe('QueryErrorBoundary', () => {
   beforeEach(() => {
     // Suppress console.error for cleaner test output
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders children when there is no error', () => {
@@ -95,7 +95,7 @@ describe('QueryErrorBoundary', () => {
   });
 
   it('logs error to console when error occurs', () => {
-    const consoleSpy = jest.spyOn(console, 'error');
+    const consoleSpy = vi.spyOn(console, 'error');
 
     renderWithProviders(
       <QueryErrorBoundary>

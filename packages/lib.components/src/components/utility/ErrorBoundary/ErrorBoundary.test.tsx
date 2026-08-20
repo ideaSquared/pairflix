@@ -8,7 +8,7 @@ import ErrorBoundary, { ErrorFallback } from './ErrorBoundary';
 // Mock console.error to prevent test output pollution
 const originalError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {
@@ -58,7 +58,7 @@ describe('ErrorBoundary', () => {
   it('renders error UI when child component throws', () => {
     // Suppress React's error boundary warning in test console
     const originalConsoleError = console.error;
-    console.error = jest.fn();
+    console.error = vi.fn();
 
     renderWithTheme(
       <ErrorBoundary>
@@ -78,7 +78,7 @@ describe('ErrorBoundary', () => {
   it('renders custom fallback when provided', () => {
     // Suppress React's error boundary warning in test console
     const originalConsoleError = console.error;
-    console.error = jest.fn();
+    console.error = vi.fn();
 
     const CustomFallback = () => (
       <div data-testid="custom-fallback">Custom Error UI</div>
@@ -100,9 +100,9 @@ describe('ErrorBoundary', () => {
   it('calls onError prop when an error occurs', () => {
     // Suppress React's error boundary warning in test console
     const originalConsoleError = console.error;
-    console.error = jest.fn();
+    console.error = vi.fn();
 
-    const handleError = jest.fn();
+    const handleError = vi.fn();
 
     renderWithTheme(
       <ErrorBoundary onError={handleError}>
@@ -114,8 +114,8 @@ describe('ErrorBoundary', () => {
     console.error = originalConsoleError;
 
     expect(handleError).toHaveBeenCalled();
-    expect(handleError.mock.calls[0][0]).toBeInstanceOf(Error);
-    expect(handleError.mock.calls[0][0].message).toBe('Test error');
+    expect(handleError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+    expect(handleError.mock.calls[0]?.[0].message).toBe('Test error');
   });
 
   // This test simulates clicking "Try Again" but because of how React handles error boundaries in tests,
@@ -123,7 +123,7 @@ describe('ErrorBoundary', () => {
   it('renders try again button', () => {
     // Suppress React's error boundary warning in test console
     const originalConsoleError = console.error;
-    console.error = jest.fn();
+    console.error = vi.fn();
 
     renderWithTheme(
       <ErrorBoundary>
@@ -141,7 +141,7 @@ describe('ErrorBoundary', () => {
 describe('ErrorFallback', () => {
   it('renders with error message', () => {
     const error = new Error('Custom error message');
-    const resetErrorBoundary = jest.fn();
+    const resetErrorBoundary = vi.fn();
 
     renderWithTheme(
       <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
@@ -160,7 +160,7 @@ describe('ErrorFallback', () => {
   });
 
   it('calls resetErrorBoundary when try again button is clicked', () => {
-    const resetErrorBoundary = jest.fn();
+    const resetErrorBoundary = vi.fn();
 
     renderWithTheme(
       <ErrorFallback

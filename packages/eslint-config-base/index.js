@@ -40,8 +40,8 @@ export default tseslint.config(
     },
   },
   {
-    // Plain .js files in this codebase are CommonJS tooling (jest
-    // transformers, mock env shims) rather than browser/ESM code.
+    // Plain .js files in this codebase are CommonJS tooling (eslint configs,
+    // scripts) rather than browser/ESM code.
     files: ['**/*.js'],
     languageOptions: { globals: globals.node },
   },

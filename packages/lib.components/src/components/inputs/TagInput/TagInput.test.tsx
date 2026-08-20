@@ -11,7 +11,7 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe('TagInput', () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
 
   beforeEach(() => {
     mockOnChange.mockClear();

@@ -81,7 +81,7 @@ describe('Alert', () => {
     });
 
     it('displays close button when onClose is provided', () => {
-      const handleClose = jest.fn();
+      const handleClose = vi.fn();
       renderWithTheme(
         <Alert message="Closable alert" variant="info" onClose={handleClose} />
       );
@@ -91,7 +91,7 @@ describe('Alert', () => {
     });
 
     it('calls onClose when close button is clicked', () => {
-      const handleClose = jest.fn();
+      const handleClose = vi.fn();
       renderWithTheme(
         <Alert message="Closable alert" variant="info" onClose={handleClose} />
       );
@@ -187,7 +187,7 @@ describe('Alert', () => {
     });
 
     it('calls onDismiss when close button is clicked', () => {
-      const handleDismiss = jest.fn();
+      const handleDismiss = vi.fn();
       renderWithTheme(
         <Alert message="Test" dismissible onDismiss={handleDismiss} />
       );

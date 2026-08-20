@@ -57,7 +57,12 @@ export default defineConfig(async () => {
     ],
     test: {
       globals: true,
-      testTimeout: 10_000,
+      // Every e2e test logs in at least one real user (PBKDF2, deliberately expensive -- see
+      // lib/crypto.ts), several log in two or three. That's fine on a dev machine but CI's shared,
+      // constrained CPU running every workspace's suite at once has occasionally pushed even a
+      // single-login test past a 10s budget with no logic actually hung -- see the per-test
+      // override on the heaviest race test below for the same reasoning at a larger scale.
+      testTimeout: 20_000,
       passWithNoTests: true,
       include: ['src/**/*.test.ts'],
       setupFiles: ['./src/test/apply-migrations.ts'],
