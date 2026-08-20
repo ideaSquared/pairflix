@@ -12,6 +12,14 @@ interface TestUser {
   description: string;
 }
 
+interface HouseholdTestUser {
+  email: string;
+  username: string;
+  household: string;
+  role: 'owner' | 'member';
+  tier: 'free' | 'premium';
+}
+
 const testUsers: TestUser[] = [
   {
     email: 'useractive@example.com',
@@ -99,6 +107,83 @@ const testUsers: TestUser[] = [
   },
 ];
 
+// Mirrors services/api/scripts/seed-dev-households.mjs's HOUSEHOLDS list -- paired household
+// members (unlike testUsers above, which have no household), including premium/"unlimited picks"
+// households so the free tier's 3-picks/day quota doesn't get in the way of manually exercising
+// pick/commit flows.
+const householdTestUsers: HouseholdTestUser[] = [
+  {
+    email: 'hh-f1-owner@example.com',
+    username: 'hhf1owner',
+    household: 'Free Household',
+    role: 'owner',
+    tier: 'free',
+  },
+  {
+    email: 'hh-f1-partner@example.com',
+    username: 'hhf1partner',
+    household: 'Free Household',
+    role: 'member',
+    tier: 'free',
+  },
+  {
+    email: 'hh-f2-owner@example.com',
+    username: 'hhf2owner',
+    household: 'Popcorn Club',
+    role: 'owner',
+    tier: 'free',
+  },
+  {
+    email: 'hh-f2-partner@example.com',
+    username: 'hhf2partner',
+    household: 'Popcorn Club',
+    role: 'member',
+    tier: 'free',
+  },
+  {
+    email: 'hh-p1-owner@example.com',
+    username: 'hhp1owner',
+    household: 'Unlimited Picks HQ',
+    role: 'owner',
+    tier: 'premium',
+  },
+  {
+    email: 'hh-p1-partner@example.com',
+    username: 'hhp1partner',
+    household: 'Unlimited Picks HQ',
+    role: 'member',
+    tier: 'premium',
+  },
+  {
+    email: 'hh-p2-owner@example.com',
+    username: 'hhp2owner',
+    household: 'Binge Squad',
+    role: 'owner',
+    tier: 'premium',
+  },
+  {
+    email: 'hh-p2-partner@example.com',
+    username: 'hhp2partner',
+    household: 'Binge Squad',
+    role: 'member',
+    tier: 'premium',
+  },
+  {
+    email: 'hh-p3-owner@example.com',
+    username: 'hhp3owner',
+    household: 'Multi-Region Movie Night',
+    role: 'owner',
+    tier: 'premium',
+  },
+  {
+    email: 'hh-p3-partner@example.com',
+    username: 'hhp3partner',
+    household: 'Multi-Region Movie Night',
+    role: 'member',
+    tier: 'premium',
+  },
+];
+
 const DevLogin: React.FC = () => {
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
@@ -182,6 +267,32 @@ const DevLogin: React.FC = () => {
               <div className={styles.devTip}>
                 💡 Users vary by account status (active/banned/suspended/admin)
                 for testing
+              </div>
+
+              <div className={styles.quickLoginHeader}>
+                Household Logins (password: password123)
+              </div>
+
+              <div className={styles.userGrid}>
+                {householdTestUsers.map(user => (
+                  <Button
+                    className={styles.quickLoginButton}
+                    key={user.email}
+                    variant="secondary"
+                    onClick={() => handleQuickLogin(user.email, user.username)}
+                    title={`Login as ${user.household} ${user.role} (${user.tier})`}
+                  >
+                    {user.username}
+                    <span className={styles.statusBadge({ status: user.tier })}>
+                      {user.tier}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+
+              <div className={styles.devTip}>
+                💡 Paired household members for testing pick/commit flows --
+                premium households have unlimited daily picks
               </div>
             </>
           )}
