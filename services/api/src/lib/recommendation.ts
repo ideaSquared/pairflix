@@ -505,24 +505,44 @@ const buildRecommendation = async (
 				: b.item.vote_average - a.item.vote_average
 		);
 
-	const top = scored.slice(0, hydrateCount);
+	const hydrateBatch = (entries: typeof scored) =>
+		Promise.all(
+			entries.map(async entry => ({
+				entry,
+				card: await hydrate(
+					env,
+					entry.item,
+					entry.mediaType,
+					region,
+					request.providers
+				),
+			}))
+		);
+	const isPaired = (
+		h: Awaited<ReturnType<typeof hydrateBatch>>[number]
+	): h is { entry: (typeof scored)[number]; card: RecommendationCard } =>
+		h.card !== null;
 
-	const hydrated = await Promise.all(
-		top.map(async entry => ({
-			entry,
-			card: await hydrate(
-				env,
-				entry.item,
-				entry.mediaType,
-				region,
-				request.providers
-			),
-		}))
-	);
-	const paired = hydrated.filter(
-		(h): h is { entry: (typeof top)[number]; card: RecommendationCard } =>
-			h.card !== null
-	);
+	let cursor = Math.min(hydrateCount, scored.length);
+	let paired = (await hydrateBatch(scored.slice(0, cursor))).filter(isPaired);
+	// A provider filter can leave the top `hydrateCount` taste/mood-scored candidates with zero
+	// matches -- most commonly once a previous pick already excluded this household's only
+	// provider-matching title via `watchedTogether` (see households.e2e.test.ts's
+	// "widens past the top-hydrateCount window..." test). Widen into the rest of `scored` (still
+	// bounded by discoverMedia's single page of results) instead of failing a pick the wider
+	// candidate pool could still answer.
+	while (
+		paired.length === 0 &&
+		request.providers &&
+		request.providers.length > 0 &&
+		cursor < scored.length
+	) {
+		const nextCursor = Math.min(cursor + hydrateCount, scored.length);
+		paired = (await hydrateBatch(scored.slice(cursor, nextCursor))).filter(
+			isPaired
+		);
+		cursor = nextCursor;
+	}
 	if (paired.length === 0) {
 		throw new NoCandidatesError('No candidates matched the provider filter');
 	}
