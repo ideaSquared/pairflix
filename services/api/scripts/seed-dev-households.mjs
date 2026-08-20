@@ -135,7 +135,7 @@ const run = async () => {
 		});
 
 		if (household.tier === 'premium') {
-			const subscriptionId = idFor('subscription', household.slug);
+			const subscriptionId = idFor('sub', household.slug);
 			const currentPeriodEnd = now + THIRTY_DAYS_MS;
 			statements.push(
 				`INSERT OR IGNORE INTO subscriptions (id, household_id, tier, status, stripe_customer_id, stripe_subscription_id, current_period_end, created_at, updated_at) VALUES (${sqlString(subscriptionId)}, ${sqlString(householdId)}, 'premium', 'active', NULL, NULL, ${currentPeriodEnd}, ${now}, ${now});`
