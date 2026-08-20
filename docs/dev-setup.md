@@ -71,6 +71,21 @@ pnpm exec wrangler d1 execute pairflix-db --local --command "select * from house
 
 The local D1 lives under `.wrangler/` and is disposable — delete it and re-migrate to reset.
 
+### Dev seed data
+
+```bash
+pnpm --filter @pairflix/api db:seed:local             # flat DevLogin fixture users (see below)
+pnpm --filter @pairflix/api db:seed:households:local   # paired-up households, free + premium
+```
+
+Both are `--local`-only and idempotent (safe to rerun). `db:seed:local` seeds the account-status
+fixtures `apps/client/src/components/dev/DevLogin.tsx`'s dev-only quick-login panel expects
+(active/banned/suspended/admin), with no households attached. `db:seed:households:local` seeds five
+households (two free-tier, three premium/active — i.e. unlimited daily picks, no region lock) so a
+household-scoped flow (pick/commit, quota, provider filters) can be exercised without first
+hand-creating a household through the UI/API; it prints each household's name, tier, and owner
+login email on completion. All seeded users share the password `password123`.
+
 ## Environment & secrets
 
 - **Local Worker vars** go in `services/api/.dev.vars` (gitignored): `TMDB_API_KEY`,
