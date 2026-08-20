@@ -156,8 +156,7 @@ pnpm -r type-check               # tsc --noEmit per workspace
 
 # database (local D1 via Miniflare)
 pnpm --filter @pairflix/db db:generate         # drizzle-kit generate
-pnpm --filter @pairflix/db db:migrate:local    # wrangler d1 migrations apply --local
-pnpm --filter @pairflix/db db:seed:local
+pnpm --filter @pairflix/api db:migrate:local   # wrangler d1 migrations apply --local
 ```
 
 Full setup in `docs/dev-setup.md`.

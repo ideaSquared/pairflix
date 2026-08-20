@@ -20,8 +20,7 @@
 git clone <repository-url> && cd pairflix
 pnpm install                     # installs every workspace
 cp services/api/.dev.vars.example services/api/.dev.vars   # local Worker vars (see below)
-pnpm --filter @pairflix/db db:migrate:local                # create + migrate the local D1
-pnpm --filter @pairflix/db db:seed:local                   # optional dev seed
+pnpm --filter @pairflix/api db:migrate:local                # create + migrate the local D1
 pnpm dev                         # turbo: Worker + both Pages apps in parallel
 ```
 
@@ -64,8 +63,7 @@ pnpm -r type-check               # tsc --noEmit per workspace
 
 ```bash
 pnpm --filter @pairflix/db db:generate         # drizzle-kit generate after editing schema.ts
-pnpm --filter @pairflix/db db:migrate:local    # wrangler d1 migrations apply pairflix-db --local
-pnpm --filter @pairflix/db db:seed:local       # wrangler d1 execute ... --local --file seed.sql
+pnpm --filter @pairflix/api db:migrate:local   # wrangler d1 migrations apply pairflix-db --local
 
 # inspect the local DB
 pnpm exec wrangler d1 execute pairflix-db --local --command "select * from households"
@@ -85,7 +83,7 @@ The local D1 lives under `.wrangler/` and is disposable — delete it and re-mig
 ## Deploy
 
 ```bash
-pnpm --filter @pairflix/db db:migrate:remote   # apply migrations to prod D1 first
+pnpm --filter @pairflix/api db:migrate:remote  # apply migrations to prod D1 first
 pnpm --filter @pairflix/api deploy             # wrangler deploy (Worker)
 pnpm --filter @pairflix/client deploy          # wrangler pages deploy
 pnpm --filter @pairflix/admin deploy           # wrangler pages deploy
