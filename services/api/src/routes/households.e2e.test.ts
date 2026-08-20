@@ -63,6 +63,93 @@ const MOVIE_C: MockMovie = {
 };
 const DEFAULT_MOVIES = [MOVIE_A, MOVIE_B, MOVIE_C];
 
+// A 5-title pool for the provider-starvation test below. Same genre/runtime throughout (so
+// genreMatch/runtimeFit stay constant for a fresh household) and release years spread out so score
+// -- driven entirely by recencyBonus/eraMatch here -- ranks them strictly A > B > C > D > E. Only B
+// and E carry a Netflix entry; with a free-tier household's hydrateCount of 3, B sits inside the
+// first hydrated batch but E only surfaces once B is watched and excluded and the search widens
+// into the next batch.
+const STARVE_MOVIE_A: MockMovie = {
+	id: 601,
+	title: 'Newest, No Provider',
+	overview: 'Ranks first on recency; no provider data.',
+	poster_path: null,
+	release_date: '2023-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 50,
+	runtime: 110,
+};
+const STARVE_MOVIE_B: MockMovie = {
+	id: 602,
+	title: 'Second Newest, Netflix',
+	overview: 'Ranks second on recency; the only Netflix title in the top 3.',
+	poster_path: null,
+	release_date: '2022-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 50,
+	runtime: 110,
+	providers: {
+		flatrate: [
+			{ provider_id: 8, provider_name: 'Netflix', logo_path: '/x.jpg' },
+		],
+		link: 'https://www.themoviedb.org/movie/602/watch?locale=GB',
+	},
+};
+const STARVE_MOVIE_C: MockMovie = {
+	id: 603,
+	title: 'Third Newest, No Provider',
+	overview: 'Ranks third on recency; no provider data.',
+	poster_path: null,
+	release_date: '2021-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 50,
+	runtime: 110,
+};
+const STARVE_MOVIE_D: MockMovie = {
+	id: 604,
+	title: 'Fourth Newest, No Provider',
+	overview: 'Ranks fourth on recency; no provider data.',
+	poster_path: null,
+	release_date: '2020-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 50,
+	runtime: 110,
+};
+const STARVE_MOVIE_E: MockMovie = {
+	id: 605,
+	title: 'Oldest, Netflix',
+	overview:
+		'Ranks fifth (last) on recency; the pool-wide only remaining Netflix title.',
+	poster_path: null,
+	release_date: '2019-01-01',
+	vote_average: 7.0,
+	vote_count: 300,
+	genre_ids: [35],
+	popularity: 50,
+	runtime: 110,
+	providers: {
+		flatrate: [
+			{ provider_id: 8, provider_name: 'Netflix', logo_path: '/x.jpg' },
+		],
+		link: 'https://www.themoviedb.org/movie/605/watch?locale=GB',
+	},
+};
+const STARVE_MOVIES = [
+	STARVE_MOVIE_A,
+	STARVE_MOVIE_B,
+	STARVE_MOVIE_C,
+	STARVE_MOVIE_D,
+	STARVE_MOVIE_E,
+];
+
 // A deliberately-mismatched pair for the runtime re-ranking test below: OLD_GOOD_RUNTIME scores
 // lower pre-hydration (older, so a smaller recencyBonus) but has a real runtime close to the
 // gaussian peak for a 120-minute request; NEW_BAD_RUNTIME scores higher pre-hydration (brand new,
@@ -495,6 +582,78 @@ describe('POST /api/households/:id/pick', () => {
 		);
 		expect(result.status).toBe(200);
 		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+	});
+
+	it('still 404s once every candidate in the pool has been watched or lacks the provider', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// MOVIE_B is DEFAULT_MOVIES' only Netflix-provider title, so the first pick finds it. Once
+		// it's committed (watched-together), the whole 3-title pool is exhausted -- A and C carry no
+		// provider data in this fixture -- so a genuine "nothing left to match" 404 is still correct,
+		// unlike the starvation case covered below where a match exists further down the ranked pool.
+		mockExternalApis(DEFAULT_MOVIES);
+		const first = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120, providers: ['Netflix'] },
+			cookies
+		);
+		expect(first.status).toBe(200);
+		expect(first.body.pick.tmdbId).toBe(MOVIE_B.id);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const commit = await postJson(
+			`/api/households/${householdId}/picks/${MOVIE_B.id}/commit`,
+			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const second = await postJson<{ error: string }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120, providers: ['Netflix'] },
+			cookies
+		);
+		expect(second.status).toBe(404);
+		expect(second.body.error).toBe('No candidates matched the provider filter');
+	});
+
+	it('widens past the top-hydrateCount window to find a provider match further down the pool', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		// STARVE_MOVIE_B (rank 2) is the only Netflix title inside the free tier's top-3 hydration
+		// window, so the first pick finds it there.
+		mockExternalApis(STARVE_MOVIES);
+		const first = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120, providers: ['Netflix'] },
+			cookies
+		);
+		expect(first.status).toBe(200);
+		expect(first.body.pick.tmdbId).toBe(STARVE_MOVIE_B.id);
+
+		mockExternalApis(STARVE_MOVIES);
+		const commit = await postJson(
+			`/api/households/${householdId}/picks/${STARVE_MOVIE_B.id}/commit`,
+			{ mediaType: 'movie', mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(commit.status).toBe(201);
+
+		// Once B is watched-together (excluded), the new top 3 by recency is A, C, D -- none carry
+		// Netflix. Only E (rank 5, outside the top-3 window) still does. Without widening past the
+		// initial hydrated batch this 404s as "No candidates matched the provider filter" even though
+		// a real match exists further down the same ranked pool.
+		mockExternalApis(STARVE_MOVIES);
+		const second = await postJson<{ pick: { tmdbId: number } }>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120, providers: ['Netflix'] },
+			cookies
+		);
+		expect(second.status).toBe(200);
+		expect(second.body.pick.tmdbId).toBe(STARVE_MOVIE_E.id);
 	});
 
 	it('fetches provider data for display even without a providers filter', async () => {
