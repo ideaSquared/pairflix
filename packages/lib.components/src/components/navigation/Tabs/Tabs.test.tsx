@@ -92,7 +92,7 @@ describe('Tabs', () => {
     });
 
     it('handles controlled selection', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(<TabsExample value="tab2" onChange={handleChange} />);
 
       const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
@@ -109,7 +109,7 @@ describe('Tabs', () => {
     });
 
     it('calls onChange when tab is clicked', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(<TabsExample onChange={handleChange} />);
 
       fireEvent.click(screen.getByRole('tab', { name: 'Tab 2' }));
@@ -130,7 +130,7 @@ describe('Tabs', () => {
     });
 
     it('skips disabled tabs in keyboard navigation', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <TabsExample defaultValue="tab2" onChange={handleChange} />
       );
@@ -145,7 +145,7 @@ describe('Tabs', () => {
     });
 
     it('supports Home and End keys', () => {
-      const handleChange = jest.fn();
+      const handleChange = vi.fn();
       renderWithTheme(
         <TabsExample defaultValue="tab2" onChange={handleChange} />
       );

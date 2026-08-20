@@ -3,10 +3,11 @@ import * as React from 'react';
 import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { Toast } from './Toast';
 import { toast as toastClass } from './Toast.css';
-import type {
-  ToastProps as ToastContextProps,
-  ToastOptions,
-  ToastType,
+import {
+  useToast,
+  type ToastProps as ToastContextProps,
+  type ToastOptions,
+  type ToastType,
 } from './ToastContext';
 
 // Define a type for the useToast return value to be used in tests
@@ -22,12 +23,12 @@ const defaultToastProps = {
 };
 
 // Mock useToast hook
-const mockAddToast = jest.fn();
-const mockRemoveToast = jest.fn();
+const mockAddToast = vi.fn();
+const mockRemoveToast = vi.fn();
 
 // Create a mocked version of useToast that can be used in tests
-jest.mock('./ToastContext', () => {
-  const originalModule = jest.requireActual('./ToastContext');
+vi.mock('./ToastContext', async () => {
+  const originalModule = await vi.importActual('./ToastContext');
   return {
     ...originalModule,
     useToast: () => ({
@@ -43,9 +44,7 @@ const TestComponent = ({
 }: {
   action: (toast: ToastContextValue) => void;
 }) => {
-  // Import is mocked, so this will return our mock functions
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useToast } = require('./ToastContext');
+  // useToast is mocked above, so this returns our mock functions
   const toast = useToast();
   React.useEffect(() => {
     action(toast);
@@ -59,19 +58,19 @@ const renderWithTheme = (ui: React.ReactElement) => {
 
 describe('Toast System', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     mockAddToast.mockClear();
     mockRemoveToast.mockClear();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   describe('Toast Component', () => {
     it('renders toast with message', () => {
-      const mockOnClose = jest.fn();
+      const mockOnClose = vi.fn();
       renderWithTheme(
         <Toast
           toast={{
@@ -88,7 +87,7 @@ describe('Toast System', () => {
     });
 
     it('renders with correct variant styles', () => {
-      const mockOnClose = jest.fn();
+      const mockOnClose = vi.fn();
       const { container } = renderWithTheme(
         <Toast
           toast={{
@@ -109,7 +108,7 @@ describe('Toast System', () => {
     });
 
     it('calls onClose when close button is clicked', () => {
-      const handleClose = jest.fn();
+      const handleClose = vi.fn();
       renderWithTheme(
         <Toast
           toast={{
@@ -128,14 +127,14 @@ describe('Toast System', () => {
 
       // Account for exit animation
       act(() => {
-        jest.advanceTimersByTime(300);
+        vi.advanceTimersByTime(300);
       });
 
       expect(handleClose).toHaveBeenCalled();
     });
 
     it('pauses timer on hover when pauseOnHover is true', () => {
-      const handleClose = jest.fn();
+      const handleClose = vi.fn();
       const toast = {
         id: '1',
         message: 'Test message',
@@ -150,7 +149,7 @@ describe('Toast System', () => {
 
       // Let the timer start - initially it should be running
       act(() => {
-        jest.advanceTimersByTime(500); // Advance halfway through the duration
+        vi.advanceTimersByTime(500); // Advance halfway through the duration
       });
 
       // Hover on toast to pause the timer
@@ -159,7 +158,7 @@ describe('Toast System', () => {
       // Advance time well beyond the original duration
       // Timer should be paused, so handleClose should not be called
       act(() => {
-        jest.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(2000);
       });
       expect(handleClose).not.toHaveBeenCalled();
 
@@ -168,7 +167,7 @@ describe('Toast System', () => {
 
       // The remaining time should be around 500ms, advance past that
       act(() => {
-        jest.advanceTimersByTime(1000); // Giving extra time to ensure closure
+        vi.advanceTimersByTime(1000); // Giving extra time to ensure closure
       });
 
       // Should now be closed
@@ -252,7 +251,7 @@ describe('Toast System', () => {
 
   describe('Accessibility', () => {
     it('sets correct ARIA role and live region', () => {
-      const mockOnClose = jest.fn();
+      const mockOnClose = vi.fn();
       renderWithTheme(
         <Toast
           toast={{
@@ -271,7 +270,7 @@ describe('Toast System', () => {
     });
 
     it('has accessible close button', () => {
-      const mockOnClose = jest.fn();
+      const mockOnClose = vi.fn();
       renderWithTheme(
         <Toast
           toast={{

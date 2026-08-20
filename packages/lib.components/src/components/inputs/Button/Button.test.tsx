@@ -121,7 +121,7 @@ describe('Button', () => {
   });
 
   it('calls onClick handler when clicked', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme({ onClick: handleClick });
 
     fireEvent.click(screen.getByRole('button'));
@@ -129,7 +129,7 @@ describe('Button', () => {
   });
 
   it('does not call onClick when disabled', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme({ onClick: handleClick, disabled: true });
 
     fireEvent.click(screen.getByRole('button'));
@@ -137,7 +137,7 @@ describe('Button', () => {
   });
 
   it('does not call onClick when loading', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme({ onClick: handleClick, isLoading: true });
 
     fireEvent.click(screen.getByRole('button'));

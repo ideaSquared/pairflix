@@ -1,24 +1,25 @@
 import userEvent from '@testing-library/user-event';
+import type { Mock } from 'vitest';
 import { tasteOnboarding } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
 import TasteOnboardingPage from '../TasteOnboardingPage';
 
 // Mock the API module
-jest.mock('../../../services/api', () => {
-  const originalModule = jest.requireActual('../../../services/api');
+vi.mock('../../../services/api', async () => {
+  const originalModule = await vi.importActual('../../../services/api');
   return {
     ...originalModule,
     tasteOnboarding: {
-      getDeck: jest.fn(),
-      submit: jest.fn(),
+      getDeck: vi.fn(),
+      submit: vi.fn(),
     },
   };
 });
 
 // Mock the useNavigate hook
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
@@ -34,9 +35,9 @@ const DECK = [
 
 describe('TasteOnboardingPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (tasteOnboarding.getDeck as jest.Mock).mockResolvedValue({ cards: DECK });
-    (tasteOnboarding.submit as jest.Mock).mockResolvedValue(undefined);
+    vi.clearAllMocks();
+    (tasteOnboarding.getDeck as Mock).mockResolvedValue({ cards: DECK });
+    (tasteOnboarding.submit as Mock).mockResolvedValue(undefined);
   });
 
   it('skip navigates to the default next path without submitting anything', async () => {

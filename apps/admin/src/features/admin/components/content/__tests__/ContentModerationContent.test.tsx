@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import type { Mock } from 'vitest';
 import { admin } from '../../../../../services/api';
 import type {
   AdminContentSummary,
@@ -9,12 +10,12 @@ import ContentModerationContent from '../ContentModerationContent';
 
 // The shared component mock doesn't cover everything this page uses yet
 // (Badge, Flex, Typography, the Table family, ...) -- see pairflixComponentsMock.tsx.
-jest.mock('@pairflix/components', () =>
-  jest.requireActual('./pairflixComponentsMock')
+vi.mock('@pairflix/components', async () =>
+  vi.importActual('./pairflixComponentsMock')
 );
 
-jest.mock('../../../../../services/api', () =>
-  jest.requireActual('../../../../../tests/__mocks__/api')
+vi.mock('../../../../../services/api', async () =>
+  vi.importActual('../../../../../tests/__mocks__/api')
 );
 
 const mockContentItems: AdminContentSummary[] = [
@@ -67,12 +68,12 @@ const renderAndWaitForRows = async () => {
 
 describe('ContentModerationContent', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (admin.content.list as jest.Mock).mockResolvedValue({
+    vi.clearAllMocks();
+    (admin.content.list as Mock).mockResolvedValue({
       data: mockContentItems,
       pagination: { page: 1, limit: 10, total: 2, totalPages: 1 },
     });
-    (admin.content.reports as jest.Mock).mockResolvedValue(mockReports);
+    (admin.content.reports as Mock).mockResolvedValue(mockReports);
   });
 
   it('renders a row for each fetched content item', async () => {

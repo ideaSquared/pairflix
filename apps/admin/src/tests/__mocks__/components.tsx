@@ -1,4 +1,4 @@
-// Mock @pairflix/components for Jest tests
+// Mock @pairflix/components for tests
 import * as React from 'react';
 
 // Mock all the common components that might be used
@@ -132,8 +132,8 @@ export const theme = {
 
 // Mock theme contract for the vanilla-extract cutover. Every admin `X.css.ts`
 // file does `import { vars } from '@pairflix/components'`, which resolves to
-// this mock under Jest (see moduleNameMapper in jest.config.ts) instead of
-// the real package -- these plain strings just need to exist at the same
+// this mock under tests (see the test.alias entry in vite.config.ts) instead
+// of the real package -- these plain strings just need to exist at the same
 // nested shape as the real `vars` (packages/lib.components/src/styles/theme.css.ts)
 // so `style()`/`recipe()` calls in those files don't blow up on `undefined`.
 // jsdom doesn't resolve real CSS either way, so the values themselves are

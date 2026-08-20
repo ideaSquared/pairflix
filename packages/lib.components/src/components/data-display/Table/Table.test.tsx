@@ -7,14 +7,14 @@ import { DataTable, TableActionButton, type TableColumn } from './Table';
 import { tableActionButton } from './Table.css';
 
 // Mock LoadingSpinner component
-jest.mock('../../feedback/Loading', () => ({
+vi.mock('../../feedback/Loading', () => ({
   LoadingSpinner: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="loading-spinner">{children}</div>
   ),
 }));
 
 // Mock Typography component
-jest.mock('../../utility/Typography', () => ({
+vi.mock('../../utility/Typography', () => ({
   Typography: ({
     children,
     variant,
@@ -126,7 +126,7 @@ describe('DataTable', () => {
   });
 
   it('handles sort when clicking on sortable columns', () => {
-    const handleSort = jest.fn();
+    const handleSort = vi.fn();
     const sortableColumns: TableColumn<TestUser>[] = [
       { key: 'name', header: 'Name', sortable: true },
       { key: 'email', header: 'Email', sortable: true },
@@ -154,7 +154,7 @@ describe('DataTable', () => {
   });
 
   it('handles row selection when selectable is true', () => {
-    const handleRowSelect = jest.fn();
+    const handleRowSelect = vi.fn();
 
     renderWithTheme(
       <DataTable<TestUser>
@@ -179,7 +179,7 @@ describe('DataTable', () => {
   });
 
   it('handles row click when onRowClick is provided', () => {
-    const handleRowClick = jest.fn();
+    const handleRowClick = vi.fn();
 
     renderWithTheme(
       <DataTable<TestUser>
@@ -195,8 +195,8 @@ describe('DataTable', () => {
   });
 
   it('renders row actions when provided', () => {
-    const handleEdit = jest.fn();
-    const handleDelete = jest.fn();
+    const handleEdit = vi.fn();
+    const handleDelete = vi.fn();
 
     renderWithTheme(
       <DataTable<TestUser>
@@ -228,7 +228,7 @@ describe('DataTable', () => {
   });
 
   it('uses custom getRowId function when provided', () => {
-    const handleRowSelect = jest.fn();
+    const handleRowSelect = vi.fn();
 
     renderWithTheme(
       <DataTable<TestUser>
@@ -324,7 +324,7 @@ describe('TableActionButton', () => {
   });
 
   it('handles click events', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     renderWithTheme(
       <TableActionButton onClick={handleClick}>Click Me</TableActionButton>

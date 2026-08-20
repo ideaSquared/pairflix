@@ -11,11 +11,11 @@ const renderWithTheme = (ui: React.ReactElement) => {
 };
 
 describe('FilterGroup', () => {
-  const mockApply = jest.fn();
-  const mockClear = jest.fn();
+  const mockApply = vi.fn();
+  const mockClear = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders with title and default expanded state', () => {
@@ -145,7 +145,7 @@ describe('FilterGroup', () => {
 describe('FilterItem', () => {
   test('renders with label and required indicator', () => {
     renderWithTheme(
-      <FilterGroup onApply={jest.fn()} onClear={jest.fn()}>
+      <FilterGroup onApply={vi.fn()} onClear={vi.fn()}>
         <FilterItem label="Required Filter" required>
           <Input placeholder="Required input" />
         </FilterItem>
@@ -167,7 +167,7 @@ describe('FilterItem', () => {
 
   test('renders help text when provided', () => {
     renderWithTheme(
-      <FilterGroup onApply={jest.fn()} onClear={jest.fn()}>
+      <FilterGroup onApply={vi.fn()} onClear={vi.fn()}>
         <FilterItem label="Filter with help" helpText="This is help text">
           <Input placeholder="Input with help" />
         </FilterItem>
@@ -179,7 +179,7 @@ describe('FilterItem', () => {
 
   test('displays error message when error prop is provided', () => {
     renderWithTheme(
-      <FilterGroup onApply={jest.fn()} onClear={jest.fn()}>
+      <FilterGroup onApply={vi.fn()} onClear={vi.fn()}>
         <FilterItem label="Filter with error" error="This is an error message">
           <Input placeholder="Input with error" />
         </FilterItem>
@@ -192,10 +192,10 @@ describe('FilterItem', () => {
   });
 
   test('sets isDirty when child input changes', async () => {
-    const mockApply = jest.fn();
+    const mockApply = vi.fn();
 
     renderWithTheme(
-      <FilterGroup onApply={mockApply} onClear={jest.fn()}>
+      <FilterGroup onApply={mockApply} onClear={vi.fn()}>
         <FilterItem label="Filter">
           <Input placeholder="Filter input" />
         </FilterItem>
@@ -217,14 +217,14 @@ describe('FilterItem', () => {
 // Basic test for QuickFilter component
 describe('QuickFilter', () => {
   test('renders with options and handles selection', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     const options = [
       { label: 'Option 1', value: 'option1' },
       { label: 'Option 2', value: 'option2' },
     ];
 
     renderWithTheme(
-      <FilterGroup onApply={jest.fn()} onClear={jest.fn()}>
+      <FilterGroup onApply={vi.fn()} onClear={vi.fn()}>
         <QuickFilter
           label="Quick Filter"
           options={options}

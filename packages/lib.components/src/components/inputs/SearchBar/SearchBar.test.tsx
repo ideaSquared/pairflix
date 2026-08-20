@@ -10,7 +10,7 @@ const renderWithTheme = (ui: React.ReactElement) => {
   return render(<div className={`${lightThemeClass} ${themeRoot}`}>{ui}</div>);
 };
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe('SearchBar', () => {
   it('renders correctly with default props', () => {
@@ -138,7 +138,7 @@ describe('SearchBar', () => {
   });
 
   it('calls onChange with debounce when input value changes', async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     renderWithTheme(
       <SearchBar
@@ -158,7 +158,7 @@ describe('SearchBar', () => {
 
     // Fast forward debounce time
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     // onChange should now be called
@@ -166,7 +166,7 @@ describe('SearchBar', () => {
   });
 
   it('calls onSearch when search button is clicked', () => {
-    const handleSearch = jest.fn();
+    const handleSearch = vi.fn();
 
     renderWithTheme(
       <SearchBar data-testid="search-bar" onSearch={handleSearch} />
@@ -186,7 +186,7 @@ describe('SearchBar', () => {
   });
 
   it('calls onSearch when Enter key is pressed', () => {
-    const handleSearch = jest.fn();
+    const handleSearch = vi.fn();
 
     renderWithTheme(
       <SearchBar data-testid="search-bar" onSearch={handleSearch} />
@@ -205,7 +205,7 @@ describe('SearchBar', () => {
   });
 
   it('clears input value when clear button is clicked', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     renderWithTheme(
       <SearchBar data-testid="search-bar" onChange={handleChange} />
@@ -218,7 +218,7 @@ describe('SearchBar', () => {
 
     // Fast forward debounce time
     act(() => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     // Click clear button

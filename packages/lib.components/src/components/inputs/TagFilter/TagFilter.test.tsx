@@ -11,7 +11,7 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe('TagFilter', () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
   const tags = ['react', 'typescript', 'javascript', 'css'];
 
   beforeEach(() => {

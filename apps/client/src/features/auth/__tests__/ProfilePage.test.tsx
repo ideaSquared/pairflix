@@ -1,29 +1,32 @@
 import userEvent from '@testing-library/user-event';
+import type { Mock } from 'vitest';
 import { user as userApi } from '../../../services/api';
 import { render, screen, waitFor, within } from '../../../tests/setup';
 import ProfilePage from '../ProfilePage';
 
 // Mock the API module
-jest.mock('../../../services/api', () => {
-  const originalModule = jest.requireActual('../../../services/api');
+vi.mock('../../../services/api', async () => {
+  const originalModule = await vi.importActual<
+    typeof import('../../../services/api')
+  >('../../../services/api');
   return {
     ...originalModule,
     user: {
       ...originalModule.user,
-      updatePassword: jest.fn(),
-      updateEmail: jest.fn(),
-      updateUsername: jest.fn(),
-      updatePreferences: jest.fn(),
+      updatePassword: vi.fn(),
+      updateEmail: vi.fn(),
+      updateUsername: vi.fn(),
+      updatePreferences: vi.fn(),
     },
   };
 });
 
 // Create mock objects
-const mockLogout = jest.fn();
-const mockCheckAuth = jest.fn();
+const mockLogout = vi.fn();
+const mockCheckAuth = vi.fn();
 
 // Mock the useAuth hook using a factory function
-jest.mock('../../../hooks/useAuth', () => {
+vi.mock('../../../hooks/useAuth', () => {
   return {
     useAuth: () => ({
       user: {
@@ -45,7 +48,7 @@ jest.mock('../../../hooks/useAuth', () => {
 });
 
 // Mock the useSettings hook
-jest.mock('../../../contexts/SettingsContext', () => ({
+vi.mock('../../../contexts/SettingsContext', () => ({
   useSettings: () => ({
     settings: {
       general: {
@@ -73,31 +76,31 @@ jest.mock('../../../contexts/SettingsContext', () => ({
     },
     isLoading: false,
     error: null,
-    refreshSettings: jest.fn(),
+    refreshSettings: vi.fn(),
   }),
 }));
 
 describe('ProfilePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock successful API responses
-    (userApi.updatePassword as jest.Mock).mockResolvedValue({
+    (userApi.updatePassword as Mock).mockResolvedValue({
       message: 'Password updated successfully',
       token: 'new-token',
     });
 
-    (userApi.updateEmail as jest.Mock).mockResolvedValue({
+    (userApi.updateEmail as Mock).mockResolvedValue({
       message: 'Email updated successfully',
       token: 'new-token',
     });
 
-    (userApi.updateUsername as jest.Mock).mockResolvedValue({
+    (userApi.updateUsername as Mock).mockResolvedValue({
       message: 'Username updated successfully',
       token: 'new-token',
     });
 
-    (userApi.updatePreferences as jest.Mock).mockResolvedValue({
+    (userApi.updatePreferences as Mock).mockResolvedValue({
       message: 'Preferences updated successfully',
       token: 'new-token',
     });
@@ -338,7 +341,7 @@ describe('ProfilePage', () => {
 
   it('handles API errors gracefully', async () => {
     // Mock API error
-    (userApi.updateUsername as jest.Mock).mockRejectedValueOnce(
+    (userApi.updateUsername as Mock).mockRejectedValueOnce(
       new Error('Username already taken')
     );
 
@@ -361,7 +364,7 @@ describe('ProfilePage', () => {
 
   it('logs out user on authentication error', async () => {
     // Mock auth error
-    (userApi.updateEmail as jest.Mock).mockRejectedValueOnce(
+    (userApi.updateEmail as Mock).mockRejectedValueOnce(
       new Error('Authentication required')
     );
 

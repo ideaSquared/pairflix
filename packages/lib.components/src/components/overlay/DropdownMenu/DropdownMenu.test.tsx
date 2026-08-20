@@ -88,7 +88,7 @@ describe('DropdownMenu', () => {
     });
 
     it('calls onOpenChange when menu state changes', async () => {
-      const onOpenChange = jest.fn();
+      const onOpenChange = vi.fn();
       const user = userEvent.setup();
 
       renderWithTheme(
@@ -291,7 +291,7 @@ describe('DropdownMenuItem', () => {
   });
 
   it('handles click events', async () => {
-    const onSelect = jest.fn();
+    const onSelect = vi.fn();
     const user = userEvent.setup();
 
     renderWithTheme(
@@ -338,7 +338,7 @@ describe('DropdownMenuItem', () => {
   });
 
   it('supports disabled state', async () => {
-    const onSelect = jest.fn();
+    const onSelect = vi.fn();
     const user = userEvent.setup();
 
     renderWithTheme(
@@ -376,7 +376,7 @@ describe('DropdownMenuItem', () => {
   });
 
   it('supports closeOnSelect=false', async () => {
-    const onSelect = jest.fn();
+    const onSelect = vi.fn();
     const user = userEvent.setup();
 
     renderWithTheme(
@@ -471,7 +471,7 @@ describe('DropdownMenuCheckboxItem', () => {
   });
 
   it('handles checkbox state changes', async () => {
-    const onCheckedChange = jest.fn();
+    const onCheckedChange = vi.fn();
     const user = userEvent.setup();
 
     renderWithTheme(
@@ -606,8 +606,8 @@ describe('Accessibility', () => {
 describe('Complex Menu Examples', () => {
   it('renders a complete menu with all features', async () => {
     const user = userEvent.setup();
-    const onSave = jest.fn();
-    const onDelete = jest.fn();
+    const onSave = vi.fn();
+    const onDelete = vi.fn();
 
     renderWithTheme(
       <DropdownMenu

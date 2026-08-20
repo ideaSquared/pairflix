@@ -11,6 +11,7 @@
     "noEmit": false,
     "jsx": "react-jsx",
     "noUncheckedIndexedAccess": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "declaration": true,
     "declarationDir": "dist",
     "outDir": "dist",

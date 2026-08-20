@@ -1,29 +1,30 @@
 import userEvent from '@testing-library/user-event';
+import type { Mock } from 'vitest';
 import { auth } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
 import LoginPage from '../LoginPage';
 
 // Mock the API module
-jest.mock('../../../services/api', () => {
-  const originalModule = jest.requireActual('../../../services/api');
+vi.mock('../../../services/api', async () => {
+  const originalModule = await vi.importActual('../../../services/api');
   return {
     ...originalModule,
     auth: {
-      login: jest.fn(),
+      login: vi.fn(),
     },
   };
 });
 
 // Mock the useNavigate hook
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => ({
+  ...(await vi.importActual('react-router-dom')),
   useNavigate: () => mockNavigate,
 }));
 
 // Mock the useAuth hook
-const mockCheckAuth = jest.fn();
-jest.mock('../../../hooks/useAuth', () => ({
+const mockCheckAuth = vi.fn();
+vi.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({
     checkAuth: mockCheckAuth,
     isAuthenticated: false,
@@ -32,8 +33,8 @@ jest.mock('../../../hooks/useAuth', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (auth.login as jest.Mock).mockResolvedValue({
+    vi.clearAllMocks();
+    (auth.login as Mock).mockResolvedValue({
       id: 'admin-123',
       username: 'admin',
       email: 'admin@example.com',
@@ -84,9 +85,7 @@ describe('LoginPage', () => {
   });
 
   it('handles login error correctly', async () => {
-    (auth.login as jest.Mock).mockRejectedValue(
-      new Error('Invalid credentials')
-    );
+    (auth.login as Mock).mockRejectedValue(new Error('Invalid credentials'));
 
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -103,9 +102,7 @@ describe('LoginPage', () => {
   });
 
   it('reveals a 2FA code field when the server requires TOTP', async () => {
-    (auth.login as jest.Mock).mockRejectedValue(
-      new Error('TOTP code required')
-    );
+    (auth.login as Mock).mockRejectedValue(new Error('TOTP code required'));
 
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -128,7 +125,7 @@ describe('LoginPage', () => {
     await user.type(totpInput, '123456');
     expect(screen.getByRole('button', { name: 'Login' })).not.toBeDisabled();
 
-    (auth.login as jest.Mock).mockResolvedValue({
+    (auth.login as Mock).mockResolvedValue({
       id: 'admin-123',
       username: 'admin',
       email: 'admin@example.com',
@@ -147,7 +144,7 @@ describe('LoginPage', () => {
   });
 
   it('shows loading state during login', async () => {
-    (auth.login as jest.Mock).mockImplementation(
+    (auth.login as Mock).mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 

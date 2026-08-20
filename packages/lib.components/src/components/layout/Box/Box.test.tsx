@@ -154,9 +154,13 @@ describe('Box', () => {
     );
 
     const box = screen.getByTestId('box-styling');
+    // jsdom's computed-style implementation doesn't serialize the `border` shorthand (returns ''
+    // even when set), so this asserts the longhand properties it does compute correctly instead.
     expect(box).toHaveStyle({
       backgroundColor: '#f5f5f5',
-      border: '1px solid #ccc',
+      borderWidth: '1px',
+      borderStyle: 'solid',
+      borderColor: '#ccc',
       borderRadius: '4px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     });
