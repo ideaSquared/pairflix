@@ -5,6 +5,12 @@ import { SessionManager } from './SessionManager';
 // Mock timers
 vi.useFakeTimers();
 
+afterAll(() => {
+  // Vitest reuses worker threads across test files -- fake timers installed here would otherwise
+  // leak into whichever file runs next in the same worker.
+  vi.useRealTimers();
+});
+
 describe('SessionManager', () => {
   let mockOnSessionExpire: Mock;
 

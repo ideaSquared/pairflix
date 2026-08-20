@@ -12,6 +12,12 @@ const renderWithTheme = (ui: React.ReactElement) => {
 
 vi.useFakeTimers();
 
+afterAll(() => {
+  // Vitest reuses worker threads across test files -- fake timers installed here would otherwise
+  // leak into whichever file runs next in the same worker.
+  vi.useRealTimers();
+});
+
 describe('SearchBar', () => {
   it('renders correctly with default props', () => {
     renderWithTheme(<SearchBar data-testid="search-bar" />);
