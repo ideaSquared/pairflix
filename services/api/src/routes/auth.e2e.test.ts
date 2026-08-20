@@ -57,6 +57,10 @@ describe('POST /api/auth/register', () => {
 		expect(second.status).toBe(409);
 	});
 
+	// 40 iterations x 2 concurrent registrations (each hashing a password) is meaningfully more
+	// work than a typical test in this file -- an explicit timeout gives it headroom on a loaded CI
+	// runner instead of trimming the iteration count (and the collision-probability margin it
+	// protects, see below).
 	it('returns a clean 409, not a 500, when two registrations race for the same email', async () => {
 		const register = (
 			csrf: { csrfToken: string; cookies: Record<string, string> },
@@ -94,7 +98,7 @@ describe('POST /api/auth/register', () => {
 			const statuses = [first.status, second.status].sort((a, b) => a - b);
 			expect(statuses).toEqual([201, 409]);
 		}
-	});
+	}, 30_000);
 });
 
 describe('POST /api/auth/verify-email', () => {
