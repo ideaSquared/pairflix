@@ -57,6 +57,8 @@ export const statusBadge = recipe({
       banned: { background: vars.colors.text.error },
       suspended: { background: vars.colors.text.warning },
       admin: { background: vars.colors.primary },
+      free: { background: vars.colors.background.hover },
+      premium: { background: vars.colors.primary },
     },
   },
   defaultVariants: {

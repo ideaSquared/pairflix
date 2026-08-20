@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Seeds paired-up households into local D1 -- unlike seed-dev-users.mjs's flat DevLogin fixtures,
+// Seeds paired-up households into local D1 -- unlike seed-dev-users.mjs's flat, unpaired accounts,
 // these exist so a dev can exercise household-scoped flows (pick/commit, quota, provider filters)
 // without first hand-creating a household through the UI/API. Includes premium ("unlimited picks")
 // households so free-tier's 3-picks/day quota doesn't get in the way of repeated manual testing.
+// Mirrored in apps/client/src/components/dev/DevLogin.tsx's householdTestUsers -- keep both in sync
+// if this list changes.
 // --local only -- never touches a real D1 database.
 
 import { hashPassword, runD1File, sqlString } from './seed-lib.mjs';
@@ -14,6 +16,9 @@ const PASSWORD = 'password123';
 // at a user_id nothing re-inserted.
 const idFor = (prefix, slug) => `${prefix}_hhseed_${slug}`;
 
+// Usernames stay short (<=11 chars, matching the longest of seed-dev-users.mjs's fixtures,
+// "usersuspended") -- the DevLogin quick-login panel is a fixed 300px wide (DevLogin.css.ts's
+// devContainer), and a longer username visibly overflows its button in that two-column grid.
 const HOUSEHOLDS = [
 	{
 		slug: 'free1',
@@ -22,13 +27,13 @@ const HOUSEHOLDS = [
 		members: [
 			{
 				slug: 'free1-owner',
-				email: 'hh-free1-owner@example.com',
-				username: 'hhfree1owner',
+				email: 'hh-f1-owner@example.com',
+				username: 'hhf1owner',
 			},
 			{
 				slug: 'free1-partner',
-				email: 'hh-free1-partner@example.com',
-				username: 'hhfree1partner',
+				email: 'hh-f1-partner@example.com',
+				username: 'hhf1partner',
 			},
 		],
 	},
@@ -39,13 +44,13 @@ const HOUSEHOLDS = [
 		members: [
 			{
 				slug: 'free2-owner',
-				email: 'hh-free2-owner@example.com',
-				username: 'hhfree2owner',
+				email: 'hh-f2-owner@example.com',
+				username: 'hhf2owner',
 			},
 			{
 				slug: 'free2-partner',
-				email: 'hh-free2-partner@example.com',
-				username: 'hhfree2partner',
+				email: 'hh-f2-partner@example.com',
+				username: 'hhf2partner',
 			},
 		],
 	},
@@ -56,13 +61,13 @@ const HOUSEHOLDS = [
 		members: [
 			{
 				slug: 'premium1-owner',
-				email: 'hh-premium1-owner@example.com',
-				username: 'hhpremium1owner',
+				email: 'hh-p1-owner@example.com',
+				username: 'hhp1owner',
 			},
 			{
 				slug: 'premium1-partner',
-				email: 'hh-premium1-partner@example.com',
-				username: 'hhpremium1partner',
+				email: 'hh-p1-partner@example.com',
+				username: 'hhp1partner',
 			},
 		],
 	},
@@ -73,13 +78,13 @@ const HOUSEHOLDS = [
 		members: [
 			{
 				slug: 'premium2-owner',
-				email: 'hh-premium2-owner@example.com',
-				username: 'hhpremium2owner',
+				email: 'hh-p2-owner@example.com',
+				username: 'hhp2owner',
 			},
 			{
 				slug: 'premium2-partner',
-				email: 'hh-premium2-partner@example.com',
-				username: 'hhpremium2partner',
+				email: 'hh-p2-partner@example.com',
+				username: 'hhp2partner',
 			},
 		],
 	},
@@ -90,13 +95,13 @@ const HOUSEHOLDS = [
 		members: [
 			{
 				slug: 'premium3-owner',
-				email: 'hh-premium3-owner@example.com',
-				username: 'hhpremium3owner',
+				email: 'hh-p3-owner@example.com',
+				username: 'hhp3owner',
 			},
 			{
 				slug: 'premium3-partner',
-				email: 'hh-premium3-partner@example.com',
-				username: 'hhpremium3partner',
+				email: 'hh-p3-partner@example.com',
+				username: 'hhp3partner',
 			},
 		],
 	},
