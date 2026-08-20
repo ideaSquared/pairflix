@@ -1,13 +1,16 @@
 import { env } from 'cloudflare:workers';
 import { createDb, settings, subscriptions } from '@pairflix/db';
-import { afterEach, describe, expect, it } from 'vitest';
-import { GENRE_NAMES } from '../lib/genres';
+import { describe, expect, it } from 'vitest';
 import {
 	callApp,
 	createLoggedInUser,
 	getCsrfToken,
+	mockExternalApis,
 	postJson,
 	type Cookies,
+	type MockAnthropic,
+	type MockMovie,
+	type MockShow,
 } from '../test/test-helpers';
 
 let counter = 0;
@@ -15,27 +18,6 @@ let counter = 0;
  * within one file. */
 const uniqueEmail = () =>
 	`households-e2e-${Date.now()}-${counter++}@example.com`;
-
-type MockMovie = {
-	id: number;
-	title: string;
-	overview: string;
-	poster_path: string | null;
-	release_date: string;
-	vote_average: number;
-	vote_count: number;
-	genre_ids: number[];
-	popularity: number;
-	runtime: number;
-	providers?: {
-		flatrate?: Array<{
-			provider_id: number;
-			provider_name: string;
-			logo_path: string;
-		}>;
-		link?: string;
-	};
-};
 
 const MOVIE_A: MockMovie = {
 	id: 101,
@@ -80,20 +62,6 @@ const MOVIE_C: MockMovie = {
 	runtime: 110,
 };
 const DEFAULT_MOVIES = [MOVIE_A, MOVIE_B, MOVIE_C];
-
-type MockShow = {
-	id: number;
-	name: string;
-	overview: string;
-	poster_path: string | null;
-	first_air_date: string;
-	vote_average: number;
-	vote_count: number;
-	genre_ids: number[];
-	popularity: number;
-	episode_run_time: number[];
-	providers?: MockMovie['providers'];
-};
 
 // A deliberately-mismatched pair for the runtime re-ranking test below: OLD_GOOD_RUNTIME scores
 // lower pre-hydration (older, so a smaller recencyBonus) but has a real runtime close to the
@@ -248,122 +216,6 @@ const COMEDY_MOVIE_SAME_ERA: MockMovie = {
 	genre_ids: [35],
 	popularity: 45,
 	runtime: 105,
-};
-
-const jsonResponse = (data: unknown, status = 200): Response =>
-	new Response(JSON.stringify(data), {
-		status,
-		headers: { 'content-type': 'application/json' },
-	});
-
-type MockAnthropic =
-	| { pickTmdbId: number; alternatesTmdbIds: number[]; rationale: string }
-	| 'error';
-
-const REAL_FETCH = globalThis.fetch;
-afterEach(() => {
-	globalThis.fetch = REAL_FETCH;
-});
-
-/** Replaces the global fetch for the rest of the current test so pick/commit flows never hit the
- * real TMDb/Anthropic APIs -- unreachable from the test sandbox, and non-deterministic even if
- * reachable. Returns the list of URLs actually requested, so tests can assert on outgoing call
- * shape (e.g. proving the region-lock override reached TMDb). */
-const mockExternalApis = (
-	movies: MockMovie[],
-	anthropic?: MockAnthropic,
-	shows: MockShow[] = []
-): string[] => {
-	const capturedUrls: string[] = [];
-	globalThis.fetch = (async (input: RequestInfo | URL) => {
-		const url =
-			typeof input === 'string'
-				? input
-				: input instanceof URL
-					? input.toString()
-					: input.url;
-		capturedUrls.push(url);
-		const { hostname, pathname } = new URL(url);
-
-		if (hostname === 'api.themoviedb.org') {
-			if (pathname === '/3/discover/movie')
-				return jsonResponse({ results: movies });
-			if (pathname === '/3/discover/tv')
-				return jsonResponse({ results: shows });
-			const detail = /^\/3\/movie\/(\d+)$/.exec(pathname);
-			if (detail) {
-				const movie = movies.find(m => m.id === Number(detail[1]));
-				if (!movie) return jsonResponse({}, 404);
-				return jsonResponse({
-					id: movie.id,
-					title: movie.title,
-					overview: movie.overview,
-					poster_path: movie.poster_path,
-					runtime: movie.runtime,
-					release_date: movie.release_date,
-					genres: movie.genre_ids.map(id => ({
-						id,
-						name: GENRE_NAMES[id] ?? 'Unknown',
-					})),
-				});
-			}
-			const tvDetail = /^\/3\/tv\/(\d+)$/.exec(pathname);
-			if (tvDetail) {
-				const show = shows.find(s => s.id === Number(tvDetail[1]));
-				if (!show) return jsonResponse({}, 404);
-				return jsonResponse({
-					id: show.id,
-					name: show.name,
-					overview: show.overview,
-					poster_path: show.poster_path,
-					episode_run_time: show.episode_run_time,
-					first_air_date: show.first_air_date,
-					genres: show.genre_ids.map(id => ({
-						id,
-						name: GENRE_NAMES[id] ?? 'Unknown',
-					})),
-				});
-			}
-			const providers = /^\/3\/movie\/(\d+)\/watch\/providers$/.exec(pathname);
-			if (providers) {
-				const movie = movies.find(m => m.id === Number(providers[1]));
-				return jsonResponse({
-					results: movie?.providers ? { GB: movie.providers } : {},
-				});
-			}
-			const tvProviders = /^\/3\/tv\/(\d+)\/watch\/providers$/.exec(pathname);
-			if (tvProviders) {
-				const show = shows.find(s => s.id === Number(tvProviders[1]));
-				return jsonResponse({
-					results: show?.providers ? { GB: show.providers } : {},
-				});
-			}
-		}
-
-		if (hostname === 'api.anthropic.com' && pathname === '/v1/messages') {
-			if (anthropic === 'error')
-				return jsonResponse({ error: 'mocked failure' }, 500);
-			if (anthropic) {
-				return jsonResponse({
-					content: [
-						{
-							type: 'tool_use',
-							name: 'submit_pick',
-							input: {
-								pick_tmdb_id: anthropic.pickTmdbId,
-								alternates_tmdb_ids: anthropic.alternatesTmdbIds,
-								rationale: anthropic.rationale,
-							},
-						},
-					],
-					usage: { input_tokens: 100, output_tokens: 50 },
-				});
-			}
-		}
-
-		throw new Error(`Unmocked fetch in test: ${url}`);
-	}) as typeof fetch;
-	return capturedUrls;
 };
 
 const createHousehold = async (
