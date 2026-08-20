@@ -16,9 +16,10 @@ const PASSWORD = 'password123';
 // at a user_id nothing re-inserted.
 const idFor = (prefix, slug) => `${prefix}_hhseed_${slug}`;
 
-// Usernames stay short (<=11 chars, matching the longest of seed-dev-users.mjs's fixtures,
-// "usersuspended") -- the DevLogin quick-login panel is a fixed 300px wide (DevLogin.css.ts's
-// devContainer), and a longer username visibly overflows its button in that two-column grid.
+// Usernames stay short (<=10 chars) — the DevLogin quick-login panel is a fixed 300px wide
+// (DevLogin.css.ts's devContainer), and longer usernames visibly overflow buttons in its two-column grid.
+// If you previously seeded with different emails/usernames, wipe/reset local D1: this script uses
+// deterministic ids + `INSERT OR IGNORE`, so reruns won't update existing rows.
 const HOUSEHOLDS = [
 	{
 		slug: 'free1',
