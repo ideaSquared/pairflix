@@ -17,6 +17,7 @@ import HistoryPage from '../../features/history/HistoryPage';
 import AcceptInvitePage from '../../features/households/AcceptInvitePage';
 import CreateHouseholdPage from '../../features/households/CreateHouseholdPage';
 import InviteToHouseholdPage from '../../features/households/InviteToHouseholdPage';
+import LandingPage from '../../features/landing/LandingPage';
 import TasteOnboardingPage from '../../features/onboarding/TasteOnboardingPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,6 +32,11 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
   }
 
   return isAuthenticated ? element : <Navigate to="/login" />;
+};
+
+const LandingRoute: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/tonight" /> : <LandingPage />;
 };
 
 const LogoutRoute: React.FC = () => {
@@ -51,7 +57,6 @@ const LogoutRoute: React.FC = () => {
 
 const AppRoutes: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const defaultPath = '/tonight';
 
   const handleLogout = () => {
     logout();
@@ -71,6 +76,9 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
+      {/* Public landing page -- redirects to /tonight for an authenticated visitor */}
+      <Route path="/" element={<LandingRoute />} />
+
       {/* Login and register pages without layout */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -124,8 +132,9 @@ const AppRoutes: React.FC = () => {
                 />
               )}
 
-              {/* Default route */}
-              <Route path="/" element={<Navigate to={defaultPath} />} />
+              {/* Unknown paths bounce up to the outer "/" route, which resolves to /tonight for an
+                  authenticated visitor -- this inner subtree never sees an exact "/" itself, since
+                  the outer route above always wins that match first. */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AppLayout>

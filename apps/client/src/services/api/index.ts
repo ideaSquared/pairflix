@@ -1,5 +1,6 @@
 import { auth } from './auth';
 import { billing } from './billing';
+import { demo } from './demo';
 import { emailService } from './email';
 import { history } from './history';
 import { households } from './households';
@@ -34,6 +35,7 @@ export type {
 export {
   auth,
   billing,
+  demo,
   emailService,
   fetchWithAuth,
   history,
@@ -50,6 +52,7 @@ const api = {
   auth,
   user,
   billing,
+  demo,
   email: emailService,
   history,
   households,

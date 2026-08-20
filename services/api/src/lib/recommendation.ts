@@ -397,50 +397,31 @@ const pickProviderName = (providers: RegionProviders): string | null =>
 	providers.buy?.[0]?.provider_name ??
 	null;
 
-export const pickForHousehold = async (
+type RankedCandidate = {
+	entry: {
+		item: TMDbDiscoverMovie | TMDbDiscoverTV;
+		mediaType: 'movie' | 'tv';
+	};
+	card: RecommendationCard;
+	score: number;
+};
+
+/** The household-independent core of a pick: discover -> filter -> score -> hydrate -> re-score.
+ * Depends only on `env`/`request`/`prefs`/exclusion sets -- never `db` or a household id -- so
+ * both `pickForHousehold` (real merged taste prefs) and `pickForAnonymous` (empty/neutral prefs)
+ * can share it without duplicating the scoring pipeline. `hydrateCount` is the caller's decision
+ * (10 when LLM-rerank-eligible, 3 otherwise) since eligibility itself is a household concern this
+ * helper has no business knowing about. */
+const buildRecommendation = async (
 	env: Bindings,
-	db: Database,
-	householdId: string,
-	request: PickRequest
-): Promise<RecommendationResult> => {
+	request: PickRequest,
+	prefs: MergedPreferences,
+	excludedWatched: Set<string>,
+	hydrateCount: number
+): Promise<{ mlResult: RecommendationResult; ranked: RankedCandidate[] }> => {
 	const region = request.region ?? 'GB';
 	const moodCfg = MOOD_FILTERS[request.mood];
-
-	const members = await db
-		.select({ userId: householdMembers.userId })
-		.from(householdMembers)
-		.where(eq(householdMembers.householdId, householdId));
-	if (members.length === 0) {
-		throw new HouseholdNotFoundError();
-	}
-	const memberIds = members.map(m => m.userId);
-
-	const profiles = await db
-		.select()
-		.from(tasteProfiles)
-		.where(inArray(tasteProfiles.userId, memberIds));
-	const merged = mergeProfiles(profiles);
-	const genres = topMergedGenres(merged, moodCfg.genres, 3);
-	const prefs: MergedPreferences = {
-		genres: merged,
-		era: mergeEra(profiles),
-		tone: mergeTone(profiles),
-		runtimePref: mergeRuntimePref(profiles),
-	};
-
-	const watchedRows = await db
-		.select({
-			tmdbId: watchedTogether.tmdbId,
-			mediaType: watchedTogether.mediaType,
-		})
-		.from(watchedTogether)
-		.where(eq(watchedTogether.householdId, householdId));
-	// Keyed by tmdbId+mediaType, not tmdbId alone -- movie and TV ids are assigned from separate
-	// TMDb id spaces, so a watched movie must not exclude an unrelated TV show (or vice versa)
-	// that happens to share the same numeric id, now that both are candidate sources below.
-	const excludedWatched = new Set<string>(
-		watchedRows.map(w => `${w.tmdbId}:${w.mediaType}`)
-	);
+	const genres = topMergedGenres(prefs.genres, moodCfg.genres, 3);
 	const excludedRequested = new Set<number>(request.excludeTmdbIds ?? []);
 
 	const discoverParams = {
@@ -524,8 +505,7 @@ export const pickForHousehold = async (
 				: b.item.vote_average - a.item.vote_average
 		);
 
-	const llmEligible = await isLlmRerankEnabledForHousehold(db, householdId);
-	const top = scored.slice(0, llmEligible ? 10 : 3);
+	const top = scored.slice(0, hydrateCount);
 
 	const hydrated = await Promise.all(
 		top.map(async entry => ({
@@ -578,13 +558,94 @@ export const pickForHousehold = async (
 		rationale: buildRationale(
 			moodCfg.label,
 			mlPick.entry.item.genre_ids ?? [],
-			merged,
+			prefs.genres,
 			request.minutes,
 			mlPick.card.runtime,
 			pickProviderName(mlPick.card.providers)
 		),
 		score: mlPick.score,
 	};
+
+	return { mlResult, ranked };
+};
+
+/** Runs a pick with no household context at all -- empty/neutral taste prefs (the same
+ * degradation `mergeProfiles`/`mergeEra`/`mergeTone`/`mergeRuntimePref` already apply for a
+ * household with zero ratings yet), no watch-history exclusions, and a fixed hydration depth
+ * matching what a free-tier household gets. Calling the real merge functions with `[]` rather
+ * than hand-writing the neutral shape means this can't drift if their degradation logic changes.
+ * LLM rerank is a premium household feature and is structurally unreachable here -- this never
+ * calls `isLlmRerankEnabledForHousehold` or touches the rerank branch below. The only error this
+ * can throw is `NoCandidatesError`; `HouseholdNotFoundError` only comes from the membership gate
+ * in `pickForHousehold`, which this path never runs. */
+export const pickForAnonymous = async (
+	env: Bindings,
+	request: PickRequest
+): Promise<RecommendationResult> => {
+	const prefs: MergedPreferences = {
+		genres: mergeProfiles([]),
+		era: mergeEra([]),
+		tone: mergeTone([]),
+		runtimePref: mergeRuntimePref([]),
+	};
+	const { mlResult } = await buildRecommendation(
+		env,
+		request,
+		prefs,
+		new Set(),
+		3
+	);
+	return mlResult;
+};
+
+export const pickForHousehold = async (
+	env: Bindings,
+	db: Database,
+	householdId: string,
+	request: PickRequest
+): Promise<RecommendationResult> => {
+	const members = await db
+		.select({ userId: householdMembers.userId })
+		.from(householdMembers)
+		.where(eq(householdMembers.householdId, householdId));
+	if (members.length === 0) {
+		throw new HouseholdNotFoundError();
+	}
+	const memberIds = members.map(m => m.userId);
+
+	const profiles = await db
+		.select()
+		.from(tasteProfiles)
+		.where(inArray(tasteProfiles.userId, memberIds));
+	const prefs: MergedPreferences = {
+		genres: mergeProfiles(profiles),
+		era: mergeEra(profiles),
+		tone: mergeTone(profiles),
+		runtimePref: mergeRuntimePref(profiles),
+	};
+
+	const watchedRows = await db
+		.select({
+			tmdbId: watchedTogether.tmdbId,
+			mediaType: watchedTogether.mediaType,
+		})
+		.from(watchedTogether)
+		.where(eq(watchedTogether.householdId, householdId));
+	// Keyed by tmdbId+mediaType, not tmdbId alone -- movie and TV ids are assigned from separate
+	// TMDb id spaces, so a watched movie must not exclude an unrelated TV show (or vice versa)
+	// that happens to share the same numeric id, now that both are candidate sources below.
+	const excludedWatched = new Set<string>(
+		watchedRows.map(w => `${w.tmdbId}:${w.mediaType}`)
+	);
+
+	const llmEligible = await isLlmRerankEnabledForHousehold(db, householdId);
+	const { mlResult, ranked } = await buildRecommendation(
+		env,
+		request,
+		prefs,
+		excludedWatched,
+		llmEligible ? 10 : 3
+	);
 
 	if (!llmEligible || ranked.length < 2) {
 		return mlResult;
@@ -599,6 +660,7 @@ export const pickForHousehold = async (
 		}),
 	}));
 
+	const currentYear = new Date().getFullYear();
 	const llmCandidates: LlmCandidate[] = ranked.map(p => ({
 		tmdbId: p.card.tmdbId,
 		title: p.card.title,

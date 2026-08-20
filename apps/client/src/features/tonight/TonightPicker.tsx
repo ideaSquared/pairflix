@@ -1,38 +1,26 @@
 import {
-  Badge,
   Button,
-  Card,
-  CardContent,
   Container,
   Flex,
   H1,
-  H2,
   PageContainer,
   Typography,
 } from '@pairflix/components';
 import { useMutation } from '@tanstack/react-query';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import UpgradeBanner from '../billing/UpgradeBanner';
+import { MOODS } from '../../config/moods';
 import { useEntitlements } from '../../hooks/useEntitlements';
 import {
   households,
   type Mood,
   type RecommendationCard,
 } from '../../services/api/households';
+import RecommendationResultCard from './RecommendationResultCard';
 import * as styles from './TonightPicker.css';
 import { useActiveHousehold } from './useActiveHousehold';
 import { useTonightHomepagePreference } from './useTonightHomepage';
 import { useCommitPick, useTonightPick } from './useTonightPick';
-
-const MOODS: { id: Mood; label: string }[] = [
-  { id: 'funny', label: 'Funny' },
-  { id: 'feelgood', label: 'Feel-good' },
-  { id: 'romantic', label: 'Romantic' },
-  { id: 'thoughtful', label: 'Thoughtful' },
-  { id: 'tense', label: 'Tense' },
-  { id: 'dark', label: 'Dark' },
-  { id: 'action', label: 'Action' },
-];
 
 const PROVIDER_OPTIONS: { id: string; label: string }[] = [
   { id: 'netflix', label: 'Netflix' },
@@ -153,11 +141,6 @@ const TonightPicker: React.FC = () => {
     );
   };
 
-  const providerBadges = useMemo(() => {
-    if (!result) return [];
-    return result.pick.providers.flatrate ?? [];
-  }, [result]);
-
   if (householdLoading) {
     return (
       <PageContainer maxWidth="lg" padding="lg" centered>
@@ -275,83 +258,42 @@ const TonightPicker: React.FC = () => {
         )}
 
         {result && !dismissed && (
-          <Card variant="primary" className={styles.resultCard}>
-            <CardContent>
-              <Flex gap="lg" alignItems="flex-start">
-                {result.pick.posterPath && (
-                  <img
-                    className={styles.poster}
-                    src={`https://image.tmdb.org/t/p/w500${result.pick.posterPath}`}
-                    alt={result.pick.title}
-                  />
+          <RecommendationResultCard
+            card={result.pick}
+            rationale={result.rationale}
+            onLaunchProvider={providerName =>
+              onLaunchProvider(result.pick, providerName)
+            }
+            launchError={launchMutation.error?.message}
+            actions={
+              <>
+                <Flex gap="md" wrap="wrap" className={styles.actionRow}>
+                  <Button
+                    variant="success"
+                    onClick={() => onCommit(result.pick)}
+                    disabled={commitMutation.isPending}
+                  >
+                    Watching it
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => onSwap(result.pick)}
+                    disabled={isPending}
+                  >
+                    Swap
+                  </Button>
+                  <Button variant="text" onClick={() => onDismiss(result.pick)}>
+                    Not tonight
+                  </Button>
+                </Flex>
+                {commitMutation.error && (
+                  <Typography variant="body2" className={styles.errorMessage}>
+                    {commitMutation.error.message}
+                  </Typography>
                 )}
-                <div>
-                  <H2>{result.pick.title}</H2>
-                  <Flex gap="sm" className={styles.badgeRow}>
-                    {result.pick.year && (
-                      <Badge variant="secondary">{result.pick.year}</Badge>
-                    )}
-                    {result.pick.runtime && (
-                      <Badge variant="secondary">
-                        {result.pick.runtime} min
-                      </Badge>
-                    )}
-                    {providerBadges.map(p => (
-                      <button
-                        className={styles.providerLaunchButton}
-                        key={p.provider_id}
-                        type="button"
-                        onClick={() =>
-                          onLaunchProvider(result.pick, p.provider_name)
-                        }
-                      >
-                        Watch on {p.provider_name}
-                      </button>
-                    ))}
-                  </Flex>
-                  {launchMutation.error && (
-                    <Typography variant="body2" className={styles.errorMessage}>
-                      {launchMutation.error.message}
-                    </Typography>
-                  )}
-                  <Typography variant="body2" className={styles.rationale}>
-                    {result.rationale}
-                  </Typography>
-                  <Typography variant="body2">
-                    {result.pick.overview}
-                  </Typography>
-
-                  <Flex gap="md" wrap="wrap" className={styles.actionRow}>
-                    <Button
-                      variant="success"
-                      onClick={() => onCommit(result.pick)}
-                      disabled={commitMutation.isPending}
-                    >
-                      Watching it
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => onSwap(result.pick)}
-                      disabled={isPending}
-                    >
-                      Swap
-                    </Button>
-                    <Button
-                      variant="text"
-                      onClick={() => onDismiss(result.pick)}
-                    >
-                      Not tonight
-                    </Button>
-                  </Flex>
-                  {commitMutation.error && (
-                    <Typography variant="body2" className={styles.errorMessage}>
-                      {commitMutation.error.message}
-                    </Typography>
-                  )}
-                </div>
-              </Flex>
-            </CardContent>
-          </Card>
+              </>
+            }
+          />
         )}
       </Container>
     </PageContainer>
