@@ -45,7 +45,7 @@ services/api/
 
 ```bash
 cp .dev.vars.example .dev.vars     # local Worker secrets (see the file for what each does)
-pnpm --filter @pairflix/db db:migrate:local
+pnpm --filter @pairflix/api db:migrate:local
 pnpm dev                            # wrangler dev, http://localhost:8787
 ```
 

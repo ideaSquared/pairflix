@@ -52,7 +52,7 @@ This is a monorepo containing multiple applications and shared libraries:
 3. **Set up the local database (D1 via Miniflare)**
 
    ```bash
-   pnpm --filter @pairflix/db db:migrate:local
+   pnpm --filter @pairflix/api db:migrate:local
    ```
 
 4. **Configure environment variables**
