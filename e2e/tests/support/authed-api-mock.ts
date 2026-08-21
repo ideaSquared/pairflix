@@ -220,3 +220,17 @@ export const seedAuthedSession = (
       json(route, 200, entitlements)
     );
 };
+
+/**
+ * An ApiMock for logged-out flows: `GET /api/auth/me` returns 401 (with the exact message useAuth
+ * checks so it doesn't retry), and the CSRF preflight is answered. Specs register the auth endpoints
+ * they exercise (verify-email, reset-password, ...).
+ */
+export const seedLoggedOut = (): ApiMock =>
+  new ApiMock()
+    .on('GET', '/api/auth/me', ({ route }) =>
+      json(route, 401, { error: 'Authentication required' })
+    )
+    .on('GET', '/api/auth/csrf-token', ({ route }) =>
+      json(route, 200, { csrfToken: 'test-csrf-token' })
+    );
