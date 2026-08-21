@@ -29,6 +29,8 @@ const EmailVerificationPage: React.FC = () => {
   const [hasVerified, setHasVerified] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
   const [resendSuccess, setResendSuccess] = useState('');
+  const [resendError, setResendError] = useState('');
+  const [isResending, setIsResending] = useState(false);
 
   React.useEffect(() => {
     if (token && !hasVerified) {
@@ -71,11 +73,14 @@ const EmailVerificationPage: React.FC = () => {
 
   const handleResendVerification = async () => {
     if (!resendEmail) {
-      setError('Enter your email address to resend the verification link');
+      setResendError(
+        'Enter your email address to resend the verification link'
+      );
       return;
     }
 
-    setIsLoading(true);
+    setIsResending(true);
+    setResendError('');
     setResendSuccess('');
 
     try {
@@ -85,14 +90,14 @@ const EmailVerificationPage: React.FC = () => {
       );
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setResendError(err.message);
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        setError(err.message as string);
+        setResendError(err.message as string);
       } else {
-        setError('An error occurred while sending verification email');
+        setResendError('An error occurred while sending verification email');
       }
     } finally {
-      setIsLoading(false);
+      setIsResending(false);
     }
   };
 
@@ -132,16 +137,19 @@ const EmailVerificationPage: React.FC = () => {
                       value={resendEmail}
                       onChange={e => setResendEmail(e.target.value)}
                       isFullWidth
-                      disabled={isLoading}
+                      disabled={isResending}
                     />
                   </InputGroup>
                   <Button
                     variant="primary"
                     onClick={handleResendVerification}
-                    disabled={isLoading}
+                    disabled={isResending}
                   >
-                    Send New Verification Email
+                    {isResending ? 'Sending...' : 'Send New Verification Email'}
                   </Button>
+                  {resendError && (
+                    <ErrorText gutterBottom>{resendError}</ErrorText>
+                  )}
                   {resendSuccess && (
                     <SuccessText gutterBottom>{resendSuccess}</SuccessText>
                   )}
