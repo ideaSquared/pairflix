@@ -1,0 +1,61 @@
+name: E2E (Playwright)
+
+# Browser end-to-end tests for the client SPA. These are heavier than the unit/integration suite in
+# ci.yml, so they are gated:
+#   - master (push / merge): ALWAYS run -- the mandatory gate for the mainline.
+#   - pull requests: opt-in -- run only when the PR carries the `e2e` label. Add the label to a PR
+#     to exercise the browser suite before merge; routine PRs skip it.
+# Because the PR run is label-gated it is intentionally NOT a required status check on PRs (a
+# required check must report on every PR); the always-on gate lives on master.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E (Playwright)
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'e2e'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm --filter @pairflix/e2e exec playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: pnpm --filter @pairflix/e2e test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

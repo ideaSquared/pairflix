@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 declare const process:
   | {
       env: {
@@ -7,30 +9,26 @@ declare const process:
     }
   | undefined;
 
-const getViteEnvVar = (key: string): string | undefined => {
+// Mirrors services/api utils.ts's getApiUrl: read the Vite-injected `import.meta.env` literal (which
+// the bundler statically replaces at build time), but in tests drive behaviour via process.env,
+// which Vitest populates and marks with NODE_ENV === 'test'. Reading `import.meta.env` directly is
+// the only form Vite replaces -- a dynamic `globalThis.import` lookup never resolves.
+const getBillingMockFlag = (): string | undefined => {
   if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
-    return undefined;
+    return process.env.VITE_BILLING_MOCK_ENABLED;
   }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const importMeta = (globalThis as any).import?.meta;
-    return importMeta?.env?.[key];
-  } catch {
-    return undefined;
-  }
+  const fromVite = import.meta.env.VITE_BILLING_MOCK_ENABLED;
+  return typeof fromVite === 'string' ? fromVite : undefined;
 };
 
 export const isBillingMockEnabled = (): boolean => {
-  const fromEnv =
-    getViteEnvVar('VITE_BILLING_MOCK_ENABLED') ??
-    (typeof process !== 'undefined'
-      ? process.env?.VITE_BILLING_MOCK_ENABLED
-      : undefined);
+  const fromEnv = getBillingMockFlag();
   if (fromEnv !== undefined) {
     return fromEnv === 'true';
   }
   if (typeof process !== 'undefined') {
     return process.env?.NODE_ENV !== 'production';
   }
+  // Browser build with the flag unset: default on (pre-launch alpha, no live Stripe yet).
   return true;
 };

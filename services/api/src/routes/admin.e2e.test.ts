@@ -7,6 +7,7 @@ import {
 	createLoggedInUser,
 	loginUser,
 	postJson,
+	promoteToAdmin,
 	registerAndVerify,
 } from '../test/test-helpers';
 
@@ -65,6 +66,24 @@ describe('admin routes -- authorization', () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const result = await callApp('/api/admin/users', { cookies });
 		expect(result.status).toBe(403);
+	});
+
+	it('rejects an admin who has not enrolled two-factor auth', async () => {
+		const email = uniqueEmail();
+		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
+		await promoteToAdmin(userId);
+		// Logs in with just a password -- an admin can authenticate without TOTP, but the admin
+		// surface stays closed until 2FA is enrolled.
+		const login = await loginUser(email, 'Str0ngPass123');
+		expect(login.status).toBe(200);
+
+		const result = await callApp<{ error: string }>('/api/admin/users', {
+			cookies: login.cookies,
+		});
+		expect(result.status).toBe(403);
+		expect(result.body.error).toContain(
+			'Two-factor authentication is required'
+		);
 	});
 });
 

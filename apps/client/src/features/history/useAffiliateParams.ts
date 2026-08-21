@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useMemo } from 'react';
 
 declare const process:
@@ -9,17 +10,16 @@ declare const process:
     }
   | undefined;
 
+// Mirrors billing/flags.ts: read the Vite-injected import.meta.env literal (statically replaced at
+// build time), but in tests drive it via process.env, which Vitest populates and marks with
+// NODE_ENV === 'test'. Reading import.meta.env directly is the only form Vite replaces -- a dynamic
+// globalThis.import lookup never resolves.
 const readRaw = (): string | undefined => {
   if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
-    return undefined;
+    return process.env.VITE_AFFILIATE_PARAMS;
   }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const importMeta = (globalThis as any).import?.meta;
-    return importMeta?.env?.VITE_AFFILIATE_PARAMS;
-  } catch {
-    return undefined;
-  }
+  const raw = import.meta.env.VITE_AFFILIATE_PARAMS;
+  return typeof raw === 'string' ? raw : undefined;
 };
 
 const parse = (raw: string | undefined): Record<string, string> => {
