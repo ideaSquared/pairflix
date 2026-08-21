@@ -5,8 +5,33 @@ import {
   seedLoggedOut,
 } from './support/authed-api-mock';
 
-// The client has no TOTP/2FA challenge UI (LoginPage only collects email + password), so this
-// covers the plain email/password login journey.
+// The sign-in journey. The client has no TOTP/2FA challenge UI (LoginPage only collects email +
+// password), so there is no second factor to drive here.
+
+test('shows the sign-in form', async ({ page }) => {
+  await seedLoggedOut().install(page);
+
+  await page.goto('/login');
+  await expect(
+    page.getByRole('heading', { name: 'Login to PairFlix' })
+  ).toBeVisible();
+  await expect(page.getByPlaceholder('Email')).toBeVisible();
+  await expect(page.getByPlaceholder('Password')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+});
+
+test('redirects an unauthenticated visit to a protected route to login', async ({
+  page,
+}) => {
+  await seedLoggedOut().install(page);
+
+  await page.goto('/tonight');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole('heading', { name: 'Login to PairFlix' })
+  ).toBeVisible();
+});
+
 test('logs in and lands on the tonight screen', async ({ page }) => {
   const mock = seedAuthedSession();
   mock.on('POST', '/api/auth/login', ({ route }) =>

@@ -8,20 +8,33 @@ API's `*.e2e.test.ts` integration tests, which run in-process under
 
 ## What they cover
 
-- **Anonymous surface** (`landing.spec.ts`, `auth.spec.ts`, `demo-pick.spec.ts`): the landing page
-  and its anonymous demo pick, sign-in/registration forms and their client-side validation, and
-  auth-gated routing.
-- **Authenticated journeys** (`tonight-pick.spec.ts`, `household-funnel.spec.ts`, `history.spec.ts`,
-  `upgrade.spec.ts`): the "pick for us tonight" loop (pick -> swap -> commit -> launch), the
-  household create/invite/accept funnel, watch history + thumbs rating, and the free-tier quota ->
-  upgrade -> mock-checkout path.
+One spec file per user journey (the filename names the journey; a file that bundles related
+sub-flows groups them with `test.describe`). Coverage map:
+
+| Journey             | Spec                       | Scenarios                                                                                                                               |
+| ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Landing page        | `landing.spec.ts`          | hero + demo-pick form renders; links through to login                                                                                   |
+| Anonymous demo pick | `demo-pick.spec.ts`        | pick returns a title; API error is surfaced                                                                                             |
+| Sign in             | `login.spec.ts`            | form renders; protected route redirects to login; login -> tonight; bad-credentials error                                               |
+| Register            | `register.spec.ts`         | password-mismatch validation; success -> check-your-email                                                                               |
+| Account email flows | `auth-email.spec.ts`       | email verification (verify / expired-resend / missing token); password reset (missing-token / mismatch / valid submit); forgot password |
+| Pick tonight        | `tonight-pick.spec.ts`     | pick for a mood + time; swap (exclude + swapped event); commit; provider launch                                                         |
+| Household funnel    | `household-funnel.spec.ts` | create -> onboarding; generate invite link; accept invite; invalid/expired invite                                                       |
+| Taste onboarding    | `onboarding.spec.ts`       | genres -> swipe -> providers -> submit; skip to an internal next; reject an external next                                               |
+| Watch history       | `history.spec.ts`          | list renders; thumbs rating (PATCH); empty state; no-household state                                                                    |
+| Upgrade / billing   | `upgrade.spec.ts`          | quota-refused error; upgrade banner -> checkout; mock-activate -> tonight                                                               |
+| Profile settings    | `profile.spec.ts`          | username / password / theme updates; password-policy rejection                                                                          |
 
 Every `/api/**` call is stubbed at the network layer, so the suite needs no running Worker or D1 and
 stays deterministic -- which is what lets it be a required check on `master` while real Cloudflare
 infrastructure is still unprovisioned (see `docs/dev-setup.md`). Two stub helpers live under
-`tests/support/`: `api-mock.ts` for the stateless anonymous specs, and `authed-api-mock.ts` -- a
-small stateful fake that seeds a logged-in session (`GET /api/auth/me` returns a user, so no real
-cookie is needed) and lets each spec override individual endpoints.
+`tests/support/`:
+
+- `api-mock.ts` -- the stateless stub for the anonymous specs (`landing`, `demo-pick`).
+- `authed-api-mock.ts` -- a small stateful fake `/api` with path-pattern routing. `seedAuthedSession()`
+  seeds a logged-in session (`GET /api/auth/me` returns a user, so no real cookie is needed) and
+  `seedLoggedOut()` seeds the signed-out state; each spec then registers or overrides the endpoints
+  its journey touches.
 
 ## Running locally
 
