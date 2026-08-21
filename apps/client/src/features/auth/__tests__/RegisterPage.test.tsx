@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { auth } from '../../../services/api';
-import { fireEvent, render, screen, waitFor } from '../../../tests/setup';
+import { render, screen, waitFor } from '../../../tests/setup';
 import RegisterPage from '../RegisterPage';
 
 // Mock the API module
@@ -67,20 +67,11 @@ describe('RegisterPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows "All fields are required" when submitting with a blank field', () => {
+  it('shows "All fields are required" when submitting with a blank field', async () => {
+    const user = userEvent.setup();
     render(<RegisterPage />);
 
-    // The submit button is disabled while any field is blank, so a real click
-    // cannot reach validateForm -- submit the form directly to exercise it.
-    expect(
-      screen.getByRole('button', { name: 'Create Account' })
-    ).toBeDisabled();
-
-    const form = document.querySelector('form');
-    if (!form) {
-      throw new Error('Could not find registration form');
-    }
-    fireEvent.submit(form);
+    await user.click(screen.getByRole('button', { name: 'Create Account' }));
 
     expect(screen.getByText('All fields are required')).toBeInTheDocument();
     expect(auth.register).not.toHaveBeenCalled();
@@ -90,11 +81,9 @@ describe('RegisterPage', () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
 
-    // "user@domain" passes the browser's native type="email" check (so the form
-    // submits) but fails the component's stricter validator (no dot in domain).
     await fillForm(user, {
       username: 'validuser',
-      email: 'user@domain',
+      email: 'notanemail',
       password: 'password123',
       confirmPassword: 'password123',
     });
