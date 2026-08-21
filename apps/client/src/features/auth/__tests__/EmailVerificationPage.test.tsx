@@ -85,17 +85,79 @@ describe('EmailVerificationPage', () => {
       })
     );
 
-    // NOTE: source bug (asserting actual behaviour, not fixed). handleResendVerification sets
-    // `success` without clearing the resend/error state, and the render ternary tests `success`
-    // before `error`, so a successful resend flips the whole page to the "Email Verified!"
-    // success branch -- wrong heading, plus a "Redirecting..." line even though
-    // handleResendVerification schedules no navigation.
-    expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'If that address is registered, a new link is on its way.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('Verification Failed')).toBeInTheDocument();
+    expect(screen.queryByText('Email Verified!')).not.toBeInTheDocument();
+  });
+
+  it('stays on the expired screen while resending instead of showing the verify loader', async () => {
+    const user = userEvent.setup();
+    mockSearchParams = new URLSearchParams('token=expired-token');
+    (emailService.verifyEmail as Mock).mockRejectedValue(
+      new Error('Verification token has expired')
+    );
+    let resolveResend!: (value: { sent: boolean }) => void;
+    (emailService.resendVerification as Mock).mockImplementation(
+      () =>
+        new Promise<{ sent: boolean }>(resolve => {
+          resolveResend = resolve;
+        })
+    );
+
+    render(<EmailVerificationPage />);
+
+    expect(await screen.findByText('Verification Failed')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Email'), 'user@example.com');
+    await user.click(
+      screen.getByRole('button', { name: 'Send New Verification Email' })
+    );
+
+    expect(screen.queryByText('Verifying Email...')).not.toBeInTheDocument();
+    expect(screen.getByText('Verification Failed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sending...' })
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      resolveResend({ sent: true });
+    });
+
     expect(
       screen.getByText(
         'If that address is registered, a new link is on its way.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('surfaces a resend error inline without hiding the resend form', async () => {
+    const user = userEvent.setup();
+    mockSearchParams = new URLSearchParams('token=expired-token');
+    (emailService.verifyEmail as Mock).mockRejectedValue(
+      new Error('Verification token has expired')
+    );
+
+    render(<EmailVerificationPage />);
+
+    expect(await screen.findByText('Verification Failed')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Send New Verification Email' })
+    );
+
+    expect(
+      screen.getByText(
+        'Enter your email address to resend the verification link'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Send New Verification Email' })
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+    expect(emailService.resendVerification).not.toHaveBeenCalled();
   });
 
   it('shows an invalid-token message when no token is present in the URL', async () => {
