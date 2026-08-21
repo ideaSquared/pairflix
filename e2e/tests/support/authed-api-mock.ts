@@ -66,15 +66,6 @@ export class ApiMock {
     return this;
   }
 
-  /** Every request whose pathname starts with the given `/api/...` prefix. */
-  requestsFor(method: string, pathnamePrefix: string): RecordedRequest[] {
-    return this.requests.filter(
-      r =>
-        r.method === method.toUpperCase() &&
-        r.pathname.startsWith(pathnamePrefix)
-    );
-  }
-
   async install(page: Page): Promise<void> {
     // Anchored to a `/api/` path at the root of the origin so the app's own source modules under
     // `src/services/api/**` (served by the dev server) are never intercepted.
@@ -114,3 +105,118 @@ export class ApiMock {
     });
   }
 }
+
+export type MockAuthUser = {
+  id: string;
+  username: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'inactive' | 'pending' | 'suspended' | 'banned';
+  emailVerified: boolean;
+  totpEnabled: boolean;
+  preferences: {
+    theme: 'light' | 'dark';
+    viewStyle: 'grid' | 'list';
+    emailNotifications: boolean;
+    autoArchiveDays: number;
+    favoriteGenres: string[];
+    selectedProviders?: string[];
+  };
+  createdAt: string;
+};
+
+export type MockHousehold = {
+  id: string;
+  name: string | null;
+  role: 'owner' | 'member';
+  joinedAt: string;
+  memberCount: number;
+};
+
+export type MockEntitlements = {
+  tier: 'free' | 'premium';
+  dailyPickLimit: number;
+  picksUsedToday: number;
+  picksRemaining: number;
+  canUseLlmRerank: boolean;
+  canUseMultiRegion: boolean;
+  regionLock: string | null;
+};
+
+const DEFAULT_USER: MockAuthUser = {
+  id: 'u1',
+  username: 'e2euser',
+  email: 'e2e@example.com',
+  role: 'user',
+  status: 'active',
+  emailVerified: true,
+  totpEnabled: false,
+  preferences: {
+    theme: 'dark',
+    viewStyle: 'grid',
+    emailNotifications: true,
+    autoArchiveDays: 30,
+    favoriteGenres: [],
+    selectedProviders: ['netflix', 'prime', 'disney_plus'],
+  },
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
+
+const DEFAULT_HOUSEHOLD: MockHousehold = {
+  id: 'hh1',
+  name: 'Movie Mondays',
+  role: 'owner',
+  joinedAt: '2026-01-01T00:00:00.000Z',
+  memberCount: 1,
+};
+
+const DEFAULT_ENTITLEMENTS: MockEntitlements = {
+  tier: 'free',
+  dailyPickLimit: 3,
+  picksUsedToday: 0,
+  picksRemaining: 3,
+  canUseLlmRerank: false,
+  canUseMultiRegion: false,
+  regionLock: 'GB',
+};
+
+export type SessionOverrides = {
+  user?: Partial<MockAuthUser>;
+  households?: MockHousehold[];
+  entitlements?: Partial<MockEntitlements>;
+};
+
+/**
+ * An ApiMock preloaded with a logged-in session: `GET /api/auth/me` returns a user, the CSRF
+ * preflight is answered, and the shared `GET /api/households` + entitlements resolve. Journey specs
+ * register their own endpoints (pick, commit, history, ...) on top; later registrations win.
+ */
+export const seedAuthedSession = (
+  overrides: SessionOverrides = {}
+): ApiMock => {
+  const user: MockAuthUser = {
+    ...DEFAULT_USER,
+    ...overrides.user,
+    preferences: {
+      ...DEFAULT_USER.preferences,
+      ...overrides.user?.preferences,
+    },
+  };
+  const households = overrides.households ?? [DEFAULT_HOUSEHOLD];
+  const entitlements: MockEntitlements = {
+    ...DEFAULT_ENTITLEMENTS,
+    ...overrides.entitlements,
+  };
+
+  return new ApiMock()
+    .on('GET', '/api/auth/me', ({ route }) => json(route, 200, { data: user }))
+    .on('GET', '/api/auth/csrf-token', ({ route }) =>
+      json(route, 200, { csrfToken: 'test-csrf-token' })
+    )
+    .on('GET', '/api/households', ({ route }) =>
+      json(route, 200, { households })
+    )
+    .on('GET', '/api/households/:id/entitlements', ({ route }) =>
+      json(route, 200, entitlements)
+    );
+};
