@@ -26,7 +26,12 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
-    if (!email || !password || !confirmPassword || !username) {
+    if (
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim() ||
+      !username.trim()
+    ) {
       setError('All fields are required');
       return false;
     }

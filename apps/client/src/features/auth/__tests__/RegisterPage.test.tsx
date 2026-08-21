@@ -77,6 +77,22 @@ describe('RegisterPage', () => {
     expect(auth.register).not.toHaveBeenCalled();
   });
 
+  it('treats a whitespace-only field as missing', async () => {
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+
+    await fillForm(user, {
+      username: 'validuser',
+      email: 'valid@example.com',
+      password: '        ',
+      confirmPassword: '        ',
+    });
+    await user.click(screen.getByRole('button', { name: 'Create Account' }));
+
+    expect(screen.getByText('All fields are required')).toBeInTheDocument();
+    expect(auth.register).not.toHaveBeenCalled();
+  });
+
   it('rejects an invalid email address', async () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
