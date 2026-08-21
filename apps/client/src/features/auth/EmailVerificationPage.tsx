@@ -28,6 +28,7 @@ const EmailVerificationPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasVerified, setHasVerified] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
+  const [resendSuccess, setResendSuccess] = useState('');
 
   React.useEffect(() => {
     if (token && !hasVerified) {
@@ -75,11 +76,13 @@ const EmailVerificationPage: React.FC = () => {
     }
 
     setIsLoading(true);
-    setError('');
+    setResendSuccess('');
 
     try {
       await emailService.resendVerification({ email: resendEmail });
-      setSuccess('If that address is registered, a new link is on its way.');
+      setResendSuccess(
+        'If that address is registered, a new link is on its way.'
+      );
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -139,6 +142,9 @@ const EmailVerificationPage: React.FC = () => {
                   >
                     Send New Verification Email
                   </Button>
+                  {resendSuccess && (
+                    <SuccessText gutterBottom>{resendSuccess}</SuccessText>
+                  )}
                 </>
               )}
 

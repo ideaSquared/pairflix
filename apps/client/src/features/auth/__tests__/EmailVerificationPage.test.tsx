@@ -85,17 +85,13 @@ describe('EmailVerificationPage', () => {
       })
     );
 
-    // NOTE: source bug (asserting actual behaviour, not fixed). handleResendVerification sets
-    // `success` without clearing the resend/error state, and the render ternary tests `success`
-    // before `error`, so a successful resend flips the whole page to the "Email Verified!"
-    // success branch -- wrong heading, plus a "Redirecting..." line even though
-    // handleResendVerification schedules no navigation.
-    expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
     expect(
-      screen.getByText(
+      await screen.findByText(
         'If that address is registered, a new link is on its way.'
       )
     ).toBeInTheDocument();
+    expect(screen.getByText('Verification Failed')).toBeInTheDocument();
+    expect(screen.queryByText('Email Verified!')).not.toBeInTheDocument();
   });
 
   it('shows an invalid-token message when no token is present in the URL', async () => {
