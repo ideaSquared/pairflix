@@ -104,4 +104,35 @@ describe('ToastProvider', () => {
 
     expect(screen.queryByText('Dismiss me')).not.toBeInTheDocument();
   });
+
+  it('renders the toast in the container for its requested position', () => {
+    renderProvider(
+      <Trigger message="Bottom toast" options={{ position: 'bottom-center' }} />
+    );
+
+    addToast();
+
+    // toastContainer is a vanilla-extract styleVariants keyed by position, so the container's class
+    // carries the position name -- proof the toast was grouped by its requested position, not the
+    // hardcoded top-right default.
+    const container = screen
+      .getByText('Bottom toast')
+      .closest('div[class*="bottom-center"]');
+    expect(container).not.toBeNull();
+  });
+
+  it('never auto-dismisses a toast created with duration 0', () => {
+    renderProvider(
+      <Trigger message="Sticky toast" options={{ duration: 0 }} />
+    );
+
+    addToast();
+    expect(screen.getByText('Sticky toast')).toBeInTheDocument();
+
+    // Well past the default 5000ms: a `|| 5000` coercion would have dismissed it by now.
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText('Sticky toast')).toBeInTheDocument();
+  });
 });

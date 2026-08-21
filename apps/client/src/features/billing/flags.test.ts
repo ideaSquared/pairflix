@@ -1,10 +1,9 @@
 import { isBillingMockEnabled } from './flags';
 
-// NOTE: In the Vitest/jsdom runtime `process` is defined and NODE_ENV is 'test', so flags.ts's
-// getViteEnvVar() always short-circuits to undefined and the result is driven entirely by
-// process.env -- VITE_BILLING_MOCK_ENABLED first, then the NODE_ENV production fallback. These
-// tests assert that real, process.env-driven behaviour. See the accompanying report for the latent
-// import.meta.env access bug this exposes.
+// In the Vitest/jsdom runtime `process` is defined and NODE_ENV is 'test', so isBillingMockEnabled
+// reads the flag from process.env (which vi.stubEnv populates), first VITE_BILLING_MOCK_ENABLED then
+// the NODE_ENV production fallback. A real browser build reads the same flag from the Vite-injected
+// import.meta.env literal instead (see flags.ts).
 describe('isBillingMockEnabled', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

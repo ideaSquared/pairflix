@@ -64,6 +64,11 @@ export interface ToastProps extends Required<Omit<ToastOptions, 'position'>> {
    * Toast variant (same as type for consistency)
    */
   variant: ToastType;
+
+  /**
+   * Resolved position used to group the toast into its container
+   */
+  position?: ToastPosition;
 }
 
 type ToastAction =
@@ -111,10 +116,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
           message,
           type: options.type || 'info',
           variant: options.type || 'info',
-          duration: options.duration || 5000,
+          // `?? 5000`, not `|| 5000`: a caller-supplied `duration: 0` means "never auto-dismiss"
+          // (Toast.tsx only arms a timer when duration > 0) and must be preserved, not coerced.
+          duration: options.duration ?? 5000,
+          position: options.position ?? 'top-right',
           pauseOnHover: options.pauseOnHover ?? true,
           closeable: options.closeable ?? true,
-        } as ToastProps,
+        },
       });
     },
     []
@@ -124,16 +132,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch({ type: 'REMOVE_TOAST', id });
   }, []);
 
-  // Group toasts by position
+  // Group toasts by their requested position.
   const toastsByPosition = state.toasts.reduce<
     Record<ToastPosition, ToastProps[]>
   >(
     (acc, toast) => {
-      const position = 'top-right' as ToastPosition; // Default position
-      if (!acc[position]) {
-        acc[position] = [];
-      }
-      acc[position].push(toast);
+      acc[toast.position ?? 'top-right']?.push(toast);
       return acc;
     },
     {
