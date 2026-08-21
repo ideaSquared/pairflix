@@ -700,6 +700,73 @@ describe('POST /api/households/:id/pick', () => {
 		);
 		expect(result.status).toBe(404);
 	});
+
+	it('refunds the daily quota when a pick fails, so a failed attempt costs nothing', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+
+		mockExternalApis(DEFAULT_MOVIES);
+		const failed = await postJson(
+			`/api/households/${householdId}/pick`,
+			{
+				mood: 'funny',
+				minutes: 120,
+				excludeTmdbIds: DEFAULT_MOVIES.map(m => m.id),
+			},
+			cookies
+		);
+		expect(failed.status).toBe(404);
+
+		// The reservation is released via waitUntil after the response resolves -- wait for the row
+		// to actually clear before spending the real quota, or the poll below races the release.
+		await waitForRow(async () => {
+			const row = await env.DB.prepare(
+				'SELECT COUNT(*) AS n FROM pick_usage WHERE household_id = ?1'
+			)
+				.bind(householdId)
+				.first<{ n: number }>();
+			return row?.n === 0 ? row : null;
+		});
+
+		// All three free-tier picks still succeed -- the failed attempt did not consume one.
+		for (let i = 0; i < 3; i++) {
+			mockExternalApis(DEFAULT_MOVIES);
+			const ok = await postJson(
+				`/api/households/${householdId}/pick`,
+				{ mood: 'funny', minutes: 120 },
+				cookies
+			);
+			expect(ok.status).toBe(200);
+		}
+	});
+});
+
+describe('CSRF protection', () => {
+	it('rejects a state-changing request that carries a session cookie but no CSRF header', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const result = await callApp('/api/households', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name: 'No CSRF' }),
+			cookies,
+		});
+		expect(result.status).toBe(403);
+	});
+
+	it('rejects a state-changing request whose CSRF header does not match the cookie', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const seeded = await getCsrfToken(cookies);
+		const result = await callApp('/api/households', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-csrf-token': 'not-the-real-token',
+			},
+			body: JSON.stringify({ name: 'Wrong CSRF' }),
+			cookies: seeded.cookies,
+		});
+		expect(result.status).toBe(403);
+	});
 });
 
 describe('POST /api/households/:id/pick -- TV candidates', () => {
@@ -986,6 +1053,63 @@ describe('LLM re-rank wiring', () => {
 		);
 		expect(result.status).toBe(200);
 		expect(DEFAULT_MOVIES.map(m => m.id)).toContain(result.body.pick.tmdbId);
+	});
+
+	it('falls back to the ML pick when the LLM picks an id outside the candidate set', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		await makePremiumWithLlmRerank(householdId);
+
+		// The model returns a well-formed pick, but for a tmdb_id that was never in the candidate
+		// list -- the safety net lib/llm.ts warns callers to guard against.
+		mockExternalApis(DEFAULT_MOVIES, {
+			pickTmdbId: 999999,
+			alternatesTmdbIds: [],
+			rationale: 'A pick that was never in the candidate list.',
+		});
+		const result = await postJson<{
+			pick: { tmdbId: number };
+			rationale: string;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(DEFAULT_MOVIES.map(m => m.id)).toContain(result.body.pick.tmdbId);
+		// The bogus rationale is dropped along with the out-of-set pick -- proof it fell through to
+		// the pure-ML result rather than surfacing the LLM's choice.
+		expect(result.body.rationale).not.toBe(
+			'A pick that was never in the candidate list.'
+		);
+	});
+
+	it('honors the LLM pick order over the ML ranking and surfaces its alternates', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		await makePremiumWithLlmRerank(householdId);
+
+		// MOVIE_B is older and lower-ranked than the pure-ML top pick (MOVIE_C), so choosing it
+		// proves the LLM's *selection* -- not just its rationale -- overrode the ML order.
+		mockExternalApis(DEFAULT_MOVIES, {
+			pickTmdbId: MOVIE_B.id,
+			alternatesTmdbIds: [MOVIE_A.id, MOVIE_C.id],
+			rationale: 'Both of you will enjoy this one.',
+		});
+		const result = await postJson<{
+			pick: { tmdbId: number };
+			alternates: Array<{ tmdbId: number }>;
+		}>(
+			`/api/households/${householdId}/pick`,
+			{ mood: 'funny', minutes: 120 },
+			cookies
+		);
+		expect(result.status).toBe(200);
+		expect(result.body.pick.tmdbId).toBe(MOVIE_B.id);
+		expect(result.body.alternates.map(a => a.tmdbId)).toEqual([
+			MOVIE_A.id,
+			MOVIE_C.id,
+		]);
 	});
 });
 
