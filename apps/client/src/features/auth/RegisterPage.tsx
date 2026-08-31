@@ -26,7 +26,12 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
-    if (!email || !password || !confirmPassword || !username) {
+    if (
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim() ||
+      !username.trim()
+    ) {
       setError('All fields are required');
       return false;
     }
@@ -113,13 +118,6 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  const isFormValid =
-    email.trim() &&
-    password.trim() &&
-    confirmPassword.trim() &&
-    username.trim() &&
-    !isLoading;
-
   // Show success state after registration
   if (success) {
     return (
@@ -169,7 +167,11 @@ const RegisterPage: React.FC = () => {
       <Card className={styles.registerCard}>
         <CardContent>
           <H2 className={styles.createAccountHeading}>Create Account</H2>
-          <form className={styles.registerForm} onSubmit={handleSubmit}>
+          <form
+            className={styles.registerForm}
+            onSubmit={handleSubmit}
+            noValidate
+          >
             <InputGroup>
               <Input
                 type="text"
@@ -218,7 +220,6 @@ const RegisterPage: React.FC = () => {
             <Button
               type="submit"
               variant="primary"
-              disabled={!isFormValid}
               isLoading={isLoading}
               isFullWidth
             >
