@@ -754,7 +754,7 @@ export const pickForHousehold = async (
 	// The only observability this spend gets -- rawUsage was previously computed and discarded, so
 	// there was no way to see premium LLM token/cost usage anywhere (Cloudflare observability
 	// captures console output, see CLAUDE.md's Logging & errors section).
-	console.log('[recommendation] llm rerank usage', {
+	console.warn('[recommendation] llm rerank usage', {
 		householdId,
 		...llmResult.rawUsage,
 	});

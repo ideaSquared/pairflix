@@ -9,7 +9,6 @@ import {
 	mockExternalApis,
 	postJson,
 	type Cookies,
-	type MockAnthropic,
 	type MockMovie,
 	type MockShow,
 } from '../test/test-helpers';

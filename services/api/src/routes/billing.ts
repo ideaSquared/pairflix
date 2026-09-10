@@ -164,11 +164,12 @@ billingRoutes.post('/webhook', async c => {
 			// new Stripe subscription id, which isn't blocked by this check. Also guards against a
 			// delayed event whose period-end predates what's already stored, since Stripe's own
 			// current_period_end only moves forward as a subscription renews.
+			const existingPeriodEnd = existing?.currentPeriodEnd ?? null;
 			const isStaleUpdate =
 				(existing?.status === 'canceled' &&
 					existing.stripeSubscriptionId === subscription.id) ||
-				(existing?.currentPeriodEnd != null &&
-					currentPeriodEnd.getTime() < existing.currentPeriodEnd.getTime());
+				(existingPeriodEnd !== null &&
+					currentPeriodEnd.getTime() < existingPeriodEnd.getTime());
 
 			if (isStaleUpdate) {
 				await auditInfo(
