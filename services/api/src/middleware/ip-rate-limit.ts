@@ -13,9 +13,12 @@ type IpRateLimitOptions = {
 };
 
 /**
- * Per-IP rate limiter for unauthenticated routes (registration, forgot-password,
- * resend-verification) -- these run before any session exists, so there's no user id to key on.
- * Counts `rateLimitHits` rows sharing this route+IP key rather than a separate counter binding.
+ * Per-IP rate limiter, primarily for unauthenticated routes (registration, login,
+ * forgot-password/reset-password, resend-verification) that run before any session exists, so
+ * there's no user id to key on -- also reused for the authenticated 2FA verify/disable routes
+ * (`routes/me.ts`), where the resource being brute-forced (a 6-digit code) has no other per-IP
+ * throttle. Counts `rateLimitHits` rows sharing this route+IP key rather than a separate counter
+ * binding.
  *
  * No cleanup/expiry job for old rows in this pass -- accepted limitation, D1 storage is cheap at
  * this volume; a future cron sweep could prune rows older than a day.

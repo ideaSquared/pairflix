@@ -4,18 +4,27 @@ import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import type { AppEnv } from '../types';
 
-/** Resolves the session cookie to a user id (or null) on every request. */
+/** Resolves the session cookie to a user id (or null) on every request. Joins `users.status` so a
+ * suspend/ban takes effect on the next request even though nothing revoked the session row itself
+ * -- only `PATCH /admin/users/:userId/status` does that; the generic admin user PATCH doesn't. */
 export const sessionMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 	c.set('userId', null);
 	const token = getCookie(c, 'session');
 	if (token) {
 		const db = createDb(c.env.DB);
 		const row = await db
-			.select({ userId: sessions.userId, expiresAt: sessions.expiresAt })
+			.select({
+				userId: sessions.userId,
+				expiresAt: sessions.expiresAt,
+				status: users.status,
+			})
 			.from(sessions)
+			.innerJoin(users, eq(sessions.userId, users.id))
 			.where(eq(sessions.id, token))
 			.get();
-		if (row && row.expiresAt.getTime() > Date.now()) {
+		const isBlockedStatus =
+			row?.status === 'suspended' || row?.status === 'banned';
+		if (row && row.expiresAt.getTime() > Date.now() && !isBlockedStatus) {
 			c.set('userId', row.userId);
 		}
 	}
