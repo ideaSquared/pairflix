@@ -97,38 +97,9 @@ const upsertPremiumSubscription = async (
 		});
 };
 
-billingRoutes.post('/webhook', async c => {
-	const webhookSecret = c.env.STRIPE_WEBHOOK_SECRET;
-	if (!webhookSecret) return c.json({ error: 'not_configured' }, 501);
+type StripeEvent = { id: string; type: string; data: { object: unknown } };
 
-	const payload = await c.req.text();
-	const valid = await verifyWebhookSignature(
-		payload,
-		c.req.header('stripe-signature') ?? null,
-		webhookSecret
-	);
-	if (!valid) return c.json({ error: 'invalid_signature' }, 400);
-
-	// Trusted Stripe API response body -- shape documented at stripe.com/docs/api/events/object.
-	const event = JSON.parse(payload) as {
-		id: string;
-		type: string;
-		data: { object: unknown };
-	};
-	const db = createDb(c.env.DB);
-
-	// Idempotency: Stripe retries a webhook delivery on anything but a 2xx, so the same event id
-	// can arrive more than once. The insert's primary key conflict is the atomicity guarantee --
-	// two concurrent deliveries of the same event can't both see `recorded.length > 0`.
-	const recorded = await db
-		.insert(stripeEvents)
-		.values({ id: event.id, type: event.type, processedAt: new Date() })
-		.onConflictDoNothing()
-		.returning({ id: stripeEvents.id });
-	if (recorded.length === 0) {
-		return c.json({ received: true, duplicate: true });
-	}
-
+const handleStripeEvent = async (db: Database, event: StripeEvent) => {
 	if (event.type === 'checkout.session.completed') {
 		const session = event.data.object as StripeCheckoutSessionObject;
 		const householdId = session.metadata?.householdId;
@@ -234,6 +205,44 @@ billingRoutes.post('/webhook', async c => {
 				stripeCustomerId: invoice.customer,
 			});
 		}
+	}
+};
+
+billingRoutes.post('/webhook', async c => {
+	const webhookSecret = c.env.STRIPE_WEBHOOK_SECRET;
+	if (!webhookSecret) return c.json({ error: 'not_configured' }, 501);
+
+	const payload = await c.req.text();
+	const valid = await verifyWebhookSignature(
+		payload,
+		c.req.header('stripe-signature') ?? null,
+		webhookSecret
+	);
+	if (!valid) return c.json({ error: 'invalid_signature' }, 400);
+
+	// Trusted Stripe API response body -- shape documented at stripe.com/docs/api/events/object.
+	const event = JSON.parse(payload) as StripeEvent;
+	const db = createDb(c.env.DB);
+
+	// Idempotency: Stripe retries a webhook delivery on anything but a 2xx, so the same event id
+	// can arrive more than once. The insert's primary key conflict is the atomicity guarantee --
+	// two concurrent deliveries of the same event can't both see `recorded.length > 0`.
+	const recorded = await db
+		.insert(stripeEvents)
+		.values({ id: event.id, type: event.type, processedAt: new Date() })
+		.onConflictDoNothing()
+		.returning({ id: stripeEvents.id });
+	if (recorded.length === 0) {
+		return c.json({ received: true, duplicate: true });
+	}
+
+	try {
+		await handleStripeEvent(db, event);
+	} catch (error) {
+		// Release the idempotency claim. Stripe retries on any non-2xx, and without this the retry
+		// would match the row inserted above and be answered as a duplicate, losing the event.
+		await db.delete(stripeEvents).where(eq(stripeEvents.id, event.id));
+		throw error;
 	}
 
 	return c.json({ received: true });

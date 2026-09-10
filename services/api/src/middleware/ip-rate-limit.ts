@@ -20,8 +20,8 @@ type IpRateLimitOptions = {
  * throttle. Counts `rateLimitHits` rows sharing this route+IP key rather than a separate counter
  * binding.
  *
- * No cleanup/expiry job for old rows in this pass -- accepted limitation, D1 storage is cheap at
- * this volume; a future cron sweep could prune rows older than a day.
+ * Old rows are pruned by the nightly retention sweep (`lib/retention.ts`), so the table does not
+ * grow without bound on unauthenticated traffic.
  */
 export const ipRateLimit = (options: IpRateLimitOptions) => {
 	const { routeName, limit, windowMinutes } = options;
