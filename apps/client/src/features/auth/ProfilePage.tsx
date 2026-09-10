@@ -91,13 +91,6 @@ const ProfilePage: React.FC = () => {
     }
   }, [user, logout]);
 
-  const handleAuthError = (error: Error) => {
-    if (error.message === 'Authentication required') {
-      logout();
-      return;
-    }
-  };
-
   const passwordMutation = useMutation<
     void,
     Error,
@@ -111,7 +104,6 @@ const ProfilePage: React.FC = () => {
     onError: (error: Error) => {
       setPasswordError(error.message);
       setPasswordSuccess('');
-      handleAuthError(error);
     },
   });
 
@@ -130,7 +122,6 @@ const ProfilePage: React.FC = () => {
     onError: (error: Error) => {
       setEmailError(error.message);
       setEmailSuccess('');
-      handleAuthError(error);
     },
   });
 
@@ -148,7 +139,6 @@ const ProfilePage: React.FC = () => {
     onError: (error: Error) => {
       setUsernameError(error.message);
       setUsernameSuccess('');
-      handleAuthError(error);
     },
   });
 
@@ -166,7 +156,6 @@ const ProfilePage: React.FC = () => {
     onError: (error: Error) => {
       setPreferenceError(error.message);
       setPreferenceSuccess('');
-      handleAuthError(error);
     },
   });
 
@@ -257,7 +246,6 @@ const ProfilePage: React.FC = () => {
     } catch (error) {
       if (error instanceof Error) {
         setPreferenceError(error.message);
-        handleAuthError(error);
       }
     }
   };

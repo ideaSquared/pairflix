@@ -59,7 +59,9 @@ class ErrorBoundaryClass extends Component<Props, State> {
           <CardContent>
             <H2>Something went wrong</H2>
             <Typography variant="body2" className={errorMessage}>
-              {this.state.error?.message || 'An unexpected error occurred'}
+              {/* The error's own message is a developer-facing detail (already logged to the
+                  console by componentDidCatch above), not something to show the user. */}
+              An unexpected error occurred. Please try again.
             </Typography>
             <div className={flexRow({ wrap: true })}>
               <Button variant="primary" onClick={this.handleReset}>
@@ -131,7 +133,11 @@ export const ErrorFallback: React.FC<{
       <CardContent>
         <H2>Something went wrong</H2>
         <Typography variant="body2" className={errorMessage}>
-          {error?.message || 'An unexpected error occurred'}
+          {/* The error's own message is a developer-facing detail, not something to show the
+              user -- callers that need it for debugging still get it via `error`/`onError`. */}
+          {error
+            ? 'An unexpected error occurred. Please try again.'
+            : 'An unexpected error occurred'}
         </Typography>
         <div className={flexRow({ wrap: false })}>
           {resetErrorBoundary && (

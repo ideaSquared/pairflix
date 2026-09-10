@@ -362,7 +362,7 @@ describe('ProfilePage', () => {
     });
   });
 
-  it('logs out user on authentication error', async () => {
+  it("shows the error without logging out itself on a 401 -- that is SessionExpiredHandler's job", async () => {
     // Mock auth error
     (userApi.updateEmail as Mock).mockRejectedValueOnce(
       new Error('Authentication required')
@@ -386,9 +386,11 @@ describe('ProfilePage', () => {
     const updateButton = screen.getByText('Update Email');
     await user.click(updateButton);
 
-    // Verify logout was called
     await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
+      expect(screen.getByText('Authentication required')).toBeInTheDocument();
     });
+    // Session expiry is now handled centrally (SessionExpiredHandler, driven by
+    // fetchWithAuth's SESSION_EXPIRED_EVENT) rather than by this page calling logout() itself.
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 });

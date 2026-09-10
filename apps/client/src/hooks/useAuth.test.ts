@@ -78,12 +78,11 @@ describe('useAuth', () => {
     expect(auth.getCurrentUser).toHaveBeenCalledTimes(4);
   });
 
-  it('logs out via the API, clears the auth cache, invalidates queries and navigates to /login', async () => {
+  it('logs out via the API, clears the entire cache and navigates to /login', async () => {
     (auth.getCurrentUser as Mock).mockReturnValue(new Promise(() => undefined));
 
     const { wrapper, queryClient } = createWrapper();
-    const setQueryData = vi.spyOn(queryClient, 'setQueryData');
-    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+    const clear = vi.spyOn(queryClient, 'clear');
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -92,13 +91,12 @@ describe('useAuth', () => {
     });
 
     expect(auth.logout).toHaveBeenCalledTimes(1);
-    expect(setQueryData).toHaveBeenCalledWith(['auth'], null);
-    expect(invalidateQueries).toHaveBeenCalled();
+    expect(clear).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(locationProbe.path).toBe('/login'));
 
     // The server-side logout is awaited before the local cache is cleared.
     expect(firstCallOrder(auth.logout as Mock)).toBeLessThan(
-      firstCallOrder(setQueryData)
+      firstCallOrder(clear)
     );
   });
 

@@ -1,5 +1,11 @@
 import type { Mock } from 'vitest';
-import { BASE_URL, fetchWithAuth, handleApiError } from './utils';
+import {
+  ApiError,
+  BASE_URL,
+  fetchWithAuth,
+  handleApiError,
+  SESSION_EXPIRED_EVENT,
+} from './utils';
 
 const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
   new Response(JSON.stringify(body), {
@@ -199,5 +205,75 @@ describe('fetchWithAuth', () => {
     await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
       'Network error occurred'
     );
+  });
+
+  it('throws an ApiError carrying the response status', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'Bad thing' }, { status: 400 })
+    );
+
+    const error = await fetchWithAuth('/api/thing').catch(e => e);
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(400);
+  });
+
+  it('maps a known error code to a human sentence', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'pick_quota_exceeded' }, { status: 402 })
+    );
+
+    await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
+      "You've used today's free picks for this household. Upgrade for unlimited picks."
+    );
+  });
+
+  it('falls back to a generic message for an unmapped error code', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'some_new_unmapped_code' }, { status: 400 })
+    );
+
+    await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
+      'Something went wrong. Please try again.'
+    );
+  });
+
+  it('leaves an already human-readable message untouched', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'Invalid email or password' }, { status: 401 })
+    );
+
+    await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
+      'Invalid email or password'
+    );
+  });
+
+  it('dispatches SESSION_EXPIRED_EVENT for a 401 "Authentication required" response', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'Authentication required' }, { status: 401 })
+    );
+    const listener = vi.fn();
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener);
+
+    await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
+      'Authentication required'
+    );
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener);
+  });
+
+  it('does not dispatch SESSION_EXPIRED_EVENT for an unrelated 401', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ error: 'Current password is incorrect' }, { status: 401 })
+    );
+    const listener = vi.fn();
+    window.addEventListener(SESSION_EXPIRED_EVENT, listener);
+
+    await expect(fetchWithAuth('/api/thing')).rejects.toThrow(
+      'Current password is incorrect'
+    );
+    expect(listener).not.toHaveBeenCalled();
+
+    window.removeEventListener(SESSION_EXPIRED_EVENT, listener);
   });
 });

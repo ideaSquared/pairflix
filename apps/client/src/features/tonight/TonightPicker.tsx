@@ -8,6 +8,7 @@ import {
 } from '@pairflix/components';
 import { useMutation } from '@tanstack/react-query';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import UpgradeBanner from '../billing/UpgradeBanner';
 import { MOODS } from '../../config/moods';
 import { useEntitlements } from '../../hooks/useEntitlements';
@@ -29,6 +30,7 @@ const PROVIDER_OPTIONS: { id: string; label: string }[] = [
 ];
 
 const TonightPicker: React.FC = () => {
+  const navigate = useNavigate();
   const { household, isLoading: householdLoading } = useActiveHousehold();
   const { selectedProviders } = useTonightHomepagePreference();
   const [mood, setMood] = useState<Mood>('feelgood');
@@ -161,7 +163,7 @@ const TonightPicker: React.FC = () => {
           <div className={styles.formSection}>
             <Button
               variant="primary"
-              onClick={() => window.location.assign('/households/new')}
+              onClick={() => navigate('/households/new')}
             >
               Create a household
             </Button>
@@ -197,6 +199,7 @@ const TonightPicker: React.FC = () => {
                 className={styles.chip({ selected: mood === m.id })}
                 onClick={() => setMood(m.id)}
                 type="button"
+                aria-pressed={mood === m.id}
               >
                 {m.label}
               </button>
