@@ -36,6 +36,13 @@
       "when": 1787144808468,
       "tag": "0004_pale_randall_flagg",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789039456967,
+      "tag": "0005_retention_indexes_and_stripe_events",
+      "breakpoints": true
     }
   ]
 }

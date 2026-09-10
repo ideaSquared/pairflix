@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   households,
   type Mood,
@@ -11,8 +11,16 @@ export interface UseTonightPickArgs {
 }
 
 export function useTonightPick({ householdId }: UseTonightPickArgs) {
+  const queryClient = useQueryClient();
   return useMutation<RecommendationResult, Error, PickRequest>({
     mutationFn: body => households.pick(householdId, body),
+    onSuccess: () => {
+      // A pick consumes the household's daily quota server-side -- the cached entitlements
+      // (30s staleTime) would otherwise keep showing stale "picks remaining" until it expires.
+      void queryClient.invalidateQueries({
+        queryKey: ['entitlements', householdId],
+      });
+    },
   });
 }
 

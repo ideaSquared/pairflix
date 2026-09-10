@@ -9,6 +9,7 @@ import {
 	getLatestAuthToken,
 	loginUser,
 	postJson,
+	uniqueIp,
 } from '../test/test-helpers';
 
 let counter = 0;
@@ -185,6 +186,56 @@ describe('2FA enroll / verify / login / disable', () => {
 
 		const login = await loginUser(email, PASSWORD);
 		expect(login.status).toBe(200);
+	});
+});
+
+describe('IP rate limiting on 2FA verify/disable', () => {
+	it('rate-limits /me/2fa/verify by IP', async () => {
+		const ip = uniqueIp();
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		await postJson('/api/me/2fa/enroll', {}, cookies);
+
+		for (let i = 0; i < 5; i++) {
+			const attempt = await postJson(
+				'/api/me/2fa/verify',
+				{ code: '000000' },
+				cookies,
+				{ ip }
+			);
+			expect(attempt.status).toBe(401);
+		}
+
+		const sixth = await postJson(
+			'/api/me/2fa/verify',
+			{ code: '000000' },
+			cookies,
+			{ ip }
+		);
+		expect(sixth.status).toBe(429);
+	});
+
+	it('rate-limits /me/2fa/disable by IP', async () => {
+		const ip = uniqueIp();
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		await enrollTotp(cookies);
+
+		for (let i = 0; i < 5; i++) {
+			const attempt = await postJson(
+				'/api/me/2fa/disable',
+				{ currentPassword: 'WrongPassword1', code: '000000' },
+				cookies,
+				{ ip }
+			);
+			expect(attempt.status).toBe(401);
+		}
+
+		const sixth = await postJson(
+			'/api/me/2fa/disable',
+			{ currentPassword: 'WrongPassword1', code: '000000' },
+			cookies,
+			{ ip }
+		);
+		expect(sixth.status).toBe(429);
 	});
 });
 

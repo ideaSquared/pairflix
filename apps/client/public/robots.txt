@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /tonight
+Disallow: /history
+Disallow: /profile
+Disallow: /households/
+Disallow: /household-invites/
+Disallow: /onboarding/
+Disallow: /billing/

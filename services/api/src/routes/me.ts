@@ -31,9 +31,15 @@ import { revokeOtherSessions } from '../lib/session';
 import { buildOnboardingDeck, submitOnboarding } from '../lib/tasteOnboarding';
 import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
+import { ipRateLimit } from '../middleware/ip-rate-limit';
 import type { AppEnv } from '../types';
 
 const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
+/** Same per-IP budget `routes/auth.ts` uses for its unauthenticated routes -- a 6-digit TOTP code
+ * (or a backup code) has no other attempt counter, so a caller could otherwise brute-force it
+ * despite being authenticated. */
+const IP_RATE_LIMIT = 5;
+const IP_RATE_WINDOW_MINUTES = 15;
 
 /**
  * 2FA management plus profile updates (username/email/password/preferences) -- avatar isn't part
@@ -68,7 +74,13 @@ meRoutes.post('/2fa/enroll', async c => {
 	});
 });
 
-meRoutes.post('/2fa/verify', async c => {
+const totpVerifyRateLimit = ipRateLimit({
+	routeName: '2fa-verify',
+	limit: IP_RATE_LIMIT,
+	windowMinutes: IP_RATE_WINDOW_MINUTES,
+});
+
+meRoutes.post('/2fa/verify', totpVerifyRateLimit, async c => {
 	const userId = c.get('userId') as string;
 	const sessionSecret = c.env.SESSION_SECRET;
 	if (!sessionSecret) {
@@ -124,7 +136,13 @@ meRoutes.post('/2fa/verify', async c => {
 	return c.json({ data: { backupCodes } });
 });
 
-meRoutes.post('/2fa/disable', async c => {
+const totpDisableRateLimit = ipRateLimit({
+	routeName: '2fa-disable',
+	limit: IP_RATE_LIMIT,
+	windowMinutes: IP_RATE_WINDOW_MINUTES,
+});
+
+meRoutes.post('/2fa/disable', totpDisableRateLimit, async c => {
 	const userId = c.get('userId') as string;
 	const parsed = TotpDisableRequestSchema.safeParse(
 		await c.req.json().catch(() => null)

@@ -1,76 +1,57 @@
 ---
 mode: 'agent'
-description: 'DevOps guidelines for containers, CI/CD, and environments'
-applyTo: '**/Dockerfile,**/docker-compose*.yml,.github/workflows/*.yml'
+description: 'DevOps guidelines for Cloudflare Workers/Pages, CI/CD, and environments'
+applyTo: '**/wrangler.jsonc,.github/workflows/*.yml'
 ---
 
 # DevOps Guidelines
 
-## Container Orchestration
+No Docker, no containers, no VMs in the app path -- the stack is `apps/*` + `services/*` on
+Cloudflare Pages/Workers (ADR 0001, `docs/architecture.md`). This is pre-launch alpha: no production
+data, no exercised production deploy yet.
 
-### Docker-compose configurations
+## Cloudflare Workers/Pages
 
-- Use named volumes for data persistence
-- Implement health checks for all services
-- Set appropriate restart policies (unless-stopped)
-- Use environment files (.env) for configuration
-- Define memory/CPU limits for production
+- One Worker (`services/api`, Hono) + two Pages apps (`apps/client`, `apps/admin`), each with its own
+  `wrangler.jsonc`.
+- `services/api/wrangler.jsonc` defines named environments (`env.staging`, `env.production`) with
+  their own `vars` and `d1_databases` -- named environments don't inherit `vars`/`d1_databases` from
+  the top-level config, so keep both in sync when either changes.
+- D1 migrations are forward-only: `wrangler d1 migrations apply <db-name> --env <env> --remote`. No
+  down-migrations -- a bad migration is fixed by a new forward migration, not a rollback.
+- Cloudflare Pages has no config-file "environments"; production vs. preview is decided by which
+  branch a deployment is attached to (`wrangler pages deploy --branch <name>`).
 
-### Container standards
+## CI/CD
 
-- Multi-stage builds to minimize image size
-- Non-root user execution for security
-- Proper signal handling (SIGTERM, SIGINT)
-- Use specific version tags, not latest
-- Use .dockerignore to reduce context size
+- `ci.yml`: format check, lint, type-check, test, build -- runs on every push to `master` and every
+  PR. Required status check name is load-bearing (see the comment in that file); don't rename the
+  job.
+- `deploy.yml`: `workflow_dispatch` only, not on push -- there is no Cloudflare account, D1 database,
+  or domain provisioned yet, so a push-triggered deploy would fail on every merge. Runs the same
+  gates as `ci.yml`, then applies D1 migrations remotely, then deploys the Worker and both Pages
+  apps. See its top-of-file comment and `docs/runbook.md` for what has to exist before it can
+  actually succeed.
+- `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` are GitHub secrets, scoped per GitHub Environment
+  (`staging` / `production`) so each target gets its own credentials. Worker secrets
+  (`SESSION_SECRET`, `TMDB_API_KEY`, ...) are set with `wrangler secret put <NAME> --env <env>`, never
+  committed -- see `docs/runbook.md`'s secrets table for the full list.
+- Keep `permissions:` least-privilege on every workflow (`contents: read` unless a job genuinely
+  needs more).
 
-### Environment configurations
+## The cross-site cookie trap
 
-- Development: Hot reloading, debug tools, volume mounts
-- Production: Optimized builds, minimal dependencies
-- Testing: In-memory databases, mock services
-- Staging: Production-like with sanitized data
+Session and CSRF cookies are `SameSite=Lax`. If apps/client and services/api end up on unrelated
+domains (e.g. a `*.pages.dev` client calling a `*.workers.dev` API), the browser never sends the
+cookie cross-site -- every authenticated request 401s, every write 403s, and it looks like the app is
+broken rather than a deploy topology problem. The API and client need a shared registrable domain, or
+Pages needs to proxy `/api` to the Worker. See `docs/runbook.md`'s "Cross-site cookies" section before
+debugging anything else on a fresh deploy.
 
-## CI/CD Requirements
+## Environment variable drift
 
-### GitHub Actions workflows
-
-- Lint, build, test on pull requests
-- Security scanning with CodeQL
-- Docker image building and pushing
-- Automatic deployments to staging
-- Manual approval for production
-
-### Deployment strategies
-
-- Blue-green deployments for zero downtime
-- Feature flags for controlled rollouts
-- Automatic rollback on failure
-- Database migration safety checks
-- Environment variable validation
-
-### Monitoring
-
-- Health check endpoints
-- Prometheus metrics collection
-- Logging with structured JSON format
-- Error tracking integration (Sentry)
-- Performance monitoring (New Relic/Datadog)
-
-## Infrastructure as Code
-
-### Configuration management
-
-- Use Docker Compose for local development
-- Consider Kubernetes for production
-- Implement infrastructure as code with Terraform or similar
-- Version control all configuration
-- Document infrastructure dependencies
-
-### Secret management
-
-- Use environment variables for configuration
-- Store secrets in a secure vault (HashiCorp Vault, AWS Secrets Manager)
-- Rotate credentials regularly
-- Implement least privilege principle
-- Audit secret access
+Every Worker env var/secret read via `env.X` (`services/api/src`) must exist in
+`services/api/.dev.vars.example` and in `wrangler.jsonc`'s `vars`; every `VITE_*` var read via
+`import.meta.env` in `apps/*/src` must exist in that app's `.env.example`. CI runs
+`wrangler types --check` to catch `wrangler.jsonc` drifting from its generated bindings -- keep
+`worker-configuration.d.ts` current (`pnpm --filter @pairflix/api cf-typegen`) when you change vars.

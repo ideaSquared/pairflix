@@ -9,24 +9,31 @@ import {
   InputGroup,
 } from '@pairflix/components';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../services/api';
+import { nextQueryString, resolveNextPath } from '../../utils/internalPath';
 import * as styles from './LoginPage.css';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get('next');
+  const nextPath = resolveNextPath(rawNext, '/tonight');
+  const registerHref = `/register${nextQueryString(rawNext)}`;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       await auth.login({ email, password });
       checkAuth();
-      navigate('/tonight');
+      navigate(nextPath);
     } catch (err) {
       // Extract the specific error message from the response if available
       if (err instanceof Error) {
@@ -36,6 +43,8 @@ const LoginPage: React.FC = () => {
       } else {
         setError('Invalid email or password');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -50,10 +59,13 @@ const LoginPage: React.FC = () => {
             <InputGroup $isFullWidth>
               <Input
                 type="email"
+                label="Email"
                 placeholder="Email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                autoComplete="email"
+                disabled={isSubmitting}
                 isFullWidth
               />
             </InputGroup>
@@ -61,15 +73,24 @@ const LoginPage: React.FC = () => {
             <InputGroup $isFullWidth>
               <Input
                 type="password"
+                label="Password"
                 placeholder="Password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
+                disabled={isSubmitting}
                 isFullWidth
               />
             </InputGroup>
 
-            <Button type="submit" variant="primary" isFullWidth>
+            <Button
+              type="submit"
+              variant="primary"
+              isFullWidth
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+            >
               Login
             </Button>
           </form>
@@ -80,7 +101,7 @@ const LoginPage: React.FC = () => {
 
           <div className={styles.registerLink}>
             Don&apos;t have an account?{' '}
-            <Link to="/register">Create one here</Link>
+            <Link to={registerHref}>Create one here</Link>
           </div>
 
           {/* Development mode helper */}

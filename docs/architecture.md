@@ -169,9 +169,14 @@ Paid plan); move to a queue only when volume justifies the plan, exactly as crea
 
 ## Deploying
 
-One Worker (`services/api`) + two Pages apps, all via `wrangler` (`pnpm --filter @pairflix/api
-deploy`, `pnpm --filter <app> deploy`) — no Docker or nginx in the app path. D1 migrations apply
-with `wrangler d1 migrations apply --remote`. First-time deploy, new versions, and rollbacks follow
-the `dev-setup.md` runbook. **Not done yet:** no D1 database has been provisioned in a Cloudflare
-account (`wrangler.jsonc`'s `database_id` is still a placeholder) and no CI deploy step exists —
-both need real Cloudflare account access, not just code.
+One Worker (`services/api`) + two Pages apps, all via `wrangler` — no Docker or nginx in the app
+path. `services/api/wrangler.jsonc` defines named `staging`/`production` environments (separate
+`vars`/`d1_databases` each); D1 migrations apply with `wrangler d1 migrations apply <name> --env
+<env> --remote` before the Worker deploy. `.github/workflows/deploy.yml` runs the full sequence
+(verification gates, migrations, Worker, both Pages apps) via `workflow_dispatch` — not on push, since
+none of the following exist yet. **Not done yet:** no D1 database has been provisioned in a real
+Cloudflare account (`wrangler.jsonc`'s `database_id`s are still placeholders), no domain/cookie
+topology has been decided (session/CSRF cookies are `SameSite=Lax` — the client and API need a
+shared registrable domain or a Pages proxy, or auth breaks post-deploy), and none of this has been
+exercised against a real account. See `docs/runbook.md` for the full first-deploy procedure, secrets
+list, and rollback/backup steps.

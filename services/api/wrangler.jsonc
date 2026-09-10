@@ -7,33 +7,102 @@
 	// built-in or `Buffer` (lib/crypto.ts and lib/totp.ts use Web Crypto / ArrayBuffer / btoa, all
 	// native to Workers) -- add it if a future domain actually needs one, not preemptively.
 	"observability": {
-		"enabled": true
+		"enabled": true,
 	},
 	// No `routes` block yet -- no production domain/zone is provisioned for pairflix (this is
 	// pre-launch alpha, see CLAUDE.md). Deploys are reachable at the workers.dev subdomain until
-	// one exists; add a custom_domain route (see creatorgrid's wrangler.jsonc) at that point.
+	// one exists; add a custom_domain route (see creatorgrid's wrangler.jsonc) at that point. This
+	// also matters for cookies: see docs/runbook.md's "Cross-site cookies" section -- the API and
+	// apps/client need a shared registrable domain (or a Pages proxy) before auth works at all.
+	//
+	// This top-level config (no `--env` flag) is what `wrangler dev` uses for local dev (`.dev.vars`
+	// overrides `vars.ENVIRONMENT` back to "development" there, see .dev.vars.example) -- it is NOT
+	// a third environment. `env.staging` and `env.production` below are the real named environments
+	// for `wrangler deploy --env <name>`; use one of those for any actual deploy, not the bare
+	// `wrangler deploy` this top-level config would otherwise answer to. Named environments don't
+	// inherit `vars` or `d1_databases` from here, so keep this block's shape in sync with theirs
+	// when either changes.
 	"vars": {
 		"ENVIRONMENT": "production",
 		// Placeholder, same as `database_id` below -- replace with the real app origin(s) once
 		// apps/client has a production domain. Comma-separated, matches middleware/auth.ts's `cors()`.
-		"ALLOWED_ORIGINS": "https://your-production-domain.com"
+		"ALLOWED_ORIGINS": "https://your-production-domain.com",
+		// Gates the mock billing flow (`POST /:id/billing/mock-activate`, src/lib/billing.ts) --
+		// must be the literal string "true" to enable it. "false" here keeps it off by default.
+		"BILLING_MOCK_ENABLED": "false",
 	},
-	// `database_id` is a placeholder until a real D1 database is provisioned in a Cloudflare
-	// account (out of scope for local schema/migration work) -- `--remote` won't work until it's
-	// replaced with the real id from `wrangler d1 create pairflix-db`, but `--local` (Miniflare,
-	// fully offline) doesn't need it to be real.
+	// `database_id` is a placeholder -- `--local` (Miniflare, fully offline) doesn't need it to be
+	// real, and this top-level entry is never used for a real remote deploy (see env blocks below).
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "pairflix-db",
 			"database_id": "00000000-0000-0000-0000-000000000000",
 			"migrations_dir": "../../packages/db/migrations",
-			"remote": false
-		}
+			"remote": false,
+		},
 	],
 	// Daily, off-peak UTC -- runs the same audit-log retention sweep as the manual
 	// `POST /api/admin/audit-logs/rotation` route (src/index.ts's `scheduled` handler).
 	"triggers": {
-		"crons": ["0 3 * * *"]
-	}
+		"crons": ["0 3 * * *"],
+	},
+	// Named environments for `wrangler deploy --env staging|production` and
+	// `wrangler d1 migrations apply <name> --env staging|production --remote` (see
+	// .github/workflows/deploy.yml and docs/runbook.md). Every `database_id` and `ALLOWED_ORIGINS`
+	// value below is a PLACEHOLDER -- neither a Cloudflare account, a real D1 database, nor a
+	// production domain exists yet (CLAUDE.md, docs/roadmap.md). Replace them with real values
+	// (`wrangler d1 create pairflix-db-staging` / `-production`, then the app's real domain(s))
+	// before the deploy workflow can do anything but fail against these placeholders.
+	"env": {
+		"staging": {
+			"name": "pairflix-api-staging",
+			"vars": {
+				"ENVIRONMENT": "staging",
+				// PLACEHOLDER -- replace with the real staging apps/client origin once one is
+				// provisioned. Comma-separated, matches middleware/auth.ts's `cors()`.
+				"ALLOWED_ORIGINS": "https://staging.your-staging-domain.example",
+				// "true" to exercise the mock billing flow on staging; keep "false" once real Stripe
+				// is wired up there.
+				"BILLING_MOCK_ENABLED": "true",
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "pairflix-db-staging",
+					// PLACEHOLDER -- replace with the id from `wrangler d1 create pairflix-db-staging`.
+					"database_id": "00000000-0000-0000-0000-000000000001",
+					"migrations_dir": "../../packages/db/migrations",
+				},
+			],
+			"triggers": {
+				"crons": ["0 3 * * *"],
+			},
+		},
+		"production": {
+			"name": "pairflix-api-production",
+			"vars": {
+				"ENVIRONMENT": "production",
+				// PLACEHOLDER, same as `database_id` below -- replace with the real app origin(s) once
+				// apps/client has a production domain. Comma-separated, matches middleware/auth.ts's
+				// `cors()`.
+				"ALLOWED_ORIGINS": "https://your-production-domain.com",
+				// Must stay "false" in production until real Stripe (CLAUDE.md) is live -- the mock
+				// flow unconditionally flips a household to premium for 30 days.
+				"BILLING_MOCK_ENABLED": "false",
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "pairflix-db-production",
+					// PLACEHOLDER -- replace with the id from `wrangler d1 create pairflix-db-production`.
+					"database_id": "00000000-0000-0000-0000-000000000000",
+					"migrations_dir": "../../packages/db/migrations",
+				},
+			],
+			"triggers": {
+				"crons": ["0 3 * * *"],
+			},
+		},
+	},
 }

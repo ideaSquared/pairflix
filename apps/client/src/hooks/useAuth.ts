@@ -36,9 +36,10 @@ export function useAuth() {
     // Call the server-side logout endpoint to record in audit logs
     await authApi.auth.logout();
 
-    // Update local state
-    queryClient.setQueryData(['auth'], null);
-    queryClient.invalidateQueries();
+    // Drop everything, not just mark it stale -- household/history/etc. data would otherwise
+    // linger in the cache for its gcTime, briefly visible to a second account signing in on the
+    // same browser.
+    queryClient.clear();
     navigate('/login');
   }, [queryClient, navigate]);
 

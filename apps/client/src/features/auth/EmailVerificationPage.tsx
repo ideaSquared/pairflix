@@ -13,6 +13,7 @@ import React, { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { emailService } from '../../services/api';
+import { nextQueryString, resolveNextPath } from '../../utils/internalPath';
 import * as styles from './EmailVerificationPage.css';
 
 const EmailVerificationPage: React.FC = () => {
@@ -20,6 +21,10 @@ const EmailVerificationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { checkAuth, isAuthenticated } = useAuth();
   const token = searchParams.get('token');
+  const rawNext = searchParams.get('next');
+  const nextPath = resolveNextPath(rawNext, '/tonight');
+  const loginHref = `/login${nextQueryString(rawNext)}`;
+  const registerHref = `/register${nextQueryString(rawNext)}`;
   const isAuthenticatedRef = useRef(isAuthenticated);
   isAuthenticatedRef.current = isAuthenticated;
 
@@ -56,7 +61,7 @@ const EmailVerificationPage: React.FC = () => {
       checkAuth();
 
       setTimeout(() => {
-        navigate(isAuthenticatedRef.current ? '/tonight' : '/login');
+        navigate(isAuthenticatedRef.current ? nextPath : loginHref);
       }, 3000);
     } catch (err) {
       if (err instanceof Error) {
@@ -157,8 +162,8 @@ const EmailVerificationPage: React.FC = () => {
               )}
 
               <div className={styles.actionLinks}>
-                <Link to="/login">Back to Login</Link>|
-                <Link to="/register">Create New Account</Link>
+                <Link to={loginHref}>Back to Login</Link>|
+                <Link to={registerHref}>Create New Account</Link>
               </div>
             </>
           ) : (

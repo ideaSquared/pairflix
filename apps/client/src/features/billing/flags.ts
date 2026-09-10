@@ -29,6 +29,6 @@ export const isBillingMockEnabled = (): boolean => {
   if (typeof process !== 'undefined') {
     return process.env?.NODE_ENV !== 'production';
   }
-  // Browser build with the flag unset: default on (pre-launch alpha, no live Stripe yet).
-  return true;
+  // Browser build with the flag unset: default off. Mock checkout must be explicitly opted into.
+  return false;
 };

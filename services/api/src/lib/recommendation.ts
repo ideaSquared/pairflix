@@ -309,7 +309,12 @@ const providersMatch = (
 	const wantedNorm = wanted.map(p => p.toLowerCase().replace(/[^a-z0-9]/g, ''));
 	return available.some(p => {
 		const name = p.provider_name.toLowerCase().replace(/[^a-z0-9]/g, '');
-		return wantedNorm.some(w => name.includes(w) || w.includes(name));
+		// An empty needle (e.g. "!!!", which normalizes away entirely) must never match -- without
+		// the length guard, `name.includes('')` is true for every provider, silently defeating the
+		// filter instead of just failing to match anything.
+		return wantedNorm.some(
+			w => w.length > 0 && (name.includes(w) || w.includes(name))
+		);
 	});
 };
 
@@ -343,6 +348,7 @@ const buildRationale = (
 
 const hydrate = async (
 	env: Bindings,
+	db: Database | null,
 	item: TMDbDiscoverMovie | TMDbDiscoverTV,
 	mediaType: 'movie' | 'tv',
 	region: string,
@@ -357,17 +363,32 @@ const hydrate = async (
 			const full = await getTVFullDetails(env, item.id);
 			runtime = full.episode_run_time?.[0] ?? null;
 		}
-	} catch {
+	} catch (err) {
 		runtime = null;
+		console.warn(
+			'[recommendation] runtime lookup failed, card will omit a runtime claim',
+			item.id,
+			err instanceof Error ? err.message : 'Unknown error'
+		);
 	}
 
 	// Fetched unconditionally -- this is display data for the returned card, independent of
-	// whether the caller also wants to filter candidates down to a provider subset below.
+	// whether the caller also wants to filter candidates down to a provider subset below. Routed
+	// through lib/providers.ts's D1 read-through cache when a household db is available
+	// (pickForHousehold) instead of hitting TMDb raw every time; pickForAnonymous has no db to read
+	// through, so it falls back to the uncached call.
 	let providers: RegionProviders = {};
 	try {
-		providers = await getWatchProviders(env, item.id, mediaType, region);
-	} catch {
+		providers = db
+			? await getCachedProviders(env, db, item.id, mediaType, region)
+			: await getWatchProviders(env, item.id, mediaType, region);
+	} catch (err) {
 		providers = {};
+		console.warn(
+			'[recommendation] provider lookup failed, card will omit availability',
+			item.id,
+			err instanceof Error ? err.message : 'Unknown error'
+		);
 	}
 	if (
 		providersFilter &&
@@ -406,14 +427,25 @@ type RankedCandidate = {
 	score: number;
 };
 
+// Hard ceiling on how many candidates a single pick will hydrate (initial batch plus every
+// provider-filter widening round combined). Each hydration is up to two TMDb calls (details +,
+// absent a household db, a raw providers lookup), and discoverMedia itself makes up to two more
+// (movie + tv) -- capping this keeps a pick's worst-case TMDb subrequests well under the Workers
+// free-plan 50-subrequest limit regardless of hydrateCount or how empty a provider filter is. See
+// households.e2e.test.ts's "widens past the top-hydrateCount window..." test for the behavior this
+// still has to preserve.
+const MAX_HYDRATE_ATTEMPTS = 20;
+
 /** The household-independent core of a pick: discover -> filter -> score -> hydrate -> re-score.
- * Depends only on `env`/`request`/`prefs`/exclusion sets -- never `db` or a household id -- so
- * both `pickForHousehold` (real merged taste prefs) and `pickForAnonymous` (empty/neutral prefs)
- * can share it without duplicating the scoring pipeline. `hydrateCount` is the caller's decision
- * (10 when LLM-rerank-eligible, 3 otherwise) since eligibility itself is a household concern this
- * helper has no business knowing about. */
+ * Depends on `env`/`request`/`prefs`/exclusion sets and, when the caller has one, a household `db`
+ * (routes hydration's provider lookups through lib/providers.ts's D1 cache instead of hitting TMDb
+ * raw) -- never a household id, so both `pickForHousehold` (real merged taste prefs, real db) and
+ * `pickForAnonymous` (empty/neutral prefs, no db) can share it without duplicating the scoring
+ * pipeline. `hydrateCount` is the caller's decision (10 when LLM-rerank-eligible, 3 otherwise)
+ * since eligibility itself is a household concern this helper has no business knowing about. */
 const buildRecommendation = async (
 	env: Bindings,
+	db: Database | null,
 	request: PickRequest,
 	prefs: MergedPreferences,
 	excludedWatched: Set<string>,
@@ -511,6 +543,7 @@ const buildRecommendation = async (
 				entry,
 				card: await hydrate(
 					env,
+					db,
 					entry.item,
 					entry.mediaType,
 					region,
@@ -523,21 +556,26 @@ const buildRecommendation = async (
 	): h is { entry: (typeof scored)[number]; card: RecommendationCard } =>
 		h.card !== null;
 
-	let cursor = Math.min(hydrateCount, scored.length);
+	let cursor = Math.min(hydrateCount, scored.length, MAX_HYDRATE_ATTEMPTS);
 	let paired = (await hydrateBatch(scored.slice(0, cursor))).filter(isPaired);
 	// A provider filter can leave the top `hydrateCount` taste/mood-scored candidates with zero
 	// matches -- most commonly once a previous pick already excluded this household's only
 	// provider-matching title via `watchedTogether` (see households.e2e.test.ts's
 	// "widens past the top-hydrateCount window..." test). Widen into the rest of `scored` (still
-	// bounded by discoverMedia's single page of results) instead of failing a pick the wider
-	// candidate pool could still answer.
+	// bounded by discoverMedia's single page of results, and by MAX_HYDRATE_ATTEMPTS overall)
+	// instead of failing a pick the wider candidate pool could still answer.
 	while (
 		paired.length === 0 &&
 		request.providers &&
 		request.providers.length > 0 &&
-		cursor < scored.length
+		cursor < scored.length &&
+		cursor < MAX_HYDRATE_ATTEMPTS
 	) {
-		const nextCursor = Math.min(cursor + hydrateCount, scored.length);
+		const nextCursor = Math.min(
+			cursor + hydrateCount,
+			scored.length,
+			MAX_HYDRATE_ATTEMPTS
+		);
 		paired = (await hydrateBatch(scored.slice(cursor, nextCursor))).filter(
 			isPaired
 		);
@@ -610,6 +648,7 @@ export const pickForAnonymous = async (
 	};
 	const { mlResult } = await buildRecommendation(
 		env,
+		null,
 		request,
 		prefs,
 		new Set(),
@@ -661,6 +700,7 @@ export const pickForHousehold = async (
 	const llmEligible = await isLlmRerankEnabledForHousehold(db, householdId);
 	const { mlResult, ranked } = await buildRecommendation(
 		env,
+		db,
 		request,
 		prefs,
 		excludedWatched,
@@ -710,6 +750,14 @@ export const pickForHousehold = async (
 		);
 	}
 	if (!llmResult) return mlResult;
+
+	// The only observability this spend gets -- rawUsage was previously computed and discarded, so
+	// there was no way to see premium LLM token/cost usage anywhere (Cloudflare observability
+	// captures console output, see CLAUDE.md's Logging & errors section).
+	console.warn('[recommendation] llm rerank usage', {
+		householdId,
+		...llmResult.rawUsage,
+	});
 
 	const byTmdbId = new Map(ranked.map(p => [p.card.tmdbId, p]));
 	const llmPick = byTmdbId.get(llmResult.pickTmdbId);

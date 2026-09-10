@@ -122,11 +122,10 @@ export const cleanupOldLogs = async (
 		const retentionDays =
 			retentionDaysOverride?.[level] ?? DEFAULT_RETENTION_DAYS[level];
 		const cutoff = new Date(Date.now() - retentionDays * MS_PER_DAY);
-		const rows = await db
+		const result = await db
 			.delete(auditLogs)
-			.where(and(eq(auditLogs.level, level), lt(auditLogs.createdAt, cutoff)))
-			.returning({ id: auditLogs.id });
-		deleted[level] = rows.length;
+			.where(and(eq(auditLogs.level, level), lt(auditLogs.createdAt, cutoff)));
+		deleted[level] = result.meta.changes;
 	}
 
 	return deleted;

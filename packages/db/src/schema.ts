@@ -85,7 +85,10 @@ export const sessions = sqliteTable(
     deviceInfo: text('device_info'),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  table => [index('idx_sessions_user').on(table.userId)]
+  table => [
+    index('idx_sessions_user').on(table.userId),
+    index('idx_sessions_expires_at').on(table.expiresAt),
+  ]
 );
 
 /**
@@ -149,7 +152,10 @@ export const householdMembers = sqliteTable(
     role: text('role').$type<'owner' | 'member'>().notNull().default('member'),
     joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  table => [primaryKey({ columns: [table.householdId, table.userId] })]
+  table => [
+    primaryKey({ columns: [table.householdId, table.userId] }),
+    index('idx_household_members_user').on(table.userId),
+  ]
 );
 
 export const householdInvites = sqliteTable(
@@ -163,7 +169,7 @@ export const householdInvites = sqliteTable(
     invitedEmail: text('invited_email'),
     invitedBy: text('invited_by')
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
     acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
     acceptedBy: text('accepted_by').references(() => users.id, {
@@ -304,22 +310,36 @@ export const contentReports = sqliteTable(
  * real checkout, but stay null until Stripe is actually configured -- no real account is wired up
  * yet (see docs/roadmap.md), so `startCheckout` (`lib/billing.ts`) falls back to a mock checkout
  * that never touches these columns at all. */
-export const subscriptions = sqliteTable('subscriptions', {
+export const subscriptions = sqliteTable(
+  'subscriptions',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id')
+      .notNull()
+      .unique()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    tier: text('tier').$type<'free' | 'premium'>().notNull().default('free'),
+    status: text('status')
+      .$type<'active' | 'past_due' | 'canceled'>()
+      .notNull()
+      .default('active'),
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    currentPeriodEnd: integer('current_period_end', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  table => [
+    uniqueIndex('idx_subscriptions_stripe_customer').on(table.stripeCustomerId),
+  ]
+);
+
+/** Stripe webhook idempotency -- one row per processed event id, so a redelivered webhook
+ * (Stripe retries on a non-2xx or timeout) is a no-op instead of double-applying it. */
+export const stripeEvents = sqliteTable('stripe_events', {
   id: text('id').primaryKey(),
-  householdId: text('household_id')
-    .notNull()
-    .unique()
-    .references(() => households.id, { onDelete: 'cascade' }),
-  tier: text('tier').$type<'free' | 'premium'>().notNull().default('free'),
-  status: text('status')
-    .$type<'active' | 'past_due' | 'canceled'>()
-    .notNull()
-    .default('active'),
-  stripeCustomerId: text('stripe_customer_id'),
-  stripeSubscriptionId: text('stripe_subscription_id'),
-  currentPeriodEnd: integer('current_period_end', { mode: 'timestamp_ms' }),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  type: text('type').notNull(),
+  processedAt: integer('processed_at', { mode: 'timestamp_ms' }).notNull(),
 });
 
 export const pickUsage = sqliteTable(
@@ -379,14 +399,22 @@ export const pickEvents = sqliteTable(
  * so that's what's carried forward here; the table is still named `auditLogs` since that's the
  * concept it actually serves for this product.
  */
-export const auditLogs = sqliteTable('audit_logs', {
-  id: text('log_id').primaryKey(),
-  level: text('level').$type<'info' | 'warn' | 'error' | 'debug'>().notNull(),
-  message: text('message').notNull(),
-  context: text('context', { mode: 'json' }).$type<Record<string, unknown>>(),
-  source: text('source').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-});
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('log_id').primaryKey(),
+    level: text('level').$type<'info' | 'warn' | 'error' | 'debug'>().notNull(),
+    message: text('message').notNull(),
+    context: text('context', { mode: 'json' }).$type<Record<string, unknown>>(),
+    source: text('source').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  table => [
+    index('idx_audit_logs_level_created_at').on(table.level, table.createdAt),
+    index('idx_audit_logs_created_at').on(table.createdAt),
+    index('idx_audit_logs_source').on(table.source),
+  ]
+);
 
 /** Replaces `app_settings` -- a small key/value table for feature flags and other runtime config
  * that doesn't belong in a Worker var (needs to change without a redeploy). */
@@ -411,6 +439,7 @@ export type WatchedTogetherRow = typeof watchedTogether.$inferSelect;
 export type ContentRow = typeof content.$inferSelect;
 export type ContentReportRow = typeof contentReports.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
+export type StripeEventRow = typeof stripeEvents.$inferSelect;
 export type PickUsageRow = typeof pickUsage.$inferSelect;
 export type PickEventRow = typeof pickEvents.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;

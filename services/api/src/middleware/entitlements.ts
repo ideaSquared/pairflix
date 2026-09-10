@@ -1,6 +1,7 @@
 import { createDb, pickUsage, type Database } from '@pairflix/db';
 import { eq, sql } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
+import { isBillingMockEnabled } from '../lib/billing';
 import { getEntitlements } from '../lib/entitlements';
 import { newId } from '../lib/id';
 import type { AppEnv } from '../types';
@@ -90,7 +91,11 @@ export const enforcePickQuota = createMiddleware<AppEnv>(async (c, next) => {
 		return c.json(
 			{
 				error: 'pick_quota_exceeded',
-				upgradeUrl: '/billing/mock-checkout',
+				// Only points at the mock checkout route when it's actually reachable -- pointing a
+				// real deploy at a disabled mock route would be a dead end for the client.
+				...(isBillingMockEnabled(c.env)
+					? { upgradeUrl: '/billing/mock-checkout' }
+					: {}),
 				entitlements,
 			},
 			402

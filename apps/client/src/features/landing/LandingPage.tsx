@@ -11,6 +11,7 @@ import {
 } from '@pairflix/components';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import AppFooter from '../../components/common/AppFooter';
 import { MOODS } from '../../config/moods';
 import type { Mood } from '../../services/api/households';
 import RecommendationResultCard from '../tonight/RecommendationResultCard';
@@ -112,6 +113,7 @@ const LandingPage: React.FC = () => {
                             })}
                             onClick={() => setMood(m.id)}
                             type="button"
+                            aria-pressed={mood === m.id}
                           >
                             {m.label}
                           </button>
@@ -189,6 +191,8 @@ const LandingPage: React.FC = () => {
           <div className={styles.loginLink}>
             Already have an account? <Link to="/login">Log in</Link>
           </div>
+
+          <AppFooter />
         </Container>
       </PageContainer>
     </div>

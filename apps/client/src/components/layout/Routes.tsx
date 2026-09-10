@@ -1,6 +1,7 @@
 import { AppLayout } from '@pairflix/components';
 import React, { useEffect, useRef } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import AppFooter from '../common/AppFooter';
 import {
   createClientNavigation,
   createGuestNavigation,
@@ -18,6 +19,8 @@ import AcceptInvitePage from '../../features/households/AcceptInvitePage';
 import CreateHouseholdPage from '../../features/households/CreateHouseholdPage';
 import InviteToHouseholdPage from '../../features/households/InviteToHouseholdPage';
 import LandingPage from '../../features/landing/LandingPage';
+import PrivacyPage from '../../features/legal/PrivacyPage';
+import TermsPage from '../../features/legal/TermsPage';
 import TasteOnboardingPage from '../../features/onboarding/TasteOnboardingPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,12 +29,21 @@ const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
   element,
 }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  return isAuthenticated ? element : <Navigate to="/login" />;
+  if (isAuthenticated) {
+    return element;
+  }
+
+  // Carries the page the visitor was trying to reach through login (and from there through
+  // registration/email verification -- see LoginPage/RegisterPage/EmailVerificationPage) so an
+  // invitee following a household invite link lands back on it instead of just /tonight.
+  const next = encodeURIComponent(location.pathname + location.search);
+  return <Navigate to={`/login?next=${next}`} />;
 };
 
 const LandingRoute: React.FC = () => {
@@ -88,6 +100,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<EmailVerificationPage />} />
 
+      {/* Legal pages -- reachable signed out, so outside the protected /* subtree */}
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+
       {/* Logout route */}
       <Route path="/logout" element={<LogoutRoute />} />
 
@@ -95,7 +111,11 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/*"
         element={
-          <AppLayout variant="client" navigation={navigationConfig}>
+          <AppLayout
+            variant="client"
+            navigation={navigationConfig}
+            footer={{ content: <AppFooter />, show: true }}
+          >
             <Routes>
               <Route
                 path="/tonight"

@@ -2,7 +2,9 @@ import { createDb } from '@pairflix/db';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
+import { pruneExpiredData } from './lib/retention';
 import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { adminRoutes } from './routes/admin';
@@ -55,17 +57,49 @@ app.route('/api/billing', billingRoutes);
 app.route('/api/demo', demoRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
+const isStatusError = (
+	error: unknown
+): error is Error & { statusCode: number } =>
+	error instanceof Error &&
+	'statusCode' in error &&
+	typeof error.statusCode === 'number' &&
+	error.statusCode >= 400 &&
+	error.statusCode <= 599;
+
 app.onError((error, c) => {
 	console.error(error);
-	return c.json({ error: 'Internal server error' }, 500);
+	if (!isStatusError(error))
+		return c.json({ error: 'Internal server error' }, 500);
+	// Hono's status union has no runtime guard; the type guard above validated the 400-599 range.
+	const status = error.statusCode as ContentfulStatusCode;
+	// A 4xx describes the caller's own request, so its message is safe to return. A 5xx describes
+	// our side (a missing API key, an upstream outage) and must not leak that detail.
+	if (status < 500) return c.json({ error: error.message }, status);
+	return c.json(
+		{
+			error:
+				status === 502
+					? 'Upstream service unavailable'
+					: 'Internal server error',
+		},
+		status
+	);
 });
 
 export default {
 	fetch: app.fetch,
 	async scheduled(_controller, env, ctx) {
+		const db = createDb(env.DB);
 		ctx.waitUntil(
-			rotateAuditLogsOnSchedule(createDb(env.DB)).catch(err => {
+			rotateAuditLogsOnSchedule(db).catch(err => {
 				console.error('[cron] failed to rotate audit logs', err);
+			})
+		);
+		// pruneExpiredData isolates each table's own sweep failure already -- this catch is only
+		// for the (unexpected) case of the function itself rejecting.
+		ctx.waitUntil(
+			pruneExpiredData(db).catch(err => {
+				console.error('[cron] failed to prune expired data', err);
 			})
 		);
 	},

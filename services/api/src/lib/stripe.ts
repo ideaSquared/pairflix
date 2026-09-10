@@ -125,14 +125,18 @@ export const verifyWebhookSignature = async (
 	now: number = Date.now()
 ): Promise<boolean> => {
 	if (!signatureHeader) return false;
-	const parts: Record<string, string> = {};
+	let timestamp: string | undefined;
+	// Stripe sends multiple v1= values while a webhook signing secret is being rotated -- only one
+	// of them verifies against this endpoint's current secret, so every value must be checked
+	// rather than keeping just the last one seen.
+	const signatures: string[] = [];
 	for (const part of signatureHeader.split(',')) {
 		const [key, value] = part.split('=');
-		if (key && value) parts[key] = value;
+		if (!key || !value) continue;
+		if (key === 't') timestamp = value;
+		else if (key === 'v1') signatures.push(value);
 	}
-	const timestamp = parts.t;
-	const signature = parts.v1;
-	if (!timestamp || !signature) return false;
+	if (!timestamp || signatures.length === 0) return false;
 	const timestampSeconds = Number(timestamp);
 	if (!Number.isFinite(timestampSeconds)) return false;
 	if (Math.abs(now / 1000 - timestampSeconds) > toleranceSeconds) return false;
@@ -152,5 +156,9 @@ export const verifyWebhookSignature = async (
 	const expected = [...new Uint8Array(digest)]
 		.map(b => b.toString(16).padStart(2, '0'))
 		.join('');
-	return timingSafeEqual(expected, signature);
+	let anyMatch = false;
+	for (const signature of signatures) {
+		if (timingSafeEqual(expected, signature)) anyMatch = true;
+	}
+	return anyMatch;
 };

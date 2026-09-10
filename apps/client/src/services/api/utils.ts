@@ -1,5 +1,18 @@
 /// <reference types="vite/client" />
 
+/** Thrown by fetchWithAuth for a non-2xx response -- carries the HTTP status so callers (e.g. the
+ * query client's retry policy) can tell a client error (4xx, won't succeed on retry) from a
+ * transient server/network one. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 /**
  * Handle API errors in a consistent way
  */
@@ -87,6 +100,53 @@ export interface PaginatedResponse<T> {
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// The API returns short machine codes (see services/api/src/routes/households.ts and
+// middleware/entitlements.ts) for known failure conditions -- map the ones the client actually
+// surfaces to a human sentence rather than showing the raw code.
+const KNOWN_ERROR_MESSAGES: Record<string, string> = {
+  pick_quota_exceeded:
+    "You've used today's free picks for this household. Upgrade for unlimited picks.",
+  provider_not_available:
+    'That title is not available to launch on this provider right now.',
+  household_not_found: "We couldn't find that household.",
+  household_id_required:
+    'Something went wrong loading this household. Please try again.',
+  not_a_household_member: 'You are not a member of this household.',
+  owner_only: 'Only the household owner can do that.',
+  invite_invalid_or_expired: 'That invite is invalid or has expired.',
+  billing_not_configured: 'Billing is not set up yet.',
+  no_billing_account: 'This household does not have a billing account yet.',
+  use_billing_portal: 'Manage your subscription from the billing portal.',
+  'No candidates found for these inputs':
+    "We couldn't find a match for that mood and time -- try widening your filters.",
+};
+
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+
+// Distinguishes a raw error *code* (snake_case, e.g. "pick_quota_exceeded") from an already
+// human-readable message (e.g. "Invalid email or password") so an unmapped code falls back to
+// something readable instead of the raw code.
+const looksLikeErrorCode = (message: string): boolean =>
+  /^[a-z0-9]+(_[a-z0-9]+)+$/.test(message);
+
+const describeError = (message: string): string => {
+  const known = KNOWN_ERROR_MESSAGES[message];
+  if (known) return known;
+  return looksLikeErrorCode(message) ? GENERIC_ERROR_MESSAGE : message;
+};
+
+// fetchWithAuth dispatches this whenever the API rejects a request with "Authentication
+// required" (an invalid or expired session) -- SessionExpiredHandler listens for it to clear the
+// query cache and send the visitor to /login from one place, instead of every screen handling a
+// 401 on its own.
+export const SESSION_EXPIRED_EVENT = 'pairflix:session-expired';
+
+const notifySessionExpired = (): void => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  }
+};
+
 /** Seeds the `csrfToken` cookie and returns its value to echo back as the `x-csrf-token` header --
  * fetched fresh before every mutating call (matching the Hono API's own e2e test helper, and its
  * `csrfMiddleware`'s doc comment, which describes exactly this pattern) rather than cached, so
@@ -130,11 +190,14 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       // A parse failure (non-JSON body) falls back to the generic message below --
       // .catch keeps it from being caught by this same function's outer try/catch.
       const parsed = await response.json().catch(() => null);
-      throw new Error(
+      const rawMessage =
         parsed?.error ||
-          parsed?.message ||
-          `Request failed with status ${response.status} ${response.statusText}`
-      );
+        parsed?.message ||
+        `Request failed with status ${response.status} ${response.statusText}`;
+      if (response.status === 401 && rawMessage === 'Authentication required') {
+        notifySessionExpired();
+      }
+      throw new ApiError(describeError(rawMessage), response.status);
     }
 
     if (response.status === 204) {

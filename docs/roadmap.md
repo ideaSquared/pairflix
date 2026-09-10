@@ -287,6 +287,11 @@ database has been provisioned in a real Cloudflare account (`services/api/wrangl
 `database_id` is still the placeholder from P2) and no CI step runs any deploy. Both need real
 Cloudflare account access this repo's automated tooling doesn't have; `docs/dev-setup.md`'s Deploy
 section documents the commands to run once that access exists.
+
+**Follow-up (later change):** `wrangler.jsonc` gained named `staging`/`production` environments and
+`.github/workflows/deploy.yml` (`workflow_dispatch`, not on push) now runs the migrate-then-deploy
+sequence end to end -- still unexercised against a real account, and still blocked on the same
+placeholder `database_id`s and a domain/cookie decision. See `docs/runbook.md`.
 **Exit:** the old stack is gone (Express, Docker, nginx, all deleted). `wrangler deploy` + Pages are
 what's left to actually run a deploy with -- provisioning the target account is the remaining step.
 

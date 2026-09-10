@@ -70,7 +70,10 @@ describe('ErrorBoundary', () => {
     console.error = originalConsoleError;
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('Test error')).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Test error')).not.toBeInTheDocument();
     expect(screen.getByText('Try Again')).toBeInTheDocument();
     expect(screen.getByText('Reload Page')).toBeInTheDocument();
   });
@@ -139,7 +142,7 @@ describe('ErrorBoundary', () => {
 });
 
 describe('ErrorFallback', () => {
-  it('renders with error message', () => {
+  it('renders a friendly message without leaking the raw error message', () => {
     const error = new Error('Custom error message');
     const resetErrorBoundary = vi.fn();
 
@@ -148,7 +151,10 @@ describe('ErrorFallback', () => {
     );
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.getByText('Custom error message')).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Custom error message')).not.toBeInTheDocument();
   });
 
   it('renders default message when no error provided', () => {

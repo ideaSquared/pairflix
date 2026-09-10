@@ -8,14 +8,18 @@ import {
   Input,
   InputGroup,
   SuccessText,
+  Typography,
 } from '@pairflix/components';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { auth } from '../../services/api';
+import { nextQueryString } from '../../utils/internalPath';
 import * as styles from './RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const loginHref = `/login${nextQueryString(searchParams.get('next'))}`;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -143,7 +147,7 @@ const RegisterPage: React.FC = () => {
               <div style={{ marginBottom: '1rem' }}>
                 <Button
                   variant="primary"
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(loginHref)}
                   isFullWidth
                 >
                   Go to Login
@@ -217,6 +221,11 @@ const RegisterPage: React.FC = () => {
               />
             </InputGroup>
             {error && <ErrorText>{error}</ErrorText>}
+            <Typography variant="caption">
+              By creating an account, you agree to our{' '}
+              <Link to="/terms">Terms of Service</Link> and{' '}
+              <Link to="/privacy">Privacy Policy</Link>.
+            </Typography>
             <Button
               type="submit"
               variant="primary"
@@ -227,7 +236,7 @@ const RegisterPage: React.FC = () => {
             </Button>
           </form>
           <div className={styles.loginLink}>
-            Already have an account? <Link to="/login">Sign in here</Link>
+            Already have an account? <Link to={loginHref}>Sign in here</Link>
           </div>
         </CardContent>
       </Card>

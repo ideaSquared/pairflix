@@ -22,6 +22,7 @@ import {
 } from '../lib/session';
 import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
+import { requireCsrfToken } from '../middleware/csrf';
 import { ipRateLimit } from '../middleware/ip-rate-limit';
 import type { AppEnv } from '../types';
 
@@ -29,11 +30,32 @@ export const authRoutes = new Hono<AppEnv>();
 
 const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
-/** Per-IP budget for the unauthenticated routes below ('/register', '/forgot-password',
- * '/resend-verification') -- '/login' already has its own account-level lockout above and isn't
- * throttled here. */
+/** Per-IP budget for the unauthenticated routes below ('/register', '/login', '/forgot-password',
+ * '/reset-password', '/resend-verification') -- '/login' additionally has its own account-level
+ * lockout (see `recordFailure` below), but that alone lets anyone lock any account by email alone,
+ * so it's not a substitute for an IP budget. */
 const IP_RATE_LIMIT = 5;
 const IP_RATE_WINDOW_MINUTES = 15;
+
+/** SHA-256 hex digest of a token. `auth_tokens.id` for `password_reset` tokens stores this hash,
+ * not the plaintext (see '/forgot-password' and '/reset-password' below) -- a stolen DB row alone
+ * is then not enough to complete a reset, only the plaintext link (emailed, never persisted) is. */
+export const hashToken = async (token: string): Promise<string> => {
+	const digest = await crypto.subtle.digest(
+		'SHA-256',
+		new TextEncoder().encode(token)
+	);
+	return [...new Uint8Array(digest)]
+		.map(byte => byte.toString(16).padStart(2, '0'))
+		.join('');
+};
+
+/** Fixed-format PBKDF2 hash, never a real password -- run against an unknown email's login
+ * attempt so `verifyPassword` takes the same time whether or not the email is registered.
+ * Skipping the hash entirely for a missing user (the previous behavior) leaked account existence
+ * through response timing. */
+const DUMMY_PASSWORD_HASH =
+	'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 
 authRoutes.get('/csrf-token', c => {
 	const token = randomToken();
@@ -136,7 +158,13 @@ authRoutes.post('/register', registerRateLimit, async c => {
 	);
 });
 
-authRoutes.post('/login', async c => {
+const loginRateLimit = ipRateLimit({
+	routeName: 'login',
+	limit: IP_RATE_LIMIT,
+	windowMinutes: IP_RATE_WINDOW_MINUTES,
+});
+
+authRoutes.post('/login', loginRateLimit, requireCsrfToken, async c => {
 	const parsed = LoginRequestSchema.safeParse(
 		await c.req.json().catch(() => null)
 	);
@@ -149,22 +177,59 @@ authRoutes.post('/login', async c => {
 		.where(eq(users.email, parsed.data.email))
 		.get();
 
-	if (user?.status === 'suspended') {
+	// Unknown email: leave lockout state untouched (there's no user row to update), so this stays
+	// indistinguishable from a bad password -- no side channel reveals whether the email is registered.
+	const recordFailure = async (
+		knownUser: NonNullable<typeof user>
+	): Promise<void> => {
+		const attempts = knownUser.failedLoginAttempts + 1;
+		const locked = attempts >= FAILED_ATTEMPT_LIMIT;
+		await db
+			.update(users)
+			.set({
+				failedLoginAttempts: locked ? 0 : attempts,
+				lockedUntil: locked ? new Date(Date.now() + LOCKOUT_MS) : null,
+			})
+			.where(eq(users.id, knownUser.id));
+	};
+
+	const isLocked = Boolean(
+		user?.lockedUntil && user.lockedUntil.getTime() > Date.now()
+	);
+	// Always run a real PBKDF2 verify, even for an unknown email, so response timing doesn't
+	// reveal whether the email is registered -- `DUMMY_PASSWORD_HASH` costs the same to check as a
+	// real stored hash.
+	const passwordValid = user
+		? await verifyPassword(parsed.data.password, user.passwordHash)
+		: await verifyPassword(parsed.data.password, DUMMY_PASSWORD_HASH).then(
+				() => false
+			);
+
+	if (!user || !passwordValid) {
+		// Skip bookkeeping for an already-locked account: incrementing `failedLoginAttempts` here
+		// would read as `locked = attempts >= FAILED_ATTEMPT_LIMIT` on a freshly-reset counter and
+		// clear `lockedUntil` early. A wrong password never reveals suspension/ban/lockout/pending
+		// status either -- those only fire below, once the password is confirmed correct.
+		if (user && !isLocked) await recordFailure(user);
+		return c.json({ error: 'Invalid email or password' }, 401);
+	}
+
+	if (user.status === 'suspended') {
 		return c.json(
 			{ error: 'Account suspended', details: ['Contact support for help'] },
 			403
 		);
 	}
-	if (user?.status === 'banned') {
+	if (user.status === 'banned') {
 		return c.json(
 			{ error: 'Account banned', details: ['Contact support for help'] },
 			403
 		);
 	}
 
-	if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+	if (isLocked) {
 		const retryAfterSeconds = Math.ceil(
-			(user.lockedUntil.getTime() - Date.now()) / 1000
+			(user.lockedUntil!.getTime() - Date.now()) / 1000
 		);
 		c.header('Retry-After', String(retryAfterSeconds));
 		return c.json(
@@ -177,9 +242,8 @@ authRoutes.post('/login', async c => {
 	}
 
 	// A status: 'pending' account with an unconsumed admin-forced reset token must reset before
-	// logging in again with the old password -- checked before password verification so the message
-	// is specific rather than a generic "invalid credentials".
-	if (user?.status === 'pending') {
+	// logging in again with the old password.
+	if (user.status === 'pending') {
 		const forcedReset = await db
 			.select({ id: authTokens.id })
 			.from(authTokens)
@@ -202,30 +266,6 @@ authRoutes.post('/login', async c => {
 				403
 			);
 		}
-	}
-
-	// Unknown email: leave lockout state untouched (there's no user row to update), so this stays
-	// indistinguishable from a bad password -- no side channel reveals whether the email is registered.
-	const recordFailure = async (
-		knownUser: NonNullable<typeof user>
-	): Promise<void> => {
-		const attempts = knownUser.failedLoginAttempts + 1;
-		const locked = attempts >= FAILED_ATTEMPT_LIMIT;
-		await db
-			.update(users)
-			.set({
-				failedLoginAttempts: locked ? 0 : attempts,
-				lockedUntil: locked ? new Date(Date.now() + LOCKOUT_MS) : null,
-			})
-			.where(eq(users.id, knownUser.id));
-	};
-
-	if (
-		!user ||
-		!(await verifyPassword(parsed.data.password, user.passwordHash))
-	) {
-		if (user) await recordFailure(user);
-		return c.json({ error: 'Invalid email or password' }, 401);
 	}
 
 	if (user.totpEnabled) {
@@ -535,9 +575,21 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 		.where(eq(users.email, parsed.data.email))
 		.get();
 	if (user) {
+		// A new request supersedes any earlier unconsumed reset link for this user -- otherwise an
+		// older, still-valid token stays usable alongside the new one.
+		await db
+			.delete(authTokens)
+			.where(
+				and(
+					eq(authTokens.userId, user.id),
+					eq(authTokens.purpose, 'password_reset'),
+					isNull(authTokens.consumedAt)
+				)
+			);
+
 		const resetToken = randomToken();
 		await db.insert(authTokens).values({
-			id: resetToken,
+			id: await hashToken(resetToken),
 			userId: user.id,
 			purpose: 'password_reset',
 			expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
@@ -553,7 +605,13 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 	return c.json({ data: { sent: true } });
 });
 
-authRoutes.post('/reset-password', async c => {
+const resetPasswordRateLimit = ipRateLimit({
+	routeName: 'reset-password',
+	limit: IP_RATE_LIMIT,
+	windowMinutes: IP_RATE_WINDOW_MINUTES,
+});
+
+authRoutes.post('/reset-password', resetPasswordRateLimit, async c => {
 	const parsed = ResetPasswordRequestSchema.safeParse(
 		await c.req.json().catch(() => null)
 	);
@@ -573,7 +631,7 @@ authRoutes.post('/reset-password', async c => {
 		.from(authTokens)
 		.where(
 			and(
-				eq(authTokens.id, parsed.data.token),
+				eq(authTokens.id, await hashToken(parsed.data.token)),
 				eq(authTokens.purpose, 'password_reset')
 			)
 		)
@@ -598,6 +656,9 @@ authRoutes.post('/reset-password', async c => {
 		.set({
 			passwordHash: await hashPassword(parsed.data.password),
 			status: nextStatus,
+			// Receiving and clicking this link proves control of the address already on file --
+			// same standard as clicking a dedicated verify-email link.
+			emailVerified: true,
 		})
 		.where(eq(users.id, row.userId))
 		.returning({ id: users.id, email: users.email, status: users.status })
@@ -620,6 +681,17 @@ authRoutes.post('/reset-password', async c => {
 			{
 				error: 'Account suspended',
 				details: ['Your password was updated, but this account is suspended.'],
+			},
+			403
+		);
+	}
+	// Same gate '/login' applies to a still-pending (non-forced) account -- a reset shouldn't grant
+	// a session '/login' itself wouldn't.
+	if (updated.status === 'pending') {
+		return c.json(
+			{
+				error: 'Your account is pending activation',
+				details: ['Contact support for help.'],
 			},
 			403
 		);

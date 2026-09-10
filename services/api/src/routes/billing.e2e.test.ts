@@ -64,8 +64,16 @@ const signWebhook = async (payload: string): Promise<string> => {
 	return `t=${timestamp},v1=${hex}`;
 };
 
-const postWebhook = async (event: unknown) => {
-	const payload = JSON.stringify(event);
+let eventCounter = 0;
+const nextEventId = () => `evt_test_${Date.now()}_${eventCounter++}`;
+
+/** `id` defaults to a fresh value per call -- pass an explicit one to simulate Stripe redelivering
+ * the same event (retried after a non-2xx, or genuinely out of order). */
+const postWebhook = async (
+	event: Record<string, unknown>,
+	id: string = nextEventId()
+) => {
+	const payload = JSON.stringify({ id, ...event });
 	const signature = await signWebhook(payload);
 	return callApp('/api/billing/webhook', {
 		method: 'POST',
@@ -136,6 +144,48 @@ describe('POST /api/billing/webhook', () => {
 		expect(entitlements.body.tier).toBe('free');
 	});
 
+	it("releases the idempotency claim when handling fails, so Stripe's retry is not skipped", async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const eventId = nextEventId();
+
+		// A household id that doesn't exist fails the subscriptions.household_id foreign key, which
+		// is a realistic stand-in for any mid-handling failure after the event has been claimed.
+		const failed = await postWebhook(
+			{
+				type: 'checkout.session.completed',
+				data: {
+					object: {
+						customer: 'cus_test_retry',
+						subscription: 'sub_test_retry',
+						metadata: { householdId: 'household-does-not-exist' },
+					},
+				},
+			},
+			eventId
+		);
+		expect(failed.status).toBe(500);
+
+		const retried = await postWebhook(
+			{
+				type: 'checkout.session.completed',
+				data: {
+					object: {
+						customer: 'cus_test_retry',
+						subscription: 'sub_test_retry',
+						metadata: { householdId },
+					},
+				},
+			},
+			eventId
+		);
+		expect(retried.status).toBe(200);
+		expect(retried.body).not.toHaveProperty('duplicate');
+
+		const row = await getSubscriptionRow(householdId);
+		expect(row?.stripe_customer_id).toBe('cus_test_retry');
+	});
+
 	it('customer.subscription.updated sets current_period_end and actually grants premium', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
@@ -158,6 +208,7 @@ describe('POST /api/billing/webhook', () => {
 					id: 'sub_test_2',
 					customer: 'cus_test_2',
 					current_period_end: periodEnd,
+					status: 'active',
 				},
 			},
 		});
@@ -189,6 +240,7 @@ describe('POST /api/billing/webhook', () => {
 					id: 'sub_test_3',
 					customer: 'cus_test_3',
 					current_period_end: periodEnd,
+					status: 'active',
 					metadata: { householdId },
 				},
 			},
@@ -212,6 +264,7 @@ describe('POST /api/billing/webhook', () => {
 					id: 'sub_test_4',
 					customer: 'cus_test_4',
 					current_period_end: periodEnd,
+					status: 'active',
 					metadata: { householdId },
 				},
 			},
@@ -241,5 +294,153 @@ describe('POST /api/billing/webhook', () => {
 			data: { object: {} },
 		});
 		expect(result.status).toBe(200);
+	});
+
+	it('does not re-apply a redelivered event with the same id', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const periodEnd = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+		const event = {
+			type: 'customer.subscription.updated',
+			data: {
+				object: {
+					id: 'sub_dup',
+					customer: 'cus_dup',
+					current_period_end: periodEnd,
+					status: 'active',
+					metadata: { householdId },
+				},
+			},
+		};
+
+		const first = await postWebhook(event, 'evt_duplicate_1');
+		expect(first.status).toBe(200);
+
+		// Cancel it via a second, distinct event, then redeliver the *first* event's id again --
+		// if it were re-applied it would wrongly flip the row back to premium.
+		await postWebhook(
+			{
+				type: 'customer.subscription.deleted',
+				data: { object: { id: 'sub_dup', customer: 'cus_dup' } },
+			},
+			'evt_duplicate_2'
+		);
+
+		const redelivered = await postWebhook(event, 'evt_duplicate_1');
+		expect(redelivered.status).toBe(200);
+		expect(redelivered.body).toMatchObject({ duplicate: true });
+
+		const row = await getSubscriptionRow(householdId);
+		expect(row?.status).toBe('canceled');
+	});
+
+	it('does not grant premium for a past_due or unpaid subscription status', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const periodEnd = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+		const result = await postWebhook({
+			type: 'customer.subscription.updated',
+			data: {
+				object: {
+					id: 'sub_past_due',
+					customer: 'cus_past_due',
+					current_period_end: periodEnd,
+					status: 'past_due',
+					metadata: { householdId },
+				},
+			},
+		});
+		expect(result.status).toBe(200);
+
+		const row = await getSubscriptionRow(householdId);
+		expect(row?.status).toBe('past_due');
+
+		const entitlements = await callApp<{ tier: string }>(
+			`/api/households/${householdId}/entitlements`,
+			{ cookies }
+		);
+		expect(entitlements.body.tier).toBe('free');
+	});
+
+	it('ignores a subscription.updated that arrives after subscription.deleted for the same subscription', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const periodEnd = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+		await postWebhook({
+			type: 'customer.subscription.updated',
+			data: {
+				object: {
+					id: 'sub_ooo',
+					customer: 'cus_ooo',
+					current_period_end: periodEnd,
+					status: 'active',
+					metadata: { householdId },
+				},
+			},
+		});
+		await postWebhook({
+			type: 'customer.subscription.deleted',
+			data: { object: { id: 'sub_ooo', customer: 'cus_ooo' } },
+		});
+
+		// A stale `updated` for the same subscription id, delivered late, must not resurrect it.
+		const late = await postWebhook({
+			type: 'customer.subscription.updated',
+			data: {
+				object: {
+					id: 'sub_ooo',
+					customer: 'cus_ooo',
+					current_period_end: periodEnd,
+					status: 'active',
+					metadata: { householdId },
+				},
+			},
+		});
+		expect(late.status).toBe(200);
+
+		const row = await getSubscriptionRow(householdId);
+		expect(row?.status).toBe('canceled');
+
+		const entitlements = await callApp<{ tier: string }>(
+			`/api/households/${householdId}/entitlements`,
+			{ cookies }
+		);
+		expect(entitlements.body.tier).toBe('free');
+	});
+
+	it('invoice.payment_failed marks the subscription past_due', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		const householdId = await createHousehold(cookies);
+		const periodEnd = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+		await postWebhook({
+			type: 'customer.subscription.updated',
+			data: {
+				object: {
+					id: 'sub_invoice_fail',
+					customer: 'cus_invoice_fail',
+					current_period_end: periodEnd,
+					status: 'active',
+					metadata: { householdId },
+				},
+			},
+		});
+
+		const result = await postWebhook({
+			type: 'invoice.payment_failed',
+			data: { object: { customer: 'cus_invoice_fail' } },
+		});
+		expect(result.status).toBe(200);
+
+		const row = await getSubscriptionRow(householdId);
+		expect(row?.status).toBe('past_due');
+
+		const entitlements = await callApp<{ tier: string }>(
+			`/api/households/${householdId}/entitlements`,
+			{ cookies }
+		);
+		expect(entitlements.body.tier).toBe('free');
 	});
 });

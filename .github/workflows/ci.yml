@@ -49,3 +49,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Check generated Worker bindings are current
+        # Catches vars added to services/api/wrangler.jsonc without regenerating
+        # worker-configuration.d.ts (`pnpm --filter @pairflix/api cf-typegen`) -- see
+        # docs/runbook.md's environment-variable drift note.
+        run: pnpm --filter @pairflix/api exec wrangler types --check

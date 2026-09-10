@@ -1,35 +1,29 @@
 ---
 mode: 'agent'
-description: 'Database standards for PostgreSQL and Sequelize'
-applyTo: '**/models/*.{ts,js},**/db/**/*.{ts,js}'
+description: 'Database standards for Drizzle ORM on Cloudflare D1 (SQLite)'
+applyTo: 'packages/db/**/*.ts,services/api/src/lib/**/*.ts'
 ---
 
-# Database Requirements (PostgreSQL 15+ with Sequelize 7+)
+# Database Requirements (Drizzle ORM on Cloudflare D1 / SQLite)
 
-- ✅ Use **Sequelize ORM (v7+)** with full TypeScript typing (`sequelize-typescript` or raw Sequelize with manual typings)
-- ✅ Prefer **explicit model definitions** with strict TypeScript types
-- ✅ Leverage PostgreSQL features including:
-  - JSONB columns for flexible structured data
-  - Generated columns (`GENERATED ALWAYS AS (...) STORED`)
-  - `STRICT` mode via Sequelize model validations and database constraints
-  - Foreign key constraints to enforce relational integrity
-  - `CHECK` constraints for domain rules
-  - `UNIQUE` constraints for natural keys (e.g., emails)
-  - `NOT NULL` constraints for required fields
-  - Indexed columns for performance on filtering/sorting
-- ✅ Use Sequelize migrations (`sequelize-cli` or custom scripts via Umzug) in production. IF in development make the edits directly to the schema and update the seeders.
-- ✅ Use **transactional writes** for any multi-step create/update/delete operations:
-
-  ```ts
-  await sequelize.transaction(async t => {
-    await User.create(data, { transaction: t });
-    await Profile.create(profileData, { transaction: t });
-  });
-  ```
-
-- ✅ Always define associations explicitly with `onDelete` and `onUpdate` rules (`CASCADE`, `SET NULL`, etc.)
-- ✅ Prefer UUIDs (`DataTypes.UUID`) over incremental IDs for distributed safety
-- ✅ Use timestamps (`createdAt`, `updatedAt`) consistently and automatically
-- ✅ Enable and test **foreign key constraints** (ensure `REFERENCES` and `ON DELETE`/`ON UPDATE` are honored)
-- ✅ Validate schema with runtime checks using Zod or class-validator alongside Sequelize's validation layer
-- ✅ Run integration tests using in-memory PostgreSQL (e.g., via [pg-mem](https://github.com/oguimbal/pg-mem)) or a Dockerized local Postgres instance
+- Schema lives in `packages/db/src/schema.ts`; the typed client is `packages/db`'s exports. The DB
+  handle comes from the Worker's `Env.DB` binding, passed down -- never a module-level singleton.
+- JSON columns use `text({ mode: 'json' }).$type<T>()`; timestamps use
+  `integer({ mode: 'timestamp_ms' })`; booleans use `integer({ mode: 'boolean' })` -- D1/SQLite has no
+  native JSON, timestamp, or boolean column types.
+- Index every column you'll filter or join on.
+- One schema change = one migration, generated with `drizzle-kit generate`
+  (`pnpm --filter @pairflix/db db:generate`), applied with
+  `wrangler d1 migrations apply pairflix-db --local|--remote`. SQL migration files land under
+  `packages/db/migrations/`.
+- **Never modify a shipped migration.** Create a new one.
+- Document every new table/column in `docs/db-schema.md` in the same PR.
+- Prefer explicit foreign keys and `NOT NULL`/`UNIQUE`/`CHECK` constraints where D1/SQLite supports
+  them; D1 has no `GENERATED ALWAYS AS (...) STORED` columns or JSONB, unlike Postgres.
+- No transactions across D1 batches beyond what `db.batch()` provides -- D1 doesn't support
+  multi-statement interactive transactions the way Postgres does. Keep multi-step writes to what a
+  single `db.batch()` call can express, or accept the non-atomicity and document why.
+- Validate request/response shapes with the shared schemas in `packages/lib.validation`, not
+  hand-rolled per-endpoint checks.
+- Test against a real local D1 (Miniflare, via `@cloudflare/vitest-pool-workers`) -- see
+  `docs/dev-setup.md`. Don't mock the DB layer; use the local D1 as the Postgres/pg-mem equivalent.
