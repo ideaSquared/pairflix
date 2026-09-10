@@ -1,9 +1,20 @@
-import { pickUsage, subscriptions, type Database } from '@pairflix/db';
+import {
+	householdMembers,
+	pickUsage,
+	subscriptions,
+	type Database,
+} from '@pairflix/db';
 import { and, count, eq, gte } from 'drizzle-orm';
 import { newId } from './id';
 
 const FREE_DAILY_PICK_LIMIT = 3;
 const FREE_REGION_LOCK = 'GB';
+/** There's no user-level premium concept yet -- premium lives on a household's own subscription
+ * row, not the owning user -- so this caps every user's owned-household count uniformly rather
+ * than only free users'. Without it, the per-household free daily pick limit above is not
+ * actually a limit: a free user can spin up an unbounded number of households for 3 more picks
+ * each. */
+export const MAX_OWNED_HOUSEHOLDS = 3;
 
 export type Entitlements = {
 	tier: 'free' | 'premium';
@@ -72,6 +83,23 @@ export const getEntitlements = async (
 		canUseMultiRegion: premium,
 		regionLock: premium ? null : FREE_REGION_LOCK,
 	};
+};
+
+export const countOwnedHouseholds = async (
+	db: Database,
+	userId: string
+): Promise<number> => {
+	const row = await db
+		.select({ total: count() })
+		.from(householdMembers)
+		.where(
+			and(
+				eq(householdMembers.userId, userId),
+				eq(householdMembers.role, 'owner')
+			)
+		)
+		.get();
+	return row?.total ?? 0;
 };
 
 export const recordPick = async (

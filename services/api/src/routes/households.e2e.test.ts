@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { createDb, settings, subscriptions } from '@pairflix/db';
 import { describe, expect, it } from 'vitest';
+import { MAX_OWNED_HOUSEHOLDS } from '../lib/entitlements';
 import {
 	callApp,
 	createLoggedInUser,
@@ -433,6 +434,47 @@ describe('household CRUD + invites', () => {
 		);
 		expect(result.status).toBe(410);
 	});
+
+	it('caps the number of households one user can own', async () => {
+		const { cookies } = await createLoggedInUser(uniqueEmail());
+		for (let i = 0; i < MAX_OWNED_HOUSEHOLDS; i++) {
+			await createHousehold(cookies);
+		}
+
+		const result = await postJson<{ error: string }>(
+			'/api/households',
+			{},
+			cookies
+		);
+		expect(result.status).toBe(403);
+		expect(result.body.error).toBe('household_limit_reached');
+	});
+
+	it('does not count membership in someone else households toward the cap', async () => {
+		const owner = await createLoggedInUser(uniqueEmail());
+		const member = await createLoggedInUser(uniqueEmail());
+
+		for (let i = 0; i < MAX_OWNED_HOUSEHOLDS; i++) {
+			const householdId = await createHousehold(owner.cookies);
+			const invite = await postJson<{ invite: { token: string } }>(
+				`/api/households/${householdId}/invites`,
+				{},
+				owner.cookies
+			);
+			await postJson(
+				`/api/households/invites/${invite.body.invite.token}/accept`,
+				{},
+				member.cookies
+			);
+		}
+
+		const result = await postJson<{ household: { id: string } }>(
+			'/api/households',
+			{},
+			member.cookies
+		);
+		expect(result.status).toBe(201);
+	});
 });
 
 describe('POST /api/households/:id/pick', () => {
@@ -496,13 +538,16 @@ describe('POST /api/households/:id/pick', () => {
 		}
 
 		mockExternalApis(DEFAULT_MOVIES);
-		const exceeded = await postJson<{ error: string }>(
+		const exceeded = await postJson<{ error: string; upgradeUrl?: string }>(
 			`/api/households/${householdId}/pick`,
 			{ mood: 'funny', minutes: 120 },
 			cookies
 		);
 		expect(exceeded.status).toBe(402);
 		expect(exceeded.body.error).toBe('pick_quota_exceeded');
+		// BILLING_MOCK_ENABLED is unset in this suite's env -- the 402 body must not point at a
+		// mock checkout route that 404s.
+		expect(exceeded.body.upgradeUrl).toBeUndefined();
 	});
 
 	it('allows at most one success when two picks race with one remaining', async () => {
@@ -1673,35 +1718,93 @@ describe('billing routes', () => {
 		expect(asOwner.status).toBe(501);
 	});
 
-	it('mock-activate flips the household to premium, cancel reverts it', async () => {
+	it('mock-activate 404s when the mock is not explicitly enabled', async () => {
 		const { cookies } = await createLoggedInUser(uniqueEmail());
 		const householdId = await createHousehold(cookies);
 
-		const activated = await postJson(
+		// BILLING_MOCK_ENABLED is unset in this test suite's env (vitest.config.mts) -- the mock
+		// no longer infers "enabled" from ENVIRONMENT !== 'production', so this must 404 even
+		// though the suite runs with ENVIRONMENT=development.
+		const result = await postJson(
 			`/api/households/${householdId}/billing/mock-activate`,
 			{},
 			cookies
 		);
-		expect(activated.status).toBe(200);
+		expect(result.status).toBe(404);
+	});
 
-		const afterActivate = await callApp<{
-			tier: string;
-			canUseMultiRegion: boolean;
-		}>(`/api/households/${householdId}/entitlements`, { cookies });
-		expect(afterActivate.body.tier).toBe('premium');
-		expect(afterActivate.body.canUseMultiRegion).toBe(true);
+	it('mock-activate flips the household to premium, cancel reverts it, when explicitly enabled', async () => {
+		const original = env.BILLING_MOCK_ENABLED;
+		env.BILLING_MOCK_ENABLED = 'true';
+		try {
+			const { cookies } = await createLoggedInUser(uniqueEmail());
+			const householdId = await createHousehold(cookies);
 
-		const canceled = await postJson(
-			`/api/households/${householdId}/billing/cancel`,
-			{},
-			cookies
-		);
-		expect(canceled.status).toBe(204);
+			const activated = await postJson(
+				`/api/households/${householdId}/billing/mock-activate`,
+				{},
+				cookies
+			);
+			expect(activated.status).toBe(200);
 
-		const afterCancel = await callApp<{ tier: string }>(
-			`/api/households/${householdId}/entitlements`,
-			{ cookies }
-		);
-		expect(afterCancel.body.tier).toBe('free');
+			const afterActivate = await callApp<{
+				tier: string;
+				canUseMultiRegion: boolean;
+			}>(`/api/households/${householdId}/entitlements`, { cookies });
+			expect(afterActivate.body.tier).toBe('premium');
+			expect(afterActivate.body.canUseMultiRegion).toBe(true);
+
+			const canceled = await postJson(
+				`/api/households/${householdId}/billing/cancel`,
+				{},
+				cookies
+			);
+			expect(canceled.status).toBe(204);
+
+			const afterCancel = await callApp<{ tier: string }>(
+				`/api/households/${householdId}/entitlements`,
+				{ cookies }
+			);
+			expect(afterCancel.body.tier).toBe('free');
+		} finally {
+			env.BILLING_MOCK_ENABLED = original;
+		}
+	});
+
+	it('cancel 501s and does not touch the local row once Stripe is configured', async () => {
+		const original = {
+			secret: env.STRIPE_SECRET_KEY,
+			price: env.STRIPE_PRICE_PREMIUM,
+			mock: env.BILLING_MOCK_ENABLED,
+		};
+		env.STRIPE_SECRET_KEY = 'sk_test_fake';
+		env.STRIPE_PRICE_PREMIUM = 'price_fake';
+		env.BILLING_MOCK_ENABLED = 'true';
+		try {
+			const { cookies } = await createLoggedInUser(uniqueEmail());
+			const householdId = await createHousehold(cookies);
+			await postJson(
+				`/api/households/${householdId}/billing/mock-activate`,
+				{},
+				cookies
+			);
+
+			const result = await postJson(
+				`/api/households/${householdId}/billing/cancel`,
+				{},
+				cookies
+			);
+			expect(result.status).toBe(501);
+
+			const afterCancel = await callApp<{ tier: string }>(
+				`/api/households/${householdId}/entitlements`,
+				{ cookies }
+			);
+			expect(afterCancel.body.tier).toBe('premium');
+		} finally {
+			env.STRIPE_SECRET_KEY = original.secret;
+			env.STRIPE_PRICE_PREMIUM = original.price;
+			env.BILLING_MOCK_ENABLED = original.mock;
+		}
 	});
 });

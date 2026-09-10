@@ -20,7 +20,11 @@ import {
 	startPortalSession,
 	startRealOrMockCheckout,
 } from '../lib/billing';
-import { getEntitlements } from '../lib/entitlements';
+import {
+	MAX_OWNED_HOUSEHOLDS,
+	countOwnedHouseholds,
+	getEntitlements,
+} from '../lib/entitlements';
 import { listHistory, setEnjoyed } from '../lib/history';
 import {
 	InviteInvalidError,
@@ -95,6 +99,16 @@ householdsRoutes.post('/', async c => {
 		);
 	}
 	const db = createDb(c.env.DB);
+	const ownedCount = await countOwnedHouseholds(db, userId);
+	if (ownedCount >= MAX_OWNED_HOUSEHOLDS) {
+		return c.json(
+			{
+				error: 'household_limit_reached',
+				details: [`You can own at most ${MAX_OWNED_HOUSEHOLDS} households`],
+			},
+			403
+		);
+	}
 	const household = await createForOwner(db, userId, parsed.data.name || null);
 	return c.json({ household }, 201);
 });
@@ -486,10 +500,19 @@ householdsRoutes.post('/:id/billing/portal', requireHouseholdOwner, async c => {
 	return c.json({ portalUrl: result.portalUrl });
 });
 
+/**
+ * Only ever cancels the mock subscription -- once Stripe is configured, this product's local row
+ * is not the source of truth for cancellation, so a real subscriber is redirected to Stripe's
+ * self-service Billing Portal (`/:id/billing/portal`) instead of this route silently flipping a
+ * local flag that a subsequent webhook would just overwrite back to active.
+ */
 householdsRoutes.post('/:id/billing/cancel', requireHouseholdOwner, async c => {
 	const householdId = c.req.param('id');
 	const db = createDb(c.env.DB);
-	await cancelSubscription(db, householdId);
+	const result = await cancelSubscription(c.env, db, householdId);
+	if (!result.ok && result.reason === 'use_billing_portal') {
+		return c.json({ error: 'use_billing_portal' }, 501);
+	}
 	return c.body(null, 204);
 });
 

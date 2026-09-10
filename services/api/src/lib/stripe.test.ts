@@ -68,6 +68,25 @@ describe('verifyWebhookSignature', () => {
 		).toBe(false);
 	});
 
+	it('accepts a valid signature among multiple v1 values, as sent during secret rotation', async () => {
+		const timestamp = Math.floor(now / 1000);
+		const validSignature = (
+			await sign(payload, WEBHOOK_SECRET, timestamp)
+		).split('v1=')[1];
+		const header = `t=${timestamp},v1=not-the-real-signature,v1=${validSignature}`;
+		expect(
+			await verifyWebhookSignature(payload, header, WEBHOOK_SECRET, 300, now)
+		).toBe(true);
+	});
+
+	it('rejects when none of several v1 values verify', async () => {
+		const timestamp = Math.floor(now / 1000);
+		const header = `t=${timestamp},v1=bogus-one,v1=bogus-two`;
+		expect(
+			await verifyWebhookSignature(payload, header, WEBHOOK_SECRET, 300, now)
+		).toBe(false);
+	});
+
 	it('rejects a malformed or missing header', async () => {
 		expect(
 			await verifyWebhookSignature(payload, null, WEBHOOK_SECRET, 300, now)

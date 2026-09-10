@@ -91,30 +91,42 @@ export const startPortalSession = async (
 	return { ok: true, portalUrl: session.url };
 };
 
-export const isBillingMockEnabled = (env: Bindings): boolean => {
-	if (env.BILLING_MOCK_ENABLED === undefined) {
-		return env.ENVIRONMENT !== 'production';
-	}
-	return env.BILLING_MOCK_ENABLED === 'true';
-};
+/** Explicit opt-in only -- an absent or non-'true' value disables the mock, including on any
+ * unconfigured/staging deploy that never set it. Previously defaulted to enabled whenever
+ * `ENVIRONMENT !== 'production'`, which also silently enabled it on any deploy that forgot to set
+ * `ENVIRONMENT` to `'production'`. */
+export const isBillingMockEnabled = (env: Bindings): boolean =>
+	env.BILLING_MOCK_ENABLED === 'true';
 
+export type CancelSubscriptionResult =
+	{ ok: true } | { ok: false; reason: 'use_billing_portal' | 'not_found' };
+
+/** Mock-only cancellation -- flips the local row without touching Stripe. Once Stripe is
+ * configured, this product's local `subscriptions` row is not the source of truth: only Stripe's
+ * own webhook (routes/billing.ts) is allowed to move it to 'canceled', so a real subscriber is
+ * routed to `startPortalSession` instead, which cancels (or schedules cancellation of) the actual
+ * Stripe subscription. */
 export const cancelSubscription = async (
+	env: Bindings,
 	db: Database,
 	householdId: string
-): Promise<boolean> => {
+): Promise<CancelSubscriptionResult> => {
+	if (isStripeConfigured(env))
+		return { ok: false, reason: 'use_billing_portal' };
+
 	const sub = await db
 		.select({ id: subscriptions.id })
 		.from(subscriptions)
 		.where(eq(subscriptions.householdId, householdId))
 		.get();
-	if (!sub) return false;
+	if (!sub) return { ok: false, reason: 'not_found' };
 
 	// currentPeriodEnd is left untouched -- access persists until the existing period rolls over.
 	await db
 		.update(subscriptions)
 		.set({ status: 'canceled', updatedAt: new Date() })
 		.where(eq(subscriptions.householdId, householdId));
-	return true;
+	return { ok: true };
 };
 
 /** No payment gate here -- the caller already checked `isBillingMockEnabled` and household

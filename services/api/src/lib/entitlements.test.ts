@@ -1,7 +1,17 @@
-import { createDb, households, subscriptions } from '@pairflix/db';
+import {
+	createDb,
+	households,
+	householdMembers,
+	subscriptions,
+	users,
+} from '@pairflix/db';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
-import { getEntitlements, recordPick } from './entitlements';
+import {
+	countOwnedHouseholds,
+	getEntitlements,
+	recordPick,
+} from './entitlements';
 
 const db = createDb(env.DB);
 
@@ -15,6 +25,31 @@ const makeHousehold = async (): Promise<string> => {
 		.insert(households)
 		.values({ id, name: id, createdAt: now, updatedAt: now });
 	return id;
+};
+
+const makeUser = async (): Promise<string> => {
+	seq += 1;
+	const id = `user_ent_${seq}`;
+	const now = new Date();
+	await db.insert(users).values({
+		id,
+		username: `entuser_${seq}`,
+		email: `ent_${seq}@example.com`,
+		passwordHash: 'x',
+		createdAt: now,
+		updatedAt: now,
+	});
+	return id;
+};
+
+const addMember = async (
+	householdId: string,
+	userId: string,
+	role: 'owner' | 'member'
+): Promise<void> => {
+	await db
+		.insert(householdMembers)
+		.values({ householdId, userId, role, joinedAt: new Date() });
 };
 
 const givePremium = async (
@@ -84,6 +119,23 @@ describe('getEntitlements', () => {
 		await givePremium(id, 'canceled', new Date(Date.now() + 60_000));
 		const ent = await getEntitlements(db, id);
 		expect(ent.tier).toBe('free');
+	});
+});
+
+describe('countOwnedHouseholds', () => {
+	it('counts only households owned, not merely joined', async () => {
+		const userId = await makeUser();
+		const owned = await makeHousehold();
+		const joined = await makeHousehold();
+		await addMember(owned, userId, 'owner');
+		await addMember(joined, userId, 'member');
+
+		expect(await countOwnedHouseholds(db, userId)).toBe(1);
+	});
+
+	it('returns zero for a user who owns nothing', async () => {
+		const userId = await makeUser();
+		expect(await countOwnedHouseholds(db, userId)).toBe(0);
 	});
 });
 
