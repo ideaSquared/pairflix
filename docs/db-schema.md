@@ -24,7 +24,7 @@ SQLite has a narrow type system; the Postgres schema maps as follows:
 | `TIMESTAMPTZ`      | `integer('...', { mode: 'timestamp_ms' })` | stored as epoch millis              |
 | `JSONB`            | `text('...', { mode: 'json' }).$type<T>()` | serialized JSON                     |
 | `BOOLEAN`          | `integer('...', { mode: 'boolean' })`      | 0 / 1                               |
-| enum               | `text('...').$type<'a' \| 'b'>()`          | + a `CHECK` in the migration        |
+| enum               | `text('...').$type<'a' \| 'b'>()`          | app-level only, no DB `CHECK`       |
 | `INTEGER` / `TEXT` | `integer(...)` / `text(...)`               | unchanged                           |
 
 `ON DELETE CASCADE` / `SET NULL` are expressed with Drizzle `references(() => t.col, { onDelete })`
@@ -67,7 +67,14 @@ export const users = sqliteTable('users', {
   totpBackupCodes: text('totp_backup_codes'), // JSON array of PBKDF2-hashed single-use codes
   preferences: text('preferences', { mode: 'json' })
     .$type<UserPreferences>()
-    .notNull(),
+    .notNull()
+    .default({
+      theme: 'dark',
+      viewStyle: 'grid',
+      emailNotifications: true,
+      autoArchiveDays: 30,
+      favoriteGenres: [],
+    }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 });
@@ -93,7 +100,7 @@ export const sessions = sqliteTable('sessions', {
   userAgent: text('user_agent'),
   deviceInfo: text('device_info'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-});
+}); // idx_sessions_expires_at (migration 0005) backs the retention sweep below
 
 export const authTokens = sqliteTable('auth_tokens', {
   id: text('id').primaryKey(),
@@ -145,7 +152,10 @@ export const householdMembers = sqliteTable(
     role: text('role').$type<'owner' | 'member'>().notNull().default('member'),
     joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).notNull(),
   },
-  table => [primaryKey({ columns: [table.householdId, table.userId] })]
+  table => [
+    primaryKey({ columns: [table.householdId, table.userId] }),
+    index('idx_household_members_user').on(table.userId), // "which households is this user in"
+  ]
 );
 
 export const householdInvites = sqliteTable('household_invites', {
@@ -157,7 +167,7 @@ export const householdInvites = sqliteTable('household_invites', {
   invitedEmail: text('invited_email'),
   invitedBy: text('invited_by')
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }), // migration 0005 -- was missing an onDelete
   expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
   acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
   acceptedBy: text('accepted_by').references(() => users.id, {
@@ -303,22 +313,40 @@ when a watched-together rating comes in.
 ## Freemium
 
 ```ts
-export const subscriptions = sqliteTable('subscriptions', {
+export const subscriptions = sqliteTable(
+  'subscriptions',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id')
+      .notNull()
+      .unique()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    tier: text('tier').$type<'free' | 'premium'>().notNull().default('free'),
+    status: text('status')
+      .$type<'active' | 'past_due' | 'canceled'>()
+      .notNull()
+      .default('active'),
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+    currentPeriodEnd: integer('current_period_end', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  t => ({
+    // Stripe webhook (routes/billing.ts) looks up the subscription by stripeCustomerId.
+    byStripeCustomer: uniqueIndex('idx_subscriptions_stripe_customer').on(
+      t.stripeCustomerId
+    ),
+  })
+);
+
+/** Stripe webhook idempotency (migration 0005) -- one row per processed event id, so a
+ * redelivered webhook (Stripe retries on a non-2xx or timeout) is a no-op instead of
+ * double-applying it. */
+export const stripeEvents = sqliteTable('stripe_events', {
   id: text('id').primaryKey(),
-  householdId: text('household_id')
-    .notNull()
-    .unique()
-    .references(() => households.id, { onDelete: 'cascade' }),
-  tier: text('tier').$type<'free' | 'premium'>().notNull().default('free'),
-  status: text('status')
-    .$type<'active' | 'past_due' | 'canceled'>()
-    .notNull()
-    .default('active'),
-  stripeCustomerId: text('stripe_customer_id'),
-  stripeSubscriptionId: text('stripe_subscription_id'),
-  currentPeriodEnd: integer('current_period_end', { mode: 'timestamp_ms' }),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  type: text('type').notNull(),
+  processedAt: integer('processed_at', { mode: 'timestamp_ms' }).notNull(),
 });
 
 export const pickUsage = sqliteTable(
@@ -344,6 +372,9 @@ populated by `services/api`'s Stripe webhook (`routes/billing.ts`) once a househ
 real checkout, but stay null until Stripe is actually configured -- no real account is wired up yet
 (see `docs/roadmap.md`), so `startCheckout` (`lib/billing.ts`) falls back to a mock checkout that
 never touches these columns at all.
+
+`pick_usage` is only ever read for "today" (`lib/entitlements.ts`'s `startOfTodayUtc`) -- see
+Retention below for its cleanup.
 
 ## Analytics
 
@@ -386,14 +417,28 @@ Backs the first-pick acceptance-rate KPI and affiliate attribution.
 ## Admin: audit log & settings
 
 ```ts
-export const auditLogs = sqliteTable('audit_logs', {
-  id: text('log_id').primaryKey(),
-  level: text('level').$type<'info' | 'warn' | 'error' | 'debug'>().notNull(),
-  message: text('message').notNull(),
-  context: text('context', { mode: 'json' }).$type<Record<string, unknown>>(),
-  source: text('source').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-});
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('log_id').primaryKey(),
+    level: text('level').$type<'info' | 'warn' | 'error' | 'debug'>().notNull(),
+    message: text('message').notNull(),
+    context: text('context', { mode: 'json' }).$type<Record<string, unknown>>(),
+    source: text('source').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  t => ({
+    // Backs the level-filtered listing, the unfiltered listing, and the retention sweep's
+    // per-level scan (lib/adminAuditLogs.ts).
+    byLevelCreated: index('idx_audit_logs_level_created_at').on(
+      t.level,
+      t.createdAt
+    ),
+    byCreated: index('idx_audit_logs_created_at').on(t.createdAt),
+    // Backs getLogSources's `SELECT DISTINCT source`.
+    bySource: index('idx_audit_logs_source').on(t.source),
+  })
+);
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -412,6 +457,23 @@ that's what carries forward here.
 
 `settings` replaces `app_settings` — a small key/value table for feature flags and runtime config that
 needs to change without a redeploy (vs. a Worker var, which needs one).
+
+## Retention
+
+The Worker's `scheduled` handler (`src/index.ts`) runs daily (`wrangler.jsonc`'s cron trigger) and
+prunes every table that grows without bound:
+
+| Table             | Rule                                 | Retention                                |
+| ----------------- | ------------------------------------ | ---------------------------------------- |
+| `audit_logs`      | per level (`lib/adminAuditLogs.ts`)  | 7-365 days, see `DEFAULT_RETENTION_DAYS` |
+| `rate_limit_hits` | `createdAt` older than window        | 1 day                                    |
+| `sessions`        | `expiresAt` in the past              | none (deleted once expired)              |
+| `auth_tokens`     | consumed, or `expiresAt` in the past | none (deleted once consumed/expired)     |
+| `pick_usage`      | `pickedAt` older than window         | 2 days                                   |
+
+`lib/retention.ts`'s `pruneExpiredData` runs the last four sweeps; each is independently
+failure-isolated (one bad delete logs and returns zero rather than skipping the rest). Audit-log
+rotation (`lib/adminAuditLogs.ts`'s `rotateAuditLogsOnSchedule`) is unchanged and runs alongside it.
 
 ## Dropped in the re-platform
 
@@ -442,7 +504,12 @@ these tables ported from, but D1's own migration history starts clean. `0001_tot
 (P3 auth domain) adds the TOTP columns on `users` and the `rateLimitHits` table above.
 `0002_content_provider_unique_index.sql` (P3 providers/history domain) adds the unique
 `(tmdbId, mediaType)` index on `content` described above -- `ProviderRegion`'s widened shape is a
-JSON-column type change only, no migration needed for it.
+JSON-column type change only, no migration needed for it. `0003_content_genre_ids.sql` adds
+`content.genreIds`. `0004_pale_randall_flagg.sql` adds `content.runtime` (kept its drizzle-kit
+generated name rather than renamed, as it already shipped). `0005_retention_indexes_and_stripe_events.sql`
+adds the `stripe_events` table, the `audit_logs`/`household_members`/`sessions`/`subscriptions`
+indexes described above, and the missing `onDelete: 'cascade'` on `household_invites.invitedBy` (a
+table rebuild, since SQLite can't `ALTER TABLE` a foreign key in place).
 
 `services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
 is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until

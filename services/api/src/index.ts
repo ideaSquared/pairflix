@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
+import { pruneExpiredData } from './lib/retention';
 import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { adminRoutes } from './routes/admin';
@@ -63,9 +64,17 @@ app.onError((error, c) => {
 export default {
 	fetch: app.fetch,
 	async scheduled(_controller, env, ctx) {
+		const db = createDb(env.DB);
 		ctx.waitUntil(
-			rotateAuditLogsOnSchedule(createDb(env.DB)).catch(err => {
+			rotateAuditLogsOnSchedule(db).catch(err => {
 				console.error('[cron] failed to rotate audit logs', err);
+			})
+		);
+		// pruneExpiredData isolates each table's own sweep failure already -- this catch is only
+		// for the (unexpected) case of the function itself rejecting.
+		ctx.waitUntil(
+			pruneExpiredData(db).catch(err => {
+				console.error('[cron] failed to prune expired data', err);
 			})
 		);
 	},
