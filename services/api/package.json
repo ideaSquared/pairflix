@@ -24,7 +24,7 @@
 		"@pairflix/db": "workspace:*",
 		"@pairflix/lib.validation": "workspace:*",
 		"drizzle-orm": "^0.45.2",
-		"hono": "^4.13.0"
+		"hono": "^4.13.7"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.21.3",
