@@ -5,17 +5,38 @@ type SendEmailOptions = { to: string; subject: string; html: string };
 /**
  * Hand-rolled Resend REST client -- raw fetch, no SDK. Workers can't do SMTP (no raw TCP), so this
  * replaces the current Express app's nodemailer/Ethereal setup, which only ever worked against a
- * fake test inbox anyway. Degrades gracefully when unconfigured: logs instead of failing, matching
- * the "unconfigured is a valid state" pattern (see CLAUDE.md's Stripe section for the same idea).
+ * fake test inbox anyway. Degrades gracefully when unconfigured *outside production*: logs instead
+ * of failing, matching the "unconfigured is a valid state" pattern (see CLAUDE.md's Stripe section
+ * for the same idea). In production, an unconfigured sender or a failed Resend call both throw --
+ * silently reporting success while nobody can ever verify their address or reset a password is
+ * worse than a loud failure.
  */
+
+export class EmailNotConfiguredError extends Error {
+	constructor() {
+		super('email_not_configured');
+		this.name = 'EmailNotConfiguredError';
+	}
+}
+
+export class EmailSendError extends Error {
+	constructor(status: number) {
+		super(`Resend API error: ${status}`);
+		this.name = 'EmailSendError';
+	}
+}
+
 export const sendEmail = async (
 	env: Bindings,
 	opts: SendEmailOptions
 ): Promise<void> => {
 	if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
-		console.warn(
-			`[email] not configured -- would send "${opts.subject}" to ${opts.to}`
-		);
+		if (env.ENVIRONMENT === 'production') {
+			throw new EmailNotConfiguredError();
+		}
+		// Deliberately omits `opts.to` -- a recipient address is PII and this line is the one place
+		// in this file a caller can't already have scrubbed it out of what reaches the logs.
+		console.warn(`[email] not configured -- would send "${opts.subject}"`);
 		if (env.ENVIRONMENT === 'development') {
 			console.warn(`[email] dev fallback, content:\n${opts.html}`);
 		}
@@ -38,13 +59,30 @@ export const sendEmail = async (
 		console.error(
 			'[email] send failed',
 			response.status,
-			await response.text()
+			await response.text().catch(() => '')
 		);
+		throw new EmailSendError(response.status);
 	}
 };
 
-const clientUrl = (env: Bindings): string =>
-	env.APP_CLIENT_URL ?? 'http://localhost:5173';
+export class AppClientUrlNotConfiguredError extends Error {
+	constructor() {
+		super('app_client_url_not_configured');
+		this.name = 'AppClientUrlNotConfiguredError';
+	}
+}
+
+const DEV_CLIENT_URL = 'http://localhost:5173';
+
+const clientUrl = (env: Bindings): string => {
+	if (env.APP_CLIENT_URL) return env.APP_CLIENT_URL;
+	// The localhost fallback is a dev convenience only -- a production email must never link
+	// there, so fail loudly instead of silently mailing out a broken link.
+	if (env.ENVIRONMENT === 'production') {
+		throw new AppClientUrlNotConfiguredError();
+	}
+	return DEV_CLIENT_URL;
+};
 
 /** Escapes free-text values before interpolating them into an HTML email body -- the only such
  * value in this file is `sendAccountStatusEmail`'s admin-supplied `reason`. */

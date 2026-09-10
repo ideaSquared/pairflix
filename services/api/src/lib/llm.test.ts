@@ -150,7 +150,7 @@ describe('rerankCandidates', () => {
 		expect((err as LLMUnavailable).cause).toBe(boom);
 	});
 
-	it('sends a tool-forced request with prompt caching on the system and taste blocks', async () => {
+	it('sends a tool-forced request with the taste and candidates blocks', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(toolUseResponse(1, []));
 		globalThis.fetch = fetchMock;
 		await rerankCandidates(env, input);
@@ -163,9 +163,22 @@ describe('rerankCandidates', () => {
 		const sent = JSON.parse(init.body as string);
 		expect(sent.model).toBe('claude-sonnet-4-6');
 		expect(sent.tool_choice).toEqual({ type: 'tool', name: 'submit_pick' });
-		expect(sent.system[0].cache_control).toEqual({ type: 'ephemeral' });
-		expect(sent.messages[0].content[0].cache_control).toEqual({
-			type: 'ephemeral',
-		});
+		expect(sent.system).toEqual(expect.stringContaining('film-pick reasoner'));
+		expect(sent.messages[0].content[0].text).toEqual(
+			expect.stringContaining('Leans comedy.')
+		);
+	});
+
+	// No cache_control breakpoints: the system prompt and taste block are both well under the
+	// model's minimum cacheable prefix, so they'd never be served from cache -- see the request
+	// body in rerankCandidates.
+	it('does not send any cache_control breakpoints', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(toolUseResponse(1, []));
+		globalThis.fetch = fetchMock;
+		await rerankCandidates(env, input);
+
+		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		const sent = JSON.parse(init.body as string);
+		expect(JSON.stringify(sent)).not.toContain('cache_control');
 	});
 });

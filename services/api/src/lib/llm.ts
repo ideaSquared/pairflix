@@ -216,24 +216,17 @@ export const rerankCandidates = async (
 			body: JSON.stringify({
 				model: MODEL,
 				max_tokens: MAX_TOKENS,
-				system: [
-					{
-						type: 'text',
-						text: SYSTEM_PROMPT,
-						cache_control: { type: 'ephemeral' },
-					},
-				],
+				// Not prompt-cached: the system prompt and taste block are both well under the
+				// model's minimum cacheable prefix (roughly 1K tokens), so a cache_control
+				// breakpoint on either would never actually be served from cache.
+				system: SYSTEM_PROMPT,
 				tools: [SUBMIT_PICK_TOOL],
 				tool_choice: { type: 'tool', name: 'submit_pick' },
 				messages: [
 					{
 						role: 'user',
 						content: [
-							{
-								type: 'text',
-								text: tasteBlock,
-								cache_control: { type: 'ephemeral' },
-							},
+							{ type: 'text', text: tasteBlock },
 							{ type: 'text', text: candidatesBlock },
 						],
 					},
