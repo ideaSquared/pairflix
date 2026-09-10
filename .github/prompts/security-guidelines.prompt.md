@@ -12,7 +12,9 @@ applyTo: '**/*.{ts,tsx,js,jsx}'
 - Parameterize database queries.
 - Enforce strong Content Security Policies (CSP).
 - Use CSRF protection where applicable.
-- Ensure secure cookies (`HttpOnly`, `Secure`, `SameSite=Strict`).
+- Ensure secure cookies (`HttpOnly`, `Secure` in production, `SameSite=Lax` -- session/CSRF cookies
+  require the app and API to share a registrable domain, see `docs/runbook.md`'s "Cross-site
+  cookies" section).
 - Limit privileges and enforce role-based access control.
 - Implement detailed internal logging and monitoring.
 
@@ -20,11 +22,12 @@ applyTo: '**/*.{ts,tsx,js,jsx}'
 
 ### Authentication
 
-- JWT with short expiry (15-60 minutes)
-- Refresh token rotation
-- Multi-factor authentication support
+- Opaque session token in D1, carried in an `HttpOnly` cookie (`SameSite=Lax`) -- not JWT; see
+  `services/api/src/lib/session.ts`
+- Double-submit CSRF token on state-changing requests
+- Multi-factor authentication support (TOTP, required for admin accounts)
 - Account lockout after failed attempts
-- Password policy enforcement
+- Password policy enforcement (PBKDF2 via Web Crypto -- no bcrypt on Workers)
 
 ### Data Protection
 

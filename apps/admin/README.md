@@ -1,84 +1,91 @@
-# PairFlix Admin Panel
+# PairFlix Admin
 
-This is the admin application for PairFlix, designed as a separate application from the main PairFlix frontend to provide secure admin functionality.
+The admin panel for PairFlix -- a separate SPA from `apps/client`, for user management, content
+moderation, audit logs, and settings.
+
+**Status: pre-launch alpha.** No production deploy exists yet -- see the root
+[`README.md`](../../README.md) and `docs/runbook.md`.
+
+Only touch this app if a task explicitly names admin scope (see the repo root `CLAUDE.md`).
 
 ## Features
 
-- **Dashboard**: View key metrics and recent activities
-- **User Management**: Search, view, and manage user accounts
-- **Activity Logs**: Monitor user activities with advanced filtering
-- **Settings**: Manage application-wide configuration
+- **Dashboard** -- key metrics and recent activity
+- **User Management** -- search, view, and manage user accounts; forced password reset; session
+  termination
+- **Content Moderation** -- review and act on reported content
+- **Audit Logs** -- filterable log of admin and system actions, with retention rotation
+- **Settings** -- application-wide configuration
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 16+
-- npm 7+
-- PairFlix backend API running
+- Node.js 22.x (see the repo root `.nvmrc`) and pnpm 10
+- `services/api` running (`pnpm --filter @pairflix/api dev`) -- the admin app proxies `/api/*` to it
+- An admin account (see `docs/dev-setup.md`'s seed data, or `POST /api/auth/bootstrap-admin`)
 
 ### Installation
 
-1. Install dependencies:
+From the repo root:
 
-   ```bash
-   npm install
-   ```
+```bash
+pnpm install
+cp apps/admin/.env.example apps/admin/.env   # optional -- see .env.example
+pnpm --filter @pairflix/admin dev
+```
 
-2. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-3. The admin panel will be available at [http://localhost:5174](http://localhost:5174)
+The admin panel is available at `http://localhost:5174`.
 
 ## Development
 
-The admin app is built as a separate application from the main PairFlix frontend for several reasons:
+The admin app is a separate application from `apps/client` for a few reasons:
 
-1. **Security Separation**: Keeps admin functionality isolated from user functionality
-2. **Independent Deployment**: Can be deployed to a different domain/subdomain
-3. **Tailored UI/UX**: Admin interfaces have different needs than user interfaces
-4. **Permission Control**: Easier to manage admin-only permissions
+1. **Security separation** -- keeps admin functionality isolated from user functionality
+2. **Independent deployment** -- can be deployed to a different domain/subdomain
+3. **Tailored UI/UX** -- admin interfaces have different needs than user interfaces
+4. **Permission control** -- easier to manage admin-only permissions
 
-### Key Files
+### Key files
 
-- `src/App.tsx`: Main application component with routing
-- `src/contexts/AdminAuthContext.tsx`: Authentication context for admin users
-- `src/components/layouts/AdminLayout.tsx`: Main layout for admin pages
-- `src/services/api.service.ts`: Service for making API calls to the backend
+- `src/App.tsx` -- main application component with routing
+- `src/hooks/useAuth.ts` -- authentication hook for admin users
+- `src/services/api/` -- API clients calling `/api`
+- `src/features/admin/` -- dashboard, user management, content moderation, audit logs, settings
 
-### Adding New Admin Features
+### Adding new admin features
 
-1. Create a new folder in `src/features/[feature-name]`
-2. Create your component in this folder
+1. Create a folder in `src/features/<feature-name>`
+2. Add components/pages in that folder
 3. Add a route in `App.tsx`
-4. Add a navigation link in `AdminLayout.tsx`
+4. Add a navigation link in the admin layout
 
 ## Authentication
 
-The admin app uses JWT authentication with tokens stored in localStorage. The token is sent with each API request via the `Authorization` header.
+Cookie-based, not JWT: the browser sends the `session` cookie automatically. There is no token to
+store and nothing is written to `localStorage` for auth. Admin accounts additionally require TOTP 2FA
+(`requireAdmin` 403s until enrolled). Writes echo a CSRF token alongside the cookie -- see
+`docs/architecture.md`'s "Auth & CSRF" section.
+
+Because the cookie is `SameSite=Lax`, the admin app and `services/api` need to share a registrable
+domain (or Pages needs to proxy `/api` to the Worker) in any real deployment -- see
+`docs/runbook.md`'s "Cross-site cookies" section.
 
 ## Deployment
 
-### Build for Production
-
 ```bash
-npm run build
+pnpm --filter @pairflix/admin deploy   # build, then wrangler pages deploy
 ```
 
-This will generate a `dist` folder with optimized production assets.
-
-### Deployment Options
-
-1. **Separate Domain/Subdomain**: Deploy to admin.yourapp.com
-2. **Path-Based Deployment**: Deploy to yourapp.com/admin
-3. **Access Control**: Ensure the admin app is only accessible by authorized users
+Deployed to Cloudflare Pages -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
+security headers Pages applies to every response. See the root
+[`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) and `docs/runbook.md` for the
+full first-deploy procedure, including running this app on its own domain/subdomain with access
+restricted to admins.
 
 ## Security Considerations
 
-- Always use HTTPS in production
-- Consider IP restrictions for admin access
-- Implement rate limiting on admin login endpoints
-- Use strong passwords and consider 2FA for admin accounts
+- Always use HTTPS in production (the session cookie is marked `Secure` once `ENVIRONMENT=production`)
+- Consider IP restrictions or a separate access policy for the admin domain
+- Rate limiting on admin login is already enforced by `services/api`'s middleware
+- Admin accounts require TOTP 2FA

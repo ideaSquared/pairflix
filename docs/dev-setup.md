@@ -97,19 +97,26 @@ login email on completion. All seeded users share the password `password123`.
 
 ## Deploy
 
+`services/api/wrangler.jsonc` defines named `staging`/`production` environments now (separate
+`vars`/`d1_databases` each). For a real deploy, use those, not the plain per-workspace `deploy`
+script (which targets the top-level, no-`--env` config -- fine for local dry-runs, not a real target):
+
 ```bash
-pnpm --filter @pairflix/api db:migrate:remote  # apply migrations to prod D1 first
-pnpm --filter @pairflix/api deploy             # wrangler deploy (Worker)
-pnpm --filter @pairflix/client deploy          # wrangler pages deploy
-pnpm --filter @pairflix/admin deploy           # wrangler pages deploy
+pnpm --filter @pairflix/api exec wrangler d1 migrations apply pairflix-db-staging --env staging --remote
+pnpm --filter @pairflix/api exec wrangler deploy --env staging
+pnpm --filter @pairflix/client exec wrangler pages deploy dist --project-name=pairflix-client --branch=staging
+pnpm --filter @pairflix/admin exec wrangler pages deploy dist --project-name=pairflix-admin --branch=staging
 ```
 
-**Not done yet:** no D1 database has been provisioned in a Cloudflare account (`wrangler d1 create
-pairflix-db`, then replace the placeholder `database_id` in `services/api/wrangler.jsonc`), and
-there's no CI step running any of the above — deploy today is manual, and provisioning needs real
-Cloudflare account access this repo's automated tooling doesn't have. Worker and Pages also roll
-back differently; there's no self-contained rollback runbook here yet — see creatorgrid's
-`docs/deploying.md` for the reference procedure in the meantime.
+`.github/workflows/deploy.yml` runs the equivalent (both environments) via `workflow_dispatch`.
+
+**Not done yet:** no D1 database has been provisioned in a real Cloudflare account (the
+`database_id`s in `wrangler.jsonc`'s `env.staging`/`env.production` blocks are still placeholders),
+and no domain/cookie topology has been decided — **read `docs/runbook.md` before running a real
+deploy**: it has the full first-deploy procedure, the complete secrets/vars list, rollback, D1 backup
+(Time Travel), and — most importantly — the cross-site cookie constraint (session/CSRF cookies are
+`SameSite=Lax`, so the client and API need a shared registrable domain or a Pages proxy, or every
+authenticated request 401s/403s after a deploy that otherwise looks successful).
 
 ## Troubleshooting
 

@@ -25,7 +25,9 @@ ADMIN_BOOTSTRAP_SECRET="dev-bootstrap-secret-change-me"
 RESEND_API_KEY=""
 EMAIL_FROM=""
 
-# Base URL of apps/client -- verification/reset email links point here.
+# Base URL of apps/client -- verification/reset email links point here. Currently falls back to
+# http://localhost:5173 if unset, but that fallback is going away (APP_CLIENT_URL is becoming a
+# required binding) -- set it explicitly even in local dev.
 APP_CLIENT_URL="http://localhost:5173"
 
 # TMDb -- titles, discover, and watch-provider lookups (src/lib/tmdb.ts). Required for
@@ -46,3 +48,7 @@ ANTHROPIC_API_KEY=""
 STRIPE_SECRET_KEY=""
 STRIPE_WEBHOOK_SECRET=""
 STRIPE_PRICE_PREMIUM=""
+
+# Gates the mock billing flow (POST /:id/billing/mock-activate, src/lib/billing.ts) -- must be the
+# literal string "true" to enable it. Leave unset (or "false") to keep it disabled locally.
+BILLING_MOCK_ENABLED="true"

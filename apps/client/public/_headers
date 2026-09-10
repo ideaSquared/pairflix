@@ -1,0 +1,17 @@
+# Security headers for the client SPA, applied by Cloudflare Pages to every response.
+# CSP allows only what this app actually loads: same-origin scripts/styles/API calls, plus
+# https://image.tmdb.org for poster images (HistoryPage, TasteOnboardingPage,
+# RecommendationResultCard). style-src needs 'unsafe-inline' because several pages set inline
+# `style={{...}}` (React's normal way of setting dynamic CSS, e.g. auth pages' password-strength
+# bar); nothing here needs 'unsafe-inline'/'unsafe-eval' on script-src.
+#
+# connect-src is 'self' because the supported deploy topology is same-origin (apps/client and
+# services/api sharing a registrable domain, or a Pages proxy) -- see docs/runbook.md's "Cross-site
+# cookies" section. If VITE_API_URL ever points at a different origin, connect-src needs that origin
+# added too, or API calls will be blocked by this policy before they even reach the cookie problem.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin

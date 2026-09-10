@@ -1,298 +1,137 @@
 # PairFlix
 
-A modern movie and TV show discovery platform that enables users to create watchlists, find viewing partners, and share recommendations.
+The "what should WE watch tonight" decision layer for couples and households: given a household, a
+mood, and a time budget, return **one** title in under 30 seconds, with cross-platform availability
+(Netflix / Prime / Disney+ ...) surfaced on the card.
 
-## 🎬 Overview
+**Status: pre-launch alpha.** There is no production data and no exercised production deploy yet --
+provisioning a real Cloudflare account, D1 database, and domain is the remaining step before that's
+true. See `docs/roadmap.md` for phase history and `docs/architecture.md` for the full design.
 
-PairFlix is a full-stack application that helps users discover movies and TV shows, manage personal watchlists, and connect with others who share similar viewing interests. The platform features a React frontend, Express.js backend with PostgreSQL, and a comprehensive admin panel.
+## Architecture
 
-**🎯 Phase 3 Complete** - Component library refinement, TypeScript strict mode compliance, performance optimization, and production deployment readiness achieved. **Planning Phase 4** - Advanced features including AI-powered recommendations, enhanced social platform, and mobile application development.
+A pnpm/Turborepo monorepo on Cloudflare (ADR 0001, `docs/adr/0001-cloudflare-stack.md`):
 
-## 🏗️ Architecture
+- **`apps/client/`** -- user-facing SPA (Vite + React), deployed to Cloudflare Pages
+- **`apps/admin/`** -- admin SPA (Vite + React), deployed to Cloudflare Pages
+- **`services/api/`** -- Hono Worker on Cloudflare Workers, backed by Drizzle ORM on Cloudflare D1
+- **`packages/db/`** -- Drizzle schema + SQL migrations
+- **`packages/lib.components/`** -- shared UI component library
+- **`packages/lib.*/`** -- shared types / api client / validation
+- **`docs/`** -- ADRs, architecture, schema, decision log, roadmap
 
-This is a monorepo containing multiple applications and shared libraries:
+No Docker, no nginx, no separate Node API server -- see `docs/architecture.md`'s topology diagram.
 
-### Applications
-
-- **`apps/client/`** - Main user-facing React application
-- **`apps/admin/`** - Administrative panel for platform management
-- **`services/api/`** - Express.js API server with PostgreSQL database
-
-### Shared Libraries
-
-- **`packages/lib.components/`** - Reusable React component library with TypeScript and styled-components
-
-### Documentation & Scripts
-
-- **`docs/`** - Technical documentation and guides
-- **`scripts/`** - Development and migration scripts
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 22.x (see `.nvmrc`) and pnpm 10 (`corepack enable && corepack prepare pnpm@latest --activate`)
-- A Cloudflare account (optional for local dev; needed for `--remote` / deploy — Miniflare emulates D1 locally)
+- A TMDb API key (and, for the premium LLM re-rank, an Anthropic API key)
+- A Cloudflare account only for `--remote` / deploy -- local dev needs none (Miniflare emulates D1)
 
 ### Installation
 
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd pairflix
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **Set up the local database (D1 via Miniflare)**
-
-   ```bash
-   pnpm --filter @pairflix/api db:migrate:local
-   ```
-
-4. **Configure environment variables**
-
-   ```bash
-   # Copy example environment files
-   cp services/api/.dev.vars.example services/api/.dev.vars
-   cp apps/client/.env.example apps/client/.env
-
-   # Edit the files with your configuration
-   ```
-
-5. **Start the development servers**
-
-   ```bash
-   # Start all services in parallel
-   pnpm dev
-
-   # Or start one workspace at a time
-   pnpm --filter @pairflix/api dev       # API server (port 3000)
-   pnpm --filter @pairflix/client dev    # Client app (port 5173)
-   pnpm --filter @pairflix/admin dev     # Admin panel (port 5174)
-   ```
-
-## 📱 Applications
-
-### Main Application (Client)
-
-The primary user interface where users can:
-
-- Browse and search movies/TV shows using TMDB API
-- Create and manage personal watchlists
-- Rate and review content
-- Find viewing partners with similar interests
-- View social activity feeds from matched partners and recommendations
-
-**Access:** http://localhost:5173
-
-### Admin Panel
-
-Administrative interface for platform management:
-
-- User management and moderation
-- Content management and reporting
-- System monitoring and analytics
-- Application settings and configuration
-
-**Access:** http://localhost:5174
-
-### Backend API
-
-RESTful API server providing:
-
-- User authentication and authorization
-- Watchlist and rating management
-- Matching algorithm for finding viewing partners
-- TMDB integration for movie/TV data
-- Comprehensive audit logging
-- Rate limiting and security features
-
-**API Base:** http://localhost:3000/api
-
-## 🛠️ Development
-
-### Available Scripts
-
-**Root Level (Turborepo-orchestrated):**
-
-- `pnpm dev` - Start all development servers in parallel
-- `pnpm build` - Build all workspaces for production
-- `pnpm test` - Run all test suites
-- `pnpm lint` - Lint all workspaces
-- `pnpm format` - Format code using Prettier
-- `pnpm type-check` - Type-check all workspaces
-
-**Individual Workspaces** (`pnpm --filter <package> <script>`):
-
-- `pnpm --filter @pairflix/api dev` - Start the API server
-- `pnpm --filter @pairflix/client dev` - Start the client dev server
-- `pnpm --filter @pairflix/admin dev` - Start the admin dev server
-- `pnpm --filter @pairflix/components storybook` - Start component library Storybook
-
-### Technology Stack
-
-**Frontend:**
-
-- React 18+ with TypeScript
-- Vite for build tooling
-- React Router for navigation
-- React Query for API state management
-- styled-components for styling
-
-**Backend:**
-
-- Node.js with Express.js
-- TypeScript for type safety
-- PostgreSQL with Sequelize ORM
-- JWT authentication
-- Rate limiting with express-rate-limit
-- Comprehensive error handling and logging
-
-**Testing:**
-
-- Jest for unit testing
-- React Testing Library for component testing
-- Supertest for API testing
-
-**Development Tools:**
-
-- ESLint for code linting
-- Prettier for code formatting
-- Husky for Git hooks
-- lint-staged for pre-commit checks
-
-## 🔒 Security Features
-
-- **Rate Limiting**: Comprehensive rate limiting to prevent DoS attacks
-- **Authentication**: JWT-based user authentication
-- **Authorization**: Role-based access control (User/Admin)
-- **Input Validation**: Request validation and sanitization
-- **CORS**: Configurable CORS policies
-- **Activity Feeds**: Social activity feeds with partner-based filtering and privacy controls
-
-## 📊 Database
-
-PostgreSQL database with comprehensive schema including:
-
-- User management and preferences
-- Content and watchlist management
-- Matching and recommendation engine
-- Social activity tracking with partner-based filtering
-- Application settings and configuration
-
-See [`db-schema.md`](./db-schema.md) for detailed schema documentation.
-
-## 🧪 Testing
-
-Comprehensive testing strategy covering:
-
-- **Unit Tests**: Individual component and function testing
-- **Integration Tests**: API endpoint and service testing
-- **Component Tests**: React component behavior testing
-- **E2E Tests**: Full application workflow testing
-
-**Current Status:** ✅ 36/36 tests passing (100% pass rate)
-
-Run tests:
-
 ```bash
-pnpm test                                # All tests
-pnpm --filter @pairflix/api test         # API tests only
-pnpm --filter @pairflix/client test      # Client tests only
-pnpm --filter @pairflix/components test  # Component library tests
+git clone <repository-url>
+cd pairflix
+pnpm install
+cp services/api/.dev.vars.example services/api/.dev.vars   # local Worker vars, then edit
+pnpm --filter @pairflix/api db:migrate:local                # create + migrate the local D1
+pnpm dev                                                     # Worker + both Pages apps, in parallel
 ```
 
-## 📚 Documentation
+- API (Worker): `http://localhost:8787`
+- Client app: `http://localhost:5173`
+- Admin app: `http://localhost:5174`
 
-### 📖 Start Here
+Full setup, seed data, and troubleshooting: [`docs/dev-setup.md`](./docs/dev-setup.md).
 
-- **[📚 Documentation Index](./docs/README.md)** - Complete documentation catalog organized by audience and topic
-- **[🚀 Development Setup](./docs/dev-setup.md)** - Quick start guide for local development
-- **[🏗️ Architecture Overview](./docs/architecture.md)** - System design and technical architecture
+## Applications
 
-### 🎯 Application Documentation
+### Client (`apps/client`)
 
-- **[Backend API](./services/api/README.md)** - Node.js/Express API server with comprehensive security features
-- **[Main Application](./apps/client/README.md)** - React client application for end users
-- **[Admin Panel](./apps/admin/README.md)** - Administrative interface and system management
-- **[Component Library](./packages/lib.components/README.md)** - Shared UI component system and design standards
+The household's "Tonight" picker: mood + time budget in, one title out, with provider deep-links.
+Also covers taste onboarding, pick history, and household/billing management.
 
-### 📚 Technical References
+### Admin (`apps/admin`)
 
-- **[API Documentation](./docs/api-docs.md)** - Complete REST API reference with examples
-- **[Database Schema](./docs/db-schema.md)** - Database design and relationships
-- **[Security Guide](./services/api/docs/SECURITY.md)** - Security implementation, rate limiting, and best practices
-- **[Decision Log](./docs/decision-log.md)** - Comprehensive record of architectural and implementation decisions
+Internal admin panel: user management, content moderation, audit logs, and settings. Only touch this
+app if a task explicitly names admin scope (see `CLAUDE.md`).
 
-> 💡 **For complete documentation navigation, visit the [Documentation Index](./docs/README.md)**
+### API (`services/api`)
 
-## 🎯 Project Status and Roadmap
+Single Hono Worker: session-cookie auth with double-submit CSRF and optional/admin-required TOTP 2FA,
+the household recommendation engine (with an optional premium LLM re-rank), TMDb-backed providers,
+entitlements/quota, and admin routes. See [`services/api/README.md`](./services/api/README.md).
 
-### ✅ Phase 3 Complete (December 2024)
+## Development
 
-**Component Library Refinement and Standardization**
-
-- ✅ Eliminated all component duplication across applications
-- ✅ Standardized layout system with unified components
-- ✅ TypeScript strict mode compliance (100%)
-- ✅ Performance optimization with virtual scrolling and debounced search
-- ✅ Production Docker builds with multi-stage optimization
-- ✅ Comprehensive test coverage (36/36 tests passing)
-
-**Key Achievements:**
-
-- Zero component duplication between apps
-- 50-60% reduction in Docker image sizes
-- Sub-2 second page load times
-- 100% TypeScript strict mode compliance
-- Production-ready deployment configuration
-
-### 📋 Phase 4 Planning (2025)
-
-**Advanced Features and Platform Enhancement**
-
-**High Priority Objectives:**
-
-1. **Enhanced Recommendation Engine** - ML/AI-powered content recommendations
-2. **Advanced Social Platform** - Discussion groups, watch parties, social feeds
-3. **Real-time Features** - Live notifications, activity streams, WebSocket integration
-
-**Medium Priority Objectives:** 4. **Mobile Application** - React Native app with feature parity 5. **Advanced Search** - Enhanced discovery with filters and personalization 6. **Analytics Platform** - User insights and platform performance dashboard
-
-**Timeline:**
-
-- **Q1 2025**: Technical design and user research
-- **Q2-Q3 2025**: Core feature development
-- **Q4 2025**: Testing, optimization, and deployment
-
-**Success Metrics:**
-
-- 40%+ increase in user engagement
-- 60%+ adoption rate for social features
-- 50%+ mobile user adoption within 6 months
-- 99.9% platform uptime
-
-## 🚀 Deployment
-
-### Development
+**Root level (Turborepo-orchestrated):**
 
 ```bash
-pnpm dev  # Start all development servers
+pnpm dev          # start all dev servers in parallel
+pnpm build        # build all workspaces
+pnpm test         # run all test suites (Vitest)
+pnpm lint         # lint all workspaces
+pnpm format       # format with Prettier
+pnpm type-check   # type-check all workspaces
 ```
 
-### Production Build
+**Individual workspaces** (`pnpm --filter <package> <script>`):
 
 ```bash
-pnpm build  # Build all workspaces
+pnpm --filter @pairflix/api dev
+pnpm --filter @pairflix/client dev
+pnpm --filter @pairflix/admin dev
+pnpm --filter @pairflix/components storybook
 ```
 
-### Deploy (Cloudflare)
+### Technology stack
+
+- **Language:** TypeScript, strict everywhere
+- **API:** Hono on Cloudflare Workers
+- **Data:** Drizzle ORM on Cloudflare D1 (SQLite); R2 for blobs
+- **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF + optional/admin
+  TOTP 2FA -- no JWT
+- **Frontend:** React, Vite, vanilla-extract, React Query, React Router, on Cloudflare Pages
+- **Tests:** Vitest everywhere -- `@cloudflare/vitest-pool-workers` (real Hono requests against a
+  local Miniflare D1) for `services/api`; jsdom + React Testing Library for the frontend workspaces
+- **External:** TMDb (titles + providers), Anthropic (premium LLM re-rank, opt-in), Stripe
+  (scaffolded, not live)
+
+## Database
+
+Cloudflare D1 (SQLite) via Drizzle ORM: households, membership, taste profiles, watched-together
+history, invites, subscriptions, pick usage/events, a TMDb content cache, sessions and auth tokens.
+See [`docs/db-schema.md`](./docs/db-schema.md) for the full schema.
+
+## Testing
+
+```bash
+pnpm test                                # all workspaces (Vitest)
+pnpm --filter @pairflix/api test         # API integration tests (local D1)
+pnpm --filter @pairflix/client test      # client unit/component tests
+pnpm --filter @pairflix/components test  # component library tests
+```
+
+Playwright end-to-end tests live in `e2e/` and run via `.github/workflows/e2e.yml` (always on
+`master`, opt-in on PRs via the `e2e` label).
+
+## Documentation
+
+- [Documentation Index](./docs/README.md) -- full documentation catalog
+- [Development Setup](./docs/dev-setup.md) -- local dev, environment/secrets, first-time D1 setup
+- [Architecture](./docs/architecture.md) -- system design, topology, the pick path, auth
+- [Database Schema](./docs/db-schema.md) -- tables and relationships
+- [Runbook](./docs/runbook.md) -- first production deploy, secrets, rollback, D1 backup
+- [API Reference](./docs/api-docs.md) -- REST endpoints
+- [Security](./services/api/docs/SECURITY.md) -- API security implementation
+- [Roadmap](./docs/roadmap.md) -- phase history of the product pivot and platform re-platform
+- [Decision Log](./docs/decision-log.md) -- record of architectural decisions
+- [ADR 0001: Cloudflare stack](./docs/adr/0001-cloudflare-stack.md)
+
+## Deployment
 
 ```bash
 pnpm --filter @pairflix/api deploy      # wrangler deploy (Worker)
@@ -300,38 +139,21 @@ pnpm --filter @pairflix/client deploy   # wrangler pages deploy
 pnpm --filter @pairflix/admin deploy    # wrangler pages deploy
 ```
 
-See `docs/dev-setup.md` for full deploy prerequisites (D1 provisioning, secrets).
+`.github/workflows/deploy.yml` runs the same three deploys (plus D1 migrations) via
+`workflow_dispatch`, deliberately not on push -- see that file's top comment and
+[`docs/runbook.md`](./docs/runbook.md) for every prerequisite that has to exist first, including a
+cookie/domain constraint that will make a first deploy look broken if skipped.
 
-## 🤝 Contributing
+## Contributing
 
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Make your changes** following the coding standards
-4. **Run tests** (`pnpm test`)
-5. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-6. **Push to the branch** (`git push origin feature/amazing-feature`)
-7. **Open a Pull Request**
+1. Branch off `master` (never commit directly to `master`)
+2. Make your changes, with tests in the same commit
+3. Run `pnpm lint`, `pnpm type-check`, and `pnpm test`
+4. Use conventional commit messages (`feat:`, `fix:`, `chore:`, `docs:`, ...)
+5. Open a pull request
 
-### Development Guidelines
+See `CLAUDE.md` for the full set of conventions this repo follows.
 
-- Follow TypeScript best practices
-- Write tests for new features
-- Use conventional commit messages
-- Ensure all linting passes
-- Update documentation as needed
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Issues**: Report bugs and request features via GitHub Issues
-- **Documentation**: Check the `/docs` directory for detailed guides
-- **Development**: See individual application READMEs for specific setup instructions
-
----
-
-**Built with ❤️ for movie and TV enthusiasts**
-
-_Phase 3 completed with production-ready architecture. Phase 4 planning in progress for advanced features and platform enhancement._
+No license file is currently published for this repository.

@@ -1,381 +1,121 @@
-# PairFlix Client Application
+# PairFlix Client
 
-The main user-facing React application for the PairFlix movie and TV show discovery platform.
+The user-facing React SPA for PairFlix's household "what should we watch tonight" product --
+onboarding, the Tonight picker, pick history, household management, and billing.
 
-## 🎬 Overview
+**Status: pre-launch alpha.** No production deploy exists yet -- see the root
+[`README.md`](../../README.md) and `docs/runbook.md`.
 
-The PairFlix client application provides users with an intuitive interface to discover movies and TV shows, manage personal watchlists, find viewing partners with similar interests, and engage with the PairFlix community.
+## Features
 
-## ✨ Features
+- **Tonight picker** (`src/features/tonight`) -- mood + time budget in, one title out, with
+  provider deep-links
+- **Taste onboarding** (`src/features/onboarding`) -- swipe-style taste-profile setup
+- **History** (`src/features/history`) -- past picks, accept/swap/dismiss outcomes
+- **Households** (`src/features/households`) -- membership, invites
+- **Billing** (`src/features/billing`) -- mock and (when configured) real Stripe checkout
+- **Auth** (`src/features/auth`) -- login/register/reset, session-cookie based
 
-### Content Discovery
+## Technology Stack
 
-- **Browse & Search**: Discover movies and TV shows using TMDB integration
-- **Trending Content**: View popular and trending content
-- **Detailed Information**: Access comprehensive details, trailers, and metadata
-- **Genre Filtering**: Filter content by genres and categories
+- **Framework:** React 19 + TypeScript
+- **Build tool:** Vite
+- **Routing:** React Router
+- **Server state:** React Query (`@tanstack/react-query`)
+- **Styling:** vanilla-extract (`Component.css.ts` colocated with each component), theme tokens from
+  `@pairflix/components` -- no CSS modules, no Tailwind, no styled-components
+- **UI primitives:** shared component library (`@pairflix/components`, `packages/lib.components`)
+- **HTTP:** the `fetch`-based service clients in `src/services/api`, not Axios
+- **Tests:** Vitest (jsdom) + React Testing Library
 
-### Personal Watchlists
-
-- **Add to Watchlist**: Save interesting content for later viewing
-- **Rating & Reviews**: Rate watched content and write reviews
-- **Status Tracking**: Mark content as watched, watching, or want to watch
-- **Personal Notes**: Add private notes and tags to watchlist items
-
-### Social Features
-
-- **Find Partners**: Discover users with similar viewing interests
-- **Social Activity Feeds**: See what matched partners are watching with privacy-focused filtering
-- **Recommendations**: Get personalized content recommendations
-- **User Profiles**: Manage personal profiles and preferences
-
-### User Experience
-
-- **Responsive Design**: Optimized for desktop, tablet, and mobile
-- **Dark/Light Themes**: Toggle between theme preferences
-- **Fast Navigation**: Smooth, single-page application experience
-- **Real-time Updates**: Live updates for matches and activities
-
-## 🛠️ Technology Stack
-
-- **Framework**: React 18+ with TypeScript
-- **Build Tool**: Vite for fast development and building
-- **Routing**: React Router for client-side navigation
-- **State Management**: React Query for API state management
-- **Styling**: styled-components with theme support
-- **UI Components**: Custom component library (`@pairflix/components`)
-- **HTTP Client**: Axios for API communication
-- **Testing**: Jest + React Testing Library
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- PairFlix backend API running
+- Node.js 22.x (see the repo root `.nvmrc`) and pnpm 10
+- `services/api` running (`pnpm --filter @pairflix/api dev`) -- the client proxies `/api/*` to it
 
 ### Installation
 
-1. **Navigate to client directory**
+From the repo root:
 
-   ```bash
-   cd app.client
-   ```
+```bash
+pnpm install
+cp apps/client/.env.example apps/client/.env   # optional -- see below
+pnpm --filter @pairflix/client dev
+```
 
-2. **Install dependencies**
+The app is available at `http://localhost:5173`.
 
-   ```bash
-   npm install
-   ```
+### Environment variables
 
-3. **Environment Configuration**
+See [`.env.example`](./.env.example) for the full, current list (`VITE_API_URL`,
+`VITE_BILLING_MOCK_ENABLED`, `VITE_AFFILIATE_PARAMS`) with usage notes for each. Leave them unset for
+local dev -- the Vite dev server proxies `/api/*` to the Worker, which keeps requests same-origin so
+the session/CSRF cookies (`SameSite=Lax`) are sent.
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:5173`
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-app.client/
-├── public/                 # Static assets
-│   ├── favicon.ico
-│   └── index.html
+apps/client/
+├── public/              # static assets (_headers, _redirects)
 ├── src/
-│   ├── components/         # Reusable UI components
-│   │   ├── common/        # Shared components
-│   │   ├── forms/         # Form components
-│   │   └── layout/        # Layout components
-│   ├── pages/             # Page components
-│   │   ├── Home.tsx
-│   │   ├── Watchlist.tsx
-│   │   ├── Search.tsx
-│   │   └── Profile.tsx
-│   ├── hooks/             # Custom React hooks
-│   │   ├── useAuth.ts
-│   │   ├── useWatchlist.ts
-│   │   └── useApi.ts
-│   ├── services/          # API service layer
-│   │   ├── api.ts         # Base API configuration
-│   │   ├── auth.service.ts
-│   │   ├── watchlist.service.ts
-│   │   └── tmdb.service.ts
-│   ├── contexts/          # React contexts
-│   │   ├── AuthContext.tsx
-│   │   └── ThemeContext.tsx
-│   ├── utils/             # Utility functions
-│   ├── types/             # TypeScript type definitions
-│   ├── styles/            # Global styles and themes
-│   ├── App.tsx            # Main application component
-│   └── main.tsx           # Application entry point
+│   ├── features/        # feature folders: pages, components, hooks, types, owned by one feature
+│   ├── components/      # cross-feature UI not yet promoted to packages/lib.components
+│   ├── contexts/        # auth, theme
+│   ├── hooks/           # cross-feature hooks
+│   ├── services/        # API clients calling /api
+│   ├── utils/
+│   ├── App.tsx
+│   └── main.tsx
 ├── package.json
 ├── vite.config.ts
-└── tsconfig.json
+└── wrangler.jsonc        # Cloudflare Pages config
 ```
 
-## 🔐 Authentication
+## Authentication
 
-### User Authentication Flow
+Cookie-based, not JWT: the browser sends the `session` cookie automatically on same-origin requests.
+There is no token to store and nothing is ever written to `localStorage` for auth. Writes echo a CSRF
+token (`GET /api/auth/csrf-token`, then `x-csrf-token` header) alongside the cookie. See
+`docs/architecture.md`'s "Auth & CSRF" section.
 
-1. **Registration/Login**: Users create accounts or sign in
-2. **JWT Tokens**: Authentication using JWT tokens
-3. **Persistent Sessions**: Remember user sessions across browser restarts
-4. **Secure Storage**: Tokens stored securely in httpOnly cookies or localStorage
+Because the cookie is `SameSite=Lax`, the client and `services/api` need to share a registrable
+domain (or Pages needs to proxy `/api` to the Worker) in any real deployment -- see
+`docs/runbook.md`'s "Cross-site cookies" section.
 
-### Protected Routes
-
-- Watchlist management
-- User profile and preferences
-- Social features (matching, filtered activity feeds with partner privacy)
-- User-specific content and recommendations
-
-## 🌐 API Integration
-
-### Backend Communication
-
-The client communicates with the PairFlix backend API for:
-
-- User authentication and management
-- Watchlist operations
-- Social features and matching
-- Social activity tracking with partner-based filtering
-
-### TMDB Integration
-
-Direct integration with The Movie Database (TMDB) for:
-
-- Content discovery and search
-- Movie and TV show metadata
-- Trending and popular content
-- Images and trailers
-
-### Error Handling
-
-- Global error boundaries for React errors
-- API error handling with user-friendly messages
-- Network failure recovery and retry logic
-- Graceful degradation for offline scenarios
-
-## 🎨 Theming & Styling
-
-### Theme System
-
-```typescript
-// Light and dark theme support
-const theme = {
-  colors: {
-    primary: '#007bff',
-    secondary: '#6c757d',
-    background: '#ffffff',
-    text: '#212529',
-  },
-  spacing: {
-    xs: '0.25rem',
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-    xl: '2rem',
-  },
-  breakpoints: {
-    mobile: '768px',
-    tablet: '1024px',
-    desktop: '1200px',
-  },
-};
-```
-
-### Component Styling
-
-- styled-components for component-scoped styles
-- Shared component library for consistency
-- Responsive design patterns
-- Accessibility-focused styling
-
-## 🧪 Testing
-
-### Test Structure
+## Testing
 
 ```bash
-src/
-├── __tests__/             # Integration tests
-├── components/*.test.tsx   # Component unit tests
-├── hooks/*.test.ts        # Custom hook tests
-├── services/*.test.ts     # Service layer tests
-└── utils/*.test.ts        # Utility function tests
+pnpm --filter @pairflix/client test            # run once
+pnpm --filter @pairflix/client test:watch      # watch mode
+pnpm --filter @pairflix/client test:coverage   # with coverage
 ```
 
-### Testing Strategy
+Playwright end-to-end tests for this app live in the repo-root `e2e/` workspace, not here.
 
-- **Unit Tests**: Individual components and functions
-- **Integration Tests**: User workflows and API integration
-- **Accessibility Tests**: WCAG compliance testing
-- **Visual Regression**: Component visual consistency
-
-### Running Tests
+## Development Scripts
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test -- Watchlist.test.tsx
+pnpm --filter @pairflix/client dev          # start dev server
+pnpm --filter @pairflix/client build        # production build (tsc && vite build)
+pnpm --filter @pairflix/client type-check
+pnpm --filter @pairflix/client lint
+pnpm --filter @pairflix/client format
 ```
 
-## 🔄 Development Workflow
-
-### Available Scripts
+## Deployment
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm test            # Run test suite
-npm run lint        # Run ESLint
-npm run format      # Format code with Prettier
-npm run type-check  # TypeScript type checking
+pnpm --filter @pairflix/client deploy   # build, then wrangler pages deploy
 ```
 
-### Environment Variables
-
-```bash
-# API Configuration
-VITE_API_BASE_URL=http://localhost:3000/api
-VITE_TMDB_API_KEY=your-tmdb-api-key
-
-# Application Configuration
-VITE_APP_TITLE=PairFlix
-VITE_APP_VERSION=1.0.0
-
-# Feature Flags
-VITE_ENABLE_ANALYTICS=false
-VITE_ENABLE_EXPERIMENTAL_FEATURES=false
-```
-
-## 📱 Responsive Design
-
-### Breakpoints
-
-- **Mobile**: < 768px (Phone portrait/landscape)
-- **Tablet**: 768px - 1024px (Tablet portrait/landscape)
-- **Desktop**: > 1024px (Desktop and large screens)
-
-### Mobile-First Approach
-
-- Progressive enhancement from mobile to desktop
-- Touch-friendly interface elements
-- Optimized content loading for mobile networks
-- Gesture support for mobile interactions
-
-## 🚀 Performance Optimization
-
-### Code Splitting
-
-- Route-based code splitting
-- Component lazy loading
-- Dynamic imports for heavy features
-
-### Caching Strategy
-
-- API response caching with React Query
-- Asset caching with Vite
-- Browser caching for static resources
-
-### Bundle Optimization
-
-- Tree shaking for unused code elimination
-- Minification and compression
-- Asset optimization (images, fonts)
-
-## 🚀 Deployment
-
-### Development
-
-```bash
-npm run dev
-```
-
-### Production Build
-
-```bash
-npm run build
-```
-
-The build artifacts will be in the `dist/` directory.
-
-### Docker
-
-```bash
-# Build image
-docker build -t pairflix-client .
-
-# Run container
-docker run -p 80:80 pairflix-client
-```
-
-### Environment Configuration
-
-- Configure API endpoints for production
-- Set up proper CORS configuration
-- Configure TMDB API integration
-- Set up error tracking (Sentry, etc.)
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **API Connection Issues**
-
-   - Verify backend is running
-   - Check VITE_API_BASE_URL configuration
-   - Ensure CORS is properly configured
-
-2. **TMDB API Issues**
-
-   - Verify TMDB API key is valid
-   - Check API rate limits
-   - Validate API responses
-
-3. **Build Issues**
-   - Clear node_modules and reinstall
-   - Check TypeScript compilation errors
-   - Verify environment variables
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-DEBUG=pairflix:* npm run dev
-```
-
-## 🤝 Contributing
-
-1. Follow React and TypeScript best practices
-2. Write tests for new components and features
-3. Use conventional commit messages
-4. Ensure accessibility compliance
-5. Update documentation as needed
-
-### Code Style
-
-- Use functional components with hooks
-- Follow ESLint and Prettier configuration
-- Use TypeScript strict mode
-- Write meaningful prop and state interfaces
+Deployed to Cloudflare Pages -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
+security headers Pages applies to every response. See the root
+[`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) and `docs/runbook.md` for the
+full first-deploy procedure.
 
 ---
 
-For more information, see the [main project README](../../README.md) and [component library documentation](../../packages/lib.components/README.md).
+For more, see the [root README](../../README.md), `docs/architecture.md`, and the
+[component library](../../packages/lib.components/README.md).

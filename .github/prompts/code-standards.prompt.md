@@ -34,18 +34,17 @@ applyTo: '**/*.{ts,tsx,js,jsx,html,css}'
   - Open Graph (`<meta property="og:*">`) and Twitter Card metadata
 - ✅ Use appropriate `lang` attribute on `<html>` and logical heading order (`<h1>` to `<h6>`)
 
-### 🎨 CSS (with `styled-components`)
+### 🎨 CSS (with `vanilla-extract`)
 
-- ✅ Use **`styled-components`** for all styles
-- ✅ Use ThemeProvider from styled-components to support light/dark theme switching
-  - Define light and dark theme objects (e.g., lightTheme, darkTheme)
-  - Pass them via ThemeProvider at the root of the app
+- ✅ Use **`vanilla-extract`** for all styles (`Component.css.ts` colocated with `Component.tsx`) --
+  no CSS modules, no Tailwind, no styled-components
+- ✅ Use theme tokens (`vars`) from `packages/lib.components` to support light/dark theme switching
+  - Consume theme tokens via `vars` in `style()`/`styleVariants()` calls
   - Use prefers-color-scheme media query to determine initial theme
-  - Consume theme variables via props.theme in styled components
 - ✅ Utilize **CSS Grid** and **Flexbox** for layouts
-- ✅ Use **CSS Custom Properties** (variables) where applicable (via `:root` or theme object)
+- ✅ Use **CSS Custom Properties** (variables) where applicable (via `:root` or theme `vars`)
 - ✅ Implement **CSS transitions and animations** using keyframes or `transition` props
-- ✅ Add **responsive design** using media queries (via `styled-components`' `css` helper)
+- ✅ Add **responsive design** using media queries (via vanilla-extract's `style()` media conditions)
 - ✅ Use **logical properties** like `margin-inline`, `padding-block` for better internationalization
 - ✅ Leverage **modern CSS selectors**:
   - `:is()`, `:where()`, `:has()` (when browser support allows)
@@ -59,12 +58,12 @@ applyTo: '**/*.{ts,tsx,js,jsx,html,css}'
 
 Follow this monorepo layout:
 
-    project-root/
-    ├── backend/              # TypeScript backend
-    │   └── src/              # Source files with controllers, models, services, etc.
-    ├── frontend/            # React/TypeScript frontend
-    │   └── src/             # Components, features, hooks, services, styles
-    └── docker-compose.yml   # Container orchestration
+    pairflix/
+    ├── apps/client/         # user-facing Pages SPA -- src/features, components, services
+    ├── apps/admin/          # admin Pages SPA -- src/features, components, services
+    ├── services/api/        # Hono Worker -- src/routes, middleware, lib
+    ├── packages/db/         # Drizzle schema + migrations
+    └── packages/lib.*/      # shared UI, types, validation, api client
 
 ## Browser Compatibility
 
@@ -77,16 +76,16 @@ Follow this monorepo layout:
 
 - Core dependencies:
 
-  - React: ^18.2.0
+  - React: ^18.0.0 / ^19.0.0
   - TypeScript: ^5.0.0
-  - Node.js: ^18.0.0
-  - PostgreSQL: ^15.0
-  - Express: ^4.18.0
-  - Sequelize: ^7.0.0
-  - Jest: ^29.0.0
+  - Node.js: 22.x (see `.nvmrc`)
+  - Hono: ^4.0.0 (Cloudflare Workers)
+  - Drizzle ORM on Cloudflare D1
+  - Vitest (via `@cloudflare/vitest-pool-workers` in `services/api`; jsdom + React Testing Library
+    in the frontend workspaces)
   - Playwright: ^1.35.0
-  - Styled-components: ^6.0.0
-  - React Query/TanStack Query: ^4.0.0
+  - vanilla-extract
+  - React Query/TanStack Query: ^5.0.0
   - Zod: ^3.21.0
 
 - Dependency management:
