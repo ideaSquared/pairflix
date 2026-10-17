@@ -27,7 +27,7 @@
   "devDependencies": {
     "@pairflix/eslint-config-base": "workspace:*",
     "@types/node": "^22.10.0",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.17.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.0"
