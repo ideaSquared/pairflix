@@ -32,7 +32,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260804.1",
     "@pairflix/eslint-config-base": "workspace:*",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.17.0",
     "typescript": "^5.7.0",
