@@ -273,10 +273,19 @@ Request → Hono route module → middleware → lib (business logic) → Drizzl
 
 ### Logging & errors
 
-- Prefer the shared logger; the Worker's `console` output is captured by Cloudflare observability, but
-  don't leave stray debug logs in checked-in code.
+- Log through `@ideasquared/log` via `services/api/src/lib/log.ts`, never `console.*`. Don't leave
+  stray debug logs in checked-in code.
 - Custom error classes (`NotFoundError`, `ValidationError`, …) carry a `statusCode`; a Hono `onError`
   handler translates them to the error response shape. Throw from `lib`; don't `try/catch` to swallow.
+
+---
+
+## Logging
+
+- Server code logs through `@ideasquared/log` only (`services/api/src/lib/log.ts`); never `console.*`.
+- No personal data or secrets in logs. Log ids, not people.
+- CI fails on console calls in `services/api/src` (`no-console` in `eslint.config.js`).
+- Load the `logging` skill before adding or changing a log line.
 
 ---
 
