@@ -33,6 +33,7 @@ import { verifySecondFactor } from '../lib/two-factor';
 import { requireAuth } from '../middleware/auth';
 import { ipRateLimit } from '../middleware/ip-rate-limit';
 import type { AppEnv } from '../types';
+import { log } from '../lib/log';
 
 const VERIFY_EMAIL_TTL_MS = 24 * 60 * 60 * 1000;
 /** Same per-IP budget `routes/auth.ts` uses for its unauthenticated routes -- a 6-digit TOTP code
@@ -112,7 +113,7 @@ meRoutes.post('/2fa/verify', totpVerifyRateLimit, async c => {
 	try {
 		totpSecret = await decryptSecret(user.totpSecret, sessionSecret);
 	} catch (error) {
-		console.error('[me] 2FA verify: TOTP secret decrypt failed', error);
+		log.error('totp secret decrypt failed', {}, error);
 		return c.json({ error: 'Invalid or expired code' }, 401);
 	}
 	if (!(await verifyTotpCode(totpSecret, parsed.data.code))) {

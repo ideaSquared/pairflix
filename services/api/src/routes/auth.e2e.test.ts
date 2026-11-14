@@ -25,16 +25,27 @@ const uniqueEmail = () => `auth-e2e-${Date.now()}-${counter++}@example.com`;
 const RESET_LINK_TOKEN_PATTERN = /reset-password\?token=([0-9a-f]{64})/;
 
 /** Calls `/forgot-password` and returns the plaintext reset token straight out of the emailed
- * link. `auth_tokens.id` now stores a SHA-256 hash of a `password_reset` token (see routes/auth.ts's
- * `hashToken`), so the plaintext is never recoverable from D1 afterward the way `getLatestAuthToken`
- * reads other purposes -- the unconfigured `RESEND_API_KEY` in this test env (see
- * vitest.config.mts) routes the email through lib/email.ts's dev-fallback `console.warn` instead,
- * which is the only place the plaintext still appears. */
+ * link. `auth_tokens.id` stores a SHA-256 hash of a `password_reset` token (see routes/auth.ts's
+ * `hashToken`), so the plaintext is never recoverable from D1 afterward -- and lib/email.ts never
+ * logs it either, so the only place it appears is the request to Resend, which this stubs. */
 const forgotPasswordAndCaptureToken = async (
 	email: string,
 	ip: string = uniqueIp()
 ): Promise<string> => {
-	const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	const realFetch = globalThis.fetch;
+	const resendBodies: string[] = [];
+	const originalKey = env.RESEND_API_KEY;
+	const originalFrom = env.EMAIL_FROM;
+	env.RESEND_API_KEY = 'test-resend-key';
+	env.EMAIL_FROM = 'noreply@pairflix.example';
+	globalThis.fetch = vi.fn(
+		async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) !== 'https://api.resend.com/emails')
+				return realFetch(input, init);
+			resendBodies.push(String(init?.body));
+			return new Response('{}', { status: 200 });
+		}
+	);
 	try {
 		const result = await postJson(
 			'/api/auth/forgot-password',
@@ -45,16 +56,15 @@ const forgotPasswordAndCaptureToken = async (
 		if (result.status !== 200) {
 			throw new Error(`forgot-password failed: ${result.status}`);
 		}
-		let token: string | undefined;
-		for (const call of warnSpy.mock.calls) {
-			const match = RESET_LINK_TOKEN_PATTERN.exec(String(call[0]));
-			if (match) token = match[1];
-		}
-		if (!token)
-			throw new Error('No reset-password token found in logged email output');
+		const token = resendBodies
+			.map(body => RESET_LINK_TOKEN_PATTERN.exec(body)?.[1])
+			.find(match => match !== undefined);
+		if (!token) throw new Error('No reset-password token found in sent email');
 		return token;
 	} finally {
-		warnSpy.mockRestore();
+		globalThis.fetch = realFetch;
+		env.RESEND_API_KEY = originalKey;
+		env.EMAIL_FROM = originalFrom;
 	}
 };
 

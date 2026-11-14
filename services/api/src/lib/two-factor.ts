@@ -1,6 +1,7 @@
 import type { UserRow } from '@pairflix/db';
 import { decryptSecret, verifyPassword } from './crypto';
 import { verifyTotpCode } from './totp';
+import { log } from './log';
 
 export type SecondFactorResult =
 	{ ok: true; consumedBackupCodes: string | null } | { ok: false };
@@ -28,10 +29,7 @@ export const verifySecondFactor = async (
 			if (await verifyTotpCode(totpSecret, code))
 				return { ok: true, consumedBackupCodes: null };
 		} catch (error) {
-			console.error(
-				'[two-factor] TOTP secret decrypt/verify failed, falling back to backup codes',
-				error
-			);
+			log.error('totp verify failed, trying backup codes', {}, error);
 		}
 	}
 
@@ -46,7 +44,7 @@ export const verifySecondFactor = async (
 			}
 		}
 	} catch (error) {
-		console.error('[two-factor] backup code check failed', error);
+		log.error('backup code check failed', {}, error);
 	}
 
 	return { ok: false };

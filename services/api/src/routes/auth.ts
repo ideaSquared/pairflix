@@ -25,6 +25,7 @@ import { requireAuth } from '../middleware/auth';
 import { requireCsrfToken } from '../middleware/csrf';
 import { ipRateLimit } from '../middleware/ip-rate-limit';
 import type { AppEnv } from '../types';
+import { log } from '../lib/log';
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -337,7 +338,7 @@ authRoutes.post('/login', loginRateLimit, requireCsrfToken, async c => {
 			.set({ lastLogin: new Date() })
 			.where(eq(users.id, user.id));
 	} catch (error) {
-		console.error('[auth] failed to update lastLogin', error);
+		log.error('last login update failed', {}, error);
 	}
 
 	return c.json({

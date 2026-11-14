@@ -5,6 +5,7 @@ import { isBillingMockEnabled } from '../lib/billing';
 import { getEntitlements } from '../lib/entitlements';
 import { newId } from '../lib/id';
 import type { AppEnv } from '../types';
+import { log } from '../lib/log';
 
 /**
  * Computes entitlements once and stores them on context for `enforcePickQuota` (and the pick
@@ -108,10 +109,7 @@ export const enforcePickQuota = createMiddleware<AppEnv>(async (c, next) => {
 				.delete(pickUsage)
 				.where(eq(pickUsage.id, pickUsageId))
 				.catch(err => {
-					console.error(
-						'[entitlements] failed to release unused pick reservation',
-						err
-					);
+					log.error('pick reservation release failed', {}, err);
 				})
 		);
 	};

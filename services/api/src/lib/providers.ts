@@ -13,6 +13,7 @@ import {
 	getMovieFullDetails,
 	getTVFullDetails,
 } from './tmdb';
+import { log } from './log';
 
 /**
  * Read-through cache over the `content` table, ported from the current Express
@@ -145,10 +146,7 @@ export const cacheContentDetails = async (
 				: null;
 		}
 	} catch (err) {
-		console.warn(
-			'[providers] content-details fetch failed, leaving title/poster as-is',
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('content details fetch failed', { tmdbId }, err);
 		return;
 	}
 	// A malformed/empty response (e.g. an unmocked-shape 200 in a test, or TMDb omitting the
@@ -179,10 +177,7 @@ export const cacheContentDetails = async (
 				set: { title, year, runtime, posterPath, genreIds, updatedAt: now },
 			});
 	} catch (err) {
-		console.warn(
-			'[providers] content-details upsert failed',
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('content details upsert failed', { tmdbId }, err);
 	}
 };
 
@@ -215,10 +210,7 @@ export const getCachedProviders = async (
 		const refreshed = await refreshProviders(env, db, tmdbId, mediaType);
 		return readRegion(refreshed, region) ?? {};
 	} catch (err) {
-		console.warn(
-			'[providers] refresh failed, falling back to cached/empty',
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('provider refresh failed, using cache', { tmdbId }, err);
 		return cachedRegion ?? {};
 	}
 };

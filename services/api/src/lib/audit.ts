@@ -1,5 +1,6 @@
 import { auditLogs, type Database } from '@pairflix/db';
 import { newId } from './id';
+import { log as logger } from './log';
 
 /**
  * Generic leveled application logging -- backs the admin audit-log viewer. Distinct from
@@ -26,7 +27,7 @@ const log = async (
 			createdAt: new Date(),
 		});
 	} catch (error) {
-		console.error('Failed to create audit log:', error);
+		logger.error('audit log write failed', {}, error);
 	}
 };
 

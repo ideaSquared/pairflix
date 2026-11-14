@@ -41,6 +41,7 @@ import {
 	type TMDbDiscoverMovie,
 	type TMDbDiscoverTV,
 } from './tmdb';
+import { log } from './log';
 
 /**
  * Ported from the current Express `recommendation.service.ts`, with these deliberate
@@ -365,11 +366,7 @@ const hydrate = async (
 		}
 	} catch (err) {
 		runtime = null;
-		console.warn(
-			'[recommendation] runtime lookup failed, card will omit a runtime claim',
-			item.id,
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('runtime lookup failed', { tmdbId: item.id }, err);
 	}
 
 	// Fetched unconditionally -- this is display data for the returned card, independent of
@@ -384,11 +381,7 @@ const hydrate = async (
 			: await getWatchProviders(env, item.id, mediaType, region);
 	} catch (err) {
 		providers = {};
-		console.warn(
-			'[recommendation] provider lookup failed, card will omit availability',
-			item.id,
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('provider lookup failed', { tmdbId: item.id }, err);
 	}
 	if (
 		providersFilter &&
@@ -744,19 +737,25 @@ export const pickForHousehold = async (
 			minutes: request.minutes,
 		});
 	} catch (err) {
-		console.warn(
-			'[recommendation] LLM rerank unavailable',
-			err instanceof Error ? err.message : 'Unknown error'
-		);
+		log.warn('llm rerank unavailable', { householdId }, err);
 	}
 	if (!llmResult) return mlResult;
 
 	// The only observability this spend gets -- rawUsage was previously computed and discarded, so
 	// there was no way to see premium LLM token/cost usage anywhere (Cloudflare observability
 	// captures console output, see CLAUDE.md's Logging & errors section).
-	console.warn('[recommendation] llm rerank usage', {
+	const {
+		inputTokens,
+		outputTokens,
+		cacheReadInputTokens,
+		cacheCreationInputTokens,
+	} = llmResult.rawUsage;
+	log.info('llm rerank usage', {
 		householdId,
-		...llmResult.rawUsage,
+		inputCount: inputTokens,
+		outputCount: outputTokens,
+		cacheReadCount: cacheReadInputTokens,
+		cacheCreateCount: cacheCreationInputTokens,
 	});
 
 	const byTmdbId = new Map(ranked.map(p => [p.card.tmdbId, p]));
