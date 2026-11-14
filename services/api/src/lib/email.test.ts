@@ -53,9 +53,12 @@ describe('sendVerificationEmail', () => {
 		);
 
 		expect(fetchMock).not.toHaveBeenCalled();
-		// The recipient address must never reach the log line.
 		const logged = warnSpy.mock.calls.map(call => call.join(' ')).join('\n');
+		expect(logged).toContain('email not configured');
+		// Neither the recipient, the subject, nor the emailed link (a live token) may reach the log.
 		expect(logged).not.toContain('user@example.com');
+		expect(logged).not.toContain('Verify your Pairflix email');
+		expect(logged).not.toContain('tok123');
 	});
 
 	it('throws EmailNotConfiguredError when unconfigured in production', async () => {
@@ -81,12 +84,19 @@ describe('sendVerificationEmail', () => {
 	it('surfaces a failed Resend send as EmailSendError instead of swallowing it', async () => {
 		globalThis.fetch = vi
 			.fn()
-			.mockResolvedValue(new Response('nope', { status: 500 }));
-		vi.spyOn(console, 'error').mockImplementation(() => {});
+			.mockResolvedValue(
+				new Response('nope user@example.com', { status: 500 })
+			);
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(
 			sendVerificationEmail(configuredEnv, 'user@example.com', 'tok123')
 		).rejects.toBeInstanceOf(EmailSendError);
+
+		const logged = errorSpy.mock.calls.map(call => call.join(' ')).join('\n');
+		expect(logged).toContain('email send failed');
+		// The provider's response body can echo the recipient back.
+		expect(logged).not.toContain('user@example.com');
 	});
 
 	it('throws AppClientUrlNotConfiguredError in production when APP_CLIENT_URL is unset, even if Resend is configured', async () => {

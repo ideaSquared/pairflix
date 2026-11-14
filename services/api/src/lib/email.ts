@@ -1,4 +1,5 @@
 import type { Bindings } from '../types';
+import { log } from './log';
 
 type SendEmailOptions = { to: string; subject: string; html: string };
 
@@ -34,12 +35,7 @@ export const sendEmail = async (
 		if (env.ENVIRONMENT === 'production') {
 			throw new EmailNotConfiguredError();
 		}
-		// Deliberately omits `opts.to` -- a recipient address is PII and this line is the one place
-		// in this file a caller can't already have scrubbed it out of what reaches the logs.
-		console.warn(`[email] not configured -- would send "${opts.subject}"`);
-		if (env.ENVIRONMENT === 'development') {
-			console.warn(`[email] dev fallback, content:\n${opts.html}`);
-		}
+		log.warn('email not configured, send skipped');
 		return;
 	}
 	const response = await fetch('https://api.resend.com/emails', {
@@ -56,11 +52,7 @@ export const sendEmail = async (
 		}),
 	});
 	if (!response.ok) {
-		console.error(
-			'[email] send failed',
-			response.status,
-			await response.text().catch(() => '')
-		);
+		log.error('email send failed', { status: response.status });
 		throw new EmailSendError(response.status);
 	}
 };

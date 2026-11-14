@@ -15,6 +15,7 @@ import { healthRoutes } from './routes/health';
 import { householdsRoutes } from './routes/households';
 import { meRoutes } from './routes/me';
 import type { AppEnv, Bindings } from './types';
+import { log } from './lib/log';
 
 const app = new Hono<AppEnv>();
 
@@ -67,7 +68,7 @@ const isStatusError = (
 	error.statusCode <= 599;
 
 app.onError((error, c) => {
-	console.error(error);
+	log.error('request failed', {}, error);
 	if (!isStatusError(error))
 		return c.json({ error: 'Internal server error' }, 500);
 	// Hono's status union has no runtime guard; the type guard above validated the 400-599 range.
@@ -92,14 +93,14 @@ export default {
 		const db = createDb(env.DB);
 		ctx.waitUntil(
 			rotateAuditLogsOnSchedule(db).catch(err => {
-				console.error('[cron] failed to rotate audit logs', err);
+				log.error('audit log rotation failed', {}, err);
 			})
 		);
 		// pruneExpiredData isolates each table's own sweep failure already -- this catch is only
 		// for the (unexpected) case of the function itself rejecting.
 		ctx.waitUntil(
 			pruneExpiredData(db).catch(err => {
-				console.error('[cron] failed to prune expired data', err);
+				log.error('expired data prune failed', {}, err);
 			})
 		);
 	},

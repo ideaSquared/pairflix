@@ -6,6 +6,7 @@ import {
 	type Database,
 } from '@pairflix/db';
 import { isNotNull, lt, or } from 'drizzle-orm';
+import { log } from './log';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -32,7 +33,7 @@ const sweep = async (
 	try {
 		return await run();
 	} catch (error) {
-		console.error(`[cron] failed to prune ${label}`, error);
+		log.error('table prune failed', { label }, error);
 		return 0;
 	}
 };

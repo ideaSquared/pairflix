@@ -56,6 +56,7 @@ import {
 	requireHouseholdOwner,
 } from '../middleware/household';
 import type { AppEnv } from '../types';
+import { log } from '../lib/log';
 
 /**
  * Covers what the current Express `household.routes.ts` mounts under `/api/households` (CRUD,
@@ -195,10 +196,7 @@ householdsRoutes.post(
 					minutesBudget: request.minutes,
 					region: request.region ?? null,
 				}).catch(err => {
-					console.warn(
-						'[households] failed to record proposed pick event',
-						err
-					);
+					log.warn('proposed pick event record failed', { householdId }, err);
 				})
 			);
 			return c.json(result);
@@ -330,7 +328,7 @@ householdsRoutes.patch(
 					// text so the type here is widened, but every writer already narrowed it.
 					entry.moodAtPick as Mood | null
 				).catch(err => {
-					console.warn('[households] failed to recompute taste profile', err);
+					log.warn('taste profile recompute failed', {}, err);
 				})
 			);
 		}
@@ -386,10 +384,7 @@ householdsRoutes.post(
 					providerSlug: parsed.data.providerSlug,
 					region,
 				}).catch(err => {
-					console.warn(
-						'[households] failed to record provider_launched pick event',
-						err
-					);
+					log.warn('provider launch event record failed', { householdId }, err);
 				})
 			);
 			return c.json(resolved);
