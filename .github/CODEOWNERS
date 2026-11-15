@@ -1,0 +1,29 @@
+# Every directory is listed separately so ownership can be split later
+# without restructuring. Today each product has a single owning team.
+
+* @ideaSquared/pairflix
+
+# Apps
+/apps/admin/ @ideaSquared/pairflix
+/apps/client/ @ideaSquared/pairflix
+
+# Services
+/services/api/ @ideaSquared/pairflix
+
+# Packages
+/packages/db/ @ideaSquared/pairflix
+/packages/eslint-config-base/ @ideaSquared/pairflix
+/packages/eslint-config-react/ @ideaSquared/pairflix
+/packages/lib.components/ @ideaSquared/pairflix
+/packages/lib.validation/ @ideaSquared/pairflix
+
+# Top-level folders
+/docs/ @ideaSquared/pairflix
+/e2e/ @ideaSquared/pairflix
+/scripts/ @ideaSquared/pairflix
+
+# Tooling and CI
+/.claude/ @ideaSquared/pairflix
+/.cursor/ @ideaSquared/pairflix
+/.github/ @ideaSquared/pairflix
+/.husky/ @ideaSquared/pairflix
