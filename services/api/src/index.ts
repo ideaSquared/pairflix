@@ -7,6 +7,7 @@ import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
 import { pruneExpiredData } from './lib/retention';
 import { sessionMiddleware } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
+import { OPS_BASE_PATH } from './ops/paths';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
 import { billingRoutes } from './routes/billing';
@@ -14,6 +15,7 @@ import { demoRoutes } from './routes/demo';
 import { healthRoutes } from './routes/health';
 import { householdsRoutes } from './routes/households';
 import { meRoutes } from './routes/me';
+import { opsRoutes } from './routes/ops';
 import type { AppEnv, Bindings } from './types';
 import { log } from './lib/log';
 
@@ -56,6 +58,7 @@ app.route('/api/households', householdsRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/billing', billingRoutes);
 app.route('/api/demo', demoRoutes);
+app.route(OPS_BASE_PATH, opsRoutes);
 
 app.notFound(c => c.json({ error: 'Not found' }, 404));
 const isStatusError = (

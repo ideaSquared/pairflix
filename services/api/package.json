@@ -22,6 +22,7 @@
 	},
 	"dependencies": {
 		"@ideasquared/log": "https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz",
+		"@ideasquared/ops": "https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz",
 		"@pairflix/db": "workspace:*",
 		"@pairflix/lib.validation": "workspace:*",
 		"drizzle-orm": "^0.45.2",

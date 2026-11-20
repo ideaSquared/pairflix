@@ -11,5 +11,9 @@ export const log = createLogger({
 		'outputCount',
 		'cacheReadCount',
 		'cacheCreateCount',
+		'command',
+		'mode',
+		'outcome',
+		'durationMs',
 	],
 });
