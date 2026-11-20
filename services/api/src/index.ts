@@ -5,7 +5,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
 import { pruneExpiredData } from './lib/retention';
-import { sessionMiddleware } from './middleware/auth';
+import { sessionMiddlewareExceptOps } from './middleware/auth';
 import { csrfMiddleware } from './middleware/csrf';
 import { OPS_BASE_PATH } from './ops/paths';
 import { adminRoutes } from './routes/admin';
@@ -48,7 +48,7 @@ app.use(
 // No Content-Security-Policy is set: this Worker only ever returns JSON, so there's no HTML
 // surface for a CSP to protect.
 app.use('*', secureHeaders({ crossOriginResourcePolicy: 'cross-origin' }));
-app.use('*', sessionMiddleware);
+app.use('*', sessionMiddlewareExceptOps);
 app.use('/api/*', csrfMiddleware);
 
 app.route('/health', healthRoutes);

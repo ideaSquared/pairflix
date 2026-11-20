@@ -2,6 +2,7 @@ import { createDb, sessions, users } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
 import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
+import { isOpsPath } from '../ops/paths';
 import type { AppEnv } from '../types';
 
 /** Resolves the session cookie to a user id (or null) on every request. Joins `users.status` so a
@@ -30,6 +31,21 @@ export const sessionMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 	}
 	await next();
 });
+
+/**
+ * `sessionMiddleware` for every path except the ops endpoint, which authenticates with a GitHub
+ * bearer token and never reads cookies: a session lookup there could only fail it (a D1 error
+ * would block `eng ops`), never help it.
+ */
+export const sessionMiddlewareExceptOps = createMiddleware<AppEnv>(
+	async (c, next) => {
+		if (isOpsPath(c.req.path)) {
+			c.set('userId', null);
+			return next();
+		}
+		return sessionMiddleware(c, next);
+	}
+);
 
 /** Gate for authenticated endpoints -- 401s when there is no authenticated user. */
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
