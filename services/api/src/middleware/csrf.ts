@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 import { timingSafeEqual } from '../lib/crypto';
+import { isOpsPath } from '../ops/paths';
 import type { AppEnv } from '../types';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -23,9 +24,12 @@ const hasValidCsrfToken = (c: Context<AppEnv>): boolean => {
  * which closes that gap for the one route where it matters -- a cookie-less victim's browser has
  * ambient authority (none yet) worth forging into: a cross-site POST that logs them into an
  * attacker-controlled account (login CSRF).
+ *
+ * The one exemption is the ops endpoint (`/api/ops`), which authenticates with a GitHub bearer
+ * token and never reads cookies -- see `routes/ops.ts`.
  */
 export const csrfMiddleware = createMiddleware<AppEnv>(async (c, next) => {
-	if (SAFE_METHODS.has(c.req.method)) return next();
+	if (SAFE_METHODS.has(c.req.method) || isOpsPath(c.req.path)) return next();
 
 	const cookieToken = getCookie(c, 'csrfToken');
 	const sessionToken = getCookie(c, 'session');
