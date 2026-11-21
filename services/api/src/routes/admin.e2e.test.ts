@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { content, contentReports, createDb, sessions } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
+import { pruneExpiredData } from '../lib/retention';
 import {
 	callApp,
 	createLoggedInAdmin,
@@ -415,6 +416,142 @@ describe('admin routes -- user management', () => {
 		});
 		expect(reset.status).toBe(200);
 		expect(await userStatus(userId)).toBe('active');
+	});
+
+	it('a force-reset whose link expired and was pruned still ends active after forgot-password and reset', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const targetEmail = uniqueEmail();
+		const { userId } = await createLoggedInUser(targetEmail, 'Str0ngPass123');
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+
+		await env.DB.prepare(
+			'UPDATE auth_tokens SET expires_at = ?1 WHERE user_id = ?2'
+		)
+			.bind(Date.now() - 1000, userId)
+			.run();
+		await pruneExpiredData(createDb(env.DB));
+		const remaining = await env.DB.prepare(
+			'SELECT COUNT(*) AS n FROM auth_tokens WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ n: number }>();
+		expect(remaining?.n).toBe(0);
+
+		const token = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: targetEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(200);
+		expect(await userStatus(userId)).toBe('active');
+		expect((await loginUser(targetEmail, 'NewStr0ngPass456')).status).toBe(200);
+	});
+
+	it('a link issued before a force-reset is rejected and changes nothing', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const targetEmail = uniqueEmail();
+		const { userId } = await createLoggedInUser(targetEmail, 'Str0ngPass123');
+		const staleToken = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: targetEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+
+		const stale = await postJson(
+			'/api/auth/reset-password',
+			{ token: staleToken, password: 'NewStr0ngPass456' },
+			{},
+			{ ip: uniqueIp() }
+		);
+		expect(stale.status).toBe(400);
+		expect(stale.cookies.session).toBeUndefined();
+		expect(await userStatus(userId)).toBe('pending');
+		const flag = await env.DB.prepare(
+			'SELECT password_reset_required AS f FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ f: number }>();
+		expect(flag?.f).toBe(1);
+	});
+
+	it('force-reset on a banned account sets the flag and keeps it banned', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId } = await createLoggedInUser(uniqueEmail());
+		await env.DB.prepare(
+			"UPDATE users SET status = 'banned' WHERE user_id = ?1"
+		)
+			.bind(userId)
+			.run();
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+		expect(await userStatus(userId)).toBe('banned');
+	});
+
+	it('audits whether a completed reset cleared a forced flag', async () => {
+		const completedFlag = async (userId: string): Promise<unknown> => {
+			const rows = await env.DB.prepare(
+				"SELECT context FROM audit_logs WHERE message = 'Password reset completed' ORDER BY created_at DESC"
+			).all<{ context: string }>();
+			return rows.results
+				.map(r => JSON.parse(r.context) as Record<string, unknown>)
+				.find(ctx => ctx.userId === userId)?.forcedByAdmin;
+		};
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+
+		const forcedEmail = uniqueEmail();
+		const { userId: forcedId } = await createLoggedInUser(forcedEmail);
+		const forcedToken = await captureResetToken(() =>
+			postJson(
+				`/api/admin/users/${forcedId}/force-password-reset`,
+				{},
+				adminCookies
+			)
+		);
+		await postJson('/api/auth/reset-password', {
+			token: forcedToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(await completedFlag(forcedId)).toBe(true);
+
+		const normalEmail = uniqueEmail();
+		const { userId: normalId } = await createLoggedInUser(normalEmail);
+		const normalToken = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: normalEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		await postJson('/api/auth/reset-password', {
+			token: normalToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(await completedFlag(normalId)).toBe(false);
 	});
 
 	it('locked-accounts reflects the real login lockout threshold', async () => {

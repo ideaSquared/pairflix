@@ -41,7 +41,10 @@ to match column-encoding choices, only the auth/session _mechanism_ (see below).
 ban/suspend, account-lockout security, the client app's theme preference) carried forward from the
 prior Sequelize model, not a Postgres-only detail left behind. `totpSecret`/`totpEnabled`/
 `totpBackupCodes` (migration `0001`) back TOTP 2FA — required for admin accounts (see
-`services/api/src/middleware/auth.ts`'s `requireAdmin`), optional for everyone else.
+`services/api/src/middleware/auth.ts`'s `requireAdmin`), optional for everyone else. `passwordResetRequired` (migration `0007`) records that an admin forced a
+password reset: login refuses while it is set, and completing any reset clears it and restores `active`
+only for an account that was `pending` because of it, so a support hold (`pending` without the flag) is
+never lifted by a self-service reset. It survives the forced token expiring and being pruned.
 
 ```ts
 export const users = sqliteTable('users', {
@@ -65,6 +68,9 @@ export const users = sqliteTable('users', {
     .notNull()
     .default(false),
   totpBackupCodes: text('totp_backup_codes'), // JSON array of PBKDF2-hashed single-use codes
+  passwordResetRequired: integer('password_reset_required', { mode: 'boolean' })
+    .notNull()
+    .default(false), // migration 0007; set by admin force-password-reset, cleared when any reset completes
   preferences: text('preferences', { mode: 'json' })
     .$type<UserPreferences>()
     .notNull()
@@ -512,6 +518,7 @@ indexes described above, and the missing `onDelete: 'cascade'` on `household_inv
 table rebuild, since SQLite can't `ALTER TABLE` a foreign key in place).
 `0006_drop_plaintext_sessions.sql` deletes every `sessions` row: `sessions.id` now stores the sha256 of
 the cookie value (no column change), so existing plaintext rows could never match and users log in again.
+`0007_neat_wraith.sql` adds `users.passwordResetRequired` (default false).
 
 `services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
 is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until

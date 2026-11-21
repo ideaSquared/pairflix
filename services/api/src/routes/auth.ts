@@ -234,31 +234,15 @@ authRoutes.post('/login', loginRateLimit, requireCsrfToken, async c => {
 		);
 	}
 
-	// A status: 'pending' account with an unconsumed admin-forced reset token must reset before
-	// logging in again with the old password.
-	if (user.status === 'pending') {
-		const forcedReset = await db
-			.select({ id: authTokens.id })
-			.from(authTokens)
-			.where(
-				and(
-					eq(authTokens.userId, user.id),
-					eq(authTokens.purpose, 'password_reset'),
-					eq(authTokens.forcedByAdmin, true),
-					isNull(authTokens.consumedAt),
-					gt(authTokens.expiresAt, new Date())
-				)
-			)
-			.get();
-		if (forcedReset) {
-			return c.json(
-				{
-					error: 'You must reset your password before logging in',
-					details: ['Check your email for reset instructions.'],
-				},
-				403
-			);
-		}
+	// An admin force-password-reset must be completed before the old password works again.
+	if (user.passwordResetRequired) {
+		return c.json(
+			{
+				error: 'You must reset your password before logging in',
+				details: ['Check your email for reset instructions.'],
+			},
+			403
+		);
 	}
 
 	if (user.totpEnabled) {
@@ -563,16 +547,17 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 
 	const db = createDb(c.env.DB);
 	const user = await db
-		.select({ id: users.id, email: users.email })
+		.select({
+			id: users.id,
+			email: users.email,
+			passwordResetRequired: users.passwordResetRequired,
+		})
 		.from(users)
 		.where(eq(users.email, parsed.data.email))
 		.get();
 	if (user) {
 		// A new request supersedes any earlier unconsumed reset link for this user -- otherwise an
-		// older, still-valid token stays usable alongside the new one. An admin-forced reset keeps
-		// its flag on the replacement, or completing the reset would leave the account 'pending'.
-		// Insert (flag read from the old rows) and delete run as one batch, so overlapping requests
-		// cannot lose the flag between the two.
+		// older, still-valid token stays usable alongside the new one.
 		const resetToken = randomToken();
 		const resetTokenId = await hashToken(resetToken);
 		const unconsumedReset = and(
@@ -585,7 +570,7 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 				id: resetTokenId,
 				userId: user.id,
 				purpose: 'password_reset',
-				forcedByAdmin: sql<boolean>`exists (select 1 from ${authTokens} where ${unconsumedReset} and ${authTokens.forcedByAdmin} = 1)`,
+				forcedByAdmin: user.passwordResetRequired,
 				expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
 				createdAt: new Date(),
 			}),
@@ -628,54 +613,63 @@ authRoutes.post(
 		}
 
 		const db = createDb(c.env.DB);
-		const row = await db
-			.select()
-			.from(authTokens)
+		// Claim the token first: only the request whose conditional update flips it to consumed may
+		// change the password, so a link deleted, superseded or already used since it was issued
+		// (or by a concurrent submission) is rejected without side effects.
+		const now = new Date();
+		const claimed = await db
+			.update(authTokens)
+			.set({ consumedAt: now })
 			.where(
 				and(
 					eq(authTokens.id, await hashToken(parsed.data.token)),
-					eq(authTokens.purpose, 'password_reset')
+					eq(authTokens.purpose, 'password_reset'),
+					isNull(authTokens.consumedAt),
+					gt(authTokens.expiresAt, now)
 				)
 			)
+			.returning({ userId: authTokens.userId })
 			.get();
-		if (!row || row.consumedAt || row.expiresAt.getTime() < Date.now()) {
+		if (!claimed)
 			return c.json({ error: 'Invalid or expired reset link' }, 400);
-		}
 
-		// A forced reset restores a 'pending' account to 'active'; leaves any other status untouched.
-		const target = await db
-			.select({ status: users.status })
-			.from(users)
-			.where(eq(users.id, row.userId))
-			.get();
-		const nextStatus =
-			row.forcedByAdmin && target?.status === 'pending'
-				? 'active'
-				: target?.status;
-
-		const updated = await db
-			.update(users)
-			.set({
-				passwordHash: await hashPassword(parsed.data.password),
-				status: nextStatus,
-				// Receiving and clicking this link proves control of the address already on file --
-				// same standard as clicking a dedicated verify-email link.
-				emailVerified: true,
-			})
-			.where(eq(users.id, row.userId))
-			.returning({ id: users.id, email: users.email, status: users.status })
-			.get();
+		// Completing a reset clears a required reset and restores the 'pending' it caused; an admin
+		// hold (pending without the flag) and every other status stay untouched. The CASE reads the
+		// status at write time, so a ban landing meanwhile is not overwritten.
+		// The batch is one transaction, so the select sees the flag as it was before the update
+		// clears it, for the audit entry.
+		const [priorRows, updatedRows] = await db.batch([
+			db
+				.select({ passwordResetRequired: users.passwordResetRequired })
+				.from(users)
+				.where(eq(users.id, claimed.userId)),
+			db
+				.update(users)
+				.set({
+					passwordHash: await hashPassword(parsed.data.password),
+					status: sql<
+						typeof users.$inferSelect.status
+					>`case when ${users.passwordResetRequired} = 1 and ${users.status} = 'pending' then 'active' else ${users.status} end`,
+					passwordResetRequired: false,
+					// Receiving and clicking this link proves control of the address already on file --
+					// same standard as clicking a dedicated verify-email link.
+					emailVerified: true,
+				})
+				.where(eq(users.id, claimed.userId))
+				.returning({
+					id: users.id,
+					email: users.email,
+					status: users.status,
+				}),
+		]);
+		const updated = updatedRows[0];
 		if (!updated)
 			return c.json({ error: 'Invalid or expired reset link' }, 400);
 
-		await db
-			.update(authTokens)
-			.set({ consumedAt: new Date() })
-			.where(eq(authTokens.id, row.id));
 		await auditInfo(db, 'Password reset completed', 'auth', {
 			userId: updated.id,
 			email: updated.email,
-			forcedByAdmin: Boolean(row.forcedByAdmin),
+			forcedByAdmin: Boolean(priorRows[0]?.passwordResetRequired),
 		});
 
 		if (updated.status === 'suspended' || updated.status === 'banned') {
@@ -703,8 +697,8 @@ authRoutes.post(
 		}
 
 		// Password reset means every prior session is untrusted -- sign the whole account out.
-		await db.delete(sessions).where(eq(sessions.userId, row.userId));
-		await startSession(c, db, row.userId);
+		await db.delete(sessions).where(eq(sessions.userId, claimed.userId));
+		await startSession(c, db, claimed.userId);
 		return c.json({ data: { id: updated.id, email: updated.email } });
 	}
 );
