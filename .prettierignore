@@ -47,3 +47,5 @@ Dockerfile*
 
 # GitHub Actions
 .github/labeler.yml
+# Canonical copy from agent-idea; must stay byte-identical
+.claude/skills/logging/SKILL.md
