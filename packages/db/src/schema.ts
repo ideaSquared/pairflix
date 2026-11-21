@@ -43,6 +43,11 @@ export const users = sqliteTable('users', {
     .default(false),
   /** JSON array of PBKDF2-hashed single-use recovery codes; consumed entries are removed. */
   totpBackupCodes: text('totp_backup_codes'),
+  /** Set by an admin force-password-reset, cleared when any password reset completes. Distinguishes that
+   * from a support hold, which also uses status 'pending'. */
+  passwordResetRequired: integer('password_reset_required', { mode: 'boolean' })
+    .notNull()
+    .default(false),
   preferences: text('preferences', { mode: 'json' })
     .$type<UserPreferences>()
     .notNull()

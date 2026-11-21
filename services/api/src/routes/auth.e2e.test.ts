@@ -305,7 +305,7 @@ describe('POST /api/auth/login', () => {
 		const email = uniqueEmail();
 		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
 		await env.DB.prepare(
-			"UPDATE users SET status = 'pending' WHERE user_id = ?1"
+			"UPDATE users SET status = 'pending', password_reset_required = 1 WHERE user_id = ?1"
 		)
 			.bind(userId)
 			.run();
@@ -324,6 +324,22 @@ describe('POST /api/auth/login', () => {
 		// Even the correct password is rejected -- the account must go through reset-password first.
 		const result = await loginUser(email, 'Str0ngPass123');
 		expect(result.status).toBe(403);
+	});
+
+	it('rejects login while a reset is required, with no unexpired forced token', async () => {
+		const email = uniqueEmail();
+		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
+		await env.DB.prepare(
+			"UPDATE users SET status = 'pending', password_reset_required = 1 WHERE user_id = ?1"
+		)
+			.bind(userId)
+			.run();
+
+		const result = await loginUser(email, 'Str0ngPass123');
+		expect(result.status).toBe(403);
+		expect(result.body.error).toBe(
+			'You must reset your password before logging in'
+		);
 	});
 
 	it('rejects a pending account with a wrong password the same generic way as any other account', async () => {
@@ -551,6 +567,29 @@ describe('POST /api/auth/reset-password', () => {
 		expect(reset.cookies.session).toBeUndefined();
 	});
 
+	it('does not lift an admin hold that has no forced-reset flag', async () => {
+		const email = uniqueEmail();
+		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
+		const token = await forgotPasswordAndCaptureToken(email);
+		await env.DB.prepare(
+			"UPDATE users SET status = 'pending' WHERE user_id = ?1"
+		)
+			.bind(userId)
+			.run();
+
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(403);
+		const user = await env.DB.prepare(
+			'SELECT status FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ status: string }>();
+		expect(user?.status).toBe('pending');
+	});
+
 	it('completes for an unverified account, marks the email verified, and starts a session', async () => {
 		const email = uniqueEmail();
 		const { userId } = await registerUser(email, 'Str0ngPass123'); // unverified on purpose
@@ -576,7 +615,7 @@ describe('POST /api/auth/reset-password', () => {
 		const email = uniqueEmail();
 		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
 		await env.DB.prepare(
-			"UPDATE users SET status = 'pending' WHERE user_id = ?1"
+			"UPDATE users SET status = 'pending', password_reset_required = 1 WHERE user_id = ?1"
 		)
 			.bind(userId)
 			.run();

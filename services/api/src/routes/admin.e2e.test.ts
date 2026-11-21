@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { content, contentReports, createDb, sessions } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
+import { pruneExpiredData } from '../lib/retention';
 import {
 	callApp,
 	createLoggedInAdmin,
@@ -415,6 +416,47 @@ describe('admin routes -- user management', () => {
 		});
 		expect(reset.status).toBe(200);
 		expect(await userStatus(userId)).toBe('active');
+	});
+
+	it('a force-reset whose link expired and was pruned still ends active after forgot-password and reset', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const targetEmail = uniqueEmail();
+		const { userId } = await createLoggedInUser(targetEmail, 'Str0ngPass123');
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+
+		await env.DB.prepare(
+			'UPDATE auth_tokens SET expires_at = ?1 WHERE user_id = ?2'
+		)
+			.bind(Date.now() - 1000, userId)
+			.run();
+		await pruneExpiredData(createDb(env.DB));
+		const remaining = await env.DB.prepare(
+			'SELECT COUNT(*) AS n FROM auth_tokens WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ n: number }>();
+		expect(remaining?.n).toBe(0);
+
+		const token = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: targetEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(200);
+		expect(await userStatus(userId)).toBe('active');
+		expect((await loginUser(targetEmail, 'NewStr0ngPass456')).status).toBe(200);
 	});
 
 	it('locked-accounts reflects the real login lockout threshold', async () => {

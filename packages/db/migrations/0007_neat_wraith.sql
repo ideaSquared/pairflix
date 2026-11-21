@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `password_reset_required` integer DEFAULT false NOT NULL;

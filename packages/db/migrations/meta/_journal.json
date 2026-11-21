@@ -50,6 +50,13 @@
       "when": 1795279080469,
       "tag": "0006_drop_plaintext_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795287196752,
+      "tag": "0007_neat_wraith",
+      "breakpoints": true
     }
   ]
 }

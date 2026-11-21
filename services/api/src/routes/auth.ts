@@ -7,7 +7,7 @@ import {
 	ResetPasswordRequestSchema,
 	VerifyEmailRequestSchema,
 } from '@pairflix/lib.validation';
-import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
@@ -235,31 +235,15 @@ authRoutes.post('/login', loginRateLimit, requireCsrfToken, async c => {
 		);
 	}
 
-	// A status: 'pending' account with an unconsumed admin-forced reset token must reset before
-	// logging in again with the old password.
-	if (user.status === 'pending') {
-		const forcedReset = await db
-			.select({ id: authTokens.id })
-			.from(authTokens)
-			.where(
-				and(
-					eq(authTokens.userId, user.id),
-					eq(authTokens.purpose, 'password_reset'),
-					eq(authTokens.forcedByAdmin, true),
-					isNull(authTokens.consumedAt),
-					gt(authTokens.expiresAt, new Date())
-				)
-			)
-			.get();
-		if (forcedReset) {
-			return c.json(
-				{
-					error: 'You must reset your password before logging in',
-					details: ['Check your email for reset instructions.'],
-				},
-				403
-			);
-		}
+	// An admin force-password-reset must be completed before the old password works again.
+	if (user.passwordResetRequired) {
+		return c.json(
+			{
+				error: 'You must reset your password before logging in',
+				details: ['Check your email for reset instructions.'],
+			},
+			403
+		);
 	}
 
 	if (user.totpEnabled) {
@@ -564,16 +548,17 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 
 	const db = createDb(c.env.DB);
 	const user = await db
-		.select({ id: users.id, email: users.email })
+		.select({
+			id: users.id,
+			email: users.email,
+			passwordResetRequired: users.passwordResetRequired,
+		})
 		.from(users)
 		.where(eq(users.email, parsed.data.email))
 		.get();
 	if (user) {
 		// A new request supersedes any earlier unconsumed reset link for this user -- otherwise an
-		// older, still-valid token stays usable alongside the new one. An admin-forced reset keeps
-		// its flag on the replacement, or completing the reset would leave the account 'pending'.
-		// Insert (flag read from the old rows) and delete run as one batch, so overlapping requests
-		// cannot lose the flag between the two.
+		// older, still-valid token stays usable alongside the new one.
 		const resetToken = randomToken();
 		const resetTokenId = await hashToken(resetToken);
 		const unconsumedReset = and(
@@ -586,7 +571,7 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 				id: resetTokenId,
 				userId: user.id,
 				purpose: 'password_reset',
-				forcedByAdmin: sql<boolean>`exists (select 1 from ${authTokens} where ${unconsumedReset} and ${authTokens.forcedByAdmin} = 1)`,
+				forcedByAdmin: user.passwordResetRequired,
 				expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
 				createdAt: new Date(),
 			}),
@@ -643,14 +628,18 @@ authRoutes.post(
 			return c.json({ error: 'Invalid or expired reset link' }, 400);
 		}
 
-		// A forced reset restores a 'pending' account to 'active'; leaves any other status untouched.
+		// Completing a reset clears a required reset and restores the 'pending' it caused; an admin
+		// hold (pending without the flag) and every other status stay untouched.
 		const target = await db
-			.select({ status: users.status })
+			.select({
+				status: users.status,
+				passwordResetRequired: users.passwordResetRequired,
+			})
 			.from(users)
 			.where(eq(users.id, row.userId))
 			.get();
 		const nextStatus =
-			row.forcedByAdmin && target?.status === 'pending'
+			target?.passwordResetRequired && target.status === 'pending'
 				? 'active'
 				: target?.status;
 
@@ -659,6 +648,7 @@ authRoutes.post(
 			.set({
 				passwordHash: await hashPassword(parsed.data.password),
 				status: nextStatus,
+				passwordResetRequired: false,
 				// Receiving and clicking this link proves control of the address already on file --
 				// same standard as clicking a dedicated verify-email link.
 				emailVerified: true,
@@ -676,7 +666,7 @@ authRoutes.post(
 		await auditInfo(db, 'Password reset completed', 'auth', {
 			userId: updated.id,
 			email: updated.email,
-			forcedByAdmin: Boolean(row.forcedByAdmin),
+			forcedByAdmin: Boolean(target?.passwordResetRequired),
 		});
 
 		if (updated.status === 'suspended' || updated.status === 'banned') {

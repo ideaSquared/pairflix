@@ -320,12 +320,14 @@ export const forcePasswordReset = async (
 		}),
 	]);
 
-	if (user.status === 'active' || user.status === 'inactive') {
-		await db
-			.update(users)
-			.set({ status: 'pending', updatedAt: now })
-			.where(eq(users.id, userId));
-	}
+	const nextStatus =
+		user.status === 'active' || user.status === 'inactive'
+			? 'pending'
+			: user.status;
+	await db
+		.update(users)
+		.set({ status: nextStatus, passwordResetRequired: true, updatedAt: now })
+		.where(eq(users.id, userId));
 	await revokeAllSessions(db, userId);
 
 	return { token };
