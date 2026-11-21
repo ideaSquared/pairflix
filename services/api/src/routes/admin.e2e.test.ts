@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { content, contentReports, createDb, sessions } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	callApp,
 	createLoggedInAdmin,
@@ -10,11 +10,55 @@ import {
 	postJson,
 	promoteToAdmin,
 	registerAndVerify,
+	uniqueIp,
 } from '../test/test-helpers';
 
 let counter = 0;
 const uniqueEmail = () => `admin-e2e-${Date.now()}-${counter++}@example.com`;
 const uniqueTmdbId = () => 800_000 + counter++;
+
+const RESET_LINK_TOKEN_PATTERN = /reset-password\?token=([0-9a-f]{64})/;
+
+const captureResetToken = async (
+	trigger: () => Promise<{ status: number }>
+): Promise<string> => {
+	const realFetch = globalThis.fetch;
+	const resendBodies: string[] = [];
+	const originalKey = env.RESEND_API_KEY;
+	const originalFrom = env.EMAIL_FROM;
+	env.RESEND_API_KEY = 'test-resend-key';
+	env.EMAIL_FROM = 'noreply@pairflix.example';
+	globalThis.fetch = vi.fn(
+		async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (String(input) !== 'https://api.resend.com/emails')
+				return realFetch(input, init);
+			resendBodies.push(String(init?.body));
+			return new Response('{}', { status: 200 });
+		}
+	);
+	try {
+		const result = await trigger();
+		if (result.status !== 200) {
+			throw new Error(`reset trigger failed: ${result.status}`);
+		}
+		const token = resendBodies
+			.map(body => RESET_LINK_TOKEN_PATTERN.exec(body)?.[1])
+			.find(match => match !== undefined);
+		if (!token) throw new Error('No reset-password token found in sent email');
+		return token;
+	} finally {
+		globalThis.fetch = realFetch;
+		env.RESEND_API_KEY = originalKey;
+		env.EMAIL_FROM = originalFrom;
+	}
+};
+
+const userStatus = async (userId: string): Promise<string | undefined> =>
+	(
+		await env.DB.prepare('SELECT status FROM users WHERE user_id = ?1')
+			.bind(userId)
+			.first<{ status: string }>()
+	)?.status;
 
 const seedContent = async (overrides: {
 	status?: 'active' | 'pending' | 'flagged' | 'removed';
@@ -268,6 +312,109 @@ describe('admin routes -- user management', () => {
 
 		const relogin = await loginUser(targetEmail, password);
 		expect(relogin.status).toBe(403);
+	});
+
+	it('force-password-reset emails a link that completes the reset and reactivates the account', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId } = await createLoggedInUser(uniqueEmail());
+
+		const token = await captureResetToken(() =>
+			postJson(
+				`/api/admin/users/${userId}/force-password-reset`,
+				{},
+				adminCookies
+			)
+		);
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(200);
+		expect(await userStatus(userId)).toBe('active');
+	});
+
+	it('force-password-reset revokes the target sessions immediately', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId, cookies: targetCookies } =
+			await createLoggedInUser(uniqueEmail());
+
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+
+		const after = await callApp('/api/households', { cookies: targetCookies });
+		expect(after.status).toBe(401);
+	});
+
+	it('reset-password revokes the target sessions immediately', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId, cookies: targetCookies } =
+			await createLoggedInUser(uniqueEmail());
+
+		const reset = await postJson(
+			`/api/admin/users/${userId}/reset-password`,
+			{ sendEmail: false },
+			adminCookies
+		);
+		expect(reset.status).toBe(200);
+
+		const after = await callApp('/api/households', { cookies: targetCookies });
+		expect(after.status).toBe(401);
+	});
+
+	it('a second force-password-reset invalidates the first emailed link', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId } = await createLoggedInUser(uniqueEmail());
+		const force = () =>
+			postJson(
+				`/api/admin/users/${userId}/force-password-reset`,
+				{},
+				adminCookies
+			);
+
+		const firstToken = await captureResetToken(force);
+		const secondToken = await captureResetToken(force);
+
+		const stale = await postJson('/api/auth/reset-password', {
+			token: firstToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(stale.status).toBe(400);
+		const fresh = await postJson('/api/auth/reset-password', {
+			token: secondToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(fresh.status).toBe(200);
+	});
+
+	it('forgot-password after a force-reset still ends with an active account', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const targetEmail = uniqueEmail();
+		const { userId } = await createLoggedInUser(targetEmail);
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+
+		const token = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: targetEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(200);
+		expect(await userStatus(userId)).toBe('active');
 	});
 
 	it('locked-accounts reflects the real login lockout threshold', async () => {

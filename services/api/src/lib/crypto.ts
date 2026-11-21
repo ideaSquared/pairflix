@@ -103,3 +103,16 @@ export const decryptSecret = async (
 	);
 	return new TextDecoder().decode(plaintext);
 };
+
+/** SHA-256 hex digest of a token. `auth_tokens.id` for `password_reset` tokens stores this hash,
+ * not the plaintext (see '/forgot-password' and '/reset-password' in routes/auth.ts) -- a stolen DB row alone
+ * is then not enough to complete a reset, only the plaintext link (emailed, never persisted) is. */
+export const hashToken = async (token: string): Promise<string> => {
+	const digest = await crypto.subtle.digest(
+		'SHA-256',
+		new TextEncoder().encode(token)
+	);
+	return [...new Uint8Array(digest)]
+		.map(byte => byte.toString(16).padStart(2, '0'))
+		.join('');
+};
