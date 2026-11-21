@@ -637,7 +637,13 @@ authRoutes.post(
 		// Completing a reset clears a required reset and restores the 'pending' it caused; an admin
 		// hold (pending without the flag) and every other status stay untouched. The CASE reads the
 		// status at write time, so a ban landing meanwhile is not overwritten.
-		const [updatedRows] = await db.batch([
+		// The batch is one transaction, so the select sees the flag as it was before the update
+		// clears it, for the audit entry.
+		const [priorRows, updatedRows] = await db.batch([
+			db
+				.select({ passwordResetRequired: users.passwordResetRequired })
+				.from(users)
+				.where(eq(users.id, claimed.userId)),
 			db
 				.update(users)
 				.set({
@@ -664,6 +670,7 @@ authRoutes.post(
 		await auditInfo(db, 'Password reset completed', 'auth', {
 			userId: updated.id,
 			email: updated.email,
+			forcedByAdmin: Boolean(priorRows[0]?.passwordResetRequired),
 		});
 
 		if (updated.status === 'suspended' || updated.status === 'banned') {

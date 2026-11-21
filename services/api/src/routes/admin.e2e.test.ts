@@ -511,6 +511,49 @@ describe('admin routes -- user management', () => {
 		expect(await userStatus(userId)).toBe('banned');
 	});
 
+	it('audits whether a completed reset cleared a forced flag', async () => {
+		const completedFlag = async (userId: string): Promise<unknown> => {
+			const rows = await env.DB.prepare(
+				"SELECT context FROM audit_logs WHERE message = 'Password reset completed' ORDER BY created_at DESC"
+			).all<{ context: string }>();
+			return rows.results
+				.map(r => JSON.parse(r.context) as Record<string, unknown>)
+				.find(ctx => ctx.userId === userId)?.forcedByAdmin;
+		};
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+
+		const forcedEmail = uniqueEmail();
+		const { userId: forcedId } = await createLoggedInUser(forcedEmail);
+		const forcedToken = await captureResetToken(() =>
+			postJson(
+				`/api/admin/users/${forcedId}/force-password-reset`,
+				{},
+				adminCookies
+			)
+		);
+		await postJson('/api/auth/reset-password', {
+			token: forcedToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(await completedFlag(forcedId)).toBe(true);
+
+		const normalEmail = uniqueEmail();
+		const { userId: normalId } = await createLoggedInUser(normalEmail);
+		const normalToken = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: normalEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		await postJson('/api/auth/reset-password', {
+			token: normalToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(await completedFlag(normalId)).toBe(false);
+	});
+
 	it('locked-accounts reflects the real login lockout threshold', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());
 		const targetEmail = uniqueEmail();
