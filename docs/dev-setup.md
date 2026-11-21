@@ -86,6 +86,20 @@ household-scoped flow (pick/commit, quota, provider filters) can be exercised wi
 hand-creating a household through the UI/API; it prints each household's name, tier, and owner
 login email on completion. All seeded users share the password `password123`.
 
+### Signing up without email
+
+With `RESEND_API_KEY` unset, `wrangler dev` skips every email and logs only that it skipped it, never
+the link (links carry one-time tokens). Login refuses an unverified account, so a user you register
+locally cannot log in until you mark them verified:
+
+```bash
+pnpm exec wrangler d1 execute pairflix-db --local \
+  --command "update users set email_verified = 1 where email = 'you@example.com'"
+```
+
+Password reset and email change need the emailed link, so test those with `RESEND_API_KEY` and
+`EMAIL_FROM` set, or use the seeded users above.
+
 ## Environment & secrets
 
 - **Local Worker vars** go in `services/api/.dev.vars` (gitignored): `TMDB_API_KEY`,

@@ -20,8 +20,10 @@ ALLOWED_ORIGINS=""
 # value rather than reusing this placeholder.
 ADMIN_BOOTSTRAP_SECRET="dev-bootstrap-secret-change-me"
 
-# Email (Resend) -- leave blank to log verification/reset links to the console instead of sending
-# real email (see src/lib/email.ts). Get a key at https://resend.com.
+# Email (Resend) -- leave blank to skip sending outside production; only the skip is logged, never
+# the verification/reset links (see src/lib/email.ts). To log in as a user you registered locally
+# without email, mark them verified in local D1 (docs/dev-setup.md, "Signing up without email").
+# Get a key at https://resend.com.
 RESEND_API_KEY=""
 EMAIL_FROM=""
 
