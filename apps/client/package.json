@@ -28,6 +28,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@pairflix/eslint-config-react": "workspace:*",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",
@@ -42,10 +43,16 @@
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.3",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "globals": "^15.12.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.9.6",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.18.0",
     "vite": "^8.2.1",
     "vitest": "^4.1.0",
     "wrangler": "^4.0.0"
