@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { randomToken } from './id';
 import {
 	FAILED_ATTEMPT_LIMIT,
+	hashSessionToken,
 	LOCKOUT_MS,
 	revokeAllSessions,
 	revokeOtherSessions,
@@ -29,15 +30,15 @@ const makeUser = async (): Promise<string> => {
 };
 
 const addSession = async (userId: string): Promise<string> => {
-	const id = randomToken();
+	const token = randomToken();
 	const now = Date.now();
 	await db.insert(sessions).values({
-		id,
+		id: await hashSessionToken(token),
 		userId,
 		expiresAt: new Date(now + 60_000),
 		createdAt: new Date(now),
 	});
-	return id;
+	return token;
 };
 
 describe('lockout constants', () => {
@@ -63,14 +64,14 @@ describe('revokeOtherSessions', () => {
 			.select({ id: sessions.id })
 			.from(sessions)
 			.where(eq(sessions.userId, user));
-		expect(remaining.map(r => r.id)).toEqual([keep]);
+		expect(remaining.map(r => r.id)).toEqual([await hashSessionToken(keep)]);
 
 		const untouched = await db
 			.select({ id: sessions.id })
 			.from(sessions)
-			.where(eq(sessions.id, otherSession))
+			.where(eq(sessions.id, await hashSessionToken(otherSession)))
 			.get();
-		expect(untouched?.id).toBe(otherSession);
+		expect(untouched?.id).toBe(await hashSessionToken(otherSession));
 	});
 });
 
@@ -94,8 +95,8 @@ describe('revokeAllSessions', () => {
 		const untouched = await db
 			.select({ id: sessions.id })
 			.from(sessions)
-			.where(eq(sessions.id, otherSession))
+			.where(eq(sessions.id, await hashSessionToken(otherSession)))
 			.get();
-		expect(untouched?.id).toBe(otherSession);
+		expect(untouched?.id).toBe(await hashSessionToken(otherSession));
 	});
 });
