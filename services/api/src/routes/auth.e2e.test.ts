@@ -459,6 +459,39 @@ describe('POST /api/auth/forgot-password and /resend-verification', () => {
 });
 
 describe('POST /api/auth/reset-password', () => {
+	it('rejects a cookie-less reset without a CSRF token and starts no session (login CSRF)', async () => {
+		const email = uniqueEmail();
+		await registerAndVerify(email, 'Str0ngPass123');
+		const token = await forgotPasswordAndCaptureToken(email);
+
+		const result = await callApp('/api/auth/reset-password', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ token, password: 'NewStr0ngPass456' }),
+		});
+		expect(result.status).toBe(403);
+		expect(result.cookies.session).toBeUndefined();
+	});
+
+	it('rejects a text/plain body even when it carries valid CSRF credentials', async () => {
+		const email = uniqueEmail();
+		await registerAndVerify(email, 'Str0ngPass123');
+		const token = await forgotPasswordAndCaptureToken(email);
+		const seeded = await getCsrfToken({});
+
+		const result = await callApp('/api/auth/reset-password', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'text/plain',
+				'x-csrf-token': seeded.csrfToken,
+			},
+			cookies: seeded.cookies,
+			body: JSON.stringify({ token, password: 'NewStr0ngPass456' }),
+		});
+		expect(result.status).toBe(415);
+		expect(result.cookies.session).toBeUndefined();
+	});
+
 	it('updates the password, revokes every session, and logs in with the new password', async () => {
 		const email = uniqueEmail();
 		await registerAndVerify(email, 'Str0ngPass123');
