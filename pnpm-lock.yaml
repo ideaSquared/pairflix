@@ -963,11 +963,11 @@ packages:
     engines: {node: '>=18.18'}
 
   '@ideasquared/log@https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz':
-    resolution: {tarball: https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz}
+    resolution: {integrity: sha512-3Tg2K14xin6bHZXy8ppttvxgzQgiMvzKndaH9SoMRmG1kknJm4pEo//QOIGYvL9DtLq8squkHGuXJps2tStnQA==, tarball: https://github.com/ideaSquared/agent-idea/releases/download/log-v0.1.1/ideasquared-log-0.1.1.tgz}
     version: 0.1.1
 
   '@ideasquared/ops@https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz':
-    resolution: {tarball: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz}
+    resolution: {integrity: sha512-N5dsruT+CAqDe6MoFdhWnB3YUtwqDZpNbWMFYMnzyb0IaUCDofWJMPWEEii5YL7/9PZjVRh/UQyPYF8sHG0R0g==, tarball: https://github.com/ideaSquared/agent-idea/releases/download/ops-v0.2.0/ideasquared-ops-0.2.0.tgz}
     version: 0.2.0
 
   '@img/colour@1.1.0':
