@@ -83,7 +83,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Pairflix is the "what should WE watch tonight" decision layer for couples and households. Given a household, a mood, and a time budget, the product returns **one** title in under 30 seconds, with cross-platform availability (Netflix / Prime / Disney+ …) surfaced on the card. Premium adds unlimited picks, multi-region providers, and LLM-assisted re-ranking.
 
-Product source of truth: the **Pairflix — Business Plan** Notion page (`https://www.notion.so/ba9c9af72f9a4f448b554378d8dc43b4`) and the venture page at `ideasquared-website/ventures/pairflix/`. When the plan and the codebase disagree, the plan wins for product intent; the codebase wins for engineering reality. Flag the conflict and ask.
+Product source of truth: the **Pairflix — Business Plan** Google Doc (`https://docs.google.com/document/d/1IIvwhOGps8DV3aipvnHYicOouDQPD5C5-cjI-xMwj2w/edit`) and the venture page at `ideasquared-website/ventures/pairflix/`. When the plan and the codebase disagree, the plan wins for product intent; the codebase wins for engineering reality. Flag the conflict and ask.
 
 ## Two migrations are in flight
 

@@ -2,7 +2,7 @@
 
 > Rewritten 2026-08-16 for the household pivot. The previous PRD described the retired two-user
 > watchlist-matching product; that direction is dead. Product intent tracks the venture page
-> (`ideasquared-website/ventures/pairflix/`) and the Notion business plan.
+> (`ideasquared-website/ventures/pairflix/`) and the Google Doc business plan.
 
 ## Summary
 
