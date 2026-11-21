@@ -1,6 +1,6 @@
 import { users, sessions, authTokens, type Database } from '@pairflix/db';
 import { and, asc, count, desc, eq, gte, like, or } from 'drizzle-orm';
-import { hashPassword } from './crypto';
+import { hashPassword, hashToken } from './crypto';
 import { isUniqueConstraintViolation } from './dbErrors';
 import { newId, randomToken } from './id';
 import { FAILED_ATTEMPT_LIMIT, revokeAllSessions } from './session';
@@ -281,6 +281,7 @@ export const resetPassword = async (
 		.returning({ id: users.id })
 		.get();
 	if (!updated) return null;
+	await revokeAllSessions(db, userId);
 	return { newPassword };
 };
 
@@ -298,7 +299,7 @@ export const forcePasswordReset = async (
 	const token = randomToken();
 	const now = new Date();
 	await db.insert(authTokens).values({
-		id: token,
+		id: await hashToken(token),
 		userId,
 		purpose: 'password_reset',
 		forcedByAdmin: true,
@@ -312,6 +313,7 @@ export const forcePasswordReset = async (
 			.set({ status: 'pending', updatedAt: now })
 			.where(eq(users.id, userId));
 	}
+	await revokeAllSessions(db, userId);
 
 	return { token };
 };

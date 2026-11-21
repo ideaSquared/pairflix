@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { describe, expect, it, vi } from 'vitest';
+import { hashToken } from '../lib/crypto';
 import { FAILED_ATTEMPT_LIMIT } from '../lib/session';
 import { currentTotpCode } from '../lib/totp';
 import {
@@ -15,7 +16,6 @@ import {
 	suspendDirectly,
 	uniqueIp,
 } from '../test/test-helpers';
-import { hashToken } from './auth';
 
 let counter = 0;
 /** A fresh email per test -- isolated storage resets D1 between test *files*, not between tests

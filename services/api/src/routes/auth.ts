@@ -11,7 +11,12 @@ import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
-import { hashPassword, timingSafeEqual, verifyPassword } from '../lib/crypto';
+import {
+	hashPassword,
+	hashToken,
+	timingSafeEqual,
+	verifyPassword,
+} from '../lib/crypto';
 import { sendPasswordResetEmail, sendVerificationEmail } from '../lib/email';
 import { newId, randomToken } from '../lib/id';
 import {
@@ -37,19 +42,6 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
  * so it's not a substitute for an IP budget. */
 const IP_RATE_LIMIT = 5;
 const IP_RATE_WINDOW_MINUTES = 15;
-
-/** SHA-256 hex digest of a token. `auth_tokens.id` for `password_reset` tokens stores this hash,
- * not the plaintext (see '/forgot-password' and '/reset-password' below) -- a stolen DB row alone
- * is then not enough to complete a reset, only the plaintext link (emailed, never persisted) is. */
-export const hashToken = async (token: string): Promise<string> => {
-	const digest = await crypto.subtle.digest(
-		'SHA-256',
-		new TextEncoder().encode(token)
-	);
-	return [...new Uint8Array(digest)]
-		.map(byte => byte.toString(16).padStart(2, '0'))
-		.join('');
-};
 
 /** Fixed-format PBKDF2 hash, never a real password -- run against an unknown email's login
  * attempt so `verifyPassword` takes the same time whether or not the email is registered.
@@ -577,7 +569,18 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 		.get();
 	if (user) {
 		// A new request supersedes any earlier unconsumed reset link for this user -- otherwise an
-		// older, still-valid token stays usable alongside the new one.
+		// older, still-valid token stays usable alongside the new one. An admin-forced reset keeps
+		// its flag on the replacement, or completing the reset would leave the account 'pending'.
+		const pendingTokens = await db
+			.select({ forcedByAdmin: authTokens.forcedByAdmin })
+			.from(authTokens)
+			.where(
+				and(
+					eq(authTokens.userId, user.id),
+					eq(authTokens.purpose, 'password_reset'),
+					isNull(authTokens.consumedAt)
+				)
+			);
 		await db
 			.delete(authTokens)
 			.where(
@@ -593,6 +596,7 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 			id: await hashToken(resetToken),
 			userId: user.id,
 			purpose: 'password_reset',
+			forcedByAdmin: pendingTokens.some(t => t.forcedByAdmin),
 			expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
 			createdAt: new Date(),
 		});
