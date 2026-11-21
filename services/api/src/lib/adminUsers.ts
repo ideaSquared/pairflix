@@ -1,5 +1,5 @@
 import { users, sessions, authTokens, type Database } from '@pairflix/db';
-import { and, asc, count, desc, eq, gte, like, or } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, isNull, like, or } from 'drizzle-orm';
 import { hashPassword, hashToken } from './crypto';
 import { isUniqueConstraintViolation } from './dbErrors';
 import { newId, randomToken } from './id';
@@ -298,14 +298,27 @@ export const forcePasswordReset = async (
 
 	const token = randomToken();
 	const now = new Date();
-	await db.insert(authTokens).values({
-		id: await hashToken(token),
-		userId,
-		purpose: 'password_reset',
-		forcedByAdmin: true,
-		expiresAt: new Date(now.getTime() + TOKEN_TTL_MS),
-		createdAt: now,
-	});
+	// A new forced reset supersedes any earlier unconsumed link; the swap is one batch so no
+	// window exists where an old link is still valid next to the new one.
+	await db.batch([
+		db
+			.delete(authTokens)
+			.where(
+				and(
+					eq(authTokens.userId, userId),
+					eq(authTokens.purpose, 'password_reset'),
+					isNull(authTokens.consumedAt)
+				)
+			),
+		db.insert(authTokens).values({
+			id: await hashToken(token),
+			userId,
+			purpose: 'password_reset',
+			forcedByAdmin: true,
+			expiresAt: new Date(now.getTime() + TOKEN_TTL_MS),
+			createdAt: now,
+		}),
+	]);
 
 	if (user.status === 'active' || user.status === 'inactive') {
 		await db

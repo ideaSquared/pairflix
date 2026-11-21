@@ -364,6 +364,31 @@ describe('admin routes -- user management', () => {
 		expect(after.status).toBe(401);
 	});
 
+	it('a second force-password-reset invalidates the first emailed link', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId } = await createLoggedInUser(uniqueEmail());
+		const force = () =>
+			postJson(
+				`/api/admin/users/${userId}/force-password-reset`,
+				{},
+				adminCookies
+			);
+
+		const firstToken = await captureResetToken(force);
+		const secondToken = await captureResetToken(force);
+
+		const stale = await postJson('/api/auth/reset-password', {
+			token: firstToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(stale.status).toBe(400);
+		const fresh = await postJson('/api/auth/reset-password', {
+			token: secondToken,
+			password: 'NewStr0ngPass456',
+		});
+		expect(fresh.status).toBe(200);
+	});
+
 	it('forgot-password after a force-reset still ends with an active account', async () => {
 		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
 		const targetEmail = uniqueEmail();

@@ -7,7 +7,7 @@ import {
 	ResetPasswordRequestSchema,
 	VerifyEmailRequestSchema,
 } from '@pairflix/lib.validation';
-import { and, eq, gt, isNull, or } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
@@ -571,35 +571,28 @@ authRoutes.post('/forgot-password', forgotPasswordRateLimit, async c => {
 		// A new request supersedes any earlier unconsumed reset link for this user -- otherwise an
 		// older, still-valid token stays usable alongside the new one. An admin-forced reset keeps
 		// its flag on the replacement, or completing the reset would leave the account 'pending'.
-		const pendingTokens = await db
-			.select({ forcedByAdmin: authTokens.forcedByAdmin })
-			.from(authTokens)
-			.where(
-				and(
-					eq(authTokens.userId, user.id),
-					eq(authTokens.purpose, 'password_reset'),
-					isNull(authTokens.consumedAt)
-				)
-			);
-		await db
-			.delete(authTokens)
-			.where(
-				and(
-					eq(authTokens.userId, user.id),
-					eq(authTokens.purpose, 'password_reset'),
-					isNull(authTokens.consumedAt)
-				)
-			);
-
+		// Insert (flag read from the old rows) and delete run as one batch, so overlapping requests
+		// cannot lose the flag between the two.
 		const resetToken = randomToken();
-		await db.insert(authTokens).values({
-			id: await hashToken(resetToken),
-			userId: user.id,
-			purpose: 'password_reset',
-			forcedByAdmin: pendingTokens.some(t => t.forcedByAdmin),
-			expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
-			createdAt: new Date(),
-		});
+		const resetTokenId = await hashToken(resetToken);
+		const unconsumedReset = and(
+			eq(authTokens.userId, user.id),
+			eq(authTokens.purpose, 'password_reset'),
+			isNull(authTokens.consumedAt)
+		);
+		await db.batch([
+			db.insert(authTokens).values({
+				id: resetTokenId,
+				userId: user.id,
+				purpose: 'password_reset',
+				forcedByAdmin: sql<boolean>`exists (select 1 from ${authTokens} where ${unconsumedReset} and ${authTokens.forcedByAdmin} = 1)`,
+				expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+				createdAt: new Date(),
+			}),
+			db
+				.delete(authTokens)
+				.where(and(unconsumedReset, ne(authTokens.id, resetTokenId))),
+		]);
 		await sendPasswordResetEmail(c.env, user.email, resetToken);
 		await auditInfo(db, 'Password reset requested', 'auth', {
 			userId: user.id,
