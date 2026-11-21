@@ -18,6 +18,7 @@ import {
 	FAILED_ATTEMPT_LIMIT,
 	LOCKOUT_MS,
 	endSession,
+	hashSessionToken,
 	startSession,
 } from '../lib/session';
 import { verifySecondFactor } from '../lib/two-factor';
@@ -354,7 +355,7 @@ authRoutes.post('/logout', async c => {
 			.select({ id: users.id, email: users.email })
 			.from(sessions)
 			.innerJoin(users, eq(sessions.userId, users.id))
-			.where(eq(sessions.id, token))
+			.where(eq(sessions.id, await hashSessionToken(token)))
 			.get();
 		await endSession(c, db, token);
 		if (user) {

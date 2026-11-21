@@ -91,7 +91,7 @@ dropped rather than carried forward under their old shape:
 
 ```ts
 export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(), // opaque token == the `session` cookie value
+  id: text('id').primaryKey(), // sha256 hex of the `session` cookie value (migration 0006); never the cookie itself
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -510,6 +510,8 @@ generated name rather than renamed, as it already shipped). `0005_retention_inde
 adds the `stripe_events` table, the `audit_logs`/`household_members`/`sessions`/`subscriptions`
 indexes described above, and the missing `onDelete: 'cascade'` on `household_invites.invitedBy` (a
 table rebuild, since SQLite can't `ALTER TABLE` a foreign key in place).
+`0006_drop_plaintext_sessions.sql` deletes every `sessions` row: `sessions.id` now stores the sha256 of
+the cookie value (no column change), so existing plaintext rows could never match and users log in again.
 
 `services/api/wrangler.jsonc`'s `d1_databases[].database_id` is a placeholder until a real D1 database
 is provisioned in a Cloudflare account (`wrangler d1 create pairflix-db`) — `--remote` won't work until

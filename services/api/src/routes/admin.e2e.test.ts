@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
-import { content, contentReports, createDb } from '@pairflix/db';
+import { content, contentReports, createDb, sessions } from '@pairflix/db';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import {
 	callApp,
@@ -322,6 +323,38 @@ describe('admin routes -- user management', () => {
 
 		const meAfter = await callApp('/api/me', { cookies: targetCookies });
 		expect(meAfter.status).toBe(401);
+	});
+
+	it('never exposes the session cookie value, and stores only a hash of it', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId, cookies: targetCookies } =
+			await createLoggedInUser(uniqueEmail());
+		const cookieValue = targetCookies.session ?? '';
+		expect(cookieValue).not.toBe('');
+
+		const listed = await callApp<{ sessions: Array<{ id: string }> }>(
+			`/api/admin/users/${userId}/sessions`,
+			{ cookies: adminCookies }
+		);
+		const ids = listed.body.sessions.map(s => s.id);
+		expect(ids.length).toBeGreaterThan(0);
+		expect(ids).not.toContain(cookieValue);
+
+		const stored = await createDb(env.DB)
+			.select({ id: sessions.id })
+			.from(sessions)
+			.where(eq(sessions.userId, userId));
+		expect(stored.map(s => s.id)).not.toContain(cookieValue);
+
+		const replays = await Promise.all(
+			ids.map(id => callApp('/api/auth/me', { cookies: { session: id } }))
+		);
+		expect(replays.map(r => r.status)).toEqual(ids.map(() => 401));
+
+		const stillValid = await callApp('/api/auth/me', {
+			cookies: targetCookies,
+		});
+		expect(stillValid.status).toBe(200);
 	});
 
 	it('exports users as CSV', async () => {

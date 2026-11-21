@@ -67,7 +67,7 @@ export type UserPreferences = {
 };
 
 /**
- * Server-side sessions (ADR 0002) -- the session id is the opaque value stored in the `session`
+ * Server-side sessions (ADR 0002) -- the session id is the sha256 of the opaque value stored in the `session`
  * HttpOnly cookie. `ipAddress`/`userAgent` mirror creatorgrid's actual sessions table (captured at
  * login for account-security purposes, never exposed over the API); `deviceInfo` is a pairflix
  * addition carried forward from the current `UserSession` model.

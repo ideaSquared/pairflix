@@ -43,6 +43,13 @@
       "when": 1789039456967,
       "tag": "0005_retention_indexes_and_stripe_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795279080469,
+      "tag": "0006_drop_plaintext_sessions",
+      "breakpoints": true
     }
   ]
 }
