@@ -88,9 +88,8 @@ import { createLogger, memorySink } from '@ideasquared/log';
 const sink = memorySink();
 const log = createLogger({ service: 'test', fields: ['accountId'], sink });
 // ... run the code under test with `log` ...
-expect(sink.events.map(event => event.message)).toContain('sync failed');
-for (const event of sink.events)
-  expect(JSON.stringify(event)).not.toContain('alex@example.com');
+expect(sink.events.map((event) => event.message)).toContain('sync failed');
+for (const event of sink.events) expect(JSON.stringify(event)).not.toContain('alex@example.com');
 ```
 
 When the logger is a module singleton, spy on `console` and parse the JSON line instead. When checking for a
