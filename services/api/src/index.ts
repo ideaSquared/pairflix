@@ -6,7 +6,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { rotateAuditLogsOnSchedule } from './lib/adminAuditLogs';
 import { pruneExpiredData } from './lib/retention';
 import { sessionMiddlewareExceptOps } from './middleware/auth';
-import { csrfMiddleware } from './middleware/csrf';
+import { csrfMiddleware, requireJsonBody } from './middleware/csrf';
 import { OPS_BASE_PATH } from './ops/paths';
 import { adminRoutes } from './routes/admin';
 import { authRoutes } from './routes/auth';
@@ -50,6 +50,7 @@ app.use(
 app.use('*', secureHeaders({ crossOriginResourcePolicy: 'cross-origin' }));
 app.use('*', sessionMiddlewareExceptOps);
 app.use('/api/*', csrfMiddleware);
+app.use('/api/*', requireJsonBody);
 
 app.route('/health', healthRoutes);
 app.route('/api/auth', authRoutes);

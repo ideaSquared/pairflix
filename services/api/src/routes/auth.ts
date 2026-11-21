@@ -609,97 +609,105 @@ const resetPasswordRateLimit = ipRateLimit({
 	windowMinutes: IP_RATE_WINDOW_MINUTES,
 });
 
-authRoutes.post('/reset-password', resetPasswordRateLimit, async c => {
-	const parsed = ResetPasswordRequestSchema.safeParse(
-		await c.req.json().catch(() => null)
-	);
-	if (!parsed.success) {
-		return c.json(
-			{
-				error: 'Invalid input',
-				details: parsed.error.issues.map(i => i.message),
-			},
-			400
+authRoutes.post(
+	'/reset-password',
+	resetPasswordRateLimit,
+	requireCsrfToken,
+	async c => {
+		const parsed = ResetPasswordRequestSchema.safeParse(
+			await c.req.json().catch(() => null)
 		);
-	}
+		if (!parsed.success) {
+			return c.json(
+				{
+					error: 'Invalid input',
+					details: parsed.error.issues.map(i => i.message),
+				},
+				400
+			);
+		}
 
-	const db = createDb(c.env.DB);
-	const row = await db
-		.select()
-		.from(authTokens)
-		.where(
-			and(
-				eq(authTokens.id, await hashToken(parsed.data.token)),
-				eq(authTokens.purpose, 'password_reset')
+		const db = createDb(c.env.DB);
+		const row = await db
+			.select()
+			.from(authTokens)
+			.where(
+				and(
+					eq(authTokens.id, await hashToken(parsed.data.token)),
+					eq(authTokens.purpose, 'password_reset')
+				)
 			)
-		)
-		.get();
-	if (!row || row.consumedAt || row.expiresAt.getTime() < Date.now()) {
-		return c.json({ error: 'Invalid or expired reset link' }, 400);
+			.get();
+		if (!row || row.consumedAt || row.expiresAt.getTime() < Date.now()) {
+			return c.json({ error: 'Invalid or expired reset link' }, 400);
+		}
+
+		// A forced reset restores a 'pending' account to 'active'; leaves any other status untouched.
+		const target = await db
+			.select({ status: users.status })
+			.from(users)
+			.where(eq(users.id, row.userId))
+			.get();
+		const nextStatus =
+			row.forcedByAdmin && target?.status === 'pending'
+				? 'active'
+				: target?.status;
+
+		const updated = await db
+			.update(users)
+			.set({
+				passwordHash: await hashPassword(parsed.data.password),
+				status: nextStatus,
+				// Receiving and clicking this link proves control of the address already on file --
+				// same standard as clicking a dedicated verify-email link.
+				emailVerified: true,
+			})
+			.where(eq(users.id, row.userId))
+			.returning({ id: users.id, email: users.email, status: users.status })
+			.get();
+		if (!updated)
+			return c.json({ error: 'Invalid or expired reset link' }, 400);
+
+		await db
+			.update(authTokens)
+			.set({ consumedAt: new Date() })
+			.where(eq(authTokens.id, row.id));
+		await auditInfo(db, 'Password reset completed', 'auth', {
+			userId: updated.id,
+			email: updated.email,
+			forcedByAdmin: Boolean(row.forcedByAdmin),
+		});
+
+		if (updated.status === 'suspended' || updated.status === 'banned') {
+			// Password is updated, but a reset shouldn't be a way around suspension/ban -- no session either.
+			return c.json(
+				{
+					error: 'Account suspended',
+					details: [
+						'Your password was updated, but this account is suspended.',
+					],
+				},
+				403
+			);
+		}
+		// Same gate '/login' applies to a still-pending (non-forced) account -- a reset shouldn't grant
+		// a session '/login' itself wouldn't.
+		if (updated.status === 'pending') {
+			return c.json(
+				{
+					error: 'Your account is pending activation',
+					details: ['Contact support for help.'],
+				},
+				403
+			);
+		}
+
+		// Password reset means every prior session is untrusted -- sign the whole account out.
+		await db.delete(sessions).where(eq(sessions.userId, row.userId));
+		await startSession(c, db, row.userId);
+		return c.json({ data: { id: updated.id, email: updated.email } });
 	}
-
-	// A forced reset restores a 'pending' account to 'active'; leaves any other status untouched.
-	const target = await db
-		.select({ status: users.status })
-		.from(users)
-		.where(eq(users.id, row.userId))
-		.get();
-	const nextStatus =
-		row.forcedByAdmin && target?.status === 'pending'
-			? 'active'
-			: target?.status;
-
-	const updated = await db
-		.update(users)
-		.set({
-			passwordHash: await hashPassword(parsed.data.password),
-			status: nextStatus,
-			// Receiving and clicking this link proves control of the address already on file --
-			// same standard as clicking a dedicated verify-email link.
-			emailVerified: true,
-		})
-		.where(eq(users.id, row.userId))
-		.returning({ id: users.id, email: users.email, status: users.status })
-		.get();
-	if (!updated) return c.json({ error: 'Invalid or expired reset link' }, 400);
-
-	await db
-		.update(authTokens)
-		.set({ consumedAt: new Date() })
-		.where(eq(authTokens.id, row.id));
-	await auditInfo(db, 'Password reset completed', 'auth', {
-		userId: updated.id,
-		email: updated.email,
-		forcedByAdmin: Boolean(row.forcedByAdmin),
-	});
-
-	if (updated.status === 'suspended' || updated.status === 'banned') {
-		// Password is updated, but a reset shouldn't be a way around suspension/ban -- no session either.
-		return c.json(
-			{
-				error: 'Account suspended',
-				details: ['Your password was updated, but this account is suspended.'],
-			},
-			403
-		);
-	}
-	// Same gate '/login' applies to a still-pending (non-forced) account -- a reset shouldn't grant
-	// a session '/login' itself wouldn't.
-	if (updated.status === 'pending') {
-		return c.json(
-			{
-				error: 'Your account is pending activation',
-				details: ['Contact support for help.'],
-			},
-			403
-		);
-	}
-
-	// Password reset means every prior session is untrusted -- sign the whole account out.
-	await db.delete(sessions).where(eq(sessions.userId, row.userId));
-	await startSession(c, db, row.userId);
-	return c.json({ data: { id: updated.id, email: updated.email } });
-});
+);
 
 /**
  * One-time way to create the first prod admin without direct DB access -- self-disabling rather

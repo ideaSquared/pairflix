@@ -100,6 +100,7 @@ describe('POST /api/billing/webhook', () => {
 		const result = await callApp('/api/billing/webhook', {
 			method: 'POST',
 			body: JSON.stringify({ type: 'checkout.session.completed' }),
+			headers: { 'content-type': 'application/json' },
 		});
 		expect(result.status).toBe(400);
 	});
@@ -108,7 +109,10 @@ describe('POST /api/billing/webhook', () => {
 		const result = await callApp('/api/billing/webhook', {
 			method: 'POST',
 			body: JSON.stringify({ type: 'checkout.session.completed' }),
-			headers: { 'stripe-signature': 't=1,v1=not-a-real-signature' },
+			headers: {
+				'stripe-signature': 't=1,v1=not-a-real-signature',
+				'content-type': 'application/json',
+			},
 		});
 		expect(result.status).toBe(400);
 	});
