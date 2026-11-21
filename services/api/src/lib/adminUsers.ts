@@ -1,5 +1,16 @@
 import { users, sessions, authTokens, type Database } from '@pairflix/db';
-import { and, asc, count, desc, eq, gte, isNull, like, or } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gte,
+	isNull,
+	like,
+	or,
+	sql,
+} from 'drizzle-orm';
 import { hashPassword, hashToken } from './crypto';
 import { isUniqueConstraintViolation } from './dbErrors';
 import { newId, randomToken } from './id';
@@ -300,6 +311,7 @@ export const forcePasswordReset = async (
 	const now = new Date();
 	// A new forced reset supersedes any earlier unconsumed link; the swap is one batch so no
 	// window exists where an old link is still valid next to the new one.
+	// The status move reads the current status in SQL, so a ban applied meanwhile is not overwritten.
 	await db.batch([
 		db
 			.delete(authTokens)
@@ -318,16 +330,17 @@ export const forcePasswordReset = async (
 			expiresAt: new Date(now.getTime() + TOKEN_TTL_MS),
 			createdAt: now,
 		}),
+		db
+			.update(users)
+			.set({
+				status: sql<
+					typeof users.$inferSelect.status
+				>`case when ${users.status} in ('active', 'inactive') then 'pending' else ${users.status} end`,
+				passwordResetRequired: true,
+				updatedAt: now,
+			})
+			.where(eq(users.id, userId)),
 	]);
-
-	const nextStatus =
-		user.status === 'active' || user.status === 'inactive'
-			? 'pending'
-			: user.status;
-	await db
-		.update(users)
-		.set({ status: nextStatus, passwordResetRequired: true, updatedAt: now })
-		.where(eq(users.id, userId));
 	await revokeAllSessions(db, userId);
 
 	return { token };

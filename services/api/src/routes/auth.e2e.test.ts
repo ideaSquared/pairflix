@@ -590,6 +590,30 @@ describe('POST /api/auth/reset-password', () => {
 		expect(user?.status).toBe('pending');
 	});
 
+	it('lets exactly one of two concurrent submissions of the same link win', async () => {
+		// Overlap of the two requests is timing-dependent in this harness, so repeat; every attempt,
+		// raced or not, must end with one 200 and one 400.
+		for (let attempt = 0; attempt < 20; attempt++) {
+			const email = uniqueEmail();
+			await registerAndVerify(email, 'Str0ngPass123');
+			const token = await forgotPasswordAndCaptureToken(email);
+			const submit = (password: string) =>
+				postJson(
+					'/api/auth/reset-password',
+					{ token, password },
+					{},
+					{ ip: uniqueIp() }
+				);
+			const [first, second] = await Promise.all([
+				submit('NewStr0ngPass456'),
+				submit('OtherStr0ngPass789'),
+			]);
+			expect([first.status, second.status].sort((a, b) => a - b)).toEqual([
+				200, 400,
+			]);
+		}
+	}, 60_000);
+
 	it('completes for an unverified account, marks the email verified, and starts a session', async () => {
 		const email = uniqueEmail();
 		const { userId } = await registerUser(email, 'Str0ngPass123'); // unverified on purpose

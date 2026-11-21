@@ -7,7 +7,7 @@ import {
 	ResetPasswordRequestSchema,
 	VerifyEmailRequestSchema,
 } from '@pairflix/lib.validation';
-import { and, eq, isNull, ne, or } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
@@ -614,59 +614,56 @@ authRoutes.post(
 		}
 
 		const db = createDb(c.env.DB);
-		const row = await db
-			.select()
-			.from(authTokens)
+		// Claim the token first: only the request whose conditional update flips it to consumed may
+		// change the password, so a link deleted, superseded or already used since it was issued
+		// (or by a concurrent submission) is rejected without side effects.
+		const now = new Date();
+		const claimed = await db
+			.update(authTokens)
+			.set({ consumedAt: now })
 			.where(
 				and(
 					eq(authTokens.id, await hashToken(parsed.data.token)),
-					eq(authTokens.purpose, 'password_reset')
+					eq(authTokens.purpose, 'password_reset'),
+					isNull(authTokens.consumedAt),
+					gt(authTokens.expiresAt, now)
 				)
 			)
+			.returning({ userId: authTokens.userId })
 			.get();
-		if (!row || row.consumedAt || row.expiresAt.getTime() < Date.now()) {
+		if (!claimed)
 			return c.json({ error: 'Invalid or expired reset link' }, 400);
-		}
 
 		// Completing a reset clears a required reset and restores the 'pending' it caused; an admin
-		// hold (pending without the flag) and every other status stay untouched.
-		const target = await db
-			.select({
-				status: users.status,
-				passwordResetRequired: users.passwordResetRequired,
-			})
-			.from(users)
-			.where(eq(users.id, row.userId))
-			.get();
-		const nextStatus =
-			target?.passwordResetRequired && target.status === 'pending'
-				? 'active'
-				: target?.status;
-
-		const updated = await db
-			.update(users)
-			.set({
-				passwordHash: await hashPassword(parsed.data.password),
-				status: nextStatus,
-				passwordResetRequired: false,
-				// Receiving and clicking this link proves control of the address already on file --
-				// same standard as clicking a dedicated verify-email link.
-				emailVerified: true,
-			})
-			.where(eq(users.id, row.userId))
-			.returning({ id: users.id, email: users.email, status: users.status })
-			.get();
+		// hold (pending without the flag) and every other status stay untouched. The CASE reads the
+		// status at write time, so a ban landing meanwhile is not overwritten.
+		const [updatedRows] = await db.batch([
+			db
+				.update(users)
+				.set({
+					passwordHash: await hashPassword(parsed.data.password),
+					status: sql<
+						typeof users.$inferSelect.status
+					>`case when ${users.passwordResetRequired} = 1 and ${users.status} = 'pending' then 'active' else ${users.status} end`,
+					passwordResetRequired: false,
+					// Receiving and clicking this link proves control of the address already on file --
+					// same standard as clicking a dedicated verify-email link.
+					emailVerified: true,
+				})
+				.where(eq(users.id, claimed.userId))
+				.returning({
+					id: users.id,
+					email: users.email,
+					status: users.status,
+				}),
+		]);
+		const updated = updatedRows[0];
 		if (!updated)
 			return c.json({ error: 'Invalid or expired reset link' }, 400);
 
-		await db
-			.update(authTokens)
-			.set({ consumedAt: new Date() })
-			.where(eq(authTokens.id, row.id));
 		await auditInfo(db, 'Password reset completed', 'auth', {
 			userId: updated.id,
 			email: updated.email,
-			forcedByAdmin: Boolean(target?.passwordResetRequired),
 		});
 
 		if (updated.status === 'suspended' || updated.status === 'banned') {
@@ -694,8 +691,8 @@ authRoutes.post(
 		}
 
 		// Password reset means every prior session is untrusted -- sign the whole account out.
-		await db.delete(sessions).where(eq(sessions.userId, row.userId));
-		await startSession(c, db, row.userId);
+		await db.delete(sessions).where(eq(sessions.userId, claimed.userId));
+		await startSession(c, db, claimed.userId);
 		return c.json({ data: { id: updated.id, email: updated.email } });
 	}
 );

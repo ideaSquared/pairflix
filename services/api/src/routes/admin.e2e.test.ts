@@ -459,6 +459,58 @@ describe('admin routes -- user management', () => {
 		expect((await loginUser(targetEmail, 'NewStr0ngPass456')).status).toBe(200);
 	});
 
+	it('a link issued before a force-reset is rejected and changes nothing', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const targetEmail = uniqueEmail();
+		const { userId } = await createLoggedInUser(targetEmail, 'Str0ngPass123');
+		const staleToken = await captureResetToken(() =>
+			postJson(
+				'/api/auth/forgot-password',
+				{ email: targetEmail },
+				{},
+				{ ip: uniqueIp() }
+			)
+		);
+		await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+
+		const stale = await postJson(
+			'/api/auth/reset-password',
+			{ token: staleToken, password: 'NewStr0ngPass456' },
+			{},
+			{ ip: uniqueIp() }
+		);
+		expect(stale.status).toBe(400);
+		expect(stale.cookies.session).toBeUndefined();
+		expect(await userStatus(userId)).toBe('pending');
+		const flag = await env.DB.prepare(
+			'SELECT password_reset_required AS f FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ f: number }>();
+		expect(flag?.f).toBe(1);
+	});
+
+	it('force-reset on a banned account sets the flag and keeps it banned', async () => {
+		const { cookies: adminCookies } = await createLoggedInAdmin(uniqueEmail());
+		const { userId } = await createLoggedInUser(uniqueEmail());
+		await env.DB.prepare(
+			"UPDATE users SET status = 'banned' WHERE user_id = ?1"
+		)
+			.bind(userId)
+			.run();
+		const forced = await postJson(
+			`/api/admin/users/${userId}/force-password-reset`,
+			{},
+			adminCookies
+		);
+		expect(forced.status).toBe(200);
+		expect(await userStatus(userId)).toBe('banned');
+	});
+
 	it('locked-accounts reflects the real login lockout threshold', async () => {
 		const { cookies } = await createLoggedInAdmin(uniqueEmail());
 		const targetEmail = uniqueEmail();
