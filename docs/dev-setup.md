@@ -93,12 +93,13 @@ the link (links carry one-time tokens). Login refuses an unverified account, so 
 locally cannot log in until you mark them verified:
 
 ```bash
-pnpm exec wrangler d1 execute pairflix-db --local \
+pnpm --filter @pairflix/api exec wrangler d1 execute pairflix-db --local \
   --command "update users set email_verified = 1 where email = 'you@example.com'"
 ```
 
-Password reset and email change need the emailed link, so test those with `RESEND_API_KEY` and
-`EMAIL_FROM` set, or use the seeded users above.
+To just log in, the seeded users above are already verified. Password reset and email change need
+the emailed link for every account, seeded or not, so test those only with `RESEND_API_KEY` and
+`EMAIL_FROM` set.
 
 ## Environment & secrets
 
