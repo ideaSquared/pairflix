@@ -2,10 +2,10 @@ import { createDb, sessions, users } from '@pairflix/db';
 import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { hashToken } from './crypto';
 import { randomToken } from './id';
 import {
 	FAILED_ATTEMPT_LIMIT,
-	hashSessionToken,
 	LOCKOUT_MS,
 	revokeAllSessions,
 	revokeOtherSessions,
@@ -33,7 +33,7 @@ const addSession = async (userId: string): Promise<string> => {
 	const token = randomToken();
 	const now = Date.now();
 	await db.insert(sessions).values({
-		id: await hashSessionToken(token),
+		id: await hashToken(token),
 		userId,
 		expiresAt: new Date(now + 60_000),
 		createdAt: new Date(now),
@@ -64,14 +64,14 @@ describe('revokeOtherSessions', () => {
 			.select({ id: sessions.id })
 			.from(sessions)
 			.where(eq(sessions.userId, user));
-		expect(remaining.map(r => r.id)).toEqual([await hashSessionToken(keep)]);
+		expect(remaining.map(r => r.id)).toEqual([await hashToken(keep)]);
 
 		const untouched = await db
 			.select({ id: sessions.id })
 			.from(sessions)
-			.where(eq(sessions.id, await hashSessionToken(otherSession)))
+			.where(eq(sessions.id, await hashToken(otherSession)))
 			.get();
-		expect(untouched?.id).toBe(await hashSessionToken(otherSession));
+		expect(untouched?.id).toBe(await hashToken(otherSession));
 	});
 });
 
@@ -95,8 +95,8 @@ describe('revokeAllSessions', () => {
 		const untouched = await db
 			.select({ id: sessions.id })
 			.from(sessions)
-			.where(eq(sessions.id, await hashSessionToken(otherSession)))
+			.where(eq(sessions.id, await hashToken(otherSession)))
 			.get();
-		expect(untouched?.id).toBe(await hashSessionToken(otherSession));
+		expect(untouched?.id).toBe(await hashToken(otherSession));
 	});
 });

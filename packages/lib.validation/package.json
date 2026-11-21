@@ -25,11 +25,15 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@pairflix/eslint-config-base": "workspace:*",
     "@types/node": "^22.10.0",
     "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.12.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.18.0",
     "vitest": "^4.1.0"
   },
   "peerDependencies": {

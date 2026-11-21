@@ -11,9 +11,18 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-base':
         specifier: workspace:*
         version: link:packages/eslint-config-base
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -32,6 +41,9 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
 
   apps/admin:
     dependencies:
@@ -69,6 +81,9 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.3.1)(react@19.2.8)(redux@5.0.1)
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-react':
         specifier: workspace:*
         version: link:../../packages/eslint-config-react
@@ -108,6 +123,24 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      eslint-plugin-jsx-a11y:
+        specifier: ^6.10.2
+        version: 6.10.2(eslint@9.39.5)
+      eslint-plugin-react:
+        specifier: ^7.37.3
+        version: 7.37.5(eslint@9.39.5)
+      eslint-plugin-react-hooks:
+        specifier: ^5.1.0
+        version: 5.2.0(eslint@9.39.5)
+      eslint-plugin-react-refresh:
+        specifier: ^0.5.4
+        version: 0.5.4(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       jsdom:
         specifier: ^28.0.0
         version: 28.1.0
@@ -117,6 +150,9 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0)
@@ -157,6 +193,9 @@ importers:
         specifier: ^7.18.2
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-react':
         specifier: workspace:*
         version: link:../../packages/eslint-config-react
@@ -199,9 +238,24 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      eslint-plugin-jsx-a11y:
+        specifier: ^6.10.2
+        version: 6.10.2(eslint@9.39.5)
+      eslint-plugin-react:
+        specifier: ^7.37.3
+        version: 7.37.5(eslint@9.39.5)
       eslint-plugin-react-hooks:
         specifier: ^7.1.1
         version: 7.1.1(eslint@9.39.5)
+      eslint-plugin-react-refresh:
+        specifier: ^0.5.4
+        version: 0.5.4(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       jsdom:
         specifier: ^28.0.0
         version: 28.1.0
@@ -211,6 +265,9 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0)
@@ -242,6 +299,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20260804.1
         version: 5.20260816.1
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-base':
         specifier: workspace:*
         version: link:../eslint-config-base
@@ -254,15 +314,24 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vitest:
         specifier: ^4.1.0
         version: 4.1.10(@types/node@26.6.6)(@vitest/coverage-v8@4.1.10)(jsdom@28.1.0)(vite@8.2.1(@types/node@26.6.6)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0))
 
   packages/eslint-config-base:
-    dependencies:
+    devDependencies:
       '@eslint/js':
         specifier: ^9.17.0
         version: 9.39.5
@@ -275,22 +344,28 @@ importers:
       globals:
         specifier: ^15.12.0
         version: 15.15.0
-      typescript-eslint:
-        specifier: ^8.18.0
-        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
-    devDependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
 
   packages/eslint-config-react:
     dependencies:
       '@pairflix/eslint-config-base':
         specifier: workspace:*
         version: link:../eslint-config-base
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       eslint:
         specifier: ^9.0.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
       eslint-plugin-jsx-a11y:
         specifier: ^6.10.2
         version: 6.10.2(eslint@9.39.5)
@@ -303,6 +378,12 @@ importers:
       eslint-plugin-react-refresh:
         specifier: ^0.5.4
         version: 0.5.4(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
 
   packages/lib.components:
     dependencies:
@@ -328,6 +409,9 @@ importers:
       '@axe-core/react':
         specifier: ^4.13.0
         version: 4.13.0
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-react':
         specifier: workspace:*
         version: link:../eslint-config-react
@@ -385,6 +469,24 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      eslint-plugin-jsx-a11y:
+        specifier: ^6.10.2
+        version: 6.10.2(eslint@9.39.5)
+      eslint-plugin-react:
+        specifier: ^7.37.3
+        version: 7.37.5(eslint@9.39.5)
+      eslint-plugin-react-hooks:
+        specifier: ^5.1.0
+        version: 5.2.0(eslint@9.39.5)
+      eslint-plugin-react-refresh:
+        specifier: ^0.5.4
+        version: 0.5.4(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       jest-axe:
         specifier: ^11.0.0
         version: 11.0.0
@@ -403,6 +505,9 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vite:
         specifier: ^8.2.1
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0)
@@ -416,6 +521,9 @@ importers:
         specifier: ^4.6.6
         version: 4.6.7
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@pairflix/eslint-config-base':
         specifier: workspace:*
         version: link:../eslint-config-base
@@ -428,9 +536,18 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vitest:
         specifier: ^4.1.0
         version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jsdom@28.1.0)(vite@8.2.1(@types/node@22.20.1)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0))
@@ -462,6 +579,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20260804.1
         version: 5.20260816.1
+      '@eslint/js':
+        specifier: ^9.17.0
+        version: 9.39.5
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
@@ -471,12 +591,21 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.5
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@9.39.5)
+      globals:
+        specifier: ^15.12.0
+        version: 15.15.0
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.18.0
+        version: 8.67.0(eslint@9.39.5)(typescript@5.9.3)
       vitest:
         specifier: ^4.1.0
         version: 4.1.10(@types/node@26.2.0)(@vitest/coverage-v8@4.1.10)(jsdom@28.1.0)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(terser@5.51.3)(tsx@4.23.12)(yaml@2.9.0))

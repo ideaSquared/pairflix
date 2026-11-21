@@ -2,6 +2,7 @@ import { sessions, type Database } from '@pairflix/db';
 import { and, eq, ne } from 'drizzle-orm';
 import type { Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
+import { hashToken } from './crypto';
 import { randomToken } from './id';
 import type { AppEnv } from '../types';
 
@@ -15,18 +16,6 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const FAILED_ATTEMPT_LIMIT = 5;
 export const LOCKOUT_MS = 15 * 60 * 1000;
 
-/** SHA-256 hex digest of the session cookie value. `sessions.id` stores this, never the cookie
- * itself, so a D1 export or the admin sessions listing can't be replayed as a cookie. */
-export const hashSessionToken = async (token: string): Promise<string> => {
-	const digest = await crypto.subtle.digest(
-		'SHA-256',
-		new TextEncoder().encode(token)
-	);
-	return [...new Uint8Array(digest)]
-		.map(byte => byte.toString(16).padStart(2, '0'))
-		.join('');
-};
-
 export const startSession = async (
 	c: Context<AppEnv>,
 	db: Database,
@@ -35,7 +24,7 @@ export const startSession = async (
 	const token = randomToken();
 	const now = Date.now();
 	await db.insert(sessions).values({
-		id: await hashSessionToken(token),
+		id: await hashToken(token),
 		userId,
 		expiresAt: new Date(now + SESSION_TTL_MS),
 		// 'cf-connecting-ip' is Cloudflare's own header carrying the real client IP.
@@ -57,9 +46,7 @@ export const endSession = async (
 	db: Database,
 	token: string
 ): Promise<void> => {
-	await db
-		.delete(sessions)
-		.where(eq(sessions.id, await hashSessionToken(token)));
+	await db.delete(sessions).where(eq(sessions.id, await hashToken(token)));
 	deleteCookie(c, 'session', { path: '/' });
 };
 
@@ -70,7 +57,7 @@ export const revokeOtherSessions = async (
 	userId: string,
 	keepToken: string
 ): Promise<number> => {
-	const keepSessionId = await hashSessionToken(keepToken);
+	const keepSessionId = await hashToken(keepToken);
 	const result = await db
 		.delete(sessions)
 		.where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)))

@@ -2,7 +2,7 @@ import { createDb, sessions, users } from '@pairflix/db';
 import { eq } from 'drizzle-orm';
 import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
-import { hashSessionToken } from '../lib/session';
+import { hashToken } from '../lib/crypto';
 import { isOpsPath } from '../ops/paths';
 import type { AppEnv } from '../types';
 
@@ -22,7 +22,7 @@ export const sessionMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 			})
 			.from(sessions)
 			.innerJoin(users, eq(sessions.userId, users.id))
-			.where(eq(sessions.id, await hashSessionToken(token)))
+			.where(eq(sessions.id, await hashToken(token)))
 			.get();
 		const isBlockedStatus =
 			row?.status === 'suspended' || row?.status === 'banned';
