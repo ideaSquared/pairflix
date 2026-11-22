@@ -4,7 +4,9 @@ import { log } from '../lib/log';
 
 export const healthRoutes = new Hono<AppEnv>();
 
-healthRoutes.get('/', async c => {
+healthRoutes.get('/', c => c.json({ status: 'ok' }));
+
+healthRoutes.get('/ready', async c => {
 	try {
 		await c.env.DB.prepare('SELECT 1').first();
 		return c.json({ status: 'ok' });
