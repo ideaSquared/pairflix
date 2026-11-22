@@ -26,7 +26,7 @@ test('redirects an unauthenticated visit to a protected route to login', async (
   await seedLoggedOut().install(page);
 
   await page.goto('/tonight');
-  await expect(page).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?next=%2Ftonight$/);
   await expect(
     page.getByRole('heading', { name: 'Login to PairFlix' })
   ).toBeVisible();

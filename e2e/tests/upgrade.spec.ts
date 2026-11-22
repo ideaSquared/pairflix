@@ -17,7 +17,7 @@ test('surfaces the quota error when a free-tier pick is refused', async ({
   await page.goto('/tonight');
   await page.getByRole('button', { name: 'Pick for us' }).click();
 
-  await expect(page.getByText('pick_quota_exceeded')).toBeVisible();
+  await expect(page.getByText(/used today's free picks/)).toBeVisible();
 });
 
 test('shows the upgrade banner at zero picks and routes to checkout', async ({
