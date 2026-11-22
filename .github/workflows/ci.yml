@@ -26,6 +26,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Dependabot bumps the shipper SHA in a `uses:` line but not the matching `shipper-ref:` input, so
+      # a bump would run the new workflow with the old shipper scripts. Every uses: and every shipper-ref must be a
+      # full SHA (no tags, no missing input) and all must match.
+      - name: shipper pins match
+        run: |
+          refs=$(awk '
+            function sha(v) { return length(v) == 40 && v ~ /^[0-9a-f]+$/ }
+            function val(s) { sub(/^[^:]*:[[:space:]]*/, "", s); gsub(/["\047]/, "", s); sub(/[[:space:]].*$/, "", s); return s }
+            function flush() { if (pend) { print "::error file=" pf "::a shipper call has no shipper-ref input" > "/dev/stderr"; bad = 1 } pend = 0 }
+            FNR == 1 { flush() }
+            /^[[:space:]]*#/ { next }
+            /^  [A-Za-z0-9_-]+:[[:space:]]*$/ { flush() }
+            /uses:[[:space:]]*["\047]?ideaSquared\/shipper\/\.github\/workflows\// {
+              flush()
+              r = $0; sub(/^.*@/, "", r); r = val("x:" r)
+              if (!sha(r)) { print "::error file=" FILENAME "::shipper uses: must pin a full 40-hex SHA, found " r > "/dev/stderr"; bad = 1 }
+              print r; pend = 1; pf = FILENAME; next
+            }
+            /^[[:space:]]+shipper-ref:/ {
+              r = val($0)
+              if (!sha(r)) { print "::error file=" FILENAME "::shipper-ref must be a full 40-hex SHA, found " r > "/dev/stderr"; bad = 1 }
+              print r; pend = 0
+            }
+            END { flush(); exit bad }
+          ' .github/workflows/*.y*ml) || exit 1
+          if [ "$(printf '%s\n' "$refs" | sort -u | grep -c .)" -gt 1 ]; then
+            echo "::error::Every shipper pin in .github/workflows (each uses: line and each shipper-ref input) must be the same commit SHA. Found: $(echo $refs)"
+            exit 1
+          fi
+
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       - name: Use Node.js
