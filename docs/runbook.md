@@ -29,8 +29,8 @@ There are two ways to fix it, and the fix is infrastructure, not code:
    same-site. Requires `services/api/wrangler.jsonc`'s per-environment `routes`/custom domain
    configuration (not present yet -- currently no `routes` block, see that file's comments) and a
    real zone.
-2. **Pages proxy.** Configure `apps/client`/`apps/admin` so `/api/*` requests are proxied through the
-   Pages domain itself to the Worker (a Pages Function, or a platform-level route), keeping every
+2. **Proxy in front of the SPA.** Configure `apps/client`/`apps/admin` so `/api/*` requests are proxied through the
+   SPA's domain itself to the Worker (a Worker route, or a platform-level rule), keeping every
    request same-origin from the browser's point of view -- the same trick the local Vite dev server
    proxy already does for `localhost`.
 
@@ -41,7 +41,7 @@ this before anything else.
 
 ## Prerequisites (must exist before `deploy.yml` can do anything real)
 
-- A Cloudflare account, with Workers, Pages, and D1 enabled.
+- A Cloudflare account, with Workers and D1 enabled.
 - Two D1 databases: `wrangler d1 create pairflix-db-staging` and
   `wrangler d1 create pairflix-db-production`. Replace the placeholder `database_id`s in
   `services/api/wrangler.jsonc`'s `env.staging` / `env.production` blocks with the real ids each
@@ -50,10 +50,7 @@ this before anything else.
   domains (comma-separated, matches `services/api/src/middleware/auth.ts`'s `cors()`).
 - The domain/proxy decision above (cross-site cookies), configured before or alongside the first
   deploy.
-- Two Cloudflare Pages projects, `pairflix-client` and `pairflix-admin` (matching the `--project-name`
-  values `deploy.yml` uses; `wrangler pages deploy` can create a project on first push, but creating
-  it explicitly first is less surprising).
-- A Cloudflare API token (Workers Scripts:Edit, D1:Edit, Pages:Edit) and the account id, stored as the
+- A Cloudflare API token (Workers Scripts:Edit, D1:Edit) and the account id, stored as the
   `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets on the `staging` and `production` GitHub
   Environments (Settings -> Environments in the repo) so `deploy.yml`'s `environment:` input resolves
   each target to its own credentials.
@@ -88,7 +85,7 @@ this copy of it).
 `TEST_MIGRATIONS` also appears in `services/api/src/test/env.d.ts` -- that one is test-only, supplied
 by `vitest.config.mts`'s Miniflare bindings, and is never set for a real deploy.
 
-### Frontend (`apps/client`, `apps/admin`) -- set via each app's `.env` / Pages build environment
+### Frontend (`apps/client`, `apps/admin`) -- set via each app's `.env` / build environment
 
 | Name                        | App(s)        | Notes                                                                                                                                        |
 | --------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -98,23 +95,23 @@ by `vitest.config.mts`'s Miniflare bindings, and is never set for a real deploy.
 
 ### GitHub Actions secrets (for `deploy.yml`)
 
-| Name                    | Scope                                       | Notes                                                                   |
-| ----------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | GitHub Environments `staging`, `production` | Scoped Cloudflare API token (Workers Scripts:Edit, D1:Edit, Pages:Edit) |
-| `CLOUDFLARE_ACCOUNT_ID` | GitHub Environments `staging`, `production` | The Cloudflare account id the token belongs to                          |
+| Name                    | Scope                                       | Notes                                                       |
+| ----------------------- | ------------------------------------------- | ----------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | GitHub Environments `staging`, `production` | Scoped Cloudflare API token (Workers Scripts:Edit, D1:Edit) |
+| `CLOUDFLARE_ACCOUNT_ID` | GitHub Environments `staging`, `production` | The Cloudflare account id the token belongs to              |
 
 ## First production deploy, step by step
 
-1. Provision the Cloudflare account and the prerequisites above (D1 databases, domains/proxy, Pages
-   projects, GitHub secrets).
+1. Provision the Cloudflare account and the prerequisites above (D1 databases, domains/proxy,
+   GitHub secrets).
 2. Replace every placeholder in `services/api/wrangler.jsonc`'s `env.staging` / `env.production`
    blocks (`database_id`, `ALLOWED_ORIGINS`) with real values, and set every Worker secret in the
    table above for both environments.
 3. Run `wrangler d1 migrations apply pairflix-db-staging --env staging --remote` (and the production
    equivalent) once, by hand, to confirm the schema applies cleanly before automating it.
 4. Trigger `.github/workflows/deploy.yml` via `workflow_dispatch` with `environment: staging`. It
-   runs the same gates as `ci.yml`, applies D1 migrations remotely, then deploys the Worker and both
-   Pages apps.
+   calls shipper, which checks `ci.yml` passed on the commit, applies D1 migrations remotely, then
+   deploys the API Worker and both SPA Workers and health-checks each.
 5. Smoke-test staging: register a household, run a pick, confirm the session cookie persists across a
    page reload (this is exactly where the cross-site cookie problem above would show up first).
 6. Repeat with `environment: production` once staging looks right.
@@ -127,10 +124,10 @@ There is currently no automated smoke test step in `deploy.yml` -- step 5 is man
   `wrangler versions list --env <env>` to find the previous version id, then
   `wrangler rollback --env <env> --version-id <id>` (see `wrangler rollback --help`). This does not
   touch D1 -- see the migrations note below.
-- **Pages (`apps/client`, `apps/admin`).** Cloudflare Pages keeps every deployment; roll back from the
-  dashboard (Pages project -> Deployments -> "..." on a prior deployment -> Rollback to this
-  deployment) or `wrangler pages deployment list` / `wrangler pages deployment rollback` for the
-  equivalent from the CLI.
+- **SPAs (`apps/client`, `apps/admin`).** These are Workers with static assets, so they roll back the
+  same way as the API.
+- **Through shipper.** `ship rollback pairflix <env>` redeploys an earlier commit that was live there,
+  through the normal pipeline (`.github/workflows/ship-rollback.yml`).
 - **D1 migrations are forward-only.** There is no down-migration mechanism
   (`packages/db/migrations/*.sql`, applied in order, never modified once shipped -- see `CLAUDE.md`).
   If a migration ships a bad schema change, fix it with a new forward migration, not a rollback of the

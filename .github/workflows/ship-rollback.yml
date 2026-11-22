@@ -1,0 +1,37 @@
+# `ship rollback pairflix [staging|production]` starts this: shipper redeploys an earlier commit
+# that was live in that environment, through the normal pipeline (build, migrations, deploy, health
+# check, Discord). D1 migrations are forward-only and are not undone.
+name: Ship rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to roll back
+        required: true
+        type: string
+      sha:
+        description: Commit to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Never cancel a deploy; shipper serialises the real work per environment under its own group.
+concurrency:
+  group: rollback-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    permissions:
+      contents: read
+      checks: read
+      deployments: write
+    uses: ideaSquared/shipper/.github/workflows/deploy.yml@v1
+    with:
+      environment: ${{ inputs.environment }}
+      sha: ${{ inputs.sha }}
+      rollback: true
+    secrets: inherit

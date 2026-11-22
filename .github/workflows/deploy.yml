@@ -1,108 +1,48 @@
-# Deploys services/api (Worker), apps/client and apps/admin (Pages) to a named Cloudflare
-# environment. workflow_dispatch ONLY -- deliberately not wired to push/merge, because none of the
-# following exist yet (see docs/runbook.md for the full first-deploy procedure):
+# `ship deploy pairflix <staging|production>` (or Actions -> Deploy -> Run workflow) starts this. It
+# deploys master's head through ideaSquared/shipper: the gate reads the checks that ran on the
+# commit's push, production requires the commit to be live on staging first, then shipper builds,
+# applies D1 migrations, deploys each component in ship.yaml and health-checks it.
 #
-#   - A Cloudflare account for this project, with Workers, Pages and D1 enabled.
+# workflow_dispatch ONLY -- deliberately not wired to push/merge, because none of the following
+# exist yet (see docs/runbook.md for the full first-deploy procedure):
+#
+#   - A Cloudflare account for this project, with Workers and D1 enabled.
 #   - Real D1 databases (`wrangler d1 create pairflix-db-staging` / `pairflix-db-production`), with
 #     their ids substituted for the placeholder `database_id`s in services/api/wrangler.jsonc's
 #     `env.staging` / `env.production` blocks.
 #   - Real `ALLOWED_ORIGINS` values in those same blocks, once apps/client has real domain(s).
 #   - The `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets, set on the matching GitHub
-#     Environment ("staging" / "production") so they resolve per the `environment:` input below.
-#   - Every Worker secret `wrangler secret put` needs per environment (SESSION_SECRET,
-#     ADMIN_BOOTSTRAP_SECRET, TMDB_API_KEY, ...) -- see docs/runbook.md's secrets table.
+#     Environment ("staging" / "production").
+#   - Every Worker secret `wrangler secret put` needs per environment -- see docs/runbook.md.
 #
-# Running this workflow before that is done will fail (auth or "database not found") -- expected,
-# not a bug in the workflow itself.
-#
-# IMPORTANT -- even once all of the above is done, a first deploy will look broken unless the
-# apps/client and services/api domains share a registrable domain (or Pages proxies /api to the
-# Worker): the session/CSRF cookies are SameSite=Lax, so a *.pages.dev client calling a *.workers.dev
-# API is cross-site and the browser never sends the cookie -- every authenticated request 401s and
-# every write 403s. This is infrastructure, not a code bug; see docs/runbook.md's "Cross-site
-# cookies" section before assuming something else is wrong.
-
+# Running this workflow before that is done will fail (auth or "database not found") -- expected.
+# See docs/runbook.md's "Cross-site cookies" section before assuming a post-deploy 401/403 is a bug.
 name: Deploy
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment'
+        description: Environment to deploy master to
         type: choice
         options: [staging, production]
         default: staging
-        required: true
-
-concurrency:
-  group: deploy-${{ github.event.inputs.environment }}
-  cancel-in-progress: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Deploy (${{ github.event.inputs.environment }})
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-
-      - name: Use Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      # Same gates as ci.yml's "CI (Lint, Test, Build)" job -- a deploy must clear everything a
-      # normal PR would.
-      - name: Format check
-        run: pnpm format:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Type-check
-        run: pnpm type-check
-
-      - name: Test
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
-
-      - name: Apply D1 migrations (remote)
-        run: |
-          pnpm --filter @pairflix/api exec wrangler d1 migrations apply \
-            "pairflix-db-${{ github.event.inputs.environment }}" \
-            --env "${{ github.event.inputs.environment }}" \
-            --remote
-
-      - name: Deploy Worker (services/api)
-        run: pnpm --filter @pairflix/api exec wrangler deploy --env "${{ github.event.inputs.environment }}"
-
-      # Cloudflare Pages has no config-file "environments" the way Workers does -- production vs.
-      # preview is decided by which branch a deployment is attached to. `main` is assumed to be each
-      # project's configured production branch; anything else deploys as a preview. If that's not
-      # how the Pages projects end up configured, adjust the branch mapping below to match.
-      - name: Deploy client (apps/client, Pages)
-        run: |
-          pnpm --filter @pairflix/client exec wrangler pages deploy dist \
-            --project-name=pairflix-client \
-            --branch="${{ github.event.inputs.environment == 'production' && 'main' || 'staging' }}"
-
-      - name: Deploy admin (apps/admin, Pages)
-        run: |
-          pnpm --filter @pairflix/admin exec wrangler pages deploy dist \
-            --project-name=pairflix-admin \
-            --branch="${{ github.event.inputs.environment == 'production' && 'main' || 'staging' }}"
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      checks: read
+      deployments: write
+    uses: ideaSquared/shipper/.github/workflows/deploy.yml@v1
+    with:
+      environment: ${{ inputs.environment }}
+    secrets: inherit
