@@ -33,14 +33,18 @@ export const sessionMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 	await next();
 });
 
+const isHealthPath = (path: string): boolean =>
+	path === '/health' || path.startsWith('/health/');
+
 /**
  * `sessionMiddleware` for every path except the ops endpoint, which authenticates with a GitHub
  * bearer token and never reads cookies: a session lookup there could only fail it (a D1 error
- * would block `eng ops`), never help it.
+ * would block `eng ops`), never help it. The health routes are skipped for the same reason: a
+ * liveness probe must not depend on D1, and `/health/ready` checks D1 itself.
  */
 export const sessionMiddlewareExceptOps = createMiddleware<AppEnv>(
 	async (c, next) => {
-		if (isOpsPath(c.req.path)) {
+		if (isOpsPath(c.req.path) || isHealthPath(c.req.path)) {
 			c.set('userId', null);
 			return next();
 		}
