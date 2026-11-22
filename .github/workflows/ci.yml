@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
@@ -34,6 +36,18 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Shipped migrations are not edited
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=$(git diff --diff-filter=MDR --name-only "origin/${BASE_REF}...HEAD" -- 'packages/db/migrations/*.sql')
+          if [ -n "$changed" ]; then
+            echo "Shipped migrations must not be modified, renamed or removed:"
+            echo "$changed"
+            exit 1
+          fi
 
       - name: Format check
         run: pnpm format:check
