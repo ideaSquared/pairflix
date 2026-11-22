@@ -1,6 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import type { HistoryEntry } from '../../../services/api';
 import { render, screen } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import HistoryPage from '../HistoryPage';
 
 // Drive the page by mocking its data hooks directly, mirroring how the auth
@@ -224,5 +225,26 @@ describe('HistoryPage', () => {
     render(<HistoryPage />);
 
     expect(screen.getByText('Could not save your rating')).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe) with history entries listed', async () => {
+    mockUseHistory.mockReturnValue({
+      data: historyResponse([
+        makeEntry(),
+        makeEntry({ id: 'w-2', tmdbId: 43, title: 'Second', enjoyed: true }),
+      ]),
+      isLoading: false,
+      error: null,
+    });
+
+    const { baseElement } = render(<HistoryPage />);
+
+    await expectNoAxeViolations(baseElement);
+  });
+
+  it('has no accessibility violations (axe) in the empty state', async () => {
+    const { baseElement } = render(<HistoryPage />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

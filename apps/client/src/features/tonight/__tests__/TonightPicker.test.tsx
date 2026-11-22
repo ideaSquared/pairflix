@@ -6,6 +6,7 @@ import {
   type RecommendationResult,
 } from '../../../services/api/households';
 import { fireEvent, render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import TonightPicker from '../TonightPicker';
 import {
   useActiveHousehold,
@@ -212,5 +213,23 @@ describe('TonightPicker', () => {
     expect(
       await screen.findByText('No titles match your filters')
     ).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe) on the picker and on a pick result', async () => {
+    (households.pick as Mock).mockResolvedValue(buildResult(555, 'Inception'));
+    const user = userEvent.setup();
+    const { baseElement } = render(<TonightPicker />);
+    await expectNoAxeViolations(baseElement);
+
+    await user.click(screen.getByRole('button', { name: 'Pick for us' }));
+    expect(await screen.findByText('Inception')).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
+  });
+
+  it('has no accessibility violations (axe) in the no-household state', async () => {
+    (useActiveHousehold as Mock).mockReturnValue(householdState(null));
+    const { baseElement } = render(<TonightPicker />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

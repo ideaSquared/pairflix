@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { emailService } from '../../../services/api';
 import { act, render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import EmailVerificationPage from '../EmailVerificationPage';
 
 const mockNavigate = vi.fn();
@@ -172,5 +173,21 @@ describe('EmailVerificationPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Send New Verification Email' })
     ).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe) on the success and the failed-with-resend states', async () => {
+    mockSearchParams = new URLSearchParams('token=valid-token');
+    const verified = render(<EmailVerificationPage />);
+    expect(await screen.findByText('Email Verified!')).toBeInTheDocument();
+    await expectNoAxeViolations(verified.baseElement);
+    verified.unmount();
+
+    mockSearchParams = new URLSearchParams('token=expired-token');
+    (emailService.verifyEmail as Mock).mockRejectedValue(
+      new Error('Verification token has expired')
+    );
+    const failed = render(<EmailVerificationPage />);
+    expect(await screen.findByText('Verification Failed')).toBeInTheDocument();
+    await expectNoAxeViolations(failed.baseElement);
   });
 });

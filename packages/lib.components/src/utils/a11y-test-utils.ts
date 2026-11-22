@@ -1,11 +1,46 @@
 import { render, type RenderResult } from '@testing-library/react';
-import { axe, toHaveNoViolations } from 'jest-axe';
+import { configureAxe, toHaveNoViolations } from 'jest-axe';
 import clsx from 'clsx';
 import React from 'react';
 import { lightThemeClass, themeRoot } from '../styles/theme.css';
+import { axeRulesDisabledFor } from './axe-exclusions';
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
+
+/**
+ * The axe rule tags that make up WCAG 2.2 AA. Restricting runs to these keeps the checks to
+ * conformance failures rather than axe's best-practice advice.
+ */
+const WCAG_22_AA_TAGS = [
+  'wcag2a',
+  'wcag2aa',
+  'wcag21a',
+  'wcag21aa',
+  'wcag22aa',
+];
+
+/**
+ * axe configured for WCAG 2.2 AA -- the instance every accessibility check in this package uses.
+ */
+const axe = configureAxe({
+  runOnly: { type: 'tag', values: WCAG_22_AA_TAGS },
+});
+
+/**
+ * Fails the test on any WCAG 2.2 AA violation axe finds in `element`. Pass the render's
+ * `baseElement` so content portalled into <body> (modals, menus, tooltips) is checked too.
+ * `component` names the entry in axe-exclusions.ts that applies, if any.
+ */
+export const expectNoAxeViolations = async (
+  element: Element,
+  component?: string
+): Promise<void> => {
+  const results = await axe(element, {
+    rules: axeRulesDisabledFor(component),
+  });
+  expect(results).toHaveNoViolations();
+};
 
 /**
  * Accessibility testing utility for component library

@@ -109,68 +109,70 @@ const HistoryPage: React.FC = () => {
       ) : (
         <ul className={styles.historyList}>
           {entries.map(entry => (
-            <Card key={entry.id} variant="primary">
-              <CardContent>
-                <li className={styles.historyRow}>
-                  {entry.posterPath ? (
-                    <Poster
-                      src={`${POSTER_BASE}${entry.posterPath}`}
-                      alt={entry.title ?? 'Poster'}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <Poster as="div" aria-hidden="true" />
-                  )}
-                  <div className={styles.meta}>
-                    <Typography variant="h3">
-                      {entry.title ?? 'Untitled'}
-                      {formatYear(entry)}
-                    </Typography>
-                    <Typography variant="body2">
-                      Watched {formatWatchedAt(entry.watchedAt)}
-                    </Typography>
-                    <ProviderBadges
-                      providers={(entry.providers.flatrate ?? []).map(p => ({
-                        ...p,
-                        logo_path: p.logo_path ?? null,
-                      }))}
-                    />
+            <li key={entry.id}>
+              <Card variant="primary">
+                <CardContent>
+                  <div className={styles.historyRow}>
+                    {entry.posterPath ? (
+                      <Poster
+                        src={`${POSTER_BASE}${entry.posterPath}`}
+                        alt={entry.title ?? 'Poster'}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Poster as="div" aria-hidden="true" />
+                    )}
+                    <div className={styles.meta}>
+                      <Typography variant="h3">
+                        {entry.title ?? 'Untitled'}
+                        {formatYear(entry)}
+                      </Typography>
+                      <Typography variant="body2">
+                        Watched {formatWatchedAt(entry.watchedAt)}
+                      </Typography>
+                      <ProviderBadges
+                        providers={(entry.providers.flatrate ?? []).map(p => ({
+                          ...p,
+                          logo_path: p.logo_path ?? null,
+                        }))}
+                      />
+                    </div>
+                    <div className={styles.actions}>
+                      <Button
+                        variant={entry.enjoyed === true ? 'success' : 'outline'}
+                        size="small"
+                        onClick={() =>
+                          setEnjoyed.mutate({
+                            watchedId: entry.id,
+                            enjoyed: true,
+                          })
+                        }
+                        disabled={setEnjoyed.isPending}
+                        aria-label="We enjoyed it"
+                        leftIcon={<HiHandThumbUp />}
+                      >
+                        Yes
+                      </Button>
+                      <Button
+                        variant={entry.enjoyed === false ? 'danger' : 'outline'}
+                        size="small"
+                        onClick={() =>
+                          setEnjoyed.mutate({
+                            watchedId: entry.id,
+                            enjoyed: false,
+                          })
+                        }
+                        disabled={setEnjoyed.isPending}
+                        aria-label="We didn't enjoy it"
+                        leftIcon={<HiHandThumbDown />}
+                      >
+                        No
+                      </Button>
+                    </div>
                   </div>
-                  <div className={styles.actions}>
-                    <Button
-                      variant={entry.enjoyed === true ? 'success' : 'outline'}
-                      size="small"
-                      onClick={() =>
-                        setEnjoyed.mutate({
-                          watchedId: entry.id,
-                          enjoyed: true,
-                        })
-                      }
-                      disabled={setEnjoyed.isPending}
-                      aria-label="We enjoyed it"
-                      leftIcon={<HiHandThumbUp />}
-                    >
-                      Yes
-                    </Button>
-                    <Button
-                      variant={entry.enjoyed === false ? 'danger' : 'outline'}
-                      size="small"
-                      onClick={() =>
-                        setEnjoyed.mutate({
-                          watchedId: entry.id,
-                          enjoyed: false,
-                        })
-                      }
-                      disabled={setEnjoyed.isPending}
-                      aria-label="We didn't enjoy it"
-                      leftIcon={<HiHandThumbDown />}
-                    >
-                      No
-                    </Button>
-                  </div>
-                </li>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </li>
           ))}
         </ul>
       )}

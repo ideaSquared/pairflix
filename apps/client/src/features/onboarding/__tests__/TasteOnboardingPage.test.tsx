@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { tasteOnboarding } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import TasteOnboardingPage from '../TasteOnboardingPage';
 
 // Mock the API module
@@ -84,5 +85,25 @@ describe('TasteOnboardingPage', () => {
       });
     });
     expect(mockNavigate).toHaveBeenCalledWith('/tonight');
+  });
+
+  it('has no accessibility violations (axe) on any onboarding step', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = render(<TasteOnboardingPage />);
+
+    // Step 1: genres.
+    await expectNoAxeViolations(baseElement);
+
+    // Step 2: swipe deck.
+    await user.click(screen.getByRole('button', { name: 'Comedy' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Test Movie One')).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
+
+    // Step 3: streaming providers.
+    await user.click(screen.getByRole('button', { name: 'Love it' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.getByLabelText('Netflix')).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
   });
 });

@@ -216,6 +216,7 @@ const TonightPicker: React.FC = () => {
             <input
               className={styles.slider}
               type="range"
+              aria-label="Time available (minutes)"
               min={30}
               max={180}
               step={5}

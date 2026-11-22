@@ -1,5 +1,6 @@
 import type { Entitlements } from '../../../services/api';
 import { render, screen } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import UpgradeBanner from '../UpgradeBanner';
 
 const freeExhausted: Entitlements = {
@@ -71,5 +72,13 @@ describe('UpgradeBanner', () => {
     expect(
       screen.queryByRole('button', { name: 'Upgrade' })
     ).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(
+      <UpgradeBanner entitlements={freeExhausted} householdId="household-1" />
+    );
+
+    await expectNoAxeViolations(baseElement);
   });
 });
