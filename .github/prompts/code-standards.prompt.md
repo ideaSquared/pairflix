@@ -78,7 +78,7 @@ Follow this monorepo layout:
 
   - React: ^18.0.0 / ^19.0.0
   - TypeScript: ^5.0.0
-  - Node.js: 22.x (see `.nvmrc`)
+  - Node.js: 24.x (see `.nvmrc`)
   - Hono: ^4.0.0 (Cloudflare Workers)
   - Drizzle ORM on Cloudflare D1
   - Vitest (via `@cloudflare/vitest-pool-workers` in `services/api`; jsdom + React Testing Library
