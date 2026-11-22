@@ -26,10 +26,10 @@ components:
   client:
     type: cloudflare-worker
     path: apps/client
-    build: pnpm --filter @pairflix/client build
+    build: pnpm exec turbo run build --filter=@pairflix/client...
     health: /
   admin:
     type: cloudflare-worker
     path: apps/admin
-    build: pnpm --filter @pairflix/admin build
+    build: pnpm exec turbo run build --filter=@pairflix/admin...
     health: /
