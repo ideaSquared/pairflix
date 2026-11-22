@@ -2,5 +2,17 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "pairflix-admin",
 	"compatibility_date": "2026-08-01",
-	"pages_build_output_dir": "dist"
+	"assets": {
+		"directory": "dist",
+		"not_found_handling": "single-page-application"
+	},
+	// Staging, deployed by shipper (`wranglerEnv` in ship.yaml); production keeps the top-level name.
+	"env": {
+		"staging": {
+			"name": "pairflix-admin-staging"
+		},
+		"production": {
+			"name": "pairflix-admin"
+		}
+	}
 }

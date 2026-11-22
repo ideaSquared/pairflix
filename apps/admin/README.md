@@ -21,7 +21,7 @@ Only touch this app if a task explicitly names admin scope (see the repo root `C
 
 ### Prerequisites
 
-- Node.js 22.x (see the repo root `.nvmrc`) and pnpm 10
+- Node.js 24.x (see the repo root `.nvmrc`) and pnpm 10
 - `services/api` running (`pnpm --filter @pairflix/api dev`) -- the admin app proxies `/api/*` to it
 - An admin account (see `docs/dev-setup.md`'s seed data, or `POST /api/auth/bootstrap-admin`)
 
@@ -68,17 +68,17 @@ store and nothing is written to `localStorage` for auth. Admin accounts addition
 `docs/architecture.md`'s "Auth & CSRF" section.
 
 Because the cookie is `SameSite=Lax`, the admin app and `services/api` need to share a registrable
-domain (or Pages needs to proxy `/api` to the Worker) in any real deployment -- see
+domain (or the SPA Worker needs to proxy `/api` to the Worker) in any real deployment -- see
 `docs/runbook.md`'s "Cross-site cookies" section.
 
 ## Deployment
 
 ```bash
-pnpm --filter @pairflix/admin deploy   # build, then wrangler pages deploy
+pnpm --filter @pairflix/admin deploy   # build, then wrangler deploy
 ```
 
-Deployed to Cloudflare Pages -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
-security headers Pages applies to every response. See the root
+Deployed as a Cloudflare Worker with static assets -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
+security headers Workers static assets applies to every response. See the root
 [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) and `docs/runbook.md` for the
 full first-deploy procedure, including running this app on its own domain/subdomain with access
 restricted to admins.

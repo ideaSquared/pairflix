@@ -1,4 +1,4 @@
-# Security headers for the admin SPA, applied by Cloudflare Pages to every response.
+# Security headers for the admin SPA, served by Workers static assets to every response.
 # CSP allows only what this app actually loads: same-origin scripts/styles/API calls. Unlike
 # apps/client, admin never renders TMDb poster images, so img-src stays same-origin. style-src needs
 # 'unsafe-inline' because several components set inline `style={{...}}` (React's normal way of
