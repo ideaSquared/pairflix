@@ -69,3 +69,10 @@ jobs:
         # worker-configuration.d.ts (`pnpm --filter @pairflix/api cf-typegen`) -- see
         # docs/runbook.md's environment-variable drift note.
         run: pnpm --filter @pairflix/api exec wrangler types --check
+
+      - name: Dry-run deploy of every Worker
+        run: |
+          pnpm --filter @pairflix/api exec wrangler deploy --dry-run --env staging --outdir "$RUNNER_TEMP/api-staging"
+          pnpm --filter @pairflix/api exec wrangler deploy --dry-run --env production --outdir "$RUNNER_TEMP/api-production"
+          pnpm --filter @pairflix/client exec wrangler deploy --dry-run --env staging
+          pnpm --filter @pairflix/admin exec wrangler deploy --dry-run --env staging
