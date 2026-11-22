@@ -41,6 +41,9 @@ export default defineConfig({
     url: baseURL,
     timeout: 120_000,
     reuseExistingServer: !process.env.CI,
+    // The client only registers the mock checkout route when this is the literal string "true";
+    // a browser build with it unset defaults off (see apps/client/src/features/billing/flags.ts).
+    env: { VITE_BILLING_MOCK_ENABLED: 'true' },
     stdout: 'pipe',
     stderr: 'pipe',
   },
