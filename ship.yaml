@@ -1,0 +1,35 @@
+# How this repo deploys. Read by ideaSquared/shipper's reusable workflow.
+product: pairflix
+discord: pairflix
+# CI jobs that must pass on the commit before it deploys (same names as the required status checks).
+checks: ['CI (Lint, Test, Build)']
+migrations: [packages/db/migrations]
+dispatch:
+  workflow: deploy.yml
+  environmentInput: environment
+environments:
+  staging:
+    wranglerEnv: staging
+  production:
+    wranglerEnv: production
+    requires: [staging]
+# Deployed in this order; the first failure stops the rest, so the API (and its D1 migrations)
+# ships before the SPAs that call it. Health checks are paths on the URL wrangler prints.
+components:
+  api:
+    type: cloudflare-worker
+    path: services/api
+    # The database's binding name; shipper passes --env, so each environment migrates its own database.
+    migrations: { d1: DB }
+    # /health/ready queries D1, so a deploy that can't reach the database rolls back.
+    health: /health/ready
+  client:
+    type: cloudflare-worker
+    path: apps/client
+    build: pnpm exec turbo run build --filter=@pairflix/client...
+    health: /
+  admin:
+    type: cloudflare-worker
+    path: apps/admin
+    build: pnpm exec turbo run build --filter=@pairflix/admin...
+    health: /

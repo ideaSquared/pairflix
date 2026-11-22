@@ -1,4 +1,4 @@
-# Security headers for the client SPA, applied by Cloudflare Pages to every response.
+# Security headers for the client SPA, served by Workers static assets to every response.
 # CSP allows only what this app actually loads: same-origin scripts/styles/API calls, plus
 # https://image.tmdb.org for poster images (HistoryPage, TasteOnboardingPage,
 # RecommendationResultCard). style-src needs 'unsafe-inline' because several pages set inline

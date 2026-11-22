@@ -26,7 +26,7 @@ No Docker, no nginx, no separate Node API server -- see `docs/architecture.md`'s
 
 ### Prerequisites
 
-- Node.js 22.x (see `.nvmrc`) and pnpm 10 (`corepack enable && corepack prepare pnpm@latest --activate`)
+- Node.js 24.x (see `.nvmrc`) and pnpm 10 (`corepack enable && corepack prepare pnpm@latest --activate`)
 - A TMDb API key (and, for the premium LLM re-rank, an Anthropic API key)
 - A Cloudflare account only for `--remote` / deploy -- local dev needs none (Miniflare emulates D1)
 
@@ -156,4 +156,4 @@ See `CLAUDE.md` for the full set of conventions this repo follows.
 
 ## License
 
-No license file is currently published for this repository.
+Proprietary. Copyright (c) 2026 ideaSquared. All rights reserved. See [LICENSE](LICENSE).

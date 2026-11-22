@@ -32,7 +32,7 @@ onboarding, the Tonight picker, pick history, household management, and billing.
 
 ### Prerequisites
 
-- Node.js 22.x (see the repo root `.nvmrc`) and pnpm 10
+- Node.js 24.x (see the repo root `.nvmrc`) and pnpm 10
 - `services/api` running (`pnpm --filter @pairflix/api dev`) -- the client proxies `/api/*` to it
 
 ### Installation
@@ -70,7 +70,7 @@ apps/client/
 │   └── main.tsx
 ├── package.json
 ├── vite.config.ts
-└── wrangler.jsonc        # Cloudflare Pages config
+└── wrangler.jsonc        # Workers static-assets config
 ```
 
 ## Authentication
@@ -81,7 +81,7 @@ token (`GET /api/auth/csrf-token`, then `x-csrf-token` header) alongside the coo
 `docs/architecture.md`'s "Auth & CSRF" section.
 
 Because the cookie is `SameSite=Lax`, the client and `services/api` need to share a registrable
-domain (or Pages needs to proxy `/api` to the Worker) in any real deployment -- see
+domain (or the SPA Worker needs to proxy `/api` to the Worker) in any real deployment -- see
 `docs/runbook.md`'s "Cross-site cookies" section.
 
 ## Testing
@@ -107,11 +107,11 @@ pnpm --filter @pairflix/client format
 ## Deployment
 
 ```bash
-pnpm --filter @pairflix/client deploy   # build, then wrangler pages deploy
+pnpm --filter @pairflix/client deploy   # build, then wrangler deploy
 ```
 
-Deployed to Cloudflare Pages -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
-security headers Pages applies to every response. See the root
+Deployed as a Cloudflare Worker with static assets -- no Docker, no nginx. `public/_headers` sets the CSP, HSTS, and other
+security headers Workers static assets applies to every response. See the root
 [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml) and `docs/runbook.md` for the
 full first-deploy procedure.
 

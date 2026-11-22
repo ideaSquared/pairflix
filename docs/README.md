@@ -24,7 +24,7 @@ ADRs live in [`docs/adr/`](./adr/). Add one for any decision that reframes how t
 The re-platform moves the code to the sibling-repo layout (`adopt-dont-shop` / `creatorgrid`):
 
 ```
-apps/client · apps/admin        # Vite + React SPAs on Cloudflare Pages
+apps/client · apps/admin        # Vite + React SPAs on Workers static assets
 services/api                     # Hono Worker (routes / middleware / lib)
 packages/db                      # Drizzle schema + client + migrations
 packages/lib.*                   # shared components / types / api / utils / validation

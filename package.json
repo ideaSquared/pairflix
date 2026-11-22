@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "license": "UNLICENSED",
   "packageManager": "pnpm@10.34.3",
   "engines": {
-    "node": ">=22.22.0 <23.0.0",
+    "node": ">=24.0.0 <25.0.0",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
@@ -23,6 +24,8 @@
     "clean": "turbo run clean && rimraf node_modules"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
     "@eslint/js": "^9.17.0",
     "@pairflix/eslint-config-base": "workspace:*",
     "eslint-config-prettier": "^9.1.0",

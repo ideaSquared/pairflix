@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node 22** (`>=22.22 <23`; pinned via `.nvmrc` / `.tool-versions`, added in the P1 restructure)
+- **Node 24** (`>=24 <25`; pinned via `.nvmrc` / `.tool-versions`, added in the P1 restructure)
 - **pnpm 10** (`corepack enable && corepack prepare pnpm@latest --activate`)
 - **Wrangler** — installed per-workspace as a dev dependency; run via `pnpm exec wrangler` or the
   package scripts. No global install needed.
@@ -21,7 +21,7 @@ git clone <repository-url> && cd pairflix
 pnpm install                     # installs every workspace
 cp services/api/.dev.vars.example services/api/.dev.vars   # local Worker vars (see below)
 pnpm --filter @pairflix/api db:migrate:local                # create + migrate the local D1
-pnpm dev                         # turbo: Worker + both Pages apps in parallel
+pnpm dev                         # turbo: Worker + both SPA Workers in parallel
 ```
 
 - API (Worker): `http://localhost:8787`
@@ -32,8 +32,8 @@ pnpm dev                         # turbo: Worker + both Pages apps in parallel
 
 ```
 pairflix/
-├── apps/client/        # user SPA (Vite + React), Pages, wrangler.jsonc
-├── apps/admin/         # admin SPA (Vite + React), Pages, wrangler.jsonc
+├── apps/client/        # user SPA (Vite + React), Workers static assets, wrangler.jsonc
+├── apps/admin/         # admin SPA (Vite + React), Workers static assets, wrangler.jsonc
 ├── services/api/       # Hono Worker, wrangler.jsonc  (routes, middleware, lib)
 ├── packages/db/        # Drizzle schema + client + SQL migrations
 ├── packages/lib.components/   # shared UI
@@ -119,18 +119,20 @@ script (which targets the top-level, no-`--env` config -- fine for local dry-run
 ```bash
 pnpm --filter @pairflix/api exec wrangler d1 migrations apply pairflix-db-staging --env staging --remote
 pnpm --filter @pairflix/api exec wrangler deploy --env staging
-pnpm --filter @pairflix/client exec wrangler pages deploy dist --project-name=pairflix-client --branch=staging
-pnpm --filter @pairflix/admin exec wrangler pages deploy dist --project-name=pairflix-admin --branch=staging
+pnpm --filter @pairflix/client exec wrangler deploy --env staging   # after `pnpm --filter @pairflix/client build`
+pnpm --filter @pairflix/admin exec wrangler deploy --env staging    # after `pnpm --filter @pairflix/admin build`
 ```
 
-`.github/workflows/deploy.yml` runs the equivalent (both environments) via `workflow_dispatch`.
+Real deploys go through shipper: `ship.yaml` describes the components, and
+`.github/workflows/deploy.yml` calls `ideaSquared/shipper`'s reusable workflow via `workflow_dispatch`
+(`ship deploy pairflix <staging|production>`).
 
 **Not done yet:** no D1 database has been provisioned in a real Cloudflare account (the
 `database_id`s in `wrangler.jsonc`'s `env.staging`/`env.production` blocks are still placeholders),
 and no domain/cookie topology has been decided — **read `docs/runbook.md` before running a real
 deploy**: it has the full first-deploy procedure, the complete secrets/vars list, rollback, D1 backup
 (Time Travel), and — most importantly — the cross-site cookie constraint (session/CSRF cookies are
-`SameSite=Lax`, so the client and API need a shared registrable domain or a Pages proxy, or every
+`SameSite=Lax`, so the client and API need a shared registrable domain or a proxy in front of the SPA Worker, or every
 authenticated request 401s/403s after a deploy that otherwise looks successful).
 
 ## Troubleshooting

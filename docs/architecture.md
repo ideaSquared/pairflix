@@ -16,12 +16,12 @@ many households** — not per-tenant infrastructure, and not a fleet of services
 
 ```
                  ┌──────────────────────────────┐
-   couples  ───► │ apps/client (Pages SPA)       │──┐
+   couples  ───► │ apps/client (Worker SPA)      │──┐
                  │  browse · Tonight picker ·     │  │  /api/*
                  │  history · upgrade             │  │
                  └──────────────────────────────┘  ▼
                  ┌──────────────────────────────┐ ┌───────────────────────────┐
-   admins   ───► │ apps/admin (Pages SPA)        │►│ services/api (Worker, Hono)│
+   admins   ───► │ apps/admin (Worker SPA)       │►│ services/api (Worker, Hono)│
                  │  users · content moderation    │ │  ├─ fetch:     REST API     │
                  └──────────────────────────────┘ │  └─ scheduled: log rotation │
                                                    └────────┬──────────┬─────────┘
@@ -31,7 +31,7 @@ many households** — not per-tenant infrastructure, and not a fleet of services
                           external ─── TMDb (titles + /watch/providers) ─── Anthropic (premium re-rank)
 ```
 
-- **Static SPAs are free and global** on Cloudflare Pages, cached at the edge.
+- **Static SPAs are free and global** on Workers static assets, cached at the edge.
 - **The API is a single Worker.** Route modules (`services/api/src/routes/*`) are the seams along
   which it could later split if scale ever demands it — it will not for a long time.
 - **D1** holds every household in one SQLite database (row-level tenancy). **R2** is reserved for any
@@ -169,14 +169,14 @@ Paid plan); move to a queue only when volume justifies the plan, exactly as crea
 
 ## Deploying
 
-One Worker (`services/api`) + two Pages apps, all via `wrangler` — no Docker or nginx in the app
+One Worker (`services/api`) + two static-asset Workers, deployed with shipper — no Docker or nginx in the app
 path. `services/api/wrangler.jsonc` defines named `staging`/`production` environments (separate
 `vars`/`d1_databases` each); D1 migrations apply with `wrangler d1 migrations apply <name> --env
 <env> --remote` before the Worker deploy. `.github/workflows/deploy.yml` runs the full sequence
-(verification gates, migrations, Worker, both Pages apps) via `workflow_dispatch` — not on push, since
+(verification gates, migrations, Worker, both SPA Workers) via `workflow_dispatch` — not on push, since
 none of the following exist yet. **Not done yet:** no D1 database has been provisioned in a real
 Cloudflare account (`wrangler.jsonc`'s `database_id`s are still placeholders), no domain/cookie
 topology has been decided (session/CSRF cookies are `SameSite=Lax` — the client and API need a
-shared registrable domain or a Pages proxy, or auth breaks post-deploy), and none of this has been
+shared registrable domain or a proxy in front of the SPA Worker, or auth breaks post-deploy), and none of this has been
 exercised against a real account. See `docs/runbook.md` for the full first-deploy procedure, secrets
 list, and rollback/backup steps.
