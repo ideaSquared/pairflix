@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { auth } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import LoginPage from '../LoginPage';
 
 // Mock the API module
@@ -117,5 +118,11 @@ describe('LoginPage', () => {
     // Since the inputs have the required attribute, the form won't submit
     expect(auth.login).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(<LoginPage />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

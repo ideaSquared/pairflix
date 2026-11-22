@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { auth } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import RegisterPage from '../RegisterPage';
 
 // Mock the API module
@@ -216,5 +217,17 @@ describe('RegisterPage', () => {
       expect(screen.getByText('Email already in use')).toBeInTheDocument();
     });
     expect(screen.queryByText('Check Your Email!')).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe), including with a validation error shown', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = render(<RegisterPage />);
+
+    await expectNoAxeViolations(baseElement);
+
+    await user.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(screen.getByText('All fields are required')).toBeInTheDocument();
+
+    await expectNoAxeViolations(baseElement);
   });
 });

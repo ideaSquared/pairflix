@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { demo } from '../../../services/api/demo';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import LandingPage from '../LandingPage';
 
 vi.mock('../../../services/api/demo', () => ({
@@ -57,5 +58,16 @@ describe('LandingPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Show me a pick' })
     ).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe), before and after the demo pick', async () => {
+    (demo.pick as Mock).mockResolvedValue(RESULT);
+    const user = userEvent.setup();
+    const { baseElement } = render(<LandingPage />);
+    await expectNoAxeViolations(baseElement);
+
+    await user.click(screen.getByRole('button', { name: 'Show me a pick' }));
+    expect(await screen.findByText('Test Movie')).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
   });
 });

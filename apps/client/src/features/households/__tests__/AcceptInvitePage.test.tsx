@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { households } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import AcceptInvitePage from '../AcceptInvitePage';
 
 vi.mock('../../../services/api', async () => ({
@@ -63,5 +64,15 @@ describe('AcceptInvitePage', () => {
       screen.getByRole('button', { name: 'Create your own household' })
     );
     expect(mockNavigate).toHaveBeenCalledWith('/households/new');
+  });
+
+  it('has no accessibility violations (axe) on the invalid-invite state', async () => {
+    (households.acceptInvite as Mock).mockRejectedValue(new Error('expired'));
+    const { baseElement } = render(<AcceptInvitePage />);
+
+    expect(
+      await screen.findByText('That invite is invalid or has expired.')
+    ).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
   });
 });

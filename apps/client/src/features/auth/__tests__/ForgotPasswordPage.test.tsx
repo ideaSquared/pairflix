@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { emailService } from '../../../services/api';
 import { act, render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import ForgotPasswordPage from '../ForgotPasswordPage';
 
 describe('ForgotPasswordPage', () => {
@@ -78,5 +79,11 @@ describe('ForgotPasswordPage', () => {
         'If that address is registered, a reset link is on its way.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(<ForgotPasswordPage />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { households } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import InviteToHouseholdPage from '../InviteToHouseholdPage';
 
 vi.mock('../../../services/api', async () => ({
@@ -95,5 +96,21 @@ describe('InviteToHouseholdPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Not a household member')).toBeInTheDocument();
     });
+  });
+
+  it('has no accessibility violations (axe), before and after generating a link', async () => {
+    const user = userEvent.setup();
+    const { baseElement } = render(<InviteToHouseholdPage />);
+    await expectNoAxeViolations(baseElement);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Generate invite link' })
+    );
+    expect(
+      await screen.findByText(
+        `${window.location.origin}/household-invites/tok-abc`
+      )
+    ).toBeInTheDocument();
+    await expectNoAxeViolations(baseElement);
   });
 });

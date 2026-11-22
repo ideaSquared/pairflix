@@ -398,6 +398,7 @@ const ProfilePage: React.FC = () => {
             <div className="preference-row">
               <Label>Theme</Label>
               <Select
+                aria-label="Theme"
                 value={user?.preferences?.theme || 'dark'}
                 onChange={e =>
                   handlePreferenceUpdate(
@@ -432,6 +433,7 @@ const ProfilePage: React.FC = () => {
             <div className="preference-row">
               <Label>Auto-archive after</Label>
               <Select
+                aria-label="Auto-archive after"
                 value={user?.preferences?.autoArchiveDays || 30}
                 onChange={e =>
                   handlePreferenceUpdate(

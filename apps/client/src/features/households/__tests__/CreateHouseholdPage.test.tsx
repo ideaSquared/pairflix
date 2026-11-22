@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { households } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import CreateHouseholdPage from '../CreateHouseholdPage';
 
 vi.mock('../../../services/api', async () => ({
@@ -89,5 +90,11 @@ describe('CreateHouseholdPage', () => {
       await screen.findByRole('button', { name: 'Creating…' })
     ).toBeDisabled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(<CreateHouseholdPage />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

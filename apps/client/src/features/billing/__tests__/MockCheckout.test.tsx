@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import type { Mock } from 'vitest';
 import { billing } from '../../../services/api';
 import { act, render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import MockCheckout from '../MockCheckout';
 
 const mockNavigate = vi.fn();
@@ -97,5 +98,11 @@ describe('MockCheckout', () => {
     });
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'));
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(<MockCheckout />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

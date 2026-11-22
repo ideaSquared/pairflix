@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { user as userApi } from '../../../services/api';
 import { render, screen, waitFor, within } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import ProfilePage from '../ProfilePage';
 
 // Mock the API module
@@ -392,5 +393,11 @@ describe('ProfilePage', () => {
     // Session expiry is now handled centrally (SessionExpiredHandler, driven by
     // fetchWithAuth's SESSION_EXPIRED_EVENT) rather than by this page calling logout() itself.
     expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations (axe)', async () => {
+    const { baseElement } = render(<ProfilePage />);
+
+    await expectNoAxeViolations(baseElement);
   });
 });

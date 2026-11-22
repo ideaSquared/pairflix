@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { emailService } from '../../../services/api';
 import { render, screen, waitFor } from '../../../tests/setup';
+import { expectNoAxeViolations } from '../../../tests/axe';
 import ResetPasswordPage from '../ResetPasswordPage';
 
 const mockNavigate = vi.fn();
@@ -112,5 +113,18 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/tonight'), {
       timeout: 2500,
     });
+  });
+
+  it('has no accessibility violations (axe), with or without a token', async () => {
+    const { baseElement, unmount } = render(<ResetPasswordPage />);
+    await expectNoAxeViolations(baseElement);
+    unmount();
+
+    mockSearchParams = new URLSearchParams();
+    const missingToken = render(<ResetPasswordPage />);
+    expect(
+      await screen.findByText('Invalid or missing reset token')
+    ).toBeInTheDocument();
+    await expectNoAxeViolations(missingToken.baseElement);
   });
 });
