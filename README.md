@@ -156,4 +156,4 @@ See `CLAUDE.md` for the full set of conventions this repo follows.
 
 ## License
 
-No license file is currently published for this repository.
+Proprietary. Copyright (c) 2026 ideaSquared. All rights reserved. See [LICENSE](LICENSE).
