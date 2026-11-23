@@ -7,7 +7,7 @@ import {
 	ResetPasswordRequestSchema,
 	VerifyEmailRequestSchema,
 } from '@pairflix/lib.validation';
-import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 import { auditInfo } from '../lib/audit';
@@ -175,15 +175,24 @@ authRoutes.post('/login', loginRateLimit, requireCsrfToken, async c => {
 	const recordFailure = async (
 		knownUser: NonNullable<typeof user>
 	): Promise<void> => {
-		const attempts = knownUser.failedLoginAttempts + 1;
-		const locked = attempts >= FAILED_ATTEMPT_LIMIT;
+		// Incremented in SQL, not from the row read above: concurrent failures must each count. A
+		// failure landing while another request's lock is active is not counted, so it can neither
+		// clear nor shorten that lock.
+		const now = Date.now();
+		const next = sql`${users.failedLoginAttempts} + 1`;
+		const reachesLimit = sql`${next} >= ${FAILED_ATTEMPT_LIMIT}`;
 		await db
 			.update(users)
 			.set({
-				failedLoginAttempts: locked ? 0 : attempts,
-				lockedUntil: locked ? new Date(Date.now() + LOCKOUT_MS) : null,
+				failedLoginAttempts: sql`case when ${reachesLimit} then 0 else ${next} end`,
+				lockedUntil: sql`case when ${reachesLimit} then ${now + LOCKOUT_MS} else null end`,
 			})
-			.where(eq(users.id, knownUser.id));
+			.where(
+				and(
+					eq(users.id, knownUser.id),
+					or(isNull(users.lockedUntil), lte(users.lockedUntil, new Date(now)))
+				)
+			);
 	};
 
 	const isLocked = Boolean(

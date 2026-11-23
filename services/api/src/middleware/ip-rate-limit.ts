@@ -1,5 +1,5 @@
-import { createDb, rateLimitHits } from '@pairflix/db';
-import { and, count, eq, gte } from 'drizzle-orm';
+import { createDb } from '@pairflix/db';
+import { sql } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
 import { newId } from '../lib/id';
 import type { AppEnv } from '../types';
@@ -36,19 +36,19 @@ export const ipRateLimit = (options: IpRateLimitOptions) => {
 		const key = `${routeName}:${ip}`;
 		const db = createDb(c.env.DB);
 
-		const windowStart = new Date(Date.now() - windowMinutes * 60_000);
-		const recent = await db
-			.select({ total: count() })
-			.from(rateLimitHits)
-			.where(
-				and(
-					eq(rateLimitHits.key, key),
-					gte(rateLimitHits.createdAt, windowStart)
-				)
-			)
-			.get();
+		// One guarded INSERT: the count and the write run as a single D1 statement, so concurrent
+		// requests can't all read the same pre-write count and all pass (see `reserveDailyPick`).
+		const windowStart = Date.now() - windowMinutes * 60_000;
+		const result = await db.run(sql`
+			insert into rate_limit_hits (id, key, created_at)
+			select ${newId('ratelimit')}, ${key}, ${Date.now()}
+			where (
+				select count(*) from rate_limit_hits
+				where key = ${key} and created_at >= ${windowStart}
+			) < ${limit}
+		`);
 
-		if ((recent?.total ?? 0) >= limit) {
+		if (result.meta.changes === 0) {
 			c.header('Retry-After', String(windowMinutes * 60));
 			return c.json(
 				{
@@ -61,9 +61,6 @@ export const ipRateLimit = (options: IpRateLimitOptions) => {
 			);
 		}
 
-		await db
-			.insert(rateLimitHits)
-			.values({ id: newId('ratelimit'), key, createdAt: new Date() });
 		return next();
 	});
 };
