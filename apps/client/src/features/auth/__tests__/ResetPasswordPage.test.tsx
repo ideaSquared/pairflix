@@ -116,7 +116,7 @@ describe('ResetPasswordPage', () => {
     });
   });
 
-  it('sends an account with 2FA to login without checking for a session', async () => {
+  it('sends an account with 2FA to login and refreshes the cached session', async () => {
     (emailService.resetPassword as Mock).mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
@@ -142,7 +142,7 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'), {
       timeout: 2500,
     });
-    expect(mockCheckAuth).not.toHaveBeenCalled();
+    expect(mockCheckAuth).toHaveBeenCalled();
   });
 
   it('has no accessibility violations (axe), with or without a token', async () => {

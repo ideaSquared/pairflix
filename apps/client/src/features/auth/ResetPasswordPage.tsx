@@ -57,6 +57,7 @@ const ResetPasswordPage: React.FC = () => {
 
     try {
       const result = await emailService.resetPassword({ token, password });
+      checkAuth();
       if (result.twoFactorRequired) {
         setSuccess(
           'Your password has been reset. Log in with your new password and your authenticator code.'
@@ -67,7 +68,6 @@ const ResetPasswordPage: React.FC = () => {
         return;
       }
       setSuccess('Your password has been reset.');
-      checkAuth();
 
       setTimeout(() => {
         navigate('/tonight');

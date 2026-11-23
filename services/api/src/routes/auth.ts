@@ -651,6 +651,9 @@ authRoutes.post(
 						typeof users.$inferSelect.status
 					>`case when ${users.passwordResetRequired} = 1 and ${users.status} = 'pending' then 'active' else ${users.status} end`,
 					passwordResetRequired: false,
+					// The link may be how a locked-out user recovers; a 2FA account still has to log in after it.
+					failedLoginAttempts: 0,
+					lockedUntil: null,
 					// Receiving and clicking this link proves control of the address already on file --
 					// same standard as clicking a dedicated verify-email link.
 					emailVerified: true,
