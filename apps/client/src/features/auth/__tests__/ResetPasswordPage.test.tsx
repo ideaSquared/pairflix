@@ -1,3 +1,4 @@
+import { QueryClient } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import type { Mock } from 'vitest';
 import { emailService } from '../../../services/api';
@@ -116,7 +117,8 @@ describe('ResetPasswordPage', () => {
     });
   });
 
-  it('sends an account with 2FA to login and refreshes the cached session', async () => {
+  it('drops the cached session for an account with 2FA and points it at the admin app', async () => {
+    const clear = vi.spyOn(QueryClient.prototype, 'clear');
     (emailService.resetPassword as Mock).mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
@@ -137,12 +139,11 @@ describe('ResetPasswordPage', () => {
     await user.click(screen.getByRole('button', { name: 'Reset Password' }));
 
     expect(
-      await screen.findByText(/your authenticator code/)
+      await screen.findByText(/Sign in to the admin app/)
     ).toBeInTheDocument();
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'), {
-      timeout: 2500,
-    });
-    expect(mockCheckAuth).toHaveBeenCalled();
+    expect(clear).toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    clear.mockRestore();
   });
 
   it('has no accessibility violations (axe), with or without a token', async () => {

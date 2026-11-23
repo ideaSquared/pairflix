@@ -9,6 +9,7 @@ import {
   InputGroup,
   SuccessText,
 } from '@pairflix/components';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,6 +20,7 @@ const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkAuth } = useAuth();
+  const queryClient = useQueryClient();
   const token = searchParams.get('token');
 
   const [password, setPassword] = useState('');
@@ -57,17 +59,17 @@ const ResetPasswordPage: React.FC = () => {
 
     try {
       const result = await emailService.resetPassword({ token, password });
-      checkAuth();
       if (result.twoFactorRequired) {
+        // The reset ended every session, and this app's login takes no code: only the admin app
+        // enrols 2FA, so drop the cached session and send the user there instead of redirecting.
+        queryClient.clear();
         setSuccess(
-          'Your password has been reset. Log in with your new password and your authenticator code.'
+          'Your password has been reset. Sign in to the admin app with your new password and your authenticator code.'
         );
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
         return;
       }
       setSuccess('Your password has been reset.');
+      checkAuth();
 
       setTimeout(() => {
         navigate('/tonight');
