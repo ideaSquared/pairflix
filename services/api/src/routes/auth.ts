@@ -660,6 +660,7 @@ authRoutes.post(
 					id: users.id,
 					email: users.email,
 					status: users.status,
+					totpEnabled: users.totpEnabled,
 				}),
 		]);
 		const updated = updatedRows[0];
@@ -698,8 +699,16 @@ authRoutes.post(
 
 		// Password reset means every prior session is untrusted -- sign the whole account out.
 		await db.delete(sessions).where(eq(sessions.userId, claimed.userId));
+		// The emailed link proves only the inbox, so an account with 2FA signs in through /login for its code.
+		if (updated.totpEnabled) {
+			return c.json({
+				data: { id: updated.id, email: updated.email, twoFactorRequired: true },
+			});
+		}
 		await startSession(c, db, claimed.userId);
-		return c.json({ data: { id: updated.id, email: updated.email } });
+		return c.json({
+			data: { id: updated.id, email: updated.email, twoFactorRequired: false },
+		});
 	}
 );
 

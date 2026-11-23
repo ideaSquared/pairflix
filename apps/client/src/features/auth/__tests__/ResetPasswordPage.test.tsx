@@ -32,6 +32,7 @@ describe('ResetPasswordPage', () => {
     (emailService.resetPassword as Mock).mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
+      twoFactorRequired: false,
     });
   });
 
@@ -113,6 +114,35 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/tonight'), {
       timeout: 2500,
     });
+  });
+
+  it('sends an account with 2FA to login without checking for a session', async () => {
+    (emailService.resetPassword as Mock).mockResolvedValue({
+      id: 'user-1',
+      email: 'test@example.com',
+      twoFactorRequired: true,
+    });
+    const user = userEvent.setup();
+
+    render(<ResetPasswordPage />);
+
+    await user.type(
+      screen.getByPlaceholderText('New Password'),
+      'newpassword123'
+    );
+    await user.type(
+      screen.getByPlaceholderText('Confirm New Password'),
+      'newpassword123'
+    );
+    await user.click(screen.getByRole('button', { name: 'Reset Password' }));
+
+    expect(
+      await screen.findByText(/your authenticator code/)
+    ).toBeInTheDocument();
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/login'), {
+      timeout: 2500,
+    });
+    expect(mockCheckAuth).not.toHaveBeenCalled();
   });
 
   it('has no accessibility violations (axe), with or without a token', async () => {

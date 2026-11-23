@@ -508,6 +508,36 @@ describe('POST /api/auth/reset-password', () => {
 		expect(result.cookies.session).toBeUndefined();
 	});
 
+	it('starts no session for an account with 2FA; the new password then needs the code', async () => {
+		const email = uniqueEmail();
+		const { cookies } = await createLoggedInUser(email);
+		const { secret } = await enrollTotp(cookies);
+
+		const token = await forgotPasswordAndCaptureToken(email);
+		const reset = await postJson('/api/auth/reset-password', {
+			token,
+			password: 'NewStr0ngPass456',
+		});
+		expect(reset.status).toBe(200);
+		expect(reset.body).toMatchObject({
+			data: { email, twoFactorRequired: true },
+		});
+		expect(reset.cookies.session).toBeUndefined();
+
+		const meWithOldSession = await callApp('/api/auth/me', { cookies });
+		expect(meWithOldSession.status).toBe(401);
+
+		const withoutCode = await loginUser(email, 'NewStr0ngPass456');
+		expect(withoutCode.status).toBe(401);
+		expect(JSON.stringify(withoutCode.body)).toContain('TOTP code required');
+		const withCode = await loginUser(
+			email,
+			'NewStr0ngPass456',
+			await currentTotpCode(secret)
+		);
+		expect(withCode.status).toBe(200);
+	});
+
 	it('updates the password, revokes every session, and logs in with the new password', async () => {
 		const email = uniqueEmail();
 		await registerAndVerify(email, 'Str0ngPass123');
