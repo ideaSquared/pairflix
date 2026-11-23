@@ -260,6 +260,26 @@ describe('POST /api/auth/login', () => {
 		).toBeTruthy();
 	});
 
+	it('locks the account when failed attempts arrive concurrently', async () => {
+		const email = uniqueEmail();
+		const { userId } = await registerAndVerify(email, 'Str0ngPass123');
+
+		const attempts = await Promise.all(
+			Array.from({ length: 10 }, () => loginUser(email, 'WrongPass123'))
+		);
+		expect(attempts.every(attempt => attempt.status === 401)).toBe(true);
+
+		const row = await env.DB.prepare(
+			'SELECT locked_until FROM users WHERE user_id = ?1'
+		)
+			.bind(userId)
+			.first<{ locked_until: number | null }>();
+		expect(row?.locked_until ?? 0).toBeGreaterThan(Date.now());
+
+		const correctPassword = await loginUser(email, 'Str0ngPass123');
+		expect(correctPassword.status).toBe(429);
+	});
+
 	it('does not count "TOTP code required" toward the failed-attempt lockout', async () => {
 		const email = uniqueEmail();
 		const { cookies } = await createLoggedInUser(email);
@@ -793,6 +813,25 @@ describe('IP rate limiting on public auth endpoints', () => {
 			{ ip }
 		);
 		expect(sixth.status).toBe(429);
+	});
+
+	it('admits exactly the IP budget when /login requests arrive concurrently', async () => {
+		const ip = uniqueIp();
+
+		const attempts = await Promise.all(
+			Array.from({ length: 10 }, () =>
+				postJson(
+					'/api/auth/login',
+					{ email: uniqueEmail(), password: 'WrongPass123' },
+					{},
+					{ ip }
+				)
+			)
+		);
+
+		const statuses = attempts.map(attempt => attempt.status);
+		expect(statuses.filter(status => status === 401)).toHaveLength(5);
+		expect(statuses.filter(status => status === 429)).toHaveLength(5);
 	});
 
 	it('rate-limits /reset-password by IP', async () => {
