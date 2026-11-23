@@ -33,11 +33,12 @@ export const emailService = {
   },
 
   /**
-   * Reset password with token. Signs the caller into a new session on success.
+   * Reset password with token. Signs the caller into a new session on success,
+   * unless the account has 2FA on (`twoFactorRequired`): then it logs in with its code.
    */
   resetPassword: async (
     data: ResetPasswordRequest
-  ): Promise<{ id: string; email: string }> => {
+  ): Promise<{ id: string; email: string; twoFactorRequired: boolean }> => {
     const response = await fetchWithAuth('/api/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
