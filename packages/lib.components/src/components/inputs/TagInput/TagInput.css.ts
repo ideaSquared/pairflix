@@ -65,7 +65,7 @@ export const removeTagButton = style({
   selectors: {
     '&:hover': { opacity: 0.8 },
     '&:focus-visible': {
-      outline: '2px solid currentColor',
+      outline: `2px solid ${vars.colors.background.primary}`,
       outlineOffset: '1px',
     },
   },

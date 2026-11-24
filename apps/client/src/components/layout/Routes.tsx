@@ -43,7 +43,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/billing/mock-checkout': 'Checkout - PairFlix',
 };
 
-const titleForPath = (pathname: string): string => {
+const titleForPath = (rawPathname: string): string => {
+  const pathname = rawPathname.toLowerCase().replace(/(.)\/+$/, '$1');
   if (/^\/households\/[^/]+\/invites$/.test(pathname)) {
     return 'Invite to your household - PairFlix';
   }
