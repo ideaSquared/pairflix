@@ -15,6 +15,12 @@ export const tagInputField = style({
   padding: '0.5rem',
   background: vars.colors.background.primary,
   marginBottom: '0.5rem',
+  selectors: {
+    '&:focus-within': {
+      outline: `2px solid ${vars.colors.primary}`,
+      outlineOffset: '2px',
+    },
+  },
 });
 
 export const tagTextInput = style({
@@ -58,7 +64,10 @@ export const removeTagButton = style({
   fontSize: vars.typography.fontSize.sm,
   selectors: {
     '&:hover': { opacity: 0.8 },
-    '&:focus': { outline: 'none' },
+    '&:focus-visible': {
+      outline: `2px solid ${vars.colors.background.primary}`,
+      outlineOffset: '1px',
+    },
   },
 });
 

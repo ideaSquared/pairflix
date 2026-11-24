@@ -34,7 +34,10 @@ export const textarea = recipe({
     selectors: {
       '&:focus': {
         borderColor: vars.colors.primary,
-        outline: 'none',
+      },
+      '&:focus-visible': {
+        outline: `2px solid ${vars.colors.primary}`,
+        outlineOffset: '2px',
       },
       '&[aria-invalid="true"]': {
         borderColor: vars.colors.text.error,

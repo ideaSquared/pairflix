@@ -26,3 +26,14 @@ globalStyle('a', {
 globalStyle('a:hover', {
   color: vars.colors.primaryHover,
 });
+
+globalStyle('*, *::before, *::after', {
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animationDuration: '0.01ms !important',
+      animationIterationCount: '1 !important',
+      transitionDuration: '0.01ms !important',
+      scrollBehavior: 'auto',
+    },
+  },
+});
