@@ -57,6 +57,24 @@ const renderAt = (path: string) =>
     </MemoryRouter>
   );
 
+describe('AppRoutes document title', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('sets a descriptive title for the current route', async () => {
+    (useAuth as Mock).mockReturnValue(authState({ isAuthenticated: false }));
+    renderAt('/login');
+    await waitFor(() => expect(document.title).toBe('Log in - PairFlix'));
+  });
+
+  it('titles a route inside the signed-in layout', async () => {
+    (useAuth as Mock).mockReturnValue(authState({ isAuthenticated: true }));
+    renderAt('/tonight');
+    await waitFor(() => expect(document.title).toBe('Tonight - PairFlix'));
+  });
+});
+
 describe('AppRoutes route guards', () => {
   beforeEach(() => {
     vi.clearAllMocks();

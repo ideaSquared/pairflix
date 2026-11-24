@@ -25,6 +25,34 @@ import TasteOnboardingPage from '../../features/onboarding/TasteOnboardingPage';
 import TonightPicker from '../../features/tonight/TonightPicker';
 import { useAuth } from '../../hooks/useAuth';
 
+const ROUTE_TITLES: Record<string, string> = {
+  '/': 'PairFlix',
+  '/login': 'Log in - PairFlix',
+  '/register': 'Create an account - PairFlix',
+  '/forgot-password': 'Forgot your password - PairFlix',
+  '/reset-password': 'Reset your password - PairFlix',
+  '/verify-email': 'Verify your email - PairFlix',
+  '/privacy': 'Privacy policy - PairFlix',
+  '/terms': 'Terms of service - PairFlix',
+  '/logout': 'Logging out - PairFlix',
+  '/tonight': 'Tonight - PairFlix',
+  '/history': 'History - PairFlix',
+  '/households/new': 'Create a household - PairFlix',
+  '/onboarding/taste': 'Your taste - PairFlix',
+  '/profile': 'Profile - PairFlix',
+  '/billing/mock-checkout': 'Checkout - PairFlix',
+};
+
+const titleForPath = (pathname: string): string => {
+  if (/^\/households\/[^/]+\/invites$/.test(pathname)) {
+    return 'Invite to your household - PairFlix';
+  }
+  if (pathname.startsWith('/household-invites/')) {
+    return 'Join a household - PairFlix';
+  }
+  return ROUTE_TITLES[pathname] ?? 'PairFlix';
+};
+
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({
   element,
 }) => {
@@ -69,6 +97,11 @@ const LogoutRoute: React.FC = () => {
 
 const AppRoutes: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    document.title = titleForPath(pathname);
+  }, [pathname]);
 
   const handleLogout = () => {
     logout();
