@@ -1,16 +1,27 @@
+# Dependabot keeps every dependency on its latest stable release. Minor and patch updates are grouped
+# into one weekly PR per ecosystem; majors are left ungrouped, so each one gets its own PR to review.
+# `cooldown` waits 3 days before proposing a new version; security updates skip it.
 version: 2
 updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
+    commit-message:
+      prefix: 'chore(deps)'
+    cooldown:
+      default-days: 3
     groups:
-      npm-majors:
-        update-types: ['major']
+      npm-minor-patch:
+        update-types: ['minor', 'patch']
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+    commit-message:
+      prefix: 'chore(deps)'
+    cooldown:
+      default-days: 3
     groups:
-      actions-majors:
-        update-types: ['major']
+      actions-minor-patch:
+        update-types: ['minor', 'patch']
