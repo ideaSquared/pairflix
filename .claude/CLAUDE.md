@@ -291,6 +291,8 @@ Request → Hono route module → middleware → lib (business logic) → Drizzl
 
 ## Frontend Patterns (React + Vite on Pages)
 
+The product targets WCAG 2.2 AA.
+
 ### Folder layout
 
 ```
