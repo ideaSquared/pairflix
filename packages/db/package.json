@@ -23,7 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src",
+    "lint": "oxlint src",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -31,15 +31,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261124.1",
-    "@eslint/js": "^10.0.1",
-    "@pairflix/eslint-config-base": "workspace:*",
     "@vitest/coverage-v8": "^5.1.1",
     "drizzle-kit": "^0.31.11",
-    "eslint": "^10.15.0",
-    "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.14.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.74.0",
+    "typescript": "^7.0.2",
     "vitest": "^5.1.1"
   }
 }

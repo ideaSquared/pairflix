@@ -54,7 +54,7 @@ pnpm --filter @pairflix/client dev
 
 pnpm build                       # turbo build across workspaces
 pnpm test                        # turbo test (vitest; api uses @cloudflare/vitest-plugin)
-pnpm lint                        # eslint across workspaces
+pnpm lint                        # oxlint across workspaces
 pnpm format                      # prettier
 pnpm -r type-check               # tsc --noEmit per workspace
 ```

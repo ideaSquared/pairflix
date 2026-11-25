@@ -26,16 +26,12 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
-    "@eslint/js": "^10.0.1",
-    "@pairflix/eslint-config-base": "workspace:*",
-    "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.2",
+    "oxlint": "^1.95.0",
     "prettier": "^3.10.1",
     "rimraf": "^6.1.4",
     "turbo": "^2.11.13",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.74.0"
+    "typescript": "^7.0.2"
   }
 }

@@ -284,7 +284,7 @@ Request → Hono route module → middleware → lib (business logic) → Drizzl
 
 - Server code logs through `@ideasquared/log` only (`services/api/src/lib/log.ts`); never `console.*`.
 - No personal data or secrets in logs. Log ids, not people.
-- CI fails on console calls in `services/api/src` (`no-console` in `eslint.config.js`).
+- CI fails on console calls in `services/api/src` (`no-console` in `.oxlintrc.json`).
 - Load the `logging` skill (`.claude/skills/logging/SKILL.md`) before adding or changing a log line.
 
 ---

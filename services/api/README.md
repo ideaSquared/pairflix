@@ -59,7 +59,7 @@ pnpm dev                # wrangler dev
 pnpm deploy              # wrangler deploy
 pnpm test                # vitest run (real Hono requests against local D1)
 pnpm type-check          # tsc --noEmit
-pnpm lint                # eslint src/
+pnpm lint                # oxlint src/
 pnpm db:migrate:local     # wrangler d1 migrations apply pairflix-db --local
 pnpm db:migrate:remote    # wrangler d1 migrations apply pairflix-db --remote
 ```
