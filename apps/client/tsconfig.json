@@ -17,9 +17,8 @@
     "exactOptionalPropertyTypes": true,
     "useUnknownInCatchVariables": true,
     "types": ["vitest/globals", "node", "@testing-library/jest-dom"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@pairflix/components": ["../../packages/lib.components/src"],
       "@pairflix/components/utils/a11y-test-utils": [
         "../../packages/lib.components/src/utils/a11y-test-utils"

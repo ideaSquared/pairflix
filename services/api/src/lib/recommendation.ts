@@ -374,7 +374,7 @@ const hydrate = async (
 	// through lib/providers.ts's D1 read-through cache when a household db is available
 	// (pickForHousehold) instead of hitting TMDb raw every time; pickForAnonymous has no db to read
 	// through, so it falls back to the uncached call.
-	let providers: RegionProviders = {};
+	let providers: RegionProviders;
 	try {
 		providers = db
 			? await getCachedProviders(env, db, item.id, mediaType, region)
