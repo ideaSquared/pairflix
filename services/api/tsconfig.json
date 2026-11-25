@@ -6,7 +6,7 @@
 		"noEmit": true
 	},
 	"include": ["src"],
-	// Test files use `cloudflare:test`/`cloudflare:workers` (from @cloudflare/vitest-pool-workers),
+	// Test files use `cloudflare:test`/`cloudflare:workers` (from @cloudflare/vitest-plugin),
 	// which vitest resolves at test-run time but plain `tsc` can't without extra config -- excluded
 	// here the same way creatorgrid excludes them from its own tsconfig, not type-checked by
 	// `type-check`. Still covered indirectly: a real type error breaks the vitest run.

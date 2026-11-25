@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { breakpoints } from '../../../styles/theme';
-import { lightThemeClass, themeRoot, vars } from '../../../styles/theme.css';
+import { breakpoints, lightTheme } from '../../../styles/theme';
+import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { Container } from './Container';
+
+// jsdom resolves rem lengths to px in computed styles (16px root font size).
+const toPx = (rem: string) => `${parseFloat(rem) * 16}px`;
 
 const renderWithTheme = (ui: React.ReactElement) => {
   return render(<div className={`${lightThemeClass} ${themeRoot}`}>{ui}</div>);
@@ -16,8 +19,12 @@ describe('Container', () => {
 
     expect(containerElement).toBeInTheDocument();
     expect(containerElement).toHaveStyle(`max-width: ${breakpoints.lg}`);
-    expect(containerElement).toHaveStyle({ paddingLeft: vars.spacing.md });
-    expect(containerElement).toHaveStyle({ paddingRight: vars.spacing.md });
+    expect(containerElement).toHaveStyle({
+      paddingLeft: toPx(lightTheme.spacing.md),
+    });
+    expect(containerElement).toHaveStyle({
+      paddingRight: toPx(lightTheme.spacing.md),
+    });
     expect(containerElement).toHaveStyle('margin-left: auto');
     expect(containerElement).toHaveStyle('margin-right: auto');
     expect(containerElement).toHaveTextContent('Content');
@@ -53,8 +60,12 @@ describe('Container', () => {
     );
     const containerElement = screen.getByTestId('container');
 
-    expect(containerElement).toHaveStyle({ paddingLeft: vars.spacing.lg });
-    expect(containerElement).toHaveStyle({ paddingRight: vars.spacing.lg });
+    expect(containerElement).toHaveStyle({
+      paddingLeft: toPx(lightTheme.spacing.lg),
+    });
+    expect(containerElement).toHaveStyle({
+      paddingRight: toPx(lightTheme.spacing.lg),
+    });
   });
 
   it('allows disabling centering', () => {

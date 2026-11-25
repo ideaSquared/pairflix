@@ -25,5 +25,5 @@ applyTo: 'packages/db/**/*.ts,services/api/src/lib/**/*.ts'
   single `db.batch()` call can express, or accept the non-atomicity and document why.
 - Validate request/response shapes with the shared schemas in `packages/lib.validation`, not
   hand-rolled per-endpoint checks.
-- Test against a real local D1 (Miniflare, via `@cloudflare/vitest-pool-workers`) -- see
+- Test against a real local D1 (Miniflare, via `@cloudflare/vitest-plugin`) -- see
   `docs/dev-setup.md`. Don't mock the DB layer; use the local D1 as the Postgres/pg-mem equivalent.

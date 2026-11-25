@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
@@ -15,6 +15,15 @@ import {
 } from './DropdownMenu';
 
 // Mock theme provider wrapper
+// jsdom reports the exit animation but never runs it, so Radix keeps the menu mounted until
+// it sees the animation end.
+const finishExitAnimation = (menu: HTMLElement) => {
+  const event = Object.assign(new Event('animationend', { bubbles: true }), {
+    animationName: getComputedStyle(menu).animationName,
+  });
+  fireEvent(menu, event);
+};
+
 const renderWithTheme = (component: React.ReactElement) => {
   return render(
     <div className={`${lightThemeClass} ${themeRoot}`}>{component}</div>
@@ -71,7 +80,9 @@ describe('DropdownMenu', () => {
         expect(screen.getByText('Item 1')).toBeInTheDocument();
       });
 
+      const menu = screen.getByRole('menu');
       await user.click(screen.getByTestId('outside'));
+      finishExitAnimation(menu);
       await waitFor(() => {
         expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
       });
@@ -263,7 +274,9 @@ describe('DropdownMenu', () => {
         expect(screen.getByText('Item 1')).toBeInTheDocument();
       });
 
+      const menu = screen.getByRole('menu');
       await user.keyboard('{Escape}');
+      finishExitAnimation(menu);
       await waitFor(() => {
         expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
       });

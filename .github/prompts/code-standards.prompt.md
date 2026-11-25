@@ -81,7 +81,7 @@ Follow this monorepo layout:
   - Node.js: 24.x (see `.nvmrc`)
   - Hono: ^4.0.0 (Cloudflare Workers)
   - Drizzle ORM on Cloudflare D1
-  - Vitest (via `@cloudflare/vitest-pool-workers` in `services/api`; jsdom + React Testing Library
+  - Vitest (via `@cloudflare/vitest-plugin` in `services/api`; jsdom + React Testing Library
     in the frontend workspaces)
   - Playwright: ^1.35.0
   - vanilla-extract

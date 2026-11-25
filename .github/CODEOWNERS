@@ -12,8 +12,6 @@
 
 # Packages
 /packages/db/ @ideaSquared/pairflix
-/packages/eslint-config-base/ @ideaSquared/pairflix
-/packages/eslint-config-react/ @ideaSquared/pairflix
 /packages/lib.components/ @ideaSquared/pairflix
 /packages/lib.validation/ @ideaSquared/pairflix
 

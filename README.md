@@ -95,7 +95,7 @@ pnpm --filter @pairflix/components storybook
 - **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF + optional/admin
   TOTP 2FA -- no JWT
 - **Frontend:** React, Vite, vanilla-extract, React Query, React Router, on Cloudflare Pages
-- **Tests:** Vitest everywhere -- `@cloudflare/vitest-pool-workers` (real Hono requests against a
+- **Tests:** Vitest everywhere -- `@cloudflare/vitest-plugin` (real Hono requests against a
   local Miniflare D1) for `services/api`; jsdom + React Testing Library for the frontend workspaces
 - **External:** TMDb (titles + providers), Anthropic (premium LLM re-rank, opt-in), Stripe
   (scaffolded, not live)
