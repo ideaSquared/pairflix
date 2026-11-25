@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { lightThemeClass, themeRoot, vars } from '../../../styles/theme.css';
+import { lightTheme } from '../../../styles/theme';
+import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { Section } from './Section';
+
+// jsdom resolves rem lengths to px in computed styles (16px root font size).
+const toPx = (rem: string) => `${parseFloat(rem) * 16}px`;
 
 const renderWithTheme = (ui: React.ReactElement) => {
   return render(<div className={`${lightThemeClass} ${themeRoot}`}>{ui}</div>);
@@ -14,9 +18,13 @@ describe('Section', () => {
     const sectionElement = screen.getByTestId('section');
 
     expect(sectionElement).toBeInTheDocument();
-    expect(sectionElement).toHaveStyle({ paddingTop: vars.spacing.xl });
-    expect(sectionElement).toHaveStyle({ paddingBottom: vars.spacing.xl });
-    expect(sectionElement).toHaveStyle('background: transparent');
+    expect(sectionElement).toHaveStyle({
+      paddingTop: toPx(lightTheme.spacing.xl),
+    });
+    expect(sectionElement).toHaveStyle({
+      paddingBottom: toPx(lightTheme.spacing.xl),
+    });
+    expect(sectionElement).toHaveStyle('background-color: rgba(0, 0, 0, 0)');
     expect(sectionElement).toHaveStyle('width: auto');
     expect(sectionElement).toHaveTextContent('Content');
   });
@@ -29,8 +37,12 @@ describe('Section', () => {
     );
     const sectionElement = screen.getByTestId('section');
 
-    expect(sectionElement).toHaveStyle({ paddingTop: vars.spacing.md });
-    expect(sectionElement).toHaveStyle({ paddingBottom: vars.spacing.md });
+    expect(sectionElement).toHaveStyle({
+      paddingTop: toPx(lightTheme.spacing.md),
+    });
+    expect(sectionElement).toHaveStyle({
+      paddingBottom: toPx(lightTheme.spacing.md),
+    });
   });
 
   it('applies full width when specified', () => {
@@ -53,7 +65,7 @@ describe('Section', () => {
     const sectionElement = screen.getByTestId('section');
 
     expect(sectionElement).toHaveStyle({
-      background: vars.colors.background.secondary,
+      background: lightTheme.colors.background.secondary,
     });
   });
 

@@ -4,7 +4,7 @@ Playwright browser end-to-end tests for the client SPA (`apps/client`).
 
 These are **browser** e2e tests -- a real Chromium driving the built UI -- and are separate from the
 API's `*.e2e.test.ts` integration tests, which run in-process under
-`@cloudflare/vitest-pool-workers`.
+`@cloudflare/vitest-plugin`.
 
 ## What they cover
 

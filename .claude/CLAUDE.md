@@ -103,7 +103,7 @@ Extend along the existing seams. Don't introduce parallel structures.
 ## Quick Reference
 
 - TypeScript strict everywhere; no `any` outside of test fixtures or vendored shims.
-- **Vitest** everywhere: via `@cloudflare/vitest-pool-workers` against local D1 in `services/api`;
+- **Vitest** everywhere: via `@cloudflare/vitest-plugin` against local D1 in `services/api`;
   via its native jsdom environment + React Testing Library in the frontend workspaces
   (`apps/client`, `apps/admin`, `packages/lib.components`).
 - **API (`services/api`):** Hono route modules (`src/routes/*`) → middleware (`src/middleware/*`) →
@@ -121,7 +121,7 @@ Extend along the existing seams. Don't introduce parallel structures.
 - **Data:** Drizzle ORM on Cloudflare D1 (SQLite); R2 for blobs
 - **Auth:** opaque session cookie in D1 + PBKDF2 (Web Crypto) + double-submit CSRF
 - **Frontend:** React 18/19, Vite, vanilla-extract, React Query, React Router — on Cloudflare Pages
-- **Tests:** Vitest everywhere -- `@cloudflare/vitest-pool-workers` for `services/api`; jsdom +
+- **Tests:** Vitest everywhere -- `@cloudflare/vitest-plugin` for `services/api`; jsdom +
   React Testing Library for the frontend workspaces
 - **External:** TMDb (titles + providers), Anthropic API (LLM re-rank, opt-in), Stripe (deferred)
 
@@ -177,14 +177,14 @@ Full setup in `docs/dev-setup.md`.
 
 - Test through public APIs. Don't mirror internal structure 1:1.
 - New `lib` module ⇒ one happy-path + one failure-mode test, minimum.
-- API routes with non-trivial logic get an integration test via `@cloudflare/vitest-pool-workers`
+- API routes with non-trivial logic get an integration test via `@cloudflare/vitest-plugin`
   (real Hono app, real local D1) — the equivalent of the old supertest route tests.
 - Tests follow the same TypeScript strict rules as production code.
 - Co-locate tests with their subject: `recommendation.ts` ↔ `recommendation.test.ts`.
 
 ### Tools
 
-- **Vitest** in `services/api`, under `@cloudflare/vitest-pool-workers` (Miniflare D1/R2).
+- **Vitest** in `services/api`, under `@cloudflare/vitest-plugin` (Miniflare D1/R2).
 - **Vitest** (jsdom environment) + **React Testing Library** in `apps/*` and `packages/lib.components`.
 
 ### Don't

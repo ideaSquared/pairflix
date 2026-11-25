@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 /**
  * Browser end-to-end tests for the client SPA (apps/client). These are distinct from the API's
- * `*.e2e.test.ts` integration tests, which run in-process under @cloudflare/vitest-pool-workers --
+ * `*.e2e.test.ts` integration tests, which run in-process under @cloudflare/vitest-plugin --
  * these drive a real Chromium against the built UI.
  *
  * The suite runs the client on its own and stubs every `/api/**` call at the network layer (see

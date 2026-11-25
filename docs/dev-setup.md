@@ -53,7 +53,7 @@ pnpm --filter @pairflix/api dev  # just the Worker (wrangler dev)
 pnpm --filter @pairflix/client dev
 
 pnpm build                       # turbo build across workspaces
-pnpm test                        # turbo test (vitest; api uses @cloudflare/vitest-pool-workers)
+pnpm test                        # turbo test (vitest; api uses @cloudflare/vitest-plugin)
 pnpm lint                        # eslint across workspaces
 pnpm format                      # prettier
 pnpm -r type-check               # tsc --noEmit per workspace

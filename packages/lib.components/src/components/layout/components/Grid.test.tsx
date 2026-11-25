@@ -1,8 +1,12 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { lightThemeClass, themeRoot, vars } from '../../../styles/theme.css';
+import { lightTheme } from '../../../styles/theme';
+import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { Grid } from './Grid';
+
+// jsdom resolves rem lengths to px in computed styles (16px root font size).
+const toPx = (rem: string) => `${parseFloat(rem) * 16}px`;
 
 const renderWithTheme = (ui: React.ReactElement) => {
   return render(<div className={`${lightThemeClass} ${themeRoot}`}>{ui}</div>);
@@ -24,7 +28,7 @@ describe('Grid', () => {
     expect(gridElement).toHaveStyle('display: grid');
     expect(gridElement).toHaveStyle({
       display: 'grid',
-      gap: vars.spacing.md,
+      gap: toPx(lightTheme.spacing.md),
       alignItems: 'stretch',
       justifyContent: 'start',
     });
@@ -66,7 +70,7 @@ describe('Grid', () => {
     );
 
     let gridElement = screen.getByTestId('grid');
-    expect(gridElement).toHaveStyle({ gap: vars.spacing.xs });
+    expect(gridElement).toHaveStyle({ gap: toPx(lightTheme.spacing.xs) });
 
     rerender(
       <div className={`${lightThemeClass} ${themeRoot}`}>
@@ -78,7 +82,7 @@ describe('Grid', () => {
     );
 
     gridElement = screen.getByTestId('grid');
-    expect(gridElement).toHaveStyle({ gap: vars.spacing.lg });
+    expect(gridElement).toHaveStyle({ gap: toPx(lightTheme.spacing.lg) });
   });
 
   it('applies alignItems property', () => {

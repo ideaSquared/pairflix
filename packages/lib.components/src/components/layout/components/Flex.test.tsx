@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { lightThemeClass, themeRoot, vars } from '../../../styles/theme.css';
+import { lightTheme } from '../../../styles/theme';
+import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { Flex } from './Flex';
 
 const renderWithTheme = (ui: React.ReactElement) => {
@@ -21,7 +22,7 @@ describe('Flex', () => {
     expect(directionOf(flexElement)).toBe('row');
     expect(
       getComputedStyle(flexElement).getPropertyValue('--flex-gap-base')
-    ).toBe(vars.spacing.md);
+    ).toBe(lightTheme.spacing.md);
     expect(flexElement).toHaveStyle('align-items: stretch');
     expect(flexElement).toHaveStyle('justify-content: start');
     expect(flexElement).toHaveStyle('flex-wrap: nowrap');
@@ -73,7 +74,7 @@ describe('Flex', () => {
 
     expect(
       getComputedStyle(flexElement).getPropertyValue('--flex-gap-base')
-    ).toBe(vars.spacing.lg);
+    ).toBe(lightTheme.spacing.lg);
   });
 
   it('applies custom alignItems', () => {

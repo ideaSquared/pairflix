@@ -15,7 +15,7 @@ applyTo: '**/*.{test,spec}.{ts,tsx,js,jsx}'
 
 ## Unit Testing
 
-- Use Vitest everywhere -- `@cloudflare/vitest-pool-workers` for `services/api`, its native jsdom
+- Use Vitest everywhere -- `@cloudflare/vitest-plugin` for `services/api`, its native jsdom
   environment for the frontend workspaces
 - Use React Testing Library for frontend components
 - Follow AAA pattern (Arrange, Act, Assert)
@@ -33,7 +33,7 @@ applyTo: '**/*.{test,spec}.{ts,tsx,js,jsx}'
 ## End-to-End Testing
 
 No browser-driven E2E suite exists yet (see `docs/testing-strategy.md`). The `services/api`
-route tests (`@cloudflare/vitest-pool-workers` against real local D1) are the closest thing today.
+route tests (`@cloudflare/vitest-plugin` against real local D1) are the closest thing today.
 If a browser-driven suite is added later:
 
 - Test across multiple browsers (Chrome, Firefox, Safari)

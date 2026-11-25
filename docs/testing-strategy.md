@@ -33,7 +33,7 @@ stack described in `docs/adr/0001-cloudflare-stack.md`.
 
 **`services/api` route tests (`src/routes/*.e2e.test.ts`)**:
 
-- Full Hono app + real local D1 via `@cloudflare/vitest-pool-workers` (Miniflare) -- no mocked
+- Full Hono app + real local D1 via `@cloudflare/vitest-plugin` (Miniflare) -- no mocked
   database, no Supertest. External calls (TMDb, Anthropic, Stripe, Resend) are the only thing
   mocked, via `fetch` interception in `src/test/test-helpers.ts`.
 - Auth flow, household membership gates, quota/entitlement enforcement, race conditions (e.g.
@@ -57,7 +57,7 @@ of splitting between Jest (frontend) and Vitest (`services/api`).
 
 ### `services/api` Stack
 
-- **Vitest** + **`@cloudflare/vitest-pool-workers`**: runs tests inside a real Workers runtime
+- **Vitest** + **`@cloudflare/vitest-plugin`**: runs tests inside a real Workers runtime
   (Miniflare) against local D1 -- the closest thing to testing against production.
 - **`@vitest/coverage-v8`**: coverage.
 - No Supertest, no Testcontainers, no in-memory SQLite -- D1 (SQLite-backed) _is_ the test

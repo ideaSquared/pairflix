@@ -12,7 +12,7 @@ household "what should we watch tonight" product.
   CSRF, optional/admin-required TOTP 2FA
 - **External APIs**: TMDb (titles, providers), Anthropic (premium LLM re-rank), Resend (email) — all
   called over `fetch`, no SDKs
-- **Tests**: Vitest via `@cloudflare/vitest-pool-workers`, running real Hono requests against a local
+- **Tests**: Vitest via `@cloudflare/vitest-plugin`, running real Hono requests against a local
   Miniflare D1
 
 See `docs/architecture.md` (repo root) for the full system design and `docs/db-schema.md` for the
@@ -32,7 +32,7 @@ services/api/
 │   │   └── health.ts
 │   ├── middleware/    # auth (session), csrf, household membership, entitlements, IP rate limiting
 │   ├── lib/            # business logic: recommendation, llm, providers, billing, admin*, etc.
-│   ├── test/            # vitest-pool-workers setup (migrations, auth helpers)
+│   ├── test/            # @cloudflare/vitest-plugin setup (migrations, auth helpers)
 │   ├── types.ts        # Worker Env bindings
 │   └── index.ts         # Hono app entry point (wrangler.jsonc's `main`)
 ├── package.json

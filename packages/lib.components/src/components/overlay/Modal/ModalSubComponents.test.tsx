@@ -2,8 +2,12 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { lightThemeClass, themeRoot, vars } from '../../../styles/theme.css';
+import { lightTheme } from '../../../styles/theme';
+import { lightThemeClass, themeRoot } from '../../../styles/theme.css';
 import { StyledModalBody, StyledModalFooter } from './ModalSubComponents';
+
+// jsdom resolves rem lengths to px in computed styles (16px root font size).
+const toPx = (rem: string) => `${parseFloat(rem) * 16}px`;
 
 // The divider border color has no matching design token (the original
 // theme access was already mismatched and always fell back to this
@@ -123,7 +127,9 @@ describe('ModalFooter', () => {
     expect(footerElement).toHaveStyle(
       `border-top: 1px solid ${dividerBorderColor}`
     );
-    expect(footerElement).toHaveStyle({ paddingTop: vars.spacing.md });
+    expect(footerElement).toHaveStyle({
+      paddingTop: toPx(lightTheme.spacing.md),
+    });
   });
 
   it('does not apply divider when withDivider is false', () => {
